@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css?family=Poppins:300,400,500,700');
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -39,4 +41,8 @@
 
 .read-the-docs {
   color: #888;
+}
+
+.MuiFormLabel-asterisk {
+  color: red !important;
 }
