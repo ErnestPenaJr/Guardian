@@ -114,7 +114,17 @@ app.MapGet("/api/hello", () => "Hello World!");
 app.Logger.LogInformation("Registering Api handlers");
 
 app.MapGroup("/api")
-    .MapTestApi();
+    .MapTestApi()
+    .MapAdminApi()
+    .MapAttachmentApi()
+    .MapDashboardApi()
+    .MapFormApi()
+    .MapMilestoneApi()
+    .MapNoticeApi()
+    .MapRequestApi()
+    .MapRolesApi()
+    .MapTaskApi()
+    .MapUsersApi();
 
 app.UseRouting();
 
