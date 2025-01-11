@@ -10,13 +10,15 @@
 
 //name, organization, email, active, roleId, 
 
+using Repositories;
+
 namespace Handlers
 {
     public static class RolesHandler
     {
         public static RouteGroupBuilder MapRolesApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/roles", () => "Hello World!");
+            group.MapGet("/roles", (RolesRepository rolesRepo) => rolesRepo.GetRoles());
             
             return group;
         }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Repositories;
 using Serilog;
 
 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -27,7 +28,9 @@ var DbConnSetting = configuration.GetConnectionString("DefaultConnection");
 //     options.UseSqlServer(DbConnSetting));
 
 //repo DI
-// builder.Services.AddScoped<FooRepo>();
+builder.Services.AddTransient<RolesRepository>();
+builder.Services.AddTransient<MilestoneRepository>();
+builder.Services.AddTransient<UserRepository>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options => {

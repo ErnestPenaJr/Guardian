@@ -3,6 +3,8 @@
 
 //name, organization, email, active, roleId, 
 
+using Repositories;
+
 namespace Handlers
 {
     public static class UsersHandler
@@ -10,6 +12,9 @@ namespace Handlers
         public static RouteGroupBuilder MapUsersApi(this RouteGroupBuilder group)
         {
             group.MapGet("/users", () => "Hello World!");
+
+
+            group.MapGet("/users/statuses", (UserRepository userRepo) => userRepo.GetStatusTypes());
             
             return group;
         }

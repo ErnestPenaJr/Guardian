@@ -1,9 +1,8 @@
 
 
 
-// • Submission   • Start   • Assign  
-// • Complete   • Cancel   • Deny   • Approve   • Attachment Added   • Tasks     ◦ Add Task     ◦ Assign Task     
-// ◦ Complete Task     ◦ Cancel Task  
+
+using Repositories;
 
 namespace Handlers
 {
@@ -11,7 +10,7 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapMilestoneApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/milestones", () => "Hello World!");
+            group.MapGet("/milestones", (MilestoneRepository msRepo) => msRepo.GetMilestoneTypes());
             
             return group;
         }
