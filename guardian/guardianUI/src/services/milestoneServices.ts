@@ -15,6 +15,27 @@ export type MilestoneData = {
     notes: string
 }
 
+export const fetchMilestoneTypes = async () : Promise<string[]> => {
+
+    let data = [
+        'Submission',
+        'Start',
+        'Assign',
+        'Complete',
+        'Cancel',
+        'Deny',
+        'Approve',
+        'Attachment Added',
+        'Tasks',
+        'Add Task',
+        'Assign Task',
+        'Complete Task',
+        'Cancel Task'
+    ]
+
+    return Promise.resolve(data);
+}
+
 export const fetchMilestones = async (requestId: number) : Promise<MilestoneData[]> => {
     const response = await fetch('foo');
    
