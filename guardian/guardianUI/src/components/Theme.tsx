@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material/styles';
+import type {} from '@mui/x-data-grid/themeAugmentation';
 
 const theme = {
   palette: {
@@ -22,6 +23,15 @@ const theme = {
     fontWeightLight: 300,
     fontWeightRegular: 400,
     fontWeightMedium: 500,
+  },
+  components: {
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'white',
+        },
+      },
+    },
   },
 } as const;
   

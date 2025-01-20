@@ -5,6 +5,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { MainLayout } from './components/Layouts'
 import LandingPage from './pages/LandingPage'
 import Theme from './components/Theme'
+import { ManageUsers } from './pages/ManageUsers'
+import { ProcessorDashboard } from './pages/ProcessorDashboard'
 
 const router = createBrowserRouter([
   {
@@ -13,6 +15,18 @@ const router = createBrowserRouter([
       {
         path: '/',
         element: <LandingPage />
+      },
+      {
+        path: '/admin',
+        children: [
+          {path: 'manageusers', element: <ManageUsers />}
+        ]
+      },
+      {
+        path: '/processor',
+        children: [
+          {path: 'dashboard', element: <ProcessorDashboard />}
+        ]
       },
     ]
   },
