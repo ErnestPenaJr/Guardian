@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage'
 import Theme from './components/Theme'
 import { ManageUsers } from './pages/ManageUsers'
 import { ProcessorDashboard } from './pages/ProcessorDashboard'
+import { FormPage } from './pages/FormPage'
 
 const router = createBrowserRouter([
   {
@@ -19,7 +20,8 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         children: [
-          {path: 'manageusers', element: <ManageUsers />}
+          {path: 'manageusers', element: <ManageUsers />},
+          {path: 'formbuilder', element: <FormPage />},
         ]
       },
       {

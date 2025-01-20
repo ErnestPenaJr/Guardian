@@ -231,7 +231,7 @@ export const FormPage = () => {
     const [sections, setSections] = useAtom(sectionsAtom)
 
     return (
-        <div>
+        <div style={{marginTop: '50px'}}>
             <h1>Form Page</h1>
             <div style={{ display: 'flex' }}>
                 <div style={{ flex: 1 }}>
