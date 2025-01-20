@@ -12,3 +12,19 @@ export const inviteUser = async (email: string) => {
     });
     return response.json();
 }
+
+
+export const saveWorkflow = async (data: any) => {
+    const response = await fetch('http://localhost:3000/workflows');
+    return response.json();
+}
+
+export const editWorkflow = async (data: any) => {
+    const response = await fetch('http://localhost:3000/workflows');
+    return response.json();
+}
+
+export const fetchWorkflows = async () => {
+    const response = await fetch('http://localhost:3000/workflows');
+    return response.json();
+}

@@ -127,6 +127,8 @@ app.MapGroup("/api")
     .MapRequestApi()
     .MapRolesApi()
     .MapTaskApi()
+    .MapTemplatesApi()
+    .MapWorkflowApi()
     .MapUsersApi();
 
 app.UseRouting();
