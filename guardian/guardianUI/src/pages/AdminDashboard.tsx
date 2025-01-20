@@ -11,9 +11,9 @@ export default function AdminDashboard() {
                     <CardContent>
                         <Stack alignItems="center">
                             <PeopleOutlined sx={{ color: '#05445E', fontSize: '80px', justifyContent: 'center' }} />
-                            <Typography sx={{ color: '#05445E', fontWeight: 'bold' }}>Requests</Typography>
+                            <Typography sx={{ color: '#05445E', fontWeight: 'bold' }}>Workflows</Typography>
                             <Link href="/admin/newrequest" variant="body2" sx={{ color: '#05445E', textAlign: 'center', textDecoration: 'none', mt: 2 }}>
-                                Create Request Form
+                                Create A Workflow
                             </Link>
                         </Stack>
                     </CardContent>
