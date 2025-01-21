@@ -77,7 +77,7 @@ export default function NoticesDashboard() {
             <StyledTableCell align="left">Category</StyledTableCell>
             <StyledTableCell align="left">Title</StyledTableCell>
             <StyledTableCell align="left">From</StyledTableCell>
-            <StyledTableCell align="center">Date/Time</StyledTableCell>
+            <StyledTableCell align="left">Date/Time</StyledTableCell>
             <StyledTableCell align="center">Priority</StyledTableCell>
           </TableRow>
         </TableHead>
@@ -87,7 +87,7 @@ export default function NoticesDashboard() {
               <StyledTableCell component="th" scope="row" align="left">{row.category}</StyledTableCell>
               <StyledTableCell align="left">{row.title}</StyledTableCell>
               <StyledTableCell align="left"><EmailOutlined sx={{ pt: 1 }} /> {row.from}</StyledTableCell>
-              <StyledTableCell align="right">{row.createDate}</StyledTableCell>
+              <StyledTableCell align="left">{row.createDate}</StyledTableCell>
               <StyledTableCell align="center"><CircleRounded sx={{color: thePriority?.get(row.priority)}} /></StyledTableCell>
             </StyledTableRow>
           ))}

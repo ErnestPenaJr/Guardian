@@ -7,8 +7,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { Chip, Divider, Stack, Typography } from '@mui/material';
-import { CircleRounded, ListAlt } from '@mui/icons-material';
+import { Button, Chip, Divider, Stack, Typography } from '@mui/material';
+import { CircleRounded, EditNote } from '@mui/icons-material';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -64,9 +64,9 @@ const rows = [
 export default function RequestsDashboard() {
   return (
     <Paper>
-    <Stack mt={1} ml={2} pt={2} mb={2} direction={'row'} spacing={2}>
-    <ListAlt sx={{ mt: 1 }} /> 
+    <Stack mt={1} ml={2} pt={2} mb={2} mr={2} direction={'row'} spacing={2} justifyContent={'space-between'}>
     <Typography variant="h6" gutterBottom display={'flex'} justifyContent={'left'}>Requests Queue</Typography>
+    <Button variant="contained" size="small"><EditNote /> Create a Request</Button>
     </Stack>
     <Divider />
     <TableContainer component={Paper}>

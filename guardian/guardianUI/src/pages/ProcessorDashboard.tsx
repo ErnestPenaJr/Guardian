@@ -8,9 +8,9 @@ export const ProcessorDashboard = () => {
 
     return (
         <>
-            <Grid container spacing={2} sx={{ mt: 10 }}>
+            <Grid container spacing={2} sx={{ mt: 10, mb: 5 }}>
                 <Grid size={3} sx={{  }}>
-                <Paper sx={{mt: 1, width: '100%', height: '100%'}}><RequestOverview /></Paper>
+                <Paper sx={{mt: 1, width: '100%', height: '98%'}}><RequestOverview /></Paper>
                 </Grid>
                 <Grid size={8}>
                 <RequestsDashboard />
