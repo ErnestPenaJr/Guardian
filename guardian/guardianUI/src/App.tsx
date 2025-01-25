@@ -11,6 +11,7 @@ import { FormPage } from './pages/FormPage'
 import { RequestsPage } from './pages/RequestsPage'
 import { NoticesPage } from './pages/NoticesPage'
 import WorkflowListTable from './components/AdminComponents/ViewWorkflows'
+import { EditWorkflowDetails } from './pages/EditWorkflowDetails'
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
           {path: 'manageusers', element: <ManageUsers />},
           {path: 'formbuilder', element: <FormPage />},
           {path: 'workflows', element: <WorkflowListTable />},
+          {path: 'editworkflow', element: <EditWorkflowDetails />},
         ]
       },
       {

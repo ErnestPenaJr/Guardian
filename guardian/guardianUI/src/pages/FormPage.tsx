@@ -270,7 +270,7 @@ type FormSectionProps = {
     children: ReactNode
 }
 
-const FormSection = ({ title, sectionId, children }: FormSectionProps) => {
+export const FormSection = ({ title, sectionId, children }: FormSectionProps) => {
 
     const [sections, setSections] = useAtom(sectionsAtom)
 
