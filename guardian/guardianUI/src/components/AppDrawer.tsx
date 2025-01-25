@@ -106,8 +106,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 const adminMenu = [
 { text: "Home", icon: <BubbleChartOutlined />, navigate: '/'},
-{ text: "Notices", icon: <SmsOutlined />, navigate: '/'},
-{ text: "Requests", icon: <ListAlt />, navigate: '/'},
+{ text: "Notices", icon: <SmsOutlined />, navigate: '/notices/viewnotices'},
+{ text: "Requests", icon: <ListAlt />, navigate: '/requests/viewrequests'},
 { text: "Settings", icon: <SettingsOutlined />, navigate: '/'},
 { text: "Proc Dashboard", icon: <DashboardOutlined />, navigate: '/processor/dashboard'},
 ];

@@ -47,6 +47,7 @@ export default function RequestOverview() {
             itemMarkHeight: 10,
             markGap: 2,
             itemGap: 20,
+            labelStyle: {fontSize: 12}
             }, 
         }}
         width={400}

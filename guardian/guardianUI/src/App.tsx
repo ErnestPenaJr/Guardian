@@ -8,6 +8,8 @@ import Theme from './components/Theme'
 import { ManageUsers } from './pages/ManageUsers'
 import { ProcessorDashboard } from './pages/ProcessorDashboard'
 import { FormPage } from './pages/FormPage'
+import { RequestsPage } from './pages/RequestsPage'
+import { NoticesPage } from './pages/NoticesPage'
 
 const router = createBrowserRouter([
   {
@@ -28,6 +30,18 @@ const router = createBrowserRouter([
         path: '/processor',
         children: [
           {path: 'dashboard', element: <ProcessorDashboard />}
+        ]
+      },
+      {
+        path: '/requests',
+        children: [
+          {path: 'viewrequests', element: <RequestsPage />}
+        ]
+      },
+      {
+        path: '/notices',
+        children: [
+          {path: 'viewnotices', element: <NoticesPage />}
         ]
       },
     ]
