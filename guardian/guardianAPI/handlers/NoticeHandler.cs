@@ -4,7 +4,9 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapNoticeApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/notice", () => "Hello World!");
+            group.MapGet("/notices/{id}", (int id) => {
+                
+            });
             
             return group;
         }

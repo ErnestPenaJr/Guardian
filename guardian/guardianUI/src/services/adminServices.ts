@@ -1,30 +1,14 @@
 
-
-
+import { apiRoot, handleResponse, jsonHeader } from "./serviceUtils"
 
 export const inviteUser = async (email: string) => {
-    const response = await fetch('http://localhost:3000/invite', {
+    const response = await fetch(`${apiRoot}/invite`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        ...jsonHeader,
         body: JSON.stringify({ email })
     });
+    
     return response.json();
 }
 
 
-export const saveWorkflow = async (data: any) => {
-    const response = await fetch('http://localhost:3000/workflows');
-    return response.json();
-}
-
-export const editWorkflow = async (data: any) => {
-    const response = await fetch('http://localhost:3000/workflows');
-    return response.json();
-}
-
-export const fetchWorkflows = async () => {
-    const response = await fetch('http://localhost:3000/workflows');
-    return response.json();
-}
