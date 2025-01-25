@@ -17,9 +17,9 @@ export const EditWorkflowDetails = () => {
     if(error) return <div>Error: {error.message}</div>
     if(!data) return <div>No data found</div>
 
-    useEffect(() => {
-        console.log(data)
-    }, [data])
+    // useEffect(() => {
+    //     console.log(data)
+    // }, [data])
 
     return (
         <>
