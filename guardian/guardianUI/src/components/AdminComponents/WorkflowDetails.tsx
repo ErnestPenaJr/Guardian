@@ -14,16 +14,16 @@ export const editWorkflowSchema = z.object({
 
 export type WorkflowIdentity = z.infer<typeof editWorkflowSchema>;
 
-export const WorkflowDetails = () => {
+export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
 
     const { control, register, formState: { errors } } = useForm<WorkflowIdentity>({
         resolver: zodResolver(editWorkflowSchema),
         defaultValues: {
-            name: "",
-            workflowType: "",
-            description: "",
-            active: true,
-            external: false,
+            name: details.name,
+            workflowType: details.workflowType,
+            description: details.description,
+            active: details.active,
+            external: details.external,
         }
     })
 
@@ -35,6 +35,7 @@ export const WorkflowDetails = () => {
             <Grid container spacing={2} sx={{ m: 2 }}>
                     <Grid size={5}>
                         <TextField
+                            {...register("name")}
                             required
                             label="Name"
                             size="small"
@@ -57,8 +58,8 @@ export const WorkflowDetails = () => {
                                     fullWidth
                                     slotProps={{ inputLabel: { shrink: true }}}
                                 >
-                                    <MenuItem value={'request'}>Request</MenuItem>
-                                    <MenuItem value={'notice'}>Notice</MenuItem>
+                                    <MenuItem value={'Request'}>Request</MenuItem>
+                                    <MenuItem value={'Notice'}>Notice</MenuItem>
                                 </TextField>
                             )}
                         />
@@ -78,6 +79,7 @@ export const WorkflowDetails = () => {
                     <Box width='100%' />
                     <Grid size={8}>
                         <TextField
+                            {...register("description")}    
                             required
                             label="Description"
                             size="small"

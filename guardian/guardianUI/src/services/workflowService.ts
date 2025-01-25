@@ -25,19 +25,23 @@ export type WorkflowItemData = {
     customWorkflow: string[]
 }   
 
-export const fetchWorkflow = (id: number) : Promise<WorkflowItemData> => 
+export const fetchWorkflow = (id: string) : Promise<WorkflowItemData> => 
     fetch(`${apiRoot}/workflows/${id}`,{
         method: 'GET',
         ...jsonHeader
     }).then(resp => handleResponse(resp))
 
 
-export const saveWorkflow = async (data: any) => {
-    const response = await fetch('http://localhost:3000/workflows');
-    return response.json();
-}
+export const saveWorkflow = async (data: any) => 
+    fetch(`${apiRoot}/workflows`,{
+        method: 'POST',
+        ...jsonHeader,
+        body: JSON.stringify(data)
+    })
 
-export const editWorkflow = async (data: any) => {
-    const response = await fetch('http://localhost:3000/workflows');
-    return response.json();
-}
+export const editWorkflow = async (data: any) => 
+    fetch(`${apiRoot}/workflows/${data.workflowId}`,{
+        method: 'PUT',
+        ...jsonHeader,
+        body: JSON.stringify(data)
+    })

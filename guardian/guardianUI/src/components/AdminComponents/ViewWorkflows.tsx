@@ -3,6 +3,7 @@ import Paper from '@mui/material/Paper';
 import { Button, Divider, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkflows } from '../../services/workflowService';
+import { useNavigate } from 'react-router-dom';
 
 const columns: GridColDef[] = [
   { field: 'workflowId', headerName: 'ID', width: 70, headerClassName: 'userheader'},
@@ -22,6 +23,7 @@ const rows = [
 const paginationModel = { page: 0, pageSize: 5 };
 
 export default function WorkflowListTable() {
+  const navigate = useNavigate();
 
   const { isLoading, error, data } = useQuery({queryKey: ['workflowGrid'], queryFn: fetchWorkflows, staleTime: 0, gcTime: 0, retry: 2});
 
@@ -40,6 +42,9 @@ export default function WorkflowListTable() {
         initialState={{ pagination: { paginationModel } }}
         pageSizeOptions={[5, 10]}
         getRowId={(row) => row.workflowId}
+        onRowClick={({row}) => 
+          navigate(`/admin/editworkflow/${row.workflowId}`)
+      }
         sx={{
             boxShadow: 2,
             border: 2,

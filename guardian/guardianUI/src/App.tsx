@@ -27,7 +27,7 @@ const router = createBrowserRouter([
           {path: 'manageusers', element: <ManageUsers />},
           {path: 'formbuilder', element: <FormPage />},
           {path: 'workflows', element: <WorkflowListTable />},
-          {path: 'editworkflow', element: <EditWorkflowDetails />},
+          {path: 'editworkflow/:id', element: <EditWorkflowDetails />},
         ]
       },
       {
