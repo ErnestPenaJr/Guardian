@@ -1,14 +1,15 @@
-import * as React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';
 import { Button, Divider, Typography } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWorkflows } from '../../services/workflowService';
 
 const columns: GridColDef[] = [
-  //{ field: 'id', headerName: 'ID', width: 70, headerClassName: 'userheader'},
+  { field: 'workflowId', headerName: 'ID', width: 70, headerClassName: 'userheader'},
   { field: 'name', headerName: 'Name', width: 300, headerClassName: 'userheader' },
-  { field: 'type', headerName: 'Type', width: 130, headerClassName: 'userheader' },
+  { field: 'workflowType', headerName: 'Type', width: 130, headerClassName: 'userheader' },
   { field: 'external', headerName: 'External', width: 200, headerClassName: 'userheader', hideable: false},
-  { field: 'status', headerName: 'Status', width: 90, headerClassName: 'userheader', hideable: false},
+  { field: 'active', headerName: 'Status', width: 90, headerClassName: 'userheader', hideable: false},
   
 ];
 
@@ -21,16 +22,24 @@ const rows = [
 const paginationModel = { page: 0, pageSize: 5 };
 
 export default function WorkflowListTable() {
+
+  const { isLoading, error, data } = useQuery({queryKey: ['workflowGrid'], queryFn: fetchWorkflows, staleTime: 0, gcTime: 0, retry: 2});
+
+  if(isLoading) return <div>Loading...</div>
+
+  if(error) return <div>Error: {error.message}</div>
+
   return (
     <Paper sx={{ height: 400, width: 1000, mt: 15 }}>
         <Typography variant="h5" sx={{mt: 2, ml: 2}} gutterBottom>View Workflows</Typography>
         <Button sx={{ ml: 2, mt: 2 }} variant="contained" size="small">Create a New Workflow</Button>
         <Divider sx={{ mt: 3, width: '100%' }} />
       <DataGrid
-        rows={rows}
+        rows={data}
         columns={columns}
         initialState={{ pagination: { paginationModel } }}
         pageSizeOptions={[5, 10]}
+        getRowId={(row) => row.workflowId}
         sx={{
             boxShadow: 2,
             border: 2,
