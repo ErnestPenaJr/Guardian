@@ -15,6 +15,9 @@ export default function AdminDashboard() {
                             <Link href="/admin/formbuilder" variant="body2" sx={{ color: '#05445E', textAlign: 'center', textDecoration: 'none', mt: 2 }}>
                                 Create A Workflow
                             </Link>
+                            <Link href="/admin/workflows" variant="body2" sx={{ color: '#05445E', textAlign: 'center', textDecoration: 'none', mt: 2 }}>
+                                View Workflows
+                            </Link>
                         </Stack>
                     </CardContent>
                 </Card>
