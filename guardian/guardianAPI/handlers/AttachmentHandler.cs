@@ -4,7 +4,12 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapAttachmentApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/attachment", () => "Hello World!");
+            group.MapGet("/attachments/{id}", (Guid id) => 
+            {
+                return Results.Ok();
+            });
+
+            
             
             return group;
         }

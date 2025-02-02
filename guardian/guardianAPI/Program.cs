@@ -31,6 +31,8 @@ var DbConnSetting = configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddTransient<RolesRepository>();
 builder.Services.AddTransient<MilestoneRepository>();
 builder.Services.AddTransient<UserRepository>();
+builder.Services.AddTransient<RequestRepository>();
+builder.Services.AddTransient<NoticeRepository>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options => {
