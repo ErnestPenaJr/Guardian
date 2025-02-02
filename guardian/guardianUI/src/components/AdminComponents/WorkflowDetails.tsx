@@ -60,7 +60,6 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
                                 >
                                     <MenuItem value={'Request'}>Request</MenuItem>
                                     <MenuItem value={'Notice'}>Notice</MenuItem>
-                                    <MenuItem value={'SelfService'}>Self Service</MenuItem>
                                 </TextField>
                             )}
                         />
