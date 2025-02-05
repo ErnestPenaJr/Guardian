@@ -11,7 +11,7 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapUsersApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/users", () => "Hello World!");
+            group.MapGet("/users", (UserRepository userRepo) => userRepo.GetUsers());
 
 
             group.MapGet("/users/statuses", (UserRepository userRepo) => userRepo.GetStatusTypes());
