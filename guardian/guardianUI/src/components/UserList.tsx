@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';
+import { useQuery } from '@tanstack/react-query';
+import { fetchUsers } from '../services/adminServices';
 
 const columns: GridColDef[] = [
   //{ field: 'id', headerName: 'ID', width: 70, headerClassName: 'userheader'},
@@ -17,7 +19,7 @@ const columns: GridColDef[] = [
   //{ field: 'lastName', headerName: 'Last name', width: 130, headerClassName: 'userheader' },
   { field: 'email', headerName: 'Email', width: 200, headerClassName: 'userheader', hideable: false},
   { field: 'role', headerName: 'Role', width: 130, headerClassName: 'userheader', hideable: false},
-  { field: 'userstatus', headerName: 'Status', width: 90, headerClassName: 'userheader', hideable: false},
+  { field: 'userStatus', headerName: 'Status', width: 90, headerClassName: 'userheader', hideable: false},
   
 ];
 
@@ -36,10 +38,17 @@ const rows = [
 const paginationModel = { page: 0, pageSize: 5 };
 
 export default function UserTable() {
+
+  const { isLoading, error, data } = useQuery({queryKey: ['workflowGrid'], queryFn: () => fetchUsers(),  staleTime: 0, gcTime: 0, retry: 2});
+
+  if(isLoading) return <div>Loading...</div>
+  if(error) return <div>Error: {error.message}</div>
+  if(!data) return <div>No data found</div>
+
   return (
     <Paper sx={{ height: 400, width: 1000 }}>
       <DataGrid
-        rows={rows}
+        rows={data}
         columns={columns}
         initialState={{ pagination: { paginationModel } }}
         pageSizeOptions={[5, 10]}
