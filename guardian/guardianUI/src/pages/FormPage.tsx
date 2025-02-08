@@ -2,102 +2,20 @@ import { BuildOutlined } from "@mui/icons-material";
 import { atom, useAtom, useAtomValue } from "jotai"
 import { ReactNode, useEffect } from "react"
 
-const formVersion = 69420;
-
-//Account #, Address Line 1, Address Line 2, City, State, Zip Code, Phone Number, Email Address, Routing #
-let defaultFields2 = [
-    {
-        type: 'text',
-        label: 'Account #',
-        name: 'accountNumber',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'Address Line 1',
-        name: 'addressLine1',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'Address Line 2',
-        name: 'addressLine2',
-        required: false
-    },
-    {
-        type: 'text',
-        label: 'City',
-        name: 'city',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'State',
-        name: 'state',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'Zip Code',
-        name: 'zipCode',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'Phone Number',
-        name: 'phoneNumber',
-        required: true
-    },
-    {
-        type: 'email',
-        label: 'Email Address',
-        name: 'emailAddress',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'Routing #',
-        name: 'routingNumber',
-        required: true
-    }
-]
-
-let f1 = [
-    {
-        type: 'text',
-        label: 'First Name',
-        name: 'firstName',
-        required: true
-    },
-    {
-        type: 'text',
-        label: 'Last Name',
-        name: 'lastName',
-        required: true
-    },
-    {
-        type: 'email',
-        label: 'Email',
-        name: 'email',
-        required: true
-    }
-]
-
-
 let defaultFields = [
     {
         "id": "0baa74bc-3370-4858-bc6b-47d6aa1b6f09",
         "type": "text",
         "label": "Account #",
         "name": "accountNumber",
-        "required": true
+        "required": false
     },
     {
         "id": "74409eb4-4a33-4d6f-8c8a-bcd33c3306f8",
         "type": "text",
         "label": "Address Line 1",
         "name": "addressLine1",
-        "required": true
+        "required": false
     },
     {
         "id": "2462ee3d-30de-4358-af90-e484c8647ec8",
@@ -111,42 +29,42 @@ let defaultFields = [
         "type": "text",
         "label": "City",
         "name": "city",
-        "required": true
+        "required": false
     },
     {
         "id": "715b78c0-e057-4af7-940f-7e3d04b2f97d",
         "type": "text",
         "label": "State",
         "name": "state",
-        "required": true
+        "required": false
     },
     {
         "id": "d71eb496-9ed0-4161-9197-edd40aeb7aa1",
         "type": "text",
         "label": "Zip Code",
         "name": "zipCode",
-        "required": true
+        "required": false
     },
     {
         "id": "3c9c875c-725b-46fe-a58d-dab645e167b1",
         "type": "text",
         "label": "Phone Number",
         "name": "phoneNumber",
-        "required": true
+        "required": false
     },
     {
         "id": "c7266ea8-f5ed-4842-bc5c-1edf8d37a5e2",
         "type": "email",
         "label": "Email Address",
         "name": "emailAddress",
-        "required": true
+        "required": false
     },
     {
         "id": "aa838f30-5eac-4d97-bc3f-8e32bd51abec",
         "type": "text",
         "label": "Routing #",
         "name": "routingNumber",
-        "required": true
+        "required": false
     }
 ]
 //Contains fields: First Name, Middle Name, Last Name, DOB, SSN, Phone Number
@@ -156,7 +74,7 @@ let subjectFields = [
         "type": "text",
         "label": "First Name",
         "name": "firstName",
-        "required": true
+        "required": false
     },
     {
         "id": "f1a9b2c6-6c5b-4b3e-8e0e-2f8e7f4f6c7d",
@@ -170,28 +88,28 @@ let subjectFields = [
         "type": "text",
         "label": "Last Name",
         "name": "lastName",
-        "required": true
+        "required": false
     },
     {
         "id": "f1a9b2c6-6c5b-4b3e-8e0e-2f8e7f4f6c7d",
         "type": "date",
         "label": "DOB",
         "name": "dob",
-        "required": true
+        "required": false
     },
     {
         "id": "f1a9b2c6-6c5b-4b3e-8e0e-2f8e7f4f6c7d",
         "type": "text",
         "label": "SSN",
         "name": "ssn",
-        "required": true
+        "required": false
     },
     {
         "id": "f1a9b2c6-6c5b-4b3e-8e0e-2f8e7f4f6c7d",
         "type": "text",
         "label": "Phone Number",
         "name": "phoneNumber",
-        "required": true
+        "required": false
     }
 ]
 
@@ -259,51 +177,51 @@ let addressFields: Field[] = [
     }
 ]
 
-let vehicleFields: Field[] = 
-[
-    {
-        "id": "d6753a72-8e39-4e4f-b5b0-e151efe56c42",
-        "type": "text",
-        "label": "Make",
-        "name": "make",
-        "required": false
-    },
-    {
-        "id": "38cd9a9d-b14a-42cd-81ed-db981dba1c14",
-        "type": "text",
-        "label": "Model",
-        "name": "model",
-        "required": false
-    },
-    {
-        "id": "4f36124d-4023-407b-b128-373fe412ad2d",
-        "type": "text",
-        "label": "Color",
-        "name": "color",
-        "required": false
-    },
-    {
-        "id": "70769c62-656e-426f-8846-c3f5f40e5726",
-        "type": "text",
-        "label": "License Plate",
-        "name": "licensePlate",
-        "required": false
-    },
-    {
-        "id": "67417344-12a5-4a2a-adf1-f79a93390fda",
-        "type": "text",
-        "label": "VIN",
-        "name": "vin",
-        "required": false
-    },
-    {
-        "id": "53f2bbd4-784f-4525-8c6d-00c1cc481837",
-        "type": "text",
-        "label": "Year",
-        "name": "year",
-        "required": false
-    }
-]
+let vehicleFields: Field[] =
+    [
+        {
+            "id": "d6753a72-8e39-4e4f-b5b0-e151efe56c42",
+            "type": "text",
+            "label": "Make",
+            "name": "make",
+            "required": false
+        },
+        {
+            "id": "38cd9a9d-b14a-42cd-81ed-db981dba1c14",
+            "type": "text",
+            "label": "Model",
+            "name": "model",
+            "required": false
+        },
+        {
+            "id": "4f36124d-4023-407b-b128-373fe412ad2d",
+            "type": "text",
+            "label": "Color",
+            "name": "color",
+            "required": false
+        },
+        {
+            "id": "70769c62-656e-426f-8846-c3f5f40e5726",
+            "type": "text",
+            "label": "License Plate",
+            "name": "licensePlate",
+            "required": false
+        },
+        {
+            "id": "67417344-12a5-4a2a-adf1-f79a93390fda",
+            "type": "text",
+            "label": "VIN",
+            "name": "vin",
+            "required": false
+        },
+        {
+            "id": "53f2bbd4-784f-4525-8c6d-00c1cc481837",
+            "type": "text",
+            "label": "Year",
+            "name": "year",
+            "required": false
+        }
+    ]
 
 type Section = {
     id: string
@@ -322,7 +240,7 @@ type Field = {
 
 const sectionsAtom = atom<Section[]>([])
 
-const Spacer = ({height} :{height?: string | undefined}) => {
+const Spacer = ({ height }: { height?: string | undefined }) => {
     return (
         <div style={{ height: height ?? '10px' }}></div>
     )
@@ -332,7 +250,7 @@ const FormField = ({ field }: { field: Field }) => {
     return (
         <div>
             <label>{field.label}</label>
-            <input type={field.type} name={field.name} required={field.required}/>
+            <input type={field.type} name={field.name} required={field.required} />
         </div>
     )
 }
@@ -341,12 +259,8 @@ export const FormPage = () => {
 
     const [sections, setSections] = useAtom(sectionsAtom)
 
-    useEffect(() => {
-        console.log("sections", sections)
-    }, [sections])
-
     return (
-        <div style={{marginTop: '50px'}}>
+        <div style={{ marginTop: '50px' }}>
             <h1>Form Page</h1>
             <div style={{ display: 'flex' }}>
                 <div style={{ flex: 1 }}>
@@ -356,12 +270,12 @@ export const FormPage = () => {
                     <FormSelectorButtons />
                 </div>
             </div>
-            <Spacer height="20px"/>
+            <Spacer height="20px" />
             <pre><code>
                 {JSON.stringify(sections, null, "    ")}
-                </code></pre>
-            
-            <Spacer height="20px"/>
+            </code></pre>
+
+            <Spacer height="20px" />
             {sections.map((section, index) => {
                 return (
                     <FormSection key={index} sectionId={section.id} title={section.title ?? ""}>
@@ -370,7 +284,7 @@ export const FormPage = () => {
                                 <FormField key={field.id} field={field} />
                                 <button onClick={() => {
                                     console.log("removing field", field)
-                                    
+
                                     setSections(sections.map(s => ({ ...s, fields: s.fields.filter(f => f.id !== field.id) })))
                                 }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                                     <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'red' }}>×</span>
@@ -401,11 +315,11 @@ export const FormSection = ({ title, sectionId, children }: FormSectionProps) =>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     {/* <h2>{title}</h2> */}
                     <button onClick={() => {
-                                    setSections(sections.filter(s => s.id !== sectionId))
-                                }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'red' }}>×</span>
-                                </button>
-                    
+                        setSections(sections.filter(s => s.id !== sectionId))
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'red' }}>×</span>
+                    </button>
+
 
 
                 </div>
