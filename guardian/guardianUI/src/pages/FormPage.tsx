@@ -1,72 +1,10 @@
 import { BuildOutlined } from "@mui/icons-material";
+import { useQuery } from "@tanstack/react-query";
 import { atom, useAtom, useAtomValue } from "jotai"
 import { ReactNode, useEffect } from "react"
+import { fetchFields, fetchTemplates } from "../services/templatesService";
 
-let defaultFields = [
-    {
-        "id": "0baa74bc-3370-4858-bc6b-47d6aa1b6f09",
-        "type": "text",
-        "label": "Account #",
-        "name": "accountNumber",
-        "required": false
-    },
-    {
-        "id": "74409eb4-4a33-4d6f-8c8a-bcd33c3306f8",
-        "type": "text",
-        "label": "Address Line 1",
-        "name": "addressLine1",
-        "required": false
-    },
-    {
-        "id": "2462ee3d-30de-4358-af90-e484c8647ec8",
-        "type": "text",
-        "label": "Address Line 2",
-        "name": "addressLine2",
-        "required": false
-    },
-    {
-        "id": "f049b24d-edc0-4ea6-afe2-6a65359506f5",
-        "type": "text",
-        "label": "City",
-        "name": "city",
-        "required": false
-    },
-    {
-        "id": "715b78c0-e057-4af7-940f-7e3d04b2f97d",
-        "type": "text",
-        "label": "State",
-        "name": "state",
-        "required": false
-    },
-    {
-        "id": "d71eb496-9ed0-4161-9197-edd40aeb7aa1",
-        "type": "text",
-        "label": "Zip Code",
-        "name": "zipCode",
-        "required": false
-    },
-    {
-        "id": "3c9c875c-725b-46fe-a58d-dab645e167b1",
-        "type": "text",
-        "label": "Phone Number",
-        "name": "phoneNumber",
-        "required": false
-    },
-    {
-        "id": "c7266ea8-f5ed-4842-bc5c-1edf8d37a5e2",
-        "type": "email",
-        "label": "Email Address",
-        "name": "emailAddress",
-        "required": false
-    },
-    {
-        "id": "aa838f30-5eac-4d97-bc3f-8e32bd51abec",
-        "type": "text",
-        "label": "Routing #",
-        "name": "routingNumber",
-        "required": false
-    }
-]
+
 //Contains fields: First Name, Middle Name, Last Name, DOB, SSN, Phone Number
 let subjectFields = [
     {
@@ -258,16 +196,24 @@ const FormField = ({ field }: { field: Field }) => {
 export const FormPage = () => {
 
     const [sections, setSections] = useAtom(sectionsAtom)
+    
+    //perhaps these should be combined
+    const { isLoading: loadingFields, error: fieldsError, data: fieldsData } = useQuery({queryKey: ['workflowFields'], queryFn: () => fetchFields(),  staleTime: 0, gcTime: 0, retry: 2});
+    const { isLoading: loadingTemplates, error: templatesError, data: templatesData } = useQuery({queryKey: ['workflowTemplates'], queryFn: () => fetchTemplates(),  staleTime: 0, gcTime: 0, retry: 2});
+
+    if(loadingFields || loadingTemplates) return <div>Loading...</div>
+    if(fieldsError || templatesError) return <div>Error: {fieldsError?.message} {templatesError?.message}</div>
+
 
     return (
         <div style={{ marginTop: '50px' }}>
             <h1>Form Page</h1>
             <div style={{ display: 'flex' }}>
                 <div style={{ flex: 1 }}>
-                    <FormSelectorTemplates />
+                    <FormSelectorTemplates templates={templatesData}/>
                 </div>
                 <div style={{ flex: 1 }}>
-                    <FormSelectorButtons />
+                    <FormSelectorButtons fields={fieldsData}/>
                 </div>
             </div>
             <Spacer height="20px" />
@@ -332,7 +278,7 @@ export const FormSection = ({ title, sectionId, children }: FormSectionProps) =>
     )
 }
 
-const FormSelectorTemplates = () => {
+const FormSelectorTemplates = ({templates}: {templates: any}) => {
 
     const [sections, setSections] = useAtom(sectionsAtom)
 
@@ -342,19 +288,19 @@ const FormSelectorTemplates = () => {
             <h1>Templates:</h1>
             <ul>
                 <li onClick={() => {
-                    setSections([...sections, { id: crypto.randomUUID(), title: "Subject", fields: subjectFields }])
+                    setSections([...sections, { id: crypto.randomUUID(), title: "Subject", fields: templates.subjectFields }])
 
                 }}>Subject</li>
                 <li onClick={() => {
-                    setSections([...sections, { id: crypto.randomUUID(), title: "Financial", fields: financialFields }])
+                    setSections([...sections, { id: crypto.randomUUID(), title: "Financial", fields: templates.financialFields }])
 
                 }}>Financial</li>
                 <li onClick={() => {
-                    setSections([...sections, { id: crypto.randomUUID(), title: "Address", fields: addressFields }])
+                    setSections([...sections, { id: crypto.randomUUID(), title: "Address", fields: templates.addressFields }])
 
                 }}>Address</li>
                 <li onClick={() => {
-                    setSections([...sections, { id: crypto.randomUUID(), title: "Vehicle", fields: vehicleFields }])
+                    setSections([...sections, { id: crypto.randomUUID(), title: "Vehicle", fields: templates.vehicleFields }])
 
                 }}>Vehicle</li>
             </ul>
@@ -362,14 +308,14 @@ const FormSelectorTemplates = () => {
     )
 }
 
-const FormSelectorButtons = () => {
+const FormSelectorButtons = ({fields}: {fields: any[]}) => {
 
     const [sections, setSections] = useAtom(sectionsAtom)
 
     return (
         <div>
             <h1>Form Selector Buttons</h1>
-            {defaultFields.map((field, index) => {
+            {fields.map((field, index) => {
                 return (
                     <button key={index} onClick={() => {
                         console.log("adding field", field)

@@ -2,7 +2,7 @@ import { apiRoot, handleResponse, jsonHeader } from "./serviceUtils"
 
 //specific to form builder
 
-export const fetchFields = async () =>
+export const fetchFields = async () => 
     fetch(`${apiRoot}/templates/fields`, {
         method: 'GET',
         ...jsonHeader
