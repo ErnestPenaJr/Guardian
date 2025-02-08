@@ -37,5 +37,45 @@ namespace Repositories
             // update request
             return true;
         }
+
+        public bool CancelRequest(int requestId, string userId)
+        {
+            return true;
+        }
+
+        public bool StartRequest(int requestId, string userId)
+        {
+            return true;
+        }
+
+        public bool CompleteRequest(int requestId, string userId)
+        {
+            return true;
+        }
+
+        public bool AddResults() {
+            return true;
+        }
+
+        public bool AddTask(TaskData task) {
+            return true;
+        }
+
+        public bool StartTask(int taskId, string userId) {
+            return true;
+        }
+
+        public bool CompleteTask(int taskId, string userId) {
+            return true;
+        }
+
+        public bool CancelTask(int taskId, string userId) {
+            return true;
+        }
+
+        public bool AssignTask(int taskId, string userId, string assignedId) {
+            return true;
+        }
+
     }
 }

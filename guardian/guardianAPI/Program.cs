@@ -129,7 +129,6 @@ app.MapGroup("/api")
     .MapNoticeApi()
     .MapRequestApi()
     .MapRolesApi()
-    .MapTaskApi()
     .MapTemplatesApi()
     .MapWorkflowApi()
     .MapUsersApi();

@@ -19,8 +19,3 @@ export const fetchNoticeTemplates = async () => {
     const response = await fetch('http://localhost:3000/requestTemplates');
     return response.json();
 }
-
-export const fetchSelfServiceTemplates = async () => {
-    const response = await fetch('http://localhost:3000/requestTemplates');
-    return response.json();
-}
