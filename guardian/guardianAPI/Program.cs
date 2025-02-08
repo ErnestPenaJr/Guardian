@@ -33,6 +33,7 @@ builder.Services.AddTransient<MilestoneRepository>();
 builder.Services.AddTransient<UserRepository>();
 builder.Services.AddTransient<RequestRepository>();
 builder.Services.AddTransient<NoticeRepository>();
+builder.Services.AddTransient<WorkflowRepository>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options => {

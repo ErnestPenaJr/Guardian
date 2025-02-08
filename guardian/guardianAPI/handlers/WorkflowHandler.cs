@@ -1,6 +1,7 @@
 
 
 using Models;
+using Repositories;
 
 namespace Handlers
 {
@@ -8,7 +9,7 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapWorkflowApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/workflows", () => {
+            group.MapGet("/workflows", (WorkflowRepository wfRepo) => {
 
                 List<WorkflowGridData> workflows = [
                     new WorkflowGridData { WorkflowId = 1, Name = "workflow 1", WorkflowType = "Request", External = false, Active = true },
@@ -21,14 +22,14 @@ namespace Handlers
                 return Results.Ok(workflows);
             });
 
-            group.MapGet("/workflows/{id}", (int id) => {
+            group.MapGet("/workflows/{id}", (int id, WorkflowRepository wfRepo) => {
 
                 List<WorkflowData> workflows = [
-                    new WorkflowData { WorkflowId = 1, Name = "workflow 1", Description = "workflow 1 description", Active = true, External = false, WorkflowType = "Request", CustomWorkflow = "{}" },
-                    new WorkflowData { WorkflowId = 2, Name = "workflow 2", Description = "workflow 2 description", Active = true, External = false, WorkflowType = "Request", CustomWorkflow = "{}" },
-                    new WorkflowData { WorkflowId = 3, Name = "workflow 3", Description = "workflow 3 description", Active = true, External = true, WorkflowType = "Notice", CustomWorkflow = "{}" },
-                    new WorkflowData { WorkflowId = 4, Name = "workflow 4", Description = "workflow 4 description", Active = false, External = false, WorkflowType = "Request", CustomWorkflow = "{}" },
-                    new WorkflowData { WorkflowId = 5, Name = "workflow 5", Description = "workflow 5 description", Active = true, External = true, WorkflowType = "Notice", CustomWorkflow = "{}" }
+                    new WorkflowData { WorkflowId = 1, Name = "workflow 1", Description = "workflow 1 description", Active = true, External = false, WorkflowType = "Request", CustomWorkflow = "{}", SelfService = false },
+                    new WorkflowData { WorkflowId = 2, Name = "workflow 2", Description = "workflow 2 description", Active = true, External = false, WorkflowType = "Request", CustomWorkflow = "{}", SelfService = false },
+                    new WorkflowData { WorkflowId = 3, Name = "workflow 3", Description = "workflow 3 description", Active = true, External = true, WorkflowType = "Notice", CustomWorkflow = "{}", SelfService = false },
+                    new WorkflowData { WorkflowId = 4, Name = "workflow 4", Description = "workflow 4 description", Active = false, External = false, WorkflowType = "Request", CustomWorkflow = "{}", SelfService = false },
+                    new WorkflowData { WorkflowId = 5, Name = "workflow 5", Description = "workflow 5 description", Active = true, External = true, WorkflowType = "Notice", CustomWorkflow = "{}", SelfService = false }
                 ];
 
                 var workflow = workflows.FirstOrDefault(w => w.WorkflowId == id);
@@ -41,13 +42,13 @@ namespace Handlers
                 return Results.Ok(workflow);
             });
 
-            group.MapPost("/workflows", () => {
+            group.MapPost("/workflows", (WorkflowData data, WorkflowRepository wfRepo) => {
                 
                 return Results.Ok();
             });
 
             //title description active external
-            group.MapPut("/workflows", () => {
+            group.MapPut("/workflows", (WorkflowData data, WorkflowRepository wfRepo) => {
 
                 
 

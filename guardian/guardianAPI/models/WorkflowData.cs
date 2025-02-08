@@ -15,6 +15,8 @@ namespace Models {
 
         public required bool External {get;init;}
 
+        public required bool SelfService {get;init;} = false;
+
         public required string WorkflowType {get;init;}
 
         public required string CustomWorkflow {get;init;} //represent the json
