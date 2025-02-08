@@ -9,7 +9,7 @@ namespace Models {
     public record RequestFormData {
         public required string RequestType {get;init;}
 
-        
+
     }
 
     public record TaskData {

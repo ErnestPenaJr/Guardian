@@ -77,5 +77,13 @@ namespace Repositories
             return true;
         }
 
+        public bool CreateMilestone() {
+            return true;
+        }
+
+        public bool GetMilestones(int requestId) {
+            return true;
+        }
+
     }
 }
