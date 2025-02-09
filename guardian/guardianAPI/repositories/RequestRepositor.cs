@@ -1,11 +1,12 @@
 //User Status: Invited, Pending, Denied, Active, Inactive
 
 
+using Database.Entities;
 using Models;
 
 namespace Repositories
 {
-    public class RequestRepository
+    public class RequestRepository(GuardianDb db)
     {
         public RequestData? GetRequest(int id)
         {
@@ -26,63 +27,88 @@ namespace Repositories
             ];
         }
 
-        public bool CreateRequest(RequestData request)
+        public async Task<bool> CreateRequest(RequestData request)
         {
             // create request
-            return true;
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool UpdateRequest(RequestData request)
+        public async Task<bool> UpdateRequest(RequestData request)
         {
             // update request
-            return true;
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool CancelRequest(int requestId, string userId)
+        public async Task<bool> CancelRequest(int requestId, string userId)
         {
-            return true;
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool StartRequest(int requestId, string userId)
+        public async Task<bool> StartRequest(int requestId, string userId)
         {
-            return true;
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool CompleteRequest(int requestId, string userId)
+        public async Task<bool> CompleteRequest(int requestId, string userId)
         {
-            return true;
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool AddResults() {
-            return true;
+        public async Task<bool> AddResults() {
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool AddTask(TaskData task) {
-            return true;
+        public async Task<bool> AddTask(TaskData task) {
+            
+            // db.Add(TaskEntity {
+            //     TaskId = task.TaskId,
+            // });
+
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool StartTask(int taskId, string userId) {
-            return true;
+        public async Task<bool> StartTask(int taskId, string userId) {
+
+
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool CompleteTask(int taskId, string userId) {
-            return true;
+        public async Task<bool> CompleteTask(int taskId, string userId) {
+
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool CancelTask(int taskId, string userId) {
-            return true;
+        public async Task<bool> CancelTask(int taskId, string userId) {
+            
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool AssignTask(int taskId, string userId, string assignedId) {
-            return true;
+        public async Task<bool> AssignTask(int taskId, string userId, string assignedId) {
+
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool CreateMilestone() {
-            return true;
+        public async Task<bool> CreateMilestone() {
+
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
-        public bool GetMilestones(int requestId) {
-            return true;
+        public async Task<bool> GetMilestones(int requestId) {
+            
+            var changes = await db.SaveChangesAsync();
+            return changes > 0;
         }
 
     }

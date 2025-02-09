@@ -29,7 +29,7 @@ namespace Services
                     var newData = data with {
                         To = [lowerEnvRecipient],
                         Cc = [],
-                        Body = $"{data.Body}<br><br><br> <ul> Original TO: Recipients {data.To.Select(t => $"<li>{t}</li>").DefaultIfEmpty(string.Empty).Aggregate((prev,next) => $"{prev}{next}")} </ul> <br> <ul> Original CC: Recipients {data.Cc.Select(t => $"<li>{t}</li>").DefaultIfEmpty(string.Empty).Aggregate((prev,next) => $"{prev}{next}")} </ul>",
+                        Body = $"{data.Body}<br><br><br> <ul> Original TO: Recipients {data.To.Select(t => $"<li>{t}</li>").DefaultIfEmpty(string.Empty).Aggregate((prev,next) => $"{prev}{next}")} </ul> <br> <ul> Original CC: Recipients {data?.Cc?.Select(t => $"<li>{t}</li>").DefaultIfEmpty(string.Empty).Aggregate((prev,next) => $"{prev}{next}")} </ul>",
                     };
 
                     Logger.LogDebug("Log outgoing email Message: {@EmailData}", newData with { Body = RemoveImages().Replace(newData.Body, "\"HEADER IMAGE TOKEN\"") });

@@ -1,8 +1,9 @@
+using Database.Entities;
 using Models;
 
 namespace Repositories
 {
-    public class MilestoneRepository
+    public class MilestoneRepository(GuardianDb db)
     {
         public List<MilestoneData> GetMilestoneTypes()
         {
@@ -22,5 +23,6 @@ namespace Repositories
                 new () { MilestoneId = 12, Name = "Cancel Task" }
             ];
         }
+
     }
 }
