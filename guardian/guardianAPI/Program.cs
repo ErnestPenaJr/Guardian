@@ -1,11 +1,13 @@
 
 using AppSettings;
+using Database.Entities;
 using Handlers;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Repositories;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -24,8 +26,8 @@ var smtpConfig = configuration.GetSection(SmtpSettings.SectionName).Get<SmtpSett
 
 var DbConnSetting = configuration.GetConnectionString("DefaultConnection");
 
-// builder.Services.AddDbContext<WeatherDbContext>(options =>
-//     options.UseSqlServer(DbConnSetting));
+builder.Services.AddDbContext<GuardianDb>(options =>
+    options.UseSqlServer(DbConnSetting));
 
 //repo DI
 builder.Services.AddTransient<RolesRepository>();
