@@ -74,9 +74,9 @@ export const FormPage = () => {
                         {JSON.stringify(sections, null, "    ")}
                     </code></pre>
                     <Spacer height="20px" />
-                    {sections.map((section, index) => {
+                    {sections.map((section) => {
                         return (
-                            <FormSection key={index} sectionId={section.id} title={section.title ?? ""}>
+                            <FormSection key={section.id} sectionId={section.id} title={section.title ?? ""}>
                                 {section.fields.map((field) => {
                                     return (<>
                                         <Stack direction={'row'} spacing={1}>
