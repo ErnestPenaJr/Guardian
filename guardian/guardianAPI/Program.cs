@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Repositories;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Database.Guardian.Entities;
 
 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
@@ -26,7 +27,7 @@ var smtpConfig = configuration.GetSection(SmtpSettings.SectionName).Get<SmtpSett
 
 var DbConnSetting = configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<GuardianDb>(options =>
+builder.Services.AddDbContext<GuardianDbContext>(options =>
     options.UseSqlServer(DbConnSetting));
 
 //repo DI

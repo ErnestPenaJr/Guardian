@@ -1,16 +1,17 @@
 using Database.Entities;
+using Database.Guardian.Entities;
 using Models;
 
 namespace Repositories
 {
-    public class MilestoneRepository(GuardianDb db)
+    public class MilestoneRepository(GuardianDbContext db)
     {
         public List<MilestoneData> GetMilestoneTypes()
         {
             return
             [
                 new () { MilestoneId = 1, Name = "Submission" },
-                new() { MilestoneId = 2, Name = "Start" },
+                new () { MilestoneId = 2, Name = "Start" },
                 new () { MilestoneId = 3, Name = "Assign" },
                 new () { MilestoneId = 4, Name = "Complete" },
                 new () { MilestoneId = 5, Name = "Cancel" },

@@ -2,11 +2,12 @@
 
 
 using Database.Entities;
+using Database.Guardian.Entities;
 using Models;
 
 namespace Repositories
 {
-    public class RequestRepository(GuardianDb db)
+    public class RequestRepository(GuardianDbContext db)
     {
         public RequestData? GetRequest(int id)
         {
