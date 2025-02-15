@@ -1,6 +1,7 @@
 
 namespace Models {
 
+
     public record UserData {
 
         public required string FirstName {get; init;}

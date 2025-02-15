@@ -1,77 +1,85 @@
 //User Status: Invited, Pending, Denied, Active, Inactive
 
 
+using Database.Guardian.Entities;
+using Microsoft.EntityFrameworkCore;
 using Models;
 
 namespace Repositories
 {
-    public class WorkflowRepository
+    public class WorkflowRepository(GuardianDbContext db)
     {
 
-    // public record WorkflowData {
-
-    //     public required int WorkflowId {get;init;}
-
-    //     public required string Name {get;init;}
-
-    //     public required string Description {get;init;}
-
-    //     public required bool Active {get;init;}
-
-    //     public required bool External {get;init;}
-
-    //     public required bool SelfService {get;init;} = false;
-
-    //     public required string WorkflowType {get;init;}
-
-    //     public required string CustomWorkflow {get;init;} //represent the json
-    // }
-        public WorkflowData? GetWorkflow(int workflowId)
+        public async Task<WorkflowData?> GetWorkflow(Guid workflowId)
         {
-            return workflowId switch
+            var wf = await db.Workflows
+                .Where(w => w.Id == workflowId) //TODO add organization check?
+                .OrderByDescending(w => w.CreatedAt)
+                .Select(w => new WorkflowData
+                {
+                    Id = w.Id,
+                    Name = w.Name,
+                    Description = w.Description,
+                    IsActive = w.IsActive,
+                    IsExternal = w.IsExternal,
+                    WorkflowType = w.WorkflowType,
+                    WorkflowDefinition = w.WorkflowDefinition
+                })
+                .SingleOrDefaultAsync();
+
+            return wf;
+        }
+
+        public async Task<List<WorkflowGridData>> GetWorkflows(string workflowType, Guid organizationId)
+        {
+            var query = db.Workflows.Where(w => w.OrganizationId == organizationId);
+
+            if (workflowType == "request")
             {
-                1 => new WorkflowData { WorkflowId = 1, Name = "User Workflow", Description = "User Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "User", CustomWorkflow = "User Workflow JSON" },
-                2 => new WorkflowData { WorkflowId = 2, Name = "Request Workflow", Description = "Request Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "Request", CustomWorkflow = "Request Workflow JSON" },
-                3 => new WorkflowData { WorkflowId = 3, Name = "Milestone Workflow", Description = "Milestone Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "Milestone", CustomWorkflow = "Milestone Workflow JSON" },
-                _ => null
-            };
-        }
-
-        public List<WorkflowData> GetWorkflows(string workflowType = "all")
-        {
-            return workflowType switch
+                query = query.Where(w => w.WorkflowType == "request");
+            } else if (workflowType == "notice")
             {
-                "all" => new List<WorkflowData>
+                query = query.Where(w => w.WorkflowType == "notice");
+            }
+
+            var wfs = await query.OrderByDescending(w => w.CreatedAt)
+                .Select(w => new WorkflowGridData
                 {
-                    new WorkflowData { WorkflowId = 1, Name = "User Workflow", Description = "User Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "User", CustomWorkflow = "User Workflow JSON" },
-                    new WorkflowData { WorkflowId = 2, Name = "Request Workflow", Description = "Request Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "Request", CustomWorkflow = "Request Workflow JSON" },
-                    new WorkflowData { WorkflowId = 3, Name = "Milestone Workflow", Description = "Milestone Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "Milestone", CustomWorkflow = "Milestone Workflow JSON" }
-                },
-                "User" => new List<WorkflowData>
-                {
-                    new WorkflowData { WorkflowId = 1, Name = "User Workflow", Description = "User Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "User", CustomWorkflow = "User Workflow JSON" }
-                },
-                "Request" => new List<WorkflowData>
-                {
-                    new WorkflowData { WorkflowId = 2, Name = "Request Workflow", Description = "Request Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "Request", CustomWorkflow = "Request Workflow JSON" }
-                },
-                "Milestone" => new List<WorkflowData>
-                {
-                    new WorkflowData { WorkflowId = 3, Name = "Milestone Workflow", Description = "Milestone Workflow Description", Active = true, External = false, SelfService = false, WorkflowType = "Milestone", CustomWorkflow = "Milestone Workflow JSON" }
-                },
-                _ => new List<WorkflowData>()
-            };
+                    Id = w.Id,
+                    Name = w.Name,
+                    IsActive = w.IsActive,
+                    IsExternal = w.IsExternal,
+                    WorkflowType = w.WorkflowType,
+                }).ToListAsync();
+
+            return wfs;
+
         }
 
-        public WorkflowData CreateWorkflow(WorkflowData workflow)
+        public async Task<bool> CreateWorkflow(WorkflowData workflow, Guid organizationId)
         {
-            return workflow with { WorkflowId = 4 };
+            db.Workflows.Add(new Workflow
+            {
+                Id = workflow.Id,
+                OrganizationId = organizationId,
+                Name = workflow.Name,
+                Description = workflow.Description,
+                IsActive = workflow.IsActive,
+                IsExternal = workflow.IsExternal,
+                WorkflowType = workflow.WorkflowType,
+                WorkflowDefinition = workflow.WorkflowDefinition,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+
+            var changes = await db.SaveChangesAsync();
+
+            return changes > 0;
         }
 
-        public WorkflowData UpdateWorkflow(WorkflowData workflow)
-        {
-            return workflow;
-        }
+        // public async Task<bool> UpdateWorkflow(WorkflowData workflow)
+        // {
+        // }
 
 
     }

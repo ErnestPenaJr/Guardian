@@ -5,7 +5,10 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { boolean, z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormPage } from "./FormPage";
+import { FormPage, sectionsAtom } from "./FormPage";
+import { useAtomValue } from "jotai";
+import { saveWorkflow } from "../services/workflowService";
+import { Description } from "@mui/icons-material";
 
 export type StepNavProps = {
     nextStep: () => void,
@@ -27,6 +30,7 @@ export const workflowSchema = z.object({
 export type WorkflowDefinition = z.infer<typeof workflowSchema>;
 
 export const CreateWorkflow = () => {
+    const sections = useAtomValue(sectionsAtom);
 
     const { control, register, formState: { errors } } = useForm<WorkflowDefinition>({
         resolver: zodResolver(workflowSchema),
@@ -40,8 +44,26 @@ export const CreateWorkflow = () => {
 
     const [activeStep, setActiveStep] = useState(0);
 
-  const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  const handleNext = (finish: string) => {
+    if(finish === 'Finish') {
+        //submit
+        let rand = crypto.randomUUID()
+        saveWorkflow({
+            id: rand,
+            name: `test workflow ${rand}`,
+            description: "a great description",
+            isActive: true,
+            isExternal: false,
+            workflowType: "request",
+            workflowDefinition: JSON.stringify(sections)
+        }).then(() => console.log("success"))
+
+        console.log("finished")
+    }
+    else{
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }
+
   };
 
   const handleBack = () => {
@@ -81,7 +103,7 @@ export const CreateWorkflow = () => {
               Back
             </Button>
             <Box sx={{ flex: '1 1 auto' }} />
-            <Button onClick={handleNext}>
+            <Button onClick={() => handleNext(activeStep === steps.length - 1 ? 'Finish' : 'Next')}>
               {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
             </Button>
           </Box>
@@ -218,6 +240,7 @@ const StepTwo = () => {
                         render={({ field }) => {
                             return (
                                 <FormControlLabel
+                                    {...field}
                                     slotProps={{ typography: { variant: 'body1' } }}
                                     label="* Available to approved External Users?"
                                     labelPlacement="start"

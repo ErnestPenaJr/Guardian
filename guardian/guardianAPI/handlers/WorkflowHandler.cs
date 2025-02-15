@@ -2,6 +2,7 @@
 
 using Models;
 using Repositories;
+using Services;
 
 namespace Handlers
 {
@@ -9,42 +10,39 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapWorkflowApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/workflows", (WorkflowRepository wfRepo) => {
+            group.MapGet("/workflows", async (
+                TempUserService userService,
+                WorkflowRepository wfRepo
+            ) => {
+                var user = userService.GetUserInfo();
 
-                List<WorkflowGridData> workflows = [
-                    new WorkflowGridData { WorkflowId = 1, Name = "workflow 1", WorkflowType = "Request", External = false, Active = true },
-                    new WorkflowGridData { WorkflowId = 2, Name = "workflow 2", WorkflowType = "Request", External = false, Active = true },
-                    new WorkflowGridData { WorkflowId = 3, Name = "workflow 3", WorkflowType = "Notice", External = true, Active = true },
-                    new WorkflowGridData { WorkflowId = 4, Name = "workflow 4", WorkflowType = "Request", External = false, Active = false },
-                    new WorkflowGridData { WorkflowId = 5, Name = "workflow 5", WorkflowType = "Notice", External = true, Active = true }
-                ];
+                var workflows = await wfRepo.GetWorkflows("all", new Guid(user.Organization));
 
                 return Results.Ok(workflows);
             });
 
-            group.MapGet("/workflows/{id}", (int id, WorkflowRepository wfRepo) => {
+            group.MapGet("/workflows/{id}", async (Guid id, WorkflowRepository wfRepo) => {
 
-                List<WorkflowData> workflows = [
-                    new WorkflowData { WorkflowId = 1, Name = "workflow 1", Description = "workflow 1 description", Active = true, External = false, WorkflowType = "Request", CustomWorkflow = "{}", SelfService = false },
-                    new WorkflowData { WorkflowId = 2, Name = "workflow 2", Description = "workflow 2 description", Active = true, External = false, WorkflowType = "Request", CustomWorkflow = "{}", SelfService = false },
-                    new WorkflowData { WorkflowId = 3, Name = "workflow 3", Description = "workflow 3 description", Active = true, External = true, WorkflowType = "Notice", CustomWorkflow = "{}", SelfService = false },
-                    new WorkflowData { WorkflowId = 4, Name = "workflow 4", Description = "workflow 4 description", Active = false, External = false, WorkflowType = "Request", CustomWorkflow = "{}", SelfService = false },
-                    new WorkflowData { WorkflowId = 5, Name = "workflow 5", Description = "workflow 5 description", Active = true, External = true, WorkflowType = "Notice", CustomWorkflow = "{}", SelfService = false }
-                ];
+                var workflow = await wfRepo.GetWorkflow(id);
 
-                var workflow = workflows.FirstOrDefault(w => w.WorkflowId == id);
-
-                if (workflow == null)
-                {
-                    return Results.NotFound();
-                }
-
-                return Results.Ok(workflow);
+                return workflow is not null 
+                    ? Results.Ok(workflow)
+                    : Results.NotFound();
             });
 
-            group.MapPost("/workflows", (WorkflowData data, WorkflowRepository wfRepo) => {
+            group.MapPost("/workflows", async (
+                WorkflowData data,
+                TempUserService userService,
+                WorkflowRepository wfRepo
+            ) => {
+
+                var user = userService.GetUserInfo();
                 
-                return Results.Ok();
+                var success = await wfRepo.CreateWorkflow(data, new Guid(user.Organization));
+
+                return success
+                    ? Results.Ok()
+                    : Results.BadRequest();
             });
 
             //title description active external

@@ -6,11 +6,11 @@ import { fetchWorkflows } from '../../services/workflowService';
 import { useNavigate } from 'react-router-dom';
 
 const columns: GridColDef[] = [
-  { field: 'workflowId', headerName: 'ID', width: 70, headerClassName: 'userheader'},
+  { field: 'id', headerName: 'ID', width: 70, headerClassName: 'userheader'},
   { field: 'name', headerName: 'Name', width: 300, headerClassName: 'userheader' },
   { field: 'workflowType', headerName: 'Type', width: 130, headerClassName: 'userheader' },
-  { field: 'external', headerName: 'External', width: 200, headerClassName: 'userheader', hideable: false},
-  { field: 'active', headerName: 'Status', width: 90, headerClassName: 'userheader', hideable: false},
+  { field: 'isExternal', headerName: 'External', width: 200, headerClassName: 'userheader', hideable: false},
+  { field: 'isActive', headerName: 'Status', width: 90, headerClassName: 'userheader', hideable: false},
   
 ];
 
@@ -41,9 +41,9 @@ export default function WorkflowListTable() {
         columns={columns}
         initialState={{ pagination: { paginationModel } }}
         pageSizeOptions={[5, 10]}
-        getRowId={(row) => row.workflowId}
+        // getRowId={(row) => row.workflowId}
         onRowClick={({row}) => 
-          navigate(`/admin/editworkflow/${row.workflowId}`)
+          navigate(`/admin/editworkflow/${row.id}`)
       }
         sx={{
             boxShadow: 2,

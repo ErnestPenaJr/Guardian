@@ -9,6 +9,7 @@ using Repositories;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Database.Guardian.Entities;
+using Services;
 
 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
@@ -36,6 +37,8 @@ builder.Services.AddTransient<UserRepository>();
 builder.Services.AddTransient<RequestRepository>();
 builder.Services.AddTransient<NoticeRepository>();
 builder.Services.AddTransient<WorkflowRepository>();
+
+builder.Services.AddSingleton<TempUserService>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options => {

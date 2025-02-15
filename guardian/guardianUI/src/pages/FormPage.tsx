@@ -19,7 +19,7 @@ type Field = {
     required: boolean
 }
 
-const sectionsAtom = atom<Section[]>([])
+export const sectionsAtom = atom<Section[]>([])
 
 const Spacer = ({ height }: { height?: string | undefined }) => {
     return (
@@ -70,9 +70,9 @@ export const FormPage = () => {
             </Grid>           
             <Grid size={10} sx={{ display: 'flex', pl: 30 }}>
                 <Grid container spacing={1}>
-                    <pre><code>
+                    {/* <pre><code>
                         {JSON.stringify(sections, null, "    ")}
-                    </code></pre>
+                    </code></pre> */}
                     <Spacer height="20px" />
                     {sections.map((section) => {
                         return (
