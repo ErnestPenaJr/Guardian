@@ -1,4 +1,3 @@
-using Database.Entities;
 using Database.Guardian.Entities;
 using Microsoft.EntityFrameworkCore;
 using Models;
