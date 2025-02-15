@@ -1,8 +1,9 @@
-import { BuildOutlined } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { atom, useAtom, useAtomValue } from "jotai"
 import { ReactNode, useEffect } from "react"
 import { fetchFields, fetchTemplates } from "../services/templatesService";
+import { Box, Chip, Stack, TextField } from "@mui/material";
+import Grid from '@mui/material/Grid2';
 
 type Section = {
     id: string
@@ -28,10 +29,21 @@ const Spacer = ({ height }: { height?: string | undefined }) => {
 
 const FormField = ({ field }: { field: Field }) => {
     return (
-        <div>
-            <label>{field.label}</label>
-            <input type={field.type} name={field.name} required={field.required} />
-        </div>
+        // <div>
+        //     <label>{field.label}</label>
+        //     <input type={field.type} name={field.name} required={field.required} />
+        // </div>
+        <Grid size={12}>
+            <TextField
+                name={field.name}
+                required={field.required}
+                label={field.label}
+                size="small"
+                fullWidth
+                variant="outlined"
+                sx={{ m:.5 }}
+            />
+        </Grid>
     )
 }
 
@@ -47,42 +59,46 @@ export const FormPage = () => {
     if(fieldsError || templatesError) return <div>Error: {fieldsError?.message} {templatesError?.message}</div>
 
     return (
-        <div style={{ marginTop: '50px' }}>
-            <h1>Form Page</h1>
-            <div style={{ display: 'flex' }}>
-                <div style={{ flex: 1 }}>
-                    <FormSelectorTemplates templates={templatesData}/>
-                </div>
-                <div style={{ flex: 1 }}>
-                    <FormSelectorButtons fields={fieldsData}/>
-                </div>
-            </div>
-            <Spacer height="20px" />
-            <pre><code>
-                {JSON.stringify(sections, null, "    ")}
-            </code></pre>
+        <Grid container spacing={2} sx={{ marginTop: '50px' }}>            
+            <Grid size={2} sx={{ display: 'flex', position: 'fixed' }}>
+                <Grid container spacing={1}>
+                    <Grid size={12}>
+                        <FormSelectorButtons fields={fieldsData} />                    
+                        <Box width="100%" />                   
+                        <FormSelectorTemplates templates={templatesData} />
+                    </Grid>
+                </Grid>
+            </Grid>           
+            <Grid size={10} sx={{ display: 'flex', pl: 30 }}>
+                <Grid container spacing={1}>
+                    <pre><code>
+                        {JSON.stringify(sections, null, "    ")}
+                    </code></pre>
+                    <Spacer height="20px" />
+                    {sections.map((section, index) => {
+                        return (
+                            <FormSection key={index} sectionId={section.id} title={section.title ?? ""}>
+                                {section.fields.map((field) => {
+                                    return (<>
+                                        <Stack direction={'row'} spacing={1}>
+                                            <FormField key={field.id} field={field} />
+                                            <button onClick={() => {
+                                                console.log("removing field", field)
 
-            <Spacer height="20px" />
-            {sections.map((section, index) => {
-                return (
-                    <FormSection key={index} sectionId={section.id} title={section.title ?? ""}>
-                        {section.fields.map((field) => {
-                            return (<>
-                                <FormField key={field.id} field={field} />
-                                <button onClick={() => {
-                                    console.log("removing field", field)
-
-                                    setSections(sections.map(s => ({ ...s, fields: s.fields.filter(f => f.id !== field.id) })))
-                                }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'red' }}>×</span>
-                                </button>
-                            </>)
-                        })}
-                    </FormSection>
-                )
-            })}
+                                                setSections(sections.map(s => ({ ...s, fields: s.fields.filter(f => f.id !== field.id) })))
+                                            }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                                <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'red' }}>×</span>
+                                            </button>
+                                        </Stack>
+                                    </>)
+                                })}
+                            </FormSection>
+                        )
+                    })}
+                </Grid>
+            </Grid>
             <Spacer height="100px" />
-        </div>
+        </Grid>
     )
 }
 
@@ -98,10 +114,8 @@ export const FormSection = ({ title, sectionId, children }: FormSectionProps) =>
 
     return (
         <div>
-            {/* <h2>{title}</h2> */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {/* <h2>{title}</h2> */}
                     <button onClick={() => {
                         setSections(sections.filter(s => s.id !== sectionId))
                     }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -124,7 +138,7 @@ const FormSelectorTemplates = ({templates}: {templates: any}) => {
 
     return (
         <div>
-            <h1>Templates:</h1>
+            <h4>Templates:</h4>            
             <ul>
                 <li onClick={() => {
                     setSections([...sections, { id: crypto.randomUUID(), title: "Subject", fields: templates.subjectFields }])
@@ -153,13 +167,13 @@ const FormSelectorButtons = ({fields}: {fields: any[]}) => {
 
     return (
         <div>
-            <h1>Form Selector Buttons</h1>
+            <h4>Fields</h4>
             {fields.map((field, index) => {
                 return (
-                    <button key={index} onClick={() => {
+                    <Chip key={index} label={field.label} sx={{ m: .5 }} size="small" onClick={() => {
                         console.log("adding field", field)
                         setSections([...sections, { id: field.id, title: field.label, fields: [field] }])
-                    }}>{field.label}</button>
+                    }} />
                 )
             })}
         </div>
