@@ -35,6 +35,8 @@ public partial class GuardianDbContext : DbContext
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public virtual DbSet<Request> Requests { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<SubscriptionInvoice> SubscriptionInvoices { get; set; }
@@ -456,6 +458,13 @@ public partial class GuardianDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.RefreshTokens)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("RefreshToken_userId_fkey");
+        });
+
+        modelBuilder.Entity<Request>(entity =>
+        {
+            entity.ToTable("Requests", "GUARDIAN");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
         });
 
         modelBuilder.Entity<Role>(entity =>
