@@ -1,6 +1,5 @@
 
 using AppSettings;
-using Database.Entities;
 using Handlers;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Http.Features;

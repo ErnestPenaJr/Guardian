@@ -53,6 +53,8 @@ public partial class GuardianDbContext : DbContext
 
     public virtual DbSet<VerificationCode> VerificationCodes { get; set; }
 
+    public virtual DbSet<Workflow> Workflows { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Company>(entity =>
@@ -722,6 +724,18 @@ public partial class GuardianDbContext : DbContext
             entity.Property(e => e.ExpiresAt).HasColumnName("expiresAt");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
             entity.Property(e => e.Used).HasColumnName("used");
+        });
+
+        modelBuilder.Entity<Workflow>(entity =>
+        {
+            entity.ToTable("Workflows", "GUARDIAN");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.WorkflowType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
         });
 
         OnModelCreatingPartial(modelBuilder);
