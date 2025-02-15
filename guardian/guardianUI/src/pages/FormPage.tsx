@@ -38,6 +38,7 @@ const FormField = ({ field }: { field: Field }) => {
                 name={field.name}
                 required={field.required}
                 label={field.label}
+                type={field.type}
                 size="small"
                 fullWidth
                 variant="outlined"
