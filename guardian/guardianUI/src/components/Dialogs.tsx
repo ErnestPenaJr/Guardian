@@ -1,4 +1,6 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from "@mui/material"
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogProps, DialogTitle, TextField } from "@mui/material"
+import { CreateWorkflow } from "../pages/CreateWorkflow"
+import { useState } from "react"
 
 type BasicDialogProps = {
     isOpen: boolean,
@@ -42,6 +44,21 @@ type BasicDialogProps = {
           </DialogActions>
         </Dialog>
       </>
+    );
+  }
+
+  export const CreateWorkflowDialog = ({ isOpen, setIsOpen }: BasicDialogProps) => {
+    const handleClose = () => setIsOpen(false);
+    const [fullWidth, setFullWidth] = useState(true);
+    const [maxWidth, setMaxWidth] = useState<DialogProps['maxWidth']>('md');
+  
+    return (
+      <Dialog open={isOpen} onClose={handleClose} fullWidth={fullWidth} maxWidth={maxWidth}>
+        <DialogTitle sx={{ mb: 2, backgroundColor: "rgba(50,85,151, .09)" }}>Create a Workflow</DialogTitle>
+        <DialogContent>
+          <CreateWorkflow />
+        </DialogContent>
+      </Dialog>
     );
   }
   
