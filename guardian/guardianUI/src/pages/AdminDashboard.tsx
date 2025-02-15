@@ -2,9 +2,14 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import { Box, Link, Stack, Typography } from '@mui/material';
 import { AccountTreeOutlined, PeopleOutlined, SettingsOutlined } from '@mui/icons-material';
+import { useState } from 'react';
+import { CreateWorkflowDialog } from '../components/Dialogs';
 
 export default function AdminDashboard() {
+    const [openWorkflowDialog, setWorkflowDialog] = useState(false);
+
     return (
+        <>
         <Box sx={{ mt: 10, display: 'flex', justifyContent: 'center', minWidth: '100%' }}>
             <Stack mt={3} direction={'row'} spacing={2} display={'flex'} justifyContent={'center'}>
                 <Card sx={{ minWidth: 250 }}>
@@ -12,7 +17,7 @@ export default function AdminDashboard() {
                         <Stack alignItems="center">
                             <AccountTreeOutlined sx={{ color: '#05445E', fontSize: '80px', justifyContent: 'center' }} />
                             <Typography sx={{ mt: 2, color: '#05445E', fontWeight: 'bold' }}>Workflows</Typography>
-                            <Link href="/admin/formbuilder" variant="body2" sx={{ color: '#05445E', textAlign: 'center', textDecoration: 'none', mt: 2 }}>
+                            <Link href="javascript:void(0)" variant="body2" onClick={() => setWorkflowDialog(true)} sx={{ color: '#05445E', textAlign: 'center', textDecoration: 'none', mt: 2 }}>
                                 Create A Workflow
                             </Link>
                             <Link href="/admin/workflows" variant="body2" sx={{ color: '#05445E', textAlign: 'center', textDecoration: 'none', mt: 2 }}>
@@ -48,6 +53,10 @@ export default function AdminDashboard() {
                 </Card>
             </Stack>
         </Box>
+        {openWorkflowDialog && (
+            <CreateWorkflowDialog isOpen={openWorkflowDialog} setIsOpen={setWorkflowDialog} />
+        )}
+        </>
     );
 }
 
