@@ -10,7 +10,7 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapMilestoneApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/milestones", (MilestoneRepository msRepo) => msRepo.GetMilestoneTypes());
+            group.MapGet("/milestones", async (MilestoneRepository msRepo) => await msRepo.GetMilestoneTypes());
             
             return group;
         }
