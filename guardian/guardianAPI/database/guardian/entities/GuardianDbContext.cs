@@ -29,6 +29,8 @@ public partial class GuardianDbContext : DbContext
 
     public virtual DbSet<FormTemplate> FormTemplates { get; set; }
 
+    public virtual DbSet<MilestoneType> MilestoneTypes { get; set; }
+
     public virtual DbSet<PlanFieldType> PlanFieldTypes { get; set; }
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
@@ -381,6 +383,16 @@ public partial class GuardianDbContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FormTemplate_createdBy_fkey");
+        });
+
+        modelBuilder.Entity<MilestoneType>(entity =>
+        {
+            entity.ToTable("MilestoneTypes", "GUARDIAN");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name)
+                .HasMaxLength(25)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<PlanFieldType>(entity =>
