@@ -63,8 +63,6 @@ export const FormPage = () => {
             <Grid size={2} sx={{ display: 'flex', position: 'fixed' }}>
                 <Grid container spacing={1}>
                     <Grid size={12}>
-                        <FormSelectorButtons fields={fieldsData} />                    
-                        <Box width="100%" />                   
                         <FormSelectorTemplates templates={templatesData} />
                     </Grid>
                 </Grid>
