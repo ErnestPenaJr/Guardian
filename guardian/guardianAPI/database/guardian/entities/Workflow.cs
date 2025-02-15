@@ -7,6 +7,8 @@ public partial class Workflow
 {
     public Guid Id { get; set; }
 
+    public Guid OrganizationId { get; set; }
+
     public string Name { get; set; } = null!;
 
     public string WorkflowType { get; set; } = null!;
@@ -18,8 +20,6 @@ public partial class Workflow
     public string Description { get; set; } = null!;
 
     public string WorkflowDefinition { get; set; } = null!;
-
-    public Guid OrganizationId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
