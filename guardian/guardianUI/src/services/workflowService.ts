@@ -1,3 +1,4 @@
+import { WorkflowIdentity } from "../components/AdminComponents/WorkflowDetails"
 import { apiRoot, handleResponse, jsonHeader } from "./serviceUtils"
 
 
@@ -25,7 +26,7 @@ export type WorkflowItemData = {
     customWorkflow: string[]
 }   
 
-export const fetchWorkflow = (id: string) : Promise<WorkflowItemData> => 
+export const fetchWorkflow = (id: string) : Promise<WorkflowIdentity> => 
     fetch(`${apiRoot}/workflows/${id}`,{
         method: 'GET',
         ...jsonHeader
