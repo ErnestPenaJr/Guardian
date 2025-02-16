@@ -8,11 +8,11 @@ export const editWorkflowSchema = z.object({
     name: z.string(),
     workflowType: z.string(),
     description: z.string(),
-    active: boolean(),
-    external: boolean(),
+    isActive: boolean(),
+    isExternal: boolean(),
 })
 
-export type WorkflowIdentity = z.infer<typeof editWorkflowSchema>;
+export type WorkflowIdentity = z.infer<typeof editWorkflowSchema> & { id:string, workflowDefinition: string}
 
 export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
 
@@ -22,8 +22,8 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
             name: details.name,
             workflowType: details.workflowType,
             description: details.description,
-            active: details.active,
-            external: details.external,
+            isActive: details.isActive,
+            isExternal: details.isExternal,
         }
     })
 
@@ -93,7 +93,7 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
                     <Box width='100%' />
                     <Grid size={4}>
                         <Controller
-                            {...register("external")}
+                            {...register("isExternal")}
                             control={control}
                             render={({ field }) => {
                                 return (
@@ -110,7 +110,7 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
                     <Grid size={2}>
                         <Controller
                             control={control}
-                            name="active"
+                            name="isActive"
                             render={({ field }) => (
                                 <TextField {...field}
                                     required

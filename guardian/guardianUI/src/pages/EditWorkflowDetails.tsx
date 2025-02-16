@@ -26,7 +26,7 @@ export const EditWorkflowDetails = () => {
             <Grid container spacing={2} sx={{ mt: 10, mb: 5 }}>
                 <Grid size={12} sx={{  }}>
                 <Paper sx={{mt: 1, width: '100%', height: '98%'}}>
-                    <WorkflowDetails details={{name: data.name, workflowType: data.workflowType, description: data.description, active: data.active, external: data.external}}/>
+                    <WorkflowDetails details={data}/>
                 </Paper>
                 </Grid>
                 <Grid size={12}>
