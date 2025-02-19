@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { atom, useAtom, useAtomValue } from "jotai"
 import { ReactNode, useEffect } from "react"
 import { fetchFields, fetchTemplates } from "../services/templatesService";
-import { Box, Chip, Stack, TextField } from "@mui/material";
+import { Box, Card, CardContent, Chip, IconButton, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import Grid from '@mui/material/Grid2';
+import { Delete } from "@mui/icons-material";
 
 type Section = {
     id: string
@@ -29,10 +30,6 @@ const Spacer = ({ height }: { height?: string | undefined }) => {
 
 const FormField = ({ field }: { field: Field }) => {
     return (
-        // <div>
-        //     <label>{field.label}</label>
-        //     <input type={field.type} name={field.name} required={field.required} />
-        // </div>
         <Grid size={12}>
             <TextField
                 name={field.name}
@@ -43,6 +40,7 @@ const FormField = ({ field }: { field: Field }) => {
                 fullWidth
                 variant="outlined"
                 sx={{ m:.5 }}
+                slotProps={{ inputLabel: { shrink: true } }}
             />
         </Grid>
     )
@@ -114,18 +112,19 @@ export const FormSection = ({ title, sectionId, children }: FormSectionProps) =>
     return (
         <div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => {
-                        setSections(sections.filter(s => s.id !== sectionId))
-                    }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'red' }}>×</span>
-                    </button>
-                </div>
-
-                <div style={{ border: '1px solid black', padding: '10px' }}>
-                    <h2>{title}</h2>
-                    {children}
-                </div>
+                <Card variant="outlined" sx={{ minWidth: 500 }}>
+                    <CardContent>
+                        <Stack direction={'row'} spacing={2} display={'flex'} mb={2} justifyContent={'space-between'}>
+                            <Typography gutterBottom variant="h5" sx={{ fontWeight: 'bold' }}>{title}</Typography>
+                            <Tooltip title="Remove template">
+                                <IconButton onClick={() => {
+                                    setSections(sections.filter(s => s.id !== sectionId))
+                                }} aria-label="Remove template"><Delete /></IconButton>
+                            </Tooltip>
+                        </Stack>
+                        <Stack>{children}</Stack>
+                    </CardContent>
+                </Card>               
             </div>
         </div>
     )
