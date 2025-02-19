@@ -15,6 +15,8 @@ public partial class GuardianDbContext : DbContext
 
     public virtual DbSet<CompanySubscription> CompanySubscriptions { get; set; }
 
+    public virtual DbSet<Document> Documents { get; set; }
+
     public virtual DbSet<EmailVerification> EmailVerifications { get; set; }
 
     public virtual DbSet<FieldType> FieldTypes { get; set; }
@@ -116,6 +118,20 @@ public partial class GuardianDbContext : DbContext
                 .HasForeignKey(d => d.PlanId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("CompanySubscription_planId_fkey");
+        });
+
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.ToTable("Documents", "GUARDIAN");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.DataVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.FileName).HasMaxLength(500);
+            entity.Property(e => e.FileType)
+                .HasMaxLength(500)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<EmailVerification>(entity =>
