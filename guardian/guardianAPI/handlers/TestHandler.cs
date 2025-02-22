@@ -4,7 +4,7 @@ namespace Handlers
     {
         public static RouteGroupBuilder MapTestApi(this RouteGroupBuilder group)
         {
-            group.MapGet("/test", () => "Hello World!");
+            group.MapGet("/test", () => $"test page ${DateTime.Now}");
             
             return group;
         }

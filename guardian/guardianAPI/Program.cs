@@ -115,13 +115,13 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 if(!app.Environment.IsDevelopment()) {
+    app.Logger.LogInformation("Not in development mode, in {env} mode using default files", env);
     app.UseDefaultFiles(new DefaultFilesOptions
     {
         DefaultFileNames = ["index.html"]
     });
+    app.UseStaticFiles();
 }
-
-app.MapGet("/api/hello", () => "Hello World!");
 
 app.Logger.LogInformation("Registering Api handlers");
 
