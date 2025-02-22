@@ -12,6 +12,7 @@ import { RequestsPage } from './pages/RequestsPage'
 import { NoticesPage } from './pages/NoticesPage'
 import WorkflowListTable from './components/AdminComponents/ViewWorkflows'
 import { EditWorkflowDetails } from './pages/EditWorkflowDetails'
+import LoginSignupPage from './pages/LoginSignup'
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
       {
         path: '/',
         element: <LandingPage />
+      },
+      {
+        path: '/login',
+        element: <LoginSignupPage />
       },
       {
         path: '/admin',
