@@ -37,6 +37,7 @@ builder.Services.AddTransient<UserRepository>();
 builder.Services.AddTransient<RequestRepository>();
 builder.Services.AddTransient<NoticeRepository>();
 builder.Services.AddTransient<WorkflowRepository>();
+builder.Services.AddTransient<DocumentRepository>();
 
 builder.Services.AddSingleton<TempUserService>();
 

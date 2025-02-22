@@ -39,6 +39,8 @@ public partial class GuardianDbContext : DbContext
 
     public virtual DbSet<Request> Requests { get; set; }
 
+    public virtual DbSet<RequestAttachment> RequestAttachments { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<SubscriptionInvoice> SubscriptionInvoices { get; set; }
@@ -124,7 +126,7 @@ public partial class GuardianDbContext : DbContext
         {
             entity.ToTable("Documents", "GUARDIAN");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.DataVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();
@@ -481,6 +483,17 @@ public partial class GuardianDbContext : DbContext
             entity.ToTable("Requests", "GUARDIAN");
 
             entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<RequestAttachment>(entity =>
+        {
+            entity.ToTable("RequestAttachments", "GUARDIAN");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.DataVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.FileName).HasMaxLength(500);
         });
 
         modelBuilder.Entity<Role>(entity =>
