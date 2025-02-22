@@ -8,7 +8,7 @@ export const editWorkflowSchema = z.object({
     name: z.string(),
     workflowType: z.string(),
     description: z.string(),
-    isActive: boolean(),
+    isActive: z.string(),
     isExternal: boolean(),
 })
 
@@ -32,6 +32,10 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
             <Typography component={'span'} variant="h6" className="displayHeader" sx={{ ml: 2, mt: 4 , fontWeight: 'bold' }} gutterBottom>
                 Workflow Details
             </Typography>
+            <Stack direction={'row'} spacing={2} ml={2} mt={4} mb={3}>
+                <Typography>Workflow Type:</Typography>
+                <Typography sx={{ textTransform: 'capitalize'}}>{details.workflowType}</Typography>
+            </Stack>
             <Grid container spacing={2} sx={{ m: 2 }}>
                     <Grid size={5}>
                         <TextField
@@ -44,39 +48,7 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
                             slotProps={{ inputLabel: { shrink: true }}}
                         />
                     </Grid>
-                    <Box width='100%' />
-                    <Grid size={3}>
-                        <Controller
-                            control={control}
-                            name="workflowType"
-                            render={({ field }) => (
-                                <TextField {...field}
-                                    required
-                                    select
-                                    label="Workflow Type"
-                                    size="small"
-                                    fullWidth
-                                    slotProps={{ inputLabel: { shrink: true }}}
-                                >
-                                    <MenuItem value={'Request'}>Request</MenuItem>
-                                    <MenuItem value={'Notice'}>Notice</MenuItem>
-                                </TextField>
-                            )}
-                        />
-                    </Grid>
-                    
-                    <Grid size={8}>
-                        <Stack>
-                        <Typography component={'span'} variant="body2" sx={{  }} gutterBottom>
-                            Request - Workflow allows users to submit requests to be fulfilled by processors and results disseminated to requestors.
-                        </Typography>
-                        <Typography component={'span'} variant="body2" sx={{  }} gutterBottom>
-                            Notice - Workflow allows processors and managers to disseminate intelligence and other information to users.
-                        </Typography>
-                        </Stack>
-                    </Grid>
-
-                    <Box width='100%' />
+                    <Box width='100%' />                    
                     <Grid size={8}>
                         <TextField
                             {...register("description")}    
@@ -100,7 +72,7 @@ export const WorkflowDetails = ({details}: {details :WorkflowIdentity}) => {
                                 <FormControlLabel
                                     //required
                                     slotProps={{ typography: { variant: 'body1' } }}
-                                    label="* Available to approved External Users?"
+                                    label="Available to approved External Users?"
                                     labelPlacement="start"
                                     control={<Checkbox />}
                                 />

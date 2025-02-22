@@ -14,12 +14,6 @@ const columns: GridColDef[] = [
   
 ];
 
-const rows = [
-  { id: 1, name: '1st awesome workflow', type: 'Request', external: true, status: true },
-  { id: 2, name: '2nd awesome workflow', type: 'Notice', external: true, status: true },
-  { id: 3, name: '3rd awesome workflow', type: 'Request', external: true, status: false },
-];
-
 const paginationModel = { page: 0, pageSize: 5 };
 
 export default function WorkflowListTable() {
