@@ -1,6 +1,0 @@
-@guardianAPI_HostAddress = http://localhost:5211
-
-GET {{guardianAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
