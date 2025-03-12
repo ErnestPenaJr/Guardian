@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Guardian</title>
+    <style>
+        body {
+            background: url('landingBG_teal.png') no-repeat center center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+        input {
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        button {
+            width: 48%;
+            padding: 10px;
+            background-color: teal;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkcyan;
+        }
+        p {
+            color: gray;
+            font-size: 14px;
+        }
+        .logo {
+            width: 50px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .forgot-password {
+            display: block;
+            margin: 5px 0 15px;
+            font-size: 12px;
+            color: teal;
+            text-decoration: none;
+        }
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+        
+        .footer-logo {
+            margin-top: 20px;
+            width: 40px;
+            height: auto;
+        }
+        .footer {
+           display: flex;
+           justify-content: center;
+           margin-top: 20px;
+        } 
+    </style>
+<script>
+        function validateForm() {
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value;
+            var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            var passwordPattern = /^[a-zA-Z0-9$#!\-_]+$/;
+            
+            if (email === "" || password === "") {
+                alert("Incorrect Credentials");
+            } else if (!emailPattern.test(email) || !passwordPattern.test(password)) {
+                alert("Invalid email or password. Password can only contain letters, numbers, and the special characters $, #, !, -, _");
+            } else {
+                alert("You need to complete registration process, if you need assistance, reach out to your administrator.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <img src="GuardianLogo.png" alt="Guardian Logo" class="logo"> Guardian
+        </h1>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <p align="right"><a href="#" class="forgot-password">Forgot password?</a></p>
+        <p></p>
+        <div class="button-container">
+            <button onclick="validateForm()">Sign In</button>
+            <button onclick="alert('Login clicked!')">New Account</button>
+        </div>
+    </div>
+    <div class="footer">
+    <img src="ShieldLyticsLogoOrbitronVerticalTeal.png" alt="ShieldLytics Logo" class="footer-logo">
+    </div>
+</body>
+</html>
