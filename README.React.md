@@ -65,8 +65,8 @@ src/
 
 ## ⚠️ Rules & Conventions
 
-- **Do not mock** data in dev/prod — use mock data only for tests.
-- Always validate against environments: `dev`, `test`, `prod`.
+- **Do not mock** data in stage/prod — use mock data only for test.
+- Always validate against environments: `test`, `stage`, `prod`.
 - Never introduce new patterns unless existing ones are exhausted.
 - Clean up deprecated code if refactored.
 - Always restart the server after changes.
