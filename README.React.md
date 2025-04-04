@@ -57,7 +57,7 @@ src/
 
 ## 🔄 API Integration
 
-- Use ColdFusion (`.cfc`) or PHP (`.php`) as backends.
+- PHP (`.php`) as backends.
 - Group all API calls inside `/services` folder.
 - Use typed request and response interfaces.
 
