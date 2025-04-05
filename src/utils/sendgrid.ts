@@ -1,74 +1,62 @@
-import client from '@sendgrid/client';
+import axios from 'axios';
 
-// Initialize SendGrid client with API key from environment variables
-const SENDGRID_API_KEY = import.meta.env.VITE_SENDGRID_API_KEY || '';
-client.setApiKey(SENDGRID_API_KEY);
+// Constants
+export const VERIFICATION_CODE_EXPIRY = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-// Verification code expiration time in milliseconds (15 minutes)
-export const VERIFICATION_CODE_EXPIRY = 15 * 60 * 1000;
+// API endpoints
+const API_BASE_URL = 'http://localhost:3001/api';
+const VALIDATE_EMAIL_ENDPOINT = `${API_BASE_URL}/validate-email`;
+const SEND_VERIFICATION_EMAIL_ENDPOINT = `${API_BASE_URL}/send-verification-email`;
+
+// Store the latest verification code for reference
+let latestVerificationCode = '';
+
+/**
+ * Validates an email address using basic regex
+ * @param email - The email address to validate
+ * @returns Boolean indicating if the email format is valid
+ */
+export const validateEmailFormat = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
 /**
  * Validates an email address using SendGrid's Email Validation API
  * @param email - The email address to validate
- * @returns Object containing validation results
+ * @returns Object containing validation result and reason if invalid
  */
-export const validateEmail = async (email: string): Promise<{
-  isValid: boolean;
-  reason?: string;
-}> => {
+export const validateEmail = async (
+  email: string
+): Promise<{ valid: boolean; reason?: string }> => {
   try {
-    // SendGrid Email Validation API endpoint
-    const request = {
-      url: '/v3/validations/email',
-      method: 'POST' as const,
-      body: {
-        email,
-        source: 'Guardian MVP'
-      }
-    };
-
-    const [response] = await client.request(request);
-    const data = response.body as any;
-
-    // Check if the email is valid based on SendGrid's response
-    if (response.statusCode === 200) {
-      // Determine if the email is valid based on SendGrid's verdict
-      const isValid = data.result.verdict === 'Valid';
-      let reason = '';
-
-      if (!isValid) {
-        // Provide a reason why the email is invalid
-        if (data.result.verdict === 'Risky') {
-          reason = 'This email address appears to be risky or suspicious.';
-        } else if (data.result.verdict === 'Invalid') {
-          reason = 'This email address is invalid.';
-        } else {
-          reason = 'This email address cannot be validated.';
-        }
-      }
-
-      return {
-        isValid,
-        reason
-      };
-    } else {
-      console.error('SendGrid validation error:', response.body);
-      return {
-        isValid: false,
-        reason: 'Unable to validate email at this time.'
-      };
-    }
-  } catch (error) {
-    console.error('Error validating email with SendGrid:', error);
+    // Call our backend API to validate the email
+    const response = await axios.post(VALIDATE_EMAIL_ENDPOINT, { email });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error validating email:', error);
+    
+    // Fall back to basic validation if API call fails
+    const isValid = validateEmailFormat(email);
+    
     return {
-      isValid: false,
-      reason: 'An error occurred during email validation.'
+      valid: isValid,
+      reason: isValid ? 'API error, but format is valid' : 'Invalid email format'
     };
   }
 };
 
 /**
- * Sends a verification code email to the user
+ * Generates a random verification code
+ * @returns A 6-digit verification code
+ */
+export const generateVerificationCode = (): string => {
+  // Generate a random 6-digit number
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+/**
+ * Sends a verification code email to the user using SendGrid
  * @param email - Recipient email address
  * @param verificationCode - The verification code to send
  * @returns Boolean indicating if the email was sent successfully
@@ -78,92 +66,104 @@ export const sendVerificationEmail = async (
   verificationCode: string
 ): Promise<boolean> => {
   try {
-    const sgMail = await import('@sendgrid/mail');
-    sgMail.default.setApiKey(SENDGRID_API_KEY);
-
-    const msg = {
-      to: email,
-      from: 'noreply@guardian-mvp.com', // Change to your verified sender
-      subject: 'Verify Your Guardian Account',
-      text: `Your verification code is: ${verificationCode}. This code will expire in 15 minutes.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Verify Your Guardian Account</h2>
-          <p>Thank you for registering with Guardian. Please use the following verification code to complete your registration:</p>
-          <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold;">
-            ${verificationCode}
-          </div>
-          <p style="margin-top: 20px;">This code will expire in 15 minutes.</p>
-          <p>If you did not request this verification, please ignore this email.</p>
-        </div>
-      `
-    };
-
-    await sgMail.default.send(msg);
-    return true;
-  } catch (error) {
+    // Store the latest verification code for reference
+    latestVerificationCode = verificationCode;
+    
+    // Log the verification code for debugging
+    console.log('Sending verification code to:', email, 'Code:', verificationCode);
+    
+    // Call our backend API to send the verification email
+    const response = await axios.post(SEND_VERIFICATION_EMAIL_ENDPOINT, {
+      email,
+      verificationCode
+    });
+    
+    return response.data.success;
+  } catch (error: any) {
     console.error('Error sending verification email:', error);
     return false;
   }
 };
 
 /**
- * Generates a random 6-digit verification code
- * @returns A 6-digit verification code as a string
- */
-export const generateVerificationCode = (): string => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-/**
  * Checks if a verification code has expired
- * @param expiresAt - Timestamp when the code expires
+ * @param expiryTime - The expiry time of the verification code
  * @returns Boolean indicating if the code has expired
  */
-export const isVerificationCodeExpired = (expiresAt: number): boolean => {
-  return Date.now() > expiresAt;
+export const isVerificationCodeExpired = (expiryTime: string): boolean => {
+  const expiry = new Date(expiryTime).getTime();
+  const now = new Date().getTime();
+  return now > expiry;
 };
 
 /**
- * Gets or creates a verification code for an email
- * @param email - The email to generate a code for
- * @returns Object containing the code and expiration time
+ * Gets or creates a verification code
+ * @returns Object containing the code, expiry time, and whether it's new
  */
 export const getOrCreateVerificationCode = (): {
   code: string;
-  expiresAt: number;
+  expiryTime: string;
+  isNew: boolean;
 } => {
-  // Check if there's an existing unexpired code in localStorage
-  const pendingRegistration = localStorage.getItem('pendingRegistration');
-  
-  if (pendingRegistration) {
-    try {
-      const data = JSON.parse(pendingRegistration);
+  try {
+    const registrationData = localStorage.getItem('registrationData');
+    
+    if (registrationData) {
+      const data = JSON.parse(registrationData);
       
-      // If the code hasn't expired, return it
-      if (!isVerificationCodeExpired(data.expiresAt)) {
+      // Check if there's an existing verification code that hasn't expired
+      if (
+        data.verificationCode &&
+        data.expiryTime &&
+        !isVerificationCodeExpired(data.expiryTime)
+      ) {
         return {
           code: data.verificationCode,
-          expiresAt: data.expiresAt
+          expiryTime: data.expiryTime,
+          isNew: false
         };
       }
-    } catch (error) {
-      console.error('Error parsing pending registration:', error);
     }
+    
+    // Generate a new verification code
+    const code = generateVerificationCode();
+    const expiryTime = new Date(Date.now() + VERIFICATION_CODE_EXPIRY).toISOString();
+    
+    return {
+      code,
+      expiryTime,
+      isNew: true
+    };
+  } catch (error: any) {
+    console.error('Error parsing registration data:', error);
+    
+    // Generate a new verification code as fallback
+    const code = generateVerificationCode();
+    const expiryTime = new Date(Date.now() + VERIFICATION_CODE_EXPIRY).toISOString();
+    
+    return {
+      code,
+      expiryTime,
+      isNew: true
+    };
   }
-  
-  // Generate a new code if no valid one exists
-  return {
-    code: generateVerificationCode(),
-    expiresAt: Date.now() + VERIFICATION_CODE_EXPIRY
-  };
+};
+
+/**
+ * Gets the latest verification code
+ * @returns The latest verification code
+ */
+export const getLatestVerificationCode = (): string => {
+  return latestVerificationCode;
 };
 
 export default {
   validateEmail,
+  validateEmailFormat,
   sendVerificationEmail,
   generateVerificationCode,
   isVerificationCodeExpired,
   getOrCreateVerificationCode,
+  getLatestVerificationCode,
   VERIFICATION_CODE_EXPIRY
 };

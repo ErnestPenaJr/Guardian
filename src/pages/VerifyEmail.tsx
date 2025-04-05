@@ -1,228 +1,796 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { showToast } from '../utils/toast';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import sendgrid from '../utils/sendgrid';
+import { showToast } from '../utils/toast';
+import Swal from 'sweetalert2';
 
-function VerifyEmail() {
+// Helper function to validate email format
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const VerifyEmail = () => {
   const navigate = useNavigate();
-  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
-  const [isResending, setIsResending] = useState(false);
-  const [email, setEmail] = useState('');
-  const [expiryTime, setExpiryTime] = useState<Date | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const location = useLocation();
+  const { email } = location.state || {};
   
-  // Initialize refs array and get registration data
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isResendDisabled, setIsResendDisabled] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [verificationComplete, setVerificationComplete] = useState(false);
+  const [registrationStep, setRegistrationStep] = useState(1); // Step 1: Personal info, Step 2: Role and team info
+  
+  // Create refs for the verification code inputs
+  const inputRefs = Array(6).fill(0).map(() => React.useRef<HTMLInputElement>(null));
+  
+  // Form data for after verification
+  const [formData, setFormData] = useState({
+    fullName: '',
+    password: '',
+    confirmPassword: '',
+    workspaceName: '',
+    role: '',
+    teamSize: '',
+    companySize: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   useEffect(() => {
-    inputRefs.current = inputRefs.current.slice(0, 6);
+    // Check if there's a pending registration
+    const registrationData = localStorage.getItem('registrationData');
     
-    // Get pending registration data from localStorage
-    const pendingRegistration = localStorage.getItem('pendingRegistration');
-    if (pendingRegistration) {
-      try {
-        const data = JSON.parse(pendingRegistration);
+    if (!registrationData) {
+      // No pending registration, redirect to register page
+      navigate('/register');
+      return;
+    }
+    
+    try {
+      const data = JSON.parse(registrationData);
+      
+      // Calculate time left for verification code expiration
+      if (data.expiryTime) {
+        const expiryTime = new Date(data.expiryTime).getTime();
+        const currentTime = Date.now();
+        const timeRemaining = Math.max(0, expiryTime - currentTime);
         
-        // Check if verification code has expired
-        if (sendgrid.isVerificationCodeExpired(data.expiresAt)) {
-          showToast.error('Verification code has expired. Please register again.');
-          navigate('/register');
-          return;
-        }
-        
-        setEmail(data.userData.email);
-        setExpiryTime(new Date(data.expiresAt));
-      } catch (error) {
-        console.error('Error parsing pending registration:', error);
-        showToast.error('An error occurred. Please register again.');
-        navigate('/register');
+        setTimeLeft(Math.floor(timeRemaining / 1000));
       }
-    } else {
-      // No pending registration found, redirect to registration
-      showToast.error('No pending registration found. Please register first.');
+    } catch (error) {
+      console.error('Error parsing registration data:', error);
       navigate('/register');
     }
   }, [navigate]);
-  
-  // Update timer every second
+
   useEffect(() => {
-    if (!expiryTime) return;
+    // If no email was provided, redirect to register
+    if (!email || !isValidEmail(email)) {
+      navigate('/register');
+      return;
+    }
+  }, [email, navigate]);
+
+  // Timer for code expiration
+  useEffect(() => {
+    if (timeLeft <= 0) return;
     
-    const updateTimeRemaining = () => {
-      const now = new Date();
-      const diffMs = expiryTime.getTime() - now.getTime();
+    const timer = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  // Timer for resend button cooldown
+  useEffect(() => {
+    if (resendCountdown <= 0) {
+      setIsResendDisabled(false);
+      return;
+    }
+    
+    const timer = setInterval(() => {
+      setResendCountdown(prevTime => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          setIsResendDisabled(false);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  const validatePassword = (password: string) => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password);
+    const isLongEnough = password.length >= 12;
+
+    return hasUpperCase && hasLowerCase && hasNumber && hasSymbol && isLongEnough;
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const password = e.target.value;
+    setFormData({ ...formData, password });
+    
+    if (!validatePassword(password)) {
+      setPasswordError('Password must be at least 12 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol');
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Get pending registration data
+      const registrationData = localStorage.getItem('registrationData');
       
-      if (diffMs <= 0) {
-        setTimeRemaining('Expired');
-        showToast.error('Verification code has expired. Please request a new one.');
+      if (!registrationData) {
+        setError('No pending registration found. Please register again.');
+        setIsLoading(false);
         return;
       }
       
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffSecs = Math.floor((diffMs % 60000) / 1000);
-      setTimeRemaining(`${diffMins}:${diffSecs < 10 ? '0' : ''}${diffSecs}`);
-    };
-    
-    updateTimeRemaining();
-    const interval = setInterval(updateTimeRemaining, 1000);
-    
-    return () => clearInterval(interval);
-  }, [expiryTime]);
-
-  const handleCodeChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value.charAt(0);
-    }
-    
-    // Update the code array
-    const newCode = [...verificationCode];
-    newCode[index] = value;
-    setVerificationCode(newCode);
-    
-    // Auto-focus next input if value is entered
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-    
-    // Auto-submit if all fields are filled
-    if (value && index === 5 && newCode.every(digit => digit)) {
-      setTimeout(() => {
-        handleSubmit(new Event('submit') as any);
-      }, 300);
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Handle backspace
-    if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim();
-    
-    // If pasted data is a 6-digit code
-    if (/^\d{6}$/.test(pastedData)) {
-      const newCode = pastedData.split('');
-      setVerificationCode(newCode);
+      const data = JSON.parse(registrationData);
       
-      // Focus the last input
-      inputRefs.current[5]?.focus();
+      // Check if verification code has expired
+      if (data.expiryTime && new Date(data.expiryTime).getTime() < Date.now()) {
+        setError('Verification code has expired. Please request a new code.');
+        setIsLoading(false);
+        return;
+      }
       
-      // Auto-submit after a short delay
-      setTimeout(() => {
-        handleSubmit(new Event('submit') as any);
-      }, 300);
+      // Check if verification code matches
+      const storedCode = data.verificationCode;
+      
+      if (verificationCode !== storedCode) {
+        setError('Invalid verification code. Please check your email and try again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Verification successful
+      showToast.success('Email verified successfully!');
+      
+      // Show the registration form
+      setVerificationComplete(true);
+    } catch (error) {
+      console.error('Verification error:', error);
+      setError('An error occurred during verification. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleResendCode = async () => {
-    if (isResending || !email) return;
+    setIsLoading(true);
+    setError('');
+    setIsResendDisabled(true);
+    setResendCountdown(60); // 1 minute cooldown
     
-    setIsResending(true);
     try {
-      // Get the pending registration data
-      const pendingRegistration = localStorage.getItem('pendingRegistration');
-      if (!pendingRegistration) {
-        showToast.error('No pending registration found. Please register again.');
-        navigate('/register');
+      // Get pending registration data
+      const registrationData = localStorage.getItem('registrationData');
+      
+      if (!registrationData) {
+        setError('No pending registration found. Please register again.');
+        setIsLoading(false);
         return;
       }
       
-      const data = JSON.parse(pendingRegistration);
+      const data = JSON.parse(registrationData);
       
-      // Check if the existing code is still valid
-      if (!sendgrid.isVerificationCodeExpired(data.expiresAt)) {
-        // If code is still valid, resend the same code
-        const emailSent = await sendgrid.sendVerificationEmail(email, data.verificationCode);
-        
-        if (emailSent) {
-          showToast.success('Verification code resent to your email');
-          setExpiryTime(new Date(data.expiresAt));
-        } else {
-          showToast.error('Failed to resend verification code. Please try again.');
-        }
+      // Check if we need a new code or can reuse the existing one
+      let verificationData;
+      
+      if (data.expiryTime && new Date(data.expiryTime).getTime() > Date.now()) {
+        // Reuse existing code if it hasn't expired
+        verificationData = {
+          code: data.verificationCode,
+          expiryTime: data.expiryTime
+        };
       } else {
-        // If code has expired, generate a new one
-        const { code: newVerificationCode, expiresAt } = sendgrid.getOrCreateVerificationCode();
-        
-        // Update the stored verification code
-        data.verificationCode = newVerificationCode;
-        data.expiresAt = expiresAt;
-        localStorage.setItem('pendingRegistration', JSON.stringify(data));
-        
-        // Send the new verification code
-        const emailSent = await sendgrid.sendVerificationEmail(email, newVerificationCode);
-        
-        if (emailSent) {
-          showToast.success('New verification code sent to your email');
-          setExpiryTime(new Date(expiresAt));
-        } else {
-          showToast.error('Failed to send new verification code. Please try again.');
-        }
+        // Generate new code if expired
+        verificationData = sendgrid.getOrCreateVerificationCode();
+      }
+      
+      // Update the expiration time in state
+      const timeRemaining = Math.max(0, new Date(verificationData.expiryTime).getTime() - Date.now());
+      setTimeLeft(Math.floor(timeRemaining / 1000));
+      
+      // Get the email from the pending registration
+      const userEmail = data.userData?.email || data.email;
+      
+      if (!userEmail) {
+        setError('Email address not found. Please register again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log(`Resending verification code to: ${userEmail}`);
+      
+      // Update the pending registration with new code
+      const updatedData = {
+        ...data,
+        verificationCode: verificationData.code,
+        expiryTime: verificationData.expiryTime
+      };
+      
+      localStorage.setItem('registrationData', JSON.stringify(updatedData));
+      
+      // Send verification email
+      const emailSent = await sendgrid.sendVerificationEmail(userEmail, verificationData.code);
+      
+      if (emailSent) {
+        showToast.success(`Verification code resent to ${userEmail}`);
+      } else {
+        setError(`Failed to resend verification code to ${userEmail}. Please try again.`);
       }
     } catch (error) {
-      console.error('Error resending verification code:', error);
-      showToast.error('An error occurred while resending the verification code.');
+      console.error('Resend code error:', error);
+      setError('An error occurred while resending the code. Please try again.');
     } finally {
-      setIsResending(false);
+      setIsLoading(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCompleteRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if all fields are filled
-    if (verificationCode.some(digit => !digit)) {
-      showToast.error('Please enter the complete verification code');
-      return;
-    }
-    
-    // Get the entered code
-    const enteredCode = verificationCode.join('');
-    
-    // Get the stored verification code
-    const pendingRegistration = localStorage.getItem('pendingRegistration');
-    if (!pendingRegistration) {
-      showToast.error('No pending registration found. Please register again.');
-      navigate('/register');
-      return;
-    }
+    setIsLoading(true);
+    setError('');
     
     try {
-      const data = JSON.parse(pendingRegistration);
-      
-      // Check if verification code has expired
-      if (sendgrid.isVerificationCodeExpired(data.expiresAt)) {
-        showToast.error('Verification code has expired. Please request a new one.');
+      // Validate form data
+      if (!formData.fullName || !formData.password || !formData.confirmPassword || !formData.workspaceName) {
+        setError('Please fill in all required fields');
+        setIsLoading(false);
         return;
       }
       
-      // Verify the code
-      if (enteredCode === data.verificationCode) {
-        // Code is correct, proceed with registration
-        showToast.success('Email verified successfully');
-        
-        // In a real application, you would make an API call here to create the user account
-        // For this example, we'll just simulate a successful registration
-        
-        // Clear the pending registration data
-        localStorage.removeItem('pendingRegistration');
-        
-        // Redirect to dashboard or login page
-        navigate('/dashboard');
-      } else {
-        showToast.error('Invalid verification code. Please try again.');
-        // Clear the verification code fields
-        setVerificationCode(['', '', '', '', '', '']);
-        // Focus the first input
-        inputRefs.current[0]?.focus();
+      if (passwordError) {
+        setError(passwordError);
+        setIsLoading(false);
+        return;
       }
+      
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setIsLoading(false);
+        return;
+      }
+
+      // Get the pending registration data
+      const registrationData = localStorage.getItem('registrationData');
+      if (!registrationData) {
+        setError('Registration data not found. Please start over.');
+        setIsLoading(false);
+        return;
+      }
+
+      const data = JSON.parse(registrationData);
+      
+      // In a real app, you would save the user to the database here
+      // For this demo, we'll just update the localStorage
+      const completeRegistration = {
+        email: data.email,
+        ...formData,
+        verified: true,
+        registeredAt: new Date().toISOString()
+      };
+      
+      // Save the complete registration data
+      localStorage.setItem('userAccount', JSON.stringify(completeRegistration));
+      
+      // Remove the pending registration
+      localStorage.removeItem('registrationData');
+      
+      // Show success message with SweetAlert2
+      await Swal.fire({
+        title: '<strong>Registration Completed!</strong>',
+        html: '<p>Your account has successfully been created. Please sign in to get started!</p>',
+        icon: 'success',
+        confirmButtonText: 'Sign In',
+        confirmButtonColor: '#0D9488', // secondary color
+        allowOutsideClick: false,
+        customClass: {
+          title: 'text-h4 font-display font-bold',
+          htmlContainer: 'text-body-md text-gray-1',
+          confirmButton: 'font-semibold'
+        }
+      });
+      
+      // Redirect to login page
+      navigate('/login');
     } catch (error) {
-      console.error('Error verifying code:', error);
-      showToast.error('An error occurred during verification. Please try again.');
+      console.error('Registration completion error:', error);
+      setError('An error occurred while completing registration. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleNextStep = () => {
+    // Validate current step
+    if (registrationStep === 1) {
+      if (!formData.fullName) {
+        setError('Please enter your full name');
+        return;
+      }
+      if (!formData.password) {
+        setError('Please enter a password');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+      if (!validatePassword(formData.password)) {
+        return;
+      }
+      if (!formData.workspaceName) {
+        setError('Please enter a workspace name');
+        return;
+      }
+      
+      // Move to next step
+      setRegistrationStep(2);
+      setError('');
+    }
+  };
+
+  const handlePrevStep = () => {
+    setRegistrationStep(1);
+    setError('');
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // If on step 1, move to step 2
+    if (registrationStep === 1) {
+      handleNextStep();
+      return;
+    }
+    
+    // Otherwise, complete registration
+    handleCompleteRegistration(e);
+  };
+
+  const handleCodeChange = (index: number, value: string) => {
+    if (value.length > 1) {
+      value = value.slice(-1);
+    }
+    
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+    
+    const newCode = verificationCode.split('');
+    newCode[index] = value;
+    const updatedCode = newCode.join('');
+    setVerificationCode(updatedCode);
+    
+    // Auto-focus next input if a digit was entered
+    if (value && index < 5) {
+      inputRefs[index + 1].current?.focus();
+    }
+  };
+  
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
+      // Move to previous input when backspace is pressed on an empty input
+      inputRefs[index - 1].current?.focus();
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      // Move to previous input when left arrow is pressed
+      inputRefs[index - 1].current?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      // Move to next input when right arrow is pressed
+      inputRefs[index + 1].current?.focus();
+    }
+  };
+  
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text');
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+    
+    if (digits) {
+      setVerificationCode(digits);
+      
+      // Fill in the inputs with the pasted digits
+      digits.split('').forEach((digit, index) => {
+        if (inputRefs[index] && inputRefs[index].current) {
+          inputRefs[index].current.value = digit;
+        }
+      });
+      
+      // Focus the next empty input or the last input
+      const nextEmptyIndex = digits.length < 6 ? digits.length : 5;
+      inputRefs[nextEmptyIndex].current?.focus();
+    }
+  };
+
+  const renderVerificationForm = () => (
+    <>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+        <span className="text-h4 font-display font-bold text-primary">Guardian</span>
+      </div>
+      
+      <h1 className="text-h3 font-display font-bold text-center mb-8">Verify Your Email</h1>
+      
+      <p className="text-body-md text-gray-1 mb-6 text-center">
+        We've sent a 6-digit verification code to <span className="font-medium">{email}</span>
+      </p>
+      
+      {timeLeft > 0 && (
+        <div className="mb-6 text-center">
+          <p className="text-body-sm text-gray-2">Code expires in:</p>
+          <p className="text-heading-sm font-medium text-primary">{formatTime(timeLeft)}</p>
+        </div>
+      )}
+      
+      {timeLeft === 0 && (
+        <div className="mb-6 text-center">
+          <p className="text-body-sm text-error">Verification code has expired</p>
+          <p className="text-body-sm text-gray-2">Please request a new code</p>
+        </div>
+      )}
+      
+      <form onSubmit={handleVerify} className="space-y-6">
+        <div>
+          <label htmlFor="verificationCode" className="block text-body-sm font-medium text-gray-1 mb-2">
+            Verification Code
+          </label>
+          <div className="flex justify-between gap-2 mb-6">
+            {Array(6).fill(0).map((_, index) => (
+              <input
+                key={index}
+                ref={inputRefs[index]}
+                type="text"
+                maxLength={1}
+                value={verificationCode[index] || ''}
+                onChange={(e) => handleCodeChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={index === 0 ? handlePaste : undefined}
+                className="w-full aspect-square text-center text-lg font-medium rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+              />
+            ))}
+          </div>
+        </div>
+        
+        {error && (
+          <div className="p-3 bg-red-50 text-error rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+        
+        <button
+          type="submit"
+          disabled={isLoading || verificationCode.length !== 6 || timeLeft === 0}
+          className={`w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg ${
+            isLoading || verificationCode.length !== 6 || timeLeft === 0
+              ? 'opacity-70 cursor-not-allowed'
+              : 'hover:bg-secondary/90 transition-colors'
+          }`}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Verifying...
+            </div>
+          ) : (
+            'Verify Email'
+          )}
+        </button>
+      </form>
+      
+      <div className="mt-8 text-center">
+        <p className="text-body-sm text-gray-2 mb-2">
+          Didn't receive the code?
+        </p>
+        <button
+          onClick={handleResendCode}
+          disabled={isResendDisabled || isLoading}
+          className={`text-secondary font-medium ${
+            isResendDisabled || isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:underline'
+          }`}
+        >
+          {isResendDisabled ? `Resend code (${resendCountdown}s)` : 'Resend code'}
+        </button>
+      </div>
+    </>
+  );
+
+  const renderPersonalInfoForm = () => (
+    <>
+      <h1 className="text-h3 font-display font-bold text-center mb-8">Complete Your Registration</h1>
+      
+      <form onSubmit={handleFormSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="fullName" className="block text-body-sm font-medium text-gray-1 mb-2">
+            Full Name
+          </label>
+          <input
+            type="text"
+            id="fullName"
+            value={formData.fullName}
+            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+            placeholder="John Smith"
+            className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="password" className="block text-body-sm font-medium text-gray-1 mb-2">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              value={formData.password}
+              onChange={handlePasswordChange}
+              placeholder="Create a strong password"
+              className={`w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-2"
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+              )}
+            </button>
+          </div>
+          {passwordError && (
+            <p className="text-error text-body-sm mt-1">
+              {passwordError}
+            </p>
+          )}
+        </div>
+        
+        <div>
+          <label htmlFor="confirmPassword" className="block text-body-sm font-medium text-gray-1 mb-2">
+            Confirm Password
+          </label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              id="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={(e) => {
+                setFormData({ ...formData, confirmPassword: e.target.value });
+                if (e.target.value !== formData.password) {
+                  setError('Passwords do not match');
+                } else {
+                  setError('');
+                }
+              }}
+              placeholder="Confirm your password"
+              className={`w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-2"
+            >
+              {showConfirmPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+        
+        <div>
+          <label htmlFor="workspaceName" className="block text-body-sm font-medium text-gray-1 mb-2">
+            Workspace Name
+          </label>
+          <input
+            type="text"
+            id="workspaceName"
+            value={formData.workspaceName}
+            onChange={(e) => setFormData({ ...formData, workspaceName: e.target.value })}
+            placeholder="Your company or team name"
+            className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+          />
+        </div>
+        
+        {error && (
+          <div className="p-3 bg-red-50 text-error rounded-lg">
+            {error}
+          </div>
+        )}
+        
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg ${
+            isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-secondary/90 transition-colors'
+          }`}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Next...
+            </div>
+          ) : (
+            'Continue'
+          )}
+        </button>
+      </form>
+    </>
+  );
+  
+  const renderRoleAndTeamForm = () => (
+    <>
+      <h1 className="text-h3 font-display font-bold text-center mb-8">Create your account</h1>
+      
+      <form onSubmit={handleFormSubmit} className="space-y-6">
+        <div className="mb-6">
+          <p className="text-body-md font-medium text-gray-1 mb-3">What best describes your <span className="font-semibold">current role</span>?</p>
+          <div className="flex flex-wrap gap-2">
+            {['Executive', 'Supervisor', 'Investigator', 'Officer', 'Analyst', 'Support', 'Other'].map((role) => (
+              <label 
+                key={role} 
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer transition-all ${
+                  formData.role === role 
+                    ? 'border-secondary bg-secondary/10' 
+                    : 'border-gray-5 hover:border-gray-4'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={role}
+                  checked={formData.role === role}
+                  onChange={() => setFormData({ ...formData, role })}
+                  className="h-4 w-4 text-secondary border-gray-5 focus:ring-secondary"
+                />
+                {role}
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-body-md font-medium text-gray-1 mb-3">How many people are on your <span className="font-semibold">team</span>?</p>
+          <div className="flex flex-wrap gap-2">
+            {['Only me', '2-5', '6-10', '11-15', '16-24', '25-50', '51-100', '101-500'].map((size) => (
+              <label 
+                key={size} 
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer transition-all ${
+                  formData.teamSize === size 
+                    ? 'border-secondary bg-secondary/10' 
+                    : 'border-gray-5 hover:border-gray-4'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="teamSize"
+                  value={size}
+                  checked={formData.teamSize === size}
+                  onChange={() => setFormData({ ...formData, teamSize: size })}
+                  className="h-4 w-4 text-secondary border-gray-5 focus:ring-secondary"
+                />
+                {size}
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-body-md font-medium text-gray-1 mb-3">How many people work at your <span className="font-semibold">company</span>?</p>
+          <div className="flex flex-wrap gap-2">
+            {['1-19', '20-49', '50-99', '100-250', '251-500', '501-1500', '1500+'].map((size) => (
+              <label 
+                key={size} 
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer transition-all ${
+                  formData.companySize === size 
+                    ? 'border-secondary bg-secondary/10' 
+                    : 'border-gray-5 hover:border-gray-4'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="companySize"
+                  value={size}
+                  checked={formData.companySize === size}
+                  onChange={() => setFormData({ ...formData, companySize: size })}
+                  className="h-4 w-4 text-secondary border-gray-5 focus:ring-secondary"
+                />
+                {size}
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        {error && (
+          <div className="p-3 bg-red-50 text-error rounded-lg">
+            {error}
+          </div>
+        )}
+        
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={handlePrevStep}
+            className="w-1/3 bg-white border border-gray-5 text-gray-1 font-semibold py-3 px-4 rounded-lg hover:bg-gray-7/50 transition-colors"
+          >
+            Back
+          </button>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-2/3 bg-secondary text-white font-semibold py-3 px-4 rounded-lg ${
+              isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-secondary/90 transition-colors'
+            }`}
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Completing Registration...
+              </div>
+            ) : (
+              'Continue'
+            )}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+
+  const renderRegistrationForm = () => {
+    return registrationStep === 1 ? renderPersonalInfoForm() : renderRoleAndTeamForm();
   };
 
   return (
@@ -236,75 +804,10 @@ function VerifyEmail() {
       }}
     >
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-h3 font-display font-bold text-center mb-4">Verify E-mail</h1>
-        
-        <p className="text-center text-body-md mb-2">
-          A verification code was sent to <span className="font-semibold">{email}</span>
-        </p>
-        
-        <p className="text-center text-body-md mb-6">
-          Please enter the verification code to complete registration.
-        </p>
-        
-        {timeRemaining && (
-          <p className="text-center text-body-sm text-secondary font-semibold mb-4">
-            Code expires in: {timeRemaining}
-          </p>
-        )}
-        
-        <p className="text-center text-body-sm text-gray-3 mb-8">
-          If an e-mail is not received, check your spam folder or
-          <br />resend a verification code.
-        </p>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-8">
-            <label className="block text-center text-body-md font-medium mb-4">Verification Code</label>
-            <div className="flex justify-center gap-2">
-              {verificationCode.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={el => inputRefs.current[index] = el}
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={1}
-                  value={digit}
-                  onChange={e => handleCodeChange(index, e.target.value)}
-                  onKeyDown={e => handleKeyDown(index, e)}
-                  onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-16 text-center text-h4 border border-gray-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-                />
-              ))}
-            </div>
-          </div>
-          
-          <button
-            type="button"
-            onClick={handleResendCode}
-            className="w-full border border-gray-5 text-primary font-semibold py-3 px-4 rounded-lg hover:bg-gray-1 transition-colors mb-4"
-            disabled={isResending}
-          >
-            {isResending ? 'Resending...' : 'Resend Verification Code'}
-          </button>
-          
-          <button
-            type="submit"
-            className="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg hover:bg-secondary/90 transition-colors"
-          >
-            Verify
-          </button>
-        </form>
-      </div>
-
-      <div className="mt-8 text-center">
-        <p className="text-white text-body-sm font-semibold drop-shadow-md">
-          Powered by <br></br>
-          <img src="/images/shieldlytics.png" alt="Shieldlytics" width={300} />
-        </p>
+        {verificationComplete ? renderRegistrationForm() : renderVerificationForm()}
       </div>
     </div>
   );
-}
+};
 
 export default VerifyEmail;
