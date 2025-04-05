@@ -1,4 +1,11 @@
 # Node.js
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
+    appType: 'webAppLinux'
+    appName: 'GUARDIAN-DEV'
+    package: '$(System.DefaultWorkingDirectory)/**/*.zip'
+    runtimeStack: 'NODE:20-lts'
 # Build a general Node.js project with npm.
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
