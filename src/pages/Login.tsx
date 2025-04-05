@@ -73,13 +73,12 @@ function Login() {
 
           <div className="flex items-center justify-center gap-2">
             <span className="text-gray-3 text-body-sm">Don't have an account?</span>
-            <button
-              type="button"
+            <Link
+              to="/register"
               className="text-secondary text-body-sm font-semibold hover:text-secondary/80 transition-colors"
-              onClick={() => showToast.info('New account registration coming soon!')}
             >
               Create New Account
-            </button>
+            </Link>
           </div>
           
           <div className="mt-4 text-center">
