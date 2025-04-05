@@ -8,9 +8,11 @@ function VerifyEmail() {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [isResending, setIsResending] = useState(false);
   const [email, setEmail] = useState('');
+  const [expiryTime, setExpiryTime] = useState<Date | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
-  // Initialize refs array
+  // Initialize refs array and get registration data
   useEffect(() => {
     inputRefs.current = inputRefs.current.slice(0, 6);
     
@@ -19,14 +21,16 @@ function VerifyEmail() {
     if (pendingRegistration) {
       try {
         const data = JSON.parse(pendingRegistration);
+        
         // Check if verification code has expired
-        if (data.expiresAt < new Date().getTime()) {
+        if (sendgrid.isVerificationCodeExpired(data.expiresAt)) {
           showToast.error('Verification code has expired. Please register again.');
           navigate('/register');
           return;
         }
         
         setEmail(data.userData.email);
+        setExpiryTime(new Date(data.expiresAt));
       } catch (error) {
         console.error('Error parsing pending registration:', error);
         showToast.error('An error occurred. Please register again.');
@@ -38,6 +42,31 @@ function VerifyEmail() {
       navigate('/register');
     }
   }, [navigate]);
+  
+  // Update timer every second
+  useEffect(() => {
+    if (!expiryTime) return;
+    
+    const updateTimeRemaining = () => {
+      const now = new Date();
+      const diffMs = expiryTime.getTime() - now.getTime();
+      
+      if (diffMs <= 0) {
+        setTimeRemaining('Expired');
+        showToast.error('Verification code has expired. Please request a new one.');
+        return;
+      }
+      
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffSecs = Math.floor((diffMs % 60000) / 1000);
+      setTimeRemaining(`${diffMins}:${diffSecs < 10 ? '0' : ''}${diffSecs}`);
+    };
+    
+    updateTimeRemaining();
+    const interval = setInterval(updateTimeRemaining, 1000);
+    
+    return () => clearInterval(interval);
+  }, [expiryTime]);
 
   const handleCodeChange = (index: number, value: string) => {
     if (value.length > 1) {
@@ -52,6 +81,13 @@ function VerifyEmail() {
     // Auto-focus next input if value is entered
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
+    }
+    
+    // Auto-submit if all fields are filled
+    if (value && index === 5 && newCode.every(digit => digit)) {
+      setTimeout(() => {
+        handleSubmit(new Event('submit') as any);
+      }, 300);
     }
   };
 
@@ -73,6 +109,11 @@ function VerifyEmail() {
       
       // Focus the last input
       inputRefs.current[5]?.focus();
+      
+      // Auto-submit after a short delay
+      setTimeout(() => {
+        handleSubmit(new Event('submit') as any);
+      }, 300);
     }
   };
 
@@ -81,25 +122,45 @@ function VerifyEmail() {
     
     setIsResending(true);
     try {
-      // Generate a new verification code
-      const newVerificationCode = sendgrid.generateVerificationCode();
-      
-      // Update the stored verification code
+      // Get the pending registration data
       const pendingRegistration = localStorage.getItem('pendingRegistration');
-      if (pendingRegistration) {
-        const data = JSON.parse(pendingRegistration);
-        data.verificationCode = newVerificationCode;
-        data.expiresAt = new Date().getTime() + 10 * 60 * 1000; // 10 minutes from now
-        localStorage.setItem('pendingRegistration', JSON.stringify(data));
+      if (!pendingRegistration) {
+        showToast.error('No pending registration found. Please register again.');
+        navigate('/register');
+        return;
       }
       
-      // Send the new verification code
-      const emailSent = await sendgrid.sendVerificationEmail(email, newVerificationCode);
+      const data = JSON.parse(pendingRegistration);
       
-      if (emailSent) {
-        showToast.success('Verification code resent to your email');
+      // Check if the existing code is still valid
+      if (!sendgrid.isVerificationCodeExpired(data.expiresAt)) {
+        // If code is still valid, resend the same code
+        const emailSent = await sendgrid.sendVerificationEmail(email, data.verificationCode);
+        
+        if (emailSent) {
+          showToast.success('Verification code resent to your email');
+          setExpiryTime(new Date(data.expiresAt));
+        } else {
+          showToast.error('Failed to resend verification code. Please try again.');
+        }
       } else {
-        showToast.error('Failed to resend verification code. Please try again.');
+        // If code has expired, generate a new one
+        const { code: newVerificationCode, expiresAt } = sendgrid.getOrCreateVerificationCode();
+        
+        // Update the stored verification code
+        data.verificationCode = newVerificationCode;
+        data.expiresAt = expiresAt;
+        localStorage.setItem('pendingRegistration', JSON.stringify(data));
+        
+        // Send the new verification code
+        const emailSent = await sendgrid.sendVerificationEmail(email, newVerificationCode);
+        
+        if (emailSent) {
+          showToast.success('New verification code sent to your email');
+          setExpiryTime(new Date(expiresAt));
+        } else {
+          showToast.error('Failed to send new verification code. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error resending verification code:', error);
@@ -133,9 +194,8 @@ function VerifyEmail() {
       const data = JSON.parse(pendingRegistration);
       
       // Check if verification code has expired
-      if (data.expiresAt < new Date().getTime()) {
-        showToast.error('Verification code has expired. Please register again.');
-        navigate('/register');
+      if (sendgrid.isVerificationCodeExpired(data.expiresAt)) {
+        showToast.error('Verification code has expired. Please request a new one.');
         return;
       }
       
@@ -154,6 +214,10 @@ function VerifyEmail() {
         navigate('/dashboard');
       } else {
         showToast.error('Invalid verification code. Please try again.');
+        // Clear the verification code fields
+        setVerificationCode(['', '', '', '', '', '']);
+        // Focus the first input
+        inputRefs.current[0]?.focus();
       }
     } catch (error) {
       console.error('Error verifying code:', error);
@@ -174,10 +238,19 @@ function VerifyEmail() {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <h1 className="text-h3 font-display font-bold text-center mb-4">Verify E-mail</h1>
         
-        <p className="text-center text-body-md mb-6">
-          A verification code was sent to the e-mail address you provided.
-          <br />Please enter the verification code to complete registration.
+        <p className="text-center text-body-md mb-2">
+          A verification code was sent to <span className="font-semibold">{email}</span>
         </p>
+        
+        <p className="text-center text-body-md mb-6">
+          Please enter the verification code to complete registration.
+        </p>
+        
+        {timeRemaining && (
+          <p className="text-center text-body-sm text-secondary font-semibold mb-4">
+            Code expires in: {timeRemaining}
+          </p>
+        )}
         
         <p className="text-center text-body-sm text-gray-3 mb-8">
           If an e-mail is not received, check your spam folder or

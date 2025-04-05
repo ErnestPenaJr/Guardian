@@ -157,19 +157,19 @@ function Register() {
       }
       
       try {
-        // Generate a verification code
-        const verificationCode = sendgrid.generateVerificationCode();
+        // Get or create a verification code with expiration time
+        const verificationData = sendgrid.getOrCreateVerificationCode();
         
         // Store verification code and user data (in a real app, this would be in a database)
         // For this example, we'll use localStorage
         localStorage.setItem('pendingRegistration', JSON.stringify({
           userData: formData,
-          verificationCode,
-          expiresAt: new Date().getTime() + 10 * 60 * 1000 // 10 minutes from now
+          verificationCode: verificationData.code,
+          createdAt: Date.now()
         }));
         
         // Send verification email
-        const emailSent = await sendgrid.sendVerificationEmail(formData.email, verificationCode);
+        const emailSent = await sendgrid.sendVerificationEmail(formData.email, verificationData.code);
         
         if (emailSent) {
           showToast.success('Verification code sent to your email');
