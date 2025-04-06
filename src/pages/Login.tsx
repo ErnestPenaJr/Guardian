@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPalette } from '@fortawesome/free-solid-svg-icons';
 
 function Login() {
   const [credentials, setCredentials] = useState({
@@ -83,7 +85,7 @@ function Login() {
           
           <div className="mt-4 text-center">
             <Link to="/style-guide" className="text-secondary text-body-sm hover:text-secondary/80 transition-colors">
-              View Style Guide
+              <FontAwesomeIcon icon={faPalette} title="View Style Guide" />
             </Link>
           </div>
         </form>
