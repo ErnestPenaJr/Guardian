@@ -12,6 +12,22 @@ const Toast = Swal.mixin({
   }
 });
 
+// Function to log to console and set dev mode indicator
+const logToConsole = (message: string, isDevMode = false) => {
+  console.log(message);
+  
+  // Set a meta tag to indicate dev mode for other components to detect
+  if (isDevMode) {
+    let metaTag = document.querySelector('meta[name="console-output"]');
+    if (!metaTag) {
+      metaTag = document.createElement('meta');
+      metaTag.setAttribute('name', 'console-output');
+      document.head.appendChild(metaTag);
+    }
+    metaTag.setAttribute('content', message);
+  }
+};
+
 export const showToast = {
   success: (message: string) => Toast.fire({
     icon: 'success',
@@ -73,4 +89,9 @@ export const showAlert = {
       confirmButtonColor: '#2EBCBC'
     });
   }
+};
+
+// Export the console logger
+export const devConsole = {
+  log: (message: string) => logToConsole(message, true)
 };
