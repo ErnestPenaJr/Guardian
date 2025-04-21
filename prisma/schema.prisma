@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model USER_ROLES {
+  USER_ROLE_ID   Int       @id @default(autoincrement())
+  USER_ID        Int
+  ROLE_ID        Int
+  CREATE_USER_ID Int?
+  UPDATE_USER_ID Int?
+  CREATE_DATE    DateTime? @default(now()) @db.DateTime
+  UPDATE_DATE    DateTime? @default(now()) @db.DateTime
+  STATUS         String    @default("P") @db.Char(1)
+  USERS          USERS?    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction)
+}
+
+model USERS {
+  USER_ID                Int            @id(map: "PK__USERS__F3BEEBFF601CFE32") @default(autoincrement())
+  EMAIL                  String         @unique(map: "UQ__USERS__161CF724256F501E") @db.NVarChar(255)
+  PASSWORD_HASH          String?        @db.NVarChar(255)
+  PIN                    String?        @db.NVarChar(50)
+  FIRST_NAME             String?        @db.NVarChar(100)
+  LAST_NAME              String?        @db.NVarChar(100)
+  STATUS                 String?        @default("A", map: "DF__USERS__STATUS__1332DBDC") @db.Char(1)
+  CREATED_AT             DateTime?      @default(now(), map: "DF__USERS__CREATED_A__14270015") @db.DateTime
+  UPDATED_AT             DateTime?      @default(now(), map: "DF__USERS__UPDATED_A__151B244E") @db.DateTime
+  EMAIL_VALIDATED        Boolean        @default(false) @db.Bit
+  EMAIL_VALIDATION_TOKEN String?        @db.NVarChar(255)
+  PASSWORD_RESET_TOKEN   String?        @db.NVarChar(255)
+  COMPANY_ID             Int?
+  USER_ROLES             USER_ROLES[]
+  COMPANY                COMPANY?       @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction)
+  COMPANY_INFO           COMPANY_INFO[]
+}
+
+model COMPANY {
+  COMPANY_ID   Int            @id @default(autoincrement())
+  NAME         String         @db.NVarChar(255)
+  ADDRESS      String?        @db.NVarChar(255)
+  PHONE        String?        @db.NVarChar(50)
+  CREATED_AT   DateTime       @default(now()) @db.DateTime
+  USERS        USERS[]
+  COMPANY_INFO COMPANY_INFO[]
+}
+
+model COMPANY_INFO {
+  COMPANY_INFO_ID Int      @id @default(autoincrement())
+  COMPANY_ID      Int
+  USER_ID         Int
+  WORKSPACE_NAME  String?  @db.NVarChar(255)
+  ROLE            String?  @db.NVarChar(100)
+  TEAM_SIZE       String?  @db.NVarChar(50)
+  COMPANY_SIZE    String?  @db.NVarChar(50)
+  CREATED_AT      DateTime @default(now()) @db.DateTime
+  UPDATED_AT      DateTime @updatedAt @db.DateTime
+  COMPANY         COMPANY  @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction)
+  USERS           USERS    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction)
+}
