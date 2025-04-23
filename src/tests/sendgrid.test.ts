@@ -5,6 +5,10 @@
  * for both email validation and sending verification codes.
  */
 
+const dotenv = require('dotenv');
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 import sendgrid from '../utils/sendgrid';
 
 const TEST_EMAIL = 'ernest@shieldlytics.com';
@@ -22,14 +26,14 @@ async function testEmailValidation() {
     console.log('✅ Email validation test completed');
     console.log('Result:', result);
     
-    if (result.isValid) {
+    if (result.valid) {
       console.log('✅ Email is valid');
     } else {
       console.log('❌ Email is invalid');
       console.log('Reason:', result.reason);
     }
     
-    return result.isValid;
+    return result.valid;
   } catch (error) {
     console.error('❌ Email validation test failed');
     console.error('Error:', error);
@@ -71,7 +75,7 @@ async function testSendVerificationCode() {
  */
 async function runAllTests() {
   console.log('=== SendGrid Integration Tests ===');
-  console.log('Testing with API key:', import.meta.env.VITE_SENDGRID_API_KEY ? '✅ API key is set' : '❌ API key is not set');
+  console.log('Testing with API key:', process.env.VITE_SENDGRID_API_KEY ? '✅ API key is set' : '❌ API key is not set');
   
   // Test email validation
   const validationResult = await testEmailValidation();

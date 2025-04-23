@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import sendgrid from '../utils/sendgrid';
 import { showToast } from '../utils/toast';
 import Swal from 'sweetalert2';
+import axios from 'axios'; // Import axios
 
 // Helper function to validate email format
 const isValidEmail = (email: string): boolean => {
@@ -144,43 +145,24 @@ const VerifyEmail = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
     try {
-      // Get pending registration data
-      const registrationData = localStorage.getItem('registrationData');
-      
-      if (!registrationData) {
-        setError('No pending registration found. Please register again.');
-        setIsLoading(false);
-        return;
+      // POST to backend to verify email
+      const response = await axios.post('/api/verify-email', {
+        email,
+        verificationCode
+      });
+      if (response.data.success) {
+        showToast.success('Email verified successfully!');
+        setVerificationComplete(true);
+      } else {
+        setError(response.data.error || 'Verification failed.');
       }
-      
-      const data = JSON.parse(registrationData);
-      
-      // Check if verification code has expired
-      if (data.expiryTime && new Date(data.expiryTime).getTime() < Date.now()) {
-        setError('Verification code has expired. Please request a new code.');
-        setIsLoading(false);
-        return;
+    } catch (error: any) {
+      if (error.response && error.response.data && error.response.data.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('An error occurred during verification. Please try again.');
       }
-      
-      // Check if verification code matches
-      const storedCode = data.verificationCode;
-      
-      if (verificationCode !== storedCode) {
-        setError('Invalid verification code. Please check your email and try again.');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Verification successful
-      showToast.success('Email verified successfully!');
-      
-      // Show the registration form
-      setVerificationComplete(true);
-    } catch (error) {
-      console.error('Verification error:', error);
-      setError('An error occurred during verification. Please try again.');
     } finally {
       setIsLoading(false);
     }

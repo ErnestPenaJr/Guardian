@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 import sendgrid from '../utils/sendgrid';
+import axios from 'axios';
 
 function Register() {
   const navigate = useNavigate();
@@ -85,33 +86,22 @@ function Register() {
     setError('');
     
     try {
-      // Get or create a verification code with expiration time
-      const verificationData = sendgrid.getOrCreateVerificationCode();
-      
-      // Store verification code and user data (in a real app, this would be in a database)
-      // For this example, we'll use localStorage
-      localStorage.setItem('registrationData', JSON.stringify({
-        email,
-        verificationCode: verificationData.code,
-        expiryTime: verificationData.expiryTime
-      }));
-      
-      console.log(`Sending verification email to: ${email}`);
-      
-      // Send verification email
-      const emailSent = await sendgrid.sendVerificationEmail(email, verificationData.code);
-      
-      if (emailSent) {
-        showToast.success(`Verification code sent to ${email}`);
-        navigate('/verify-email', { state: { email } });
+      // Call backend registration endpoint
+      const response = await axios.post('/api/register', { email });
+      // Success: proceed to verification
+      showToast.success(`Verification code sent to ${email}`);
+      // Persist registration data for verification page
+      const expiryTime = new Date(Date.now() + 1000 * 60 * 30).toISOString();
+      localStorage.setItem('registrationData', JSON.stringify({ email, expiryTime }));
+      navigate('/verify-email', { state: { email } });
+    } catch (error: any) {
+      if (error.response && error.response.data && error.response.data.error) {
+        setError(error.response.data.error);
+        showToast.error(error.response.data.error);
       } else {
-        setError(`Failed to send verification email to ${email}. Please try again.`);
-        showToast.error('Failed to send verification email. Please try again.');
+        setError('An error occurred during registration. Please try again.');
+        showToast.error('An error occurred during registration. Please try again.');
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      setError('An error occurred during registration. Please try again.');
-      showToast.error('An error occurred during registration. Please try again.');
     } finally {
       setIsLoading(false);
     }

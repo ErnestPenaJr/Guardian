@@ -5,17 +5,15 @@
  * for sending verification codes.
  */
 
-import dotenv from 'dotenv';
-import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
-import sgMail from '@sendgrid/mail';
+const dotenv = require('dotenv');
+const path = require('path');
+const sgMail = require('@sendgrid/mail');
 
 // Setup environment
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 // Get email from command line arguments or use default
-const TEST_EMAIL = process.argv[2] || 'support@shieldlytics.com';
+const TEST_EMAIL = process.argv[2] || 'support@shieldlytics.com'; // TODO: Change to your email for testing
 const SENDER_EMAIL = 'support@shieldlytics.com'; // Use the verified sender email
 const API_KEY = process.env.VITE_SENDGRID_API_KEY;
 
