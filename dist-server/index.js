@@ -534,6 +534,29 @@ async function sendVerificationEmail(email, verificationToken) {
         console.error('[SendGrid] Error sending verification email:', error);
     }
 }
+// --- GET ROLES ENDPOINT ---
+app.get('/api/roles', async (req, res) => {
+    try {
+        const roles = await prisma.rOLES.findMany({
+            where: { STATUS: 'A' }, // Only active roles
+            select: {
+                ROLE_ID: true,
+                NAME: true,
+                DISPLAY_NAME: true,
+                DESCRIPTION: true
+            }
+        });
+        return res.json(roles.map(r => ({
+            id: r.ROLE_ID,
+            name: r.DISPLAY_NAME || r.NAME,
+            description: r.DESCRIPTION
+        })));
+    }
+    catch (err) {
+        console.error('[GET ROLES]', err);
+        return res.status(500).json({ error: 'Failed to fetch roles' });
+    }
+});
 // Login endpoint handler function
 const handleLogin = async (req, res) => {
     try {

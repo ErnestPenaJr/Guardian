@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Search, LogOut } from 'lucide-react';
+import { Shield, Search, LogOut, Trash2 } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import DataTable from 'react-data-table-component';
@@ -304,6 +304,41 @@ function Home() {
     }
   );
 
+  // --- INVITE MODAL STATE ---
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmails, setInviteEmails] = useState<{ email: string; roleId: number | null }[]>([{ email: '', roleId: null }]);
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
+  const [isSending, setIsSending] = useState(false);
+
+  // Fetch roles on modal open
+  useEffect(() => {
+    if (showInviteModal) {
+      api.get('/roles')
+        .then(res => setRoles(res.data))
+        .catch(() => setRoles([]));
+    }
+  }, [showInviteModal]);
+
+  // --- INVITE MODAL LOGIC ---
+  const handleAddEmailField = () => setInviteEmails([...inviteEmails, { email: '', roleId: null }]);
+  const handleRemoveEmailField = (idx: number) => setInviteEmails(inviteEmails.filter((_, i) => i !== idx));
+  const handleChangeEmail = (idx: number, value: string) => setInviteEmails(inviteEmails.map((v, i) => i === idx ? { ...v, email: value } : v));
+  const handleChangeRole = (idx: number, value: number) => setInviteEmails(inviteEmails.map((v, i) => i === idx ? { ...v, roleId: value } : v));
+  const handleSendInvites = async () => {
+    setIsSending(true);
+    try {
+      const invites = inviteEmails.filter(e => e.email && e.roleId);
+      await api.post('/invites/send', { invites });
+      Swal.fire({ icon: 'success', title: 'Invites Sent', text: 'Invitations have been sent.' });
+      setShowInviteModal(false);
+      setInviteEmails([{ email: '', roleId: null }]);
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.error || 'Failed to send invites.' });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -333,6 +368,16 @@ function Home() {
                 <span>Settings</span>
               </Link>
             </li>
+            {getUserRole() === 'Administrator' && (
+              <li>
+                <button
+                  className="ml-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition"
+                  onClick={() => setShowInviteModal(true)}
+                >
+                  Send Invites
+                </button>
+              </li>
+            )}
           </ul>
         </nav>
       </div>
@@ -422,6 +467,61 @@ function Home() {
           </section>
         </main>
       </div>
+      {showInviteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+            <h2 className="text-h4 font-bold mb-4">Send Invites</h2>
+            <label className="block mb-2 font-medium">Invite Emails & Roles</label>
+            {inviteEmails.map((item, idx) => (
+              <div className="flex items-center mb-2 gap-2" key={idx}>
+                <input
+                  type="email"
+                  className="flex-1 px-3 py-2 border rounded"
+                  placeholder="user@email.com"
+                  value={item.email}
+                  onChange={e => handleChangeEmail(idx, e.target.value)}
+                  required
+                />
+                <select
+                  className="px-2 py-2 border rounded"
+                  value={item.roleId ?? ''}
+                  onChange={e => handleChangeRole(idx, Number(e.target.value))}
+                  required
+                >
+                  <option value="" disabled>Select role</option>
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+                {inviteEmails.length > 1 && (
+                  <button type="button" onClick={() => handleRemoveEmailField(idx)} className="text-red-500 p-1" title="Remove">
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" className="mb-4 text-primary underline" onClick={handleAddEmailField}>+ Add another</button>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                onClick={() => setShowInviteModal(false)}
+                disabled={isSending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+                onClick={handleSendInvites}
+                disabled={isSending || !inviteEmails.every(e => e.email && e.roleId)}
+              >
+                {isSending ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
