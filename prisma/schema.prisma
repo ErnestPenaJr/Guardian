@@ -71,6 +71,8 @@ model COMPANY_INFO {
   UPDATED_AT      DateTime @default(now(), map: "DF__COMPANY_I__UPDAT__1758727B") @db.DateTime
   COMPANY         COMPANY  @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_COMPANY")
   USERS           USERS    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_USERS")
+
+  @@unique([USER_ID, COMPANY_ID], name: "USER_ID_COMPANY_ID")
 }
 
 model FIELD_LOOKUP_DISPLAY_TYPE {

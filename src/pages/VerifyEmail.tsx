@@ -26,6 +26,8 @@ const VerifyEmail = () => {
   
   // Create refs for the verification code inputs
   const inputRefs = Array(6).fill(0).map(() => React.useRef<HTMLInputElement>(null));
+
+  //get first name from fullname
   
   // Form data for after verification
   const [formData, setFormData] = useState({
@@ -244,7 +246,6 @@ const VerifyEmail = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
     try {
       // Validate form data
       if (!formData.fullName || !formData.password || !formData.confirmPassword || !formData.workspaceName) {
@@ -252,64 +253,55 @@ const VerifyEmail = () => {
         setIsLoading(false);
         return;
       }
-      
       if (passwordError) {
         setError(passwordError);
         setIsLoading(false);
         return;
       }
-      
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match');
         setIsLoading(false);
         return;
       }
-
-      // Get the pending registration data
-      const registrationData = localStorage.getItem('registrationData');
-      if (!registrationData) {
-        setError('Registration data not found. Please start over.');
-        setIsLoading(false);
-        return;
-      }
-
-      const data = JSON.parse(registrationData);
-      
-      // In a real app, you would save the user to the database here
-      // For this demo, we'll just update the localStorage
-      const completeRegistration = {
-        email: data.email,
-        ...formData,
-        verified: true,
-        registeredAt: new Date().toISOString()
+      // Prepare payload for backend
+      const payload = {
+        email,
+        password: formData.password,
+        fullName: formData.fullName, // Send as fullName
+        workspaceName: formData.workspaceName,
+        role: formData.role,
+        teamSize: formData.teamSize,
+        companySize: formData.companySize
       };
-      
-      // Save the complete registration data
-      localStorage.setItem('userAccount', JSON.stringify(completeRegistration));
-      
-      // Remove the pending registration
-      localStorage.removeItem('registrationData');
-      
-      // Show success message with SweetAlert2
-      await Swal.fire({
-        title: '<strong>Registration Completed!</strong>',
-        html: '<p>Your account has successfully been created. Please sign in to get started!</p>',
-        icon: 'success',
-        confirmButtonText: 'Sign In',
-        confirmButtonColor: '#0D9488', // secondary color
-        allowOutsideClick: false,
-        customClass: {
-          title: 'text-h4 font-display font-bold',
-          htmlContainer: 'text-body-md text-gray-1',
-          confirmButton: 'font-semibold'
-        }
-      });
-      
-      // Redirect to login page
-      navigate('/login');
-    } catch (error) {
+      // POST to backend to complete registration
+      const response = await axios.post('/api/complete-registration', payload);
+      if (response.data.success) {
+        // Show success message with SweetAlert2
+        await Swal.fire({
+          title: '<strong>Registration Completed!</strong>',
+          html: '<p>Your account has successfully been created. Please sign in to get started!</p>',
+          icon: 'success',
+          confirmButtonText: 'Sign In',
+          confirmButtonColor: '#0D9488', // secondary color
+          allowOutsideClick: false,
+          customClass: {
+            title: 'text-h4 font-display font-bold',
+            htmlContainer: 'text-body-md text-gray-1',
+            confirmButton: 'font-semibold'
+          }
+        });
+        // Redirect to login page
+        navigate('/login');
+      } else {
+        setError(response.data.error || 'Registration failed.');
+      }
+    } catch (error: any) {
       console.error('Registration completion error:', error);
-      setError('An error occurred while completing registration. Please try again.');
+      if (error.response && error.response.data && error.response.data.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('An error occurred while completing registration. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
