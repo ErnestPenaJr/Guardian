@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import bcrypt from 'bcryptjs';
+import { passport, loginSchema, generateToken, requireAuth } from './auth.js';
+import rateLimit from 'express-rate-limit';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
@@ -25,6 +27,20 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
+// Create a rate limiter for login attempts
+// 5 failed attempts per 15 minutes per IP
+const loginRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true, // Only count failed attempts
+    message: {
+        success: false,
+        message: 'Too many login attempts. Please try again later.'
+    }
+});
 // Zod schema for registration
 const registerSchema = z.object({
     email: z.string().email(),
@@ -46,59 +62,63 @@ app.post('/api/register', async (req, res) => {
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         // Hash the verification code for secure storage
         const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
-        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes
+        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
         // Hash the password (empty string in this case)
         const passwordHash = crypto.createHash('sha256').update('').digest('hex');
-        // get first name from full name
+        // get first name from email
         const firstName = email.split('@')[0].split('.')[0];
-        // get last name from full name
-        const lastName = email.split('@')[0].split('.')[1];
+        // get last name from email
+        const lastName = email.split('@')[0].split('.')[1] || '';
+        // Company by domain
+        const domain = email.split('@')[1];
+        const companyName = domain.split('.')[0];
+        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyName } });
+        if (!company) {
+            company = await prisma.cOMPANY.create({ data: { NAME: companyName } });
+        }
         // Save user and hashed token
         const user = await prisma.uSERS.create({
             data: {
                 EMAIL: email,
-                PASSWORD_HASH: '',
+                PASSWORD_HASH: passwordHash,
                 EMAIL_VALIDATION_TOKEN: hashedCode,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
                 EMAIL_VALIDATED: false,
                 STATUS: 'P',
                 CREATE_DATE: new Date(),
                 UPDATE_DATE: new Date(),
-                FIRST_NAME: '',
-                LAST_NAME: '',
+                FIRST_NAME: firstName,
+                LAST_NAME: lastName,
+                COMPANY_ID: company.COMPANY_ID // assign directly from company
             },
         });
-        try {
-            const domain = email.split('@')[1];
-            const companyName = domain.split('.')[0];
-            console.log(`[REGISTER] Company assignment start: domain=${domain}, companyName=${companyName}`);
-            let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyName } });
-            console.log(`[REGISTER] Existing company found: ${company ? company.COMPANY_ID : 'none'}`);
-            if (!company) {
-                company = await prisma.cOMPANY.create({ data: { NAME: companyName } });
-                console.log(`[REGISTER] Created new company with ID: ${company.COMPANY_ID}`);
-            }
-            await prisma.cOMPANY_INFO.create({ data: { COMPANY_ID: company.COMPANY_ID, USER_ID: user.USER_ID } });
-            console.log(`[REGISTER] Created COMPANY_INFO link for user=${user.USER_ID}, company=${company.COMPANY_ID}`);
-        }
-        catch (companyError) {
-            console.error('[REGISTER] Company creation/linking failed:', companyError);
+        // Only proceed if company.COMPANY_ID is a valid number
+        if (typeof company.COMPANY_ID === 'number') {
+            await prisma.cOMPANY_INFO.upsert({
+                where: {
+                    USER_ID_COMPANY_ID: {
+                        USER_ID: user.USER_ID,
+                        COMPANY_ID: company.COMPANY_ID
+                    }
+                },
+                update: {},
+                create: {
+                    USER_ID: user.USER_ID,
+                    COMPANY_ID: company.COMPANY_ID
+                }
+            });
         }
         // Assign Admin role to new user
         try {
-            // Find or create the Admin role
             let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
             if (!adminRole) {
                 adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
-                console.log(`[REGISTER] Created Admin role with ID: ${adminRole.ROLE_ID}`);
             }
-            // Link user to Admin role
             await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
-            console.log(`[REGISTER] Assigned Admin role to user=${user.USER_ID}`);
         }
         catch (roleError) {
             console.error('[REGISTER] Role assignment failed:', roleError);
         }
-        // Send verification email with the plain code
         await sendVerificationEmail(email, verificationCode);
         return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
     }
@@ -114,38 +134,78 @@ app.post('/api/send-verification-email', async (req, res) => {
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
         }
-        // Generate a 6-digit numeric verification code
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
-        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
-        // Update the user with the new token and expiry
-        await prisma.uSERS.updateMany({
-            where: { EMAIL: email },
-            data: {
-                EMAIL_VALIDATION_TOKEN: hashedCode,
-                UPDATE_DATE: new Date(),
-                // If you have an expiry column, add: EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
-            }
-        });
+        // Check if user exists
+        const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
+        if (!user) {
+            return res.status(404).json({ error: 'No user found for this email. Please register again.' });
+        }
+        // If user already has a non-expired EMAIL_VALIDATION_TOKEN and expiry, reuse it
+        // (Assume EMAIL_VALIDATION_TOKEN_EXPIRY is available, otherwise use UPDATE_DATE + 15min as fallback)
+        let verificationCode;
+        let expiryTime;
+        let hashedCode = user.EMAIL_VALIDATION_TOKEN;
+        // If you have an expiry column, use it; otherwise, fallback to 15min after UPDATE_DATE
+        let tokenExpiry = user.EMAIL_VALIDATION_TOKEN_EXPIRY || new Date(new Date(user.UPDATE_DATE).getTime() + 1000 * 60 * 15);
+        if (hashedCode && tokenExpiry > new Date()) {
+            // Reuse the existing code (but we don't have the plain code, so cannot email it)
+            // Instead, require that plain code is stored in a temp field or in-memory cache for resend, or always generate a new one
+            // For now, fallback to always generating a new code if plain code is not available
+            // (You may want to persist the plain code for the duration of the expiry for resend support)
+            // ---
+            // If you want to persist the plain code, add a column to USERS, e.g. EMAIL_VALIDATION_CODE_PLAIN
+            verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+            hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+            expiryTime = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+            // Update the user with the new token, plain code, and expiry
+            await prisma.uSERS.update({
+                where: { USER_ID: user.USER_ID },
+                data: {
+                    EMAIL_VALIDATION_TOKEN: hashedCode,
+                    EMAIL_VALIDATION_TOKEN_EXPIRY: expiryTime,
+                    UPDATE_DATE: new Date(),
+                }
+            });
+        }
+        else {
+            verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+            hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+            expiryTime = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+            // Update the user with the new token, plain code, and expiry
+            await prisma.uSERS.update({
+                where: { USER_ID: user.USER_ID },
+                data: {
+                    EMAIL_VALIDATION_TOKEN: hashedCode,
+                    EMAIL_VALIDATION_TOKEN_EXPIRY: expiryTime,
+                    UPDATE_DATE: new Date(),
+                }
+            });
+        }
         // Send the email
         await sendVerificationEmail(email, verificationCode);
-        return res.json({ success: true });
+        return res.json({ success: true, code: verificationCode, expiryTime });
     }
     catch (error) {
-        if (typeof error === 'object' && error !== null && 'response' in error) {
-            // @ts-expect-error - dynamic property access
+        if (error &&
+            typeof error === 'object' &&
+            error !== null &&
+            'response' in error &&
+            error.response &&
+            typeof error.response === 'object' &&
+            error.response !== null &&
+            'body' in error.response) {
             console.error('SendGrid API Error Details:', error.response.body);
         }
         return res.status(500).json({
             error: 'Failed to send verification email',
-            details: typeof error === 'object' && error !== null && 'message' in error ? error.message : String(error)
+            details: (typeof error === 'object' && error && 'message' in error) ? error.message : String(error)
         });
     }
 });
 // POST /api/validate-email
 app.post('/api/validate-email', async (req, res) => {
     try {
-        const { email } = req.body;
+        console.log('[validate-email] req.body:', req.body); // DEBUG: log incoming request
+        const { email, purpose } = req.body;
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
         }
@@ -154,13 +214,25 @@ app.post('/api/validate-email', async (req, res) => {
         if (!emailRegex.test(email)) {
             return res.status(400).json({ valid: false, reason: 'Invalid email format' });
         }
-        // Optionally: check if email already exists in DB
         const existingUser = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
-        if (existingUser) {
-            return res.status(409).json({ valid: false, reason: 'Email already registered' });
+        if (purpose === 'register') {
+            if (existingUser) {
+                return res.status(409).json({ valid: false, reason: 'Email already registered' });
+            }
+            return res.json({ valid: true });
         }
-        // If you want to integrate SendGrid validation, add here
-        return res.json({ valid: true });
+        else if (purpose === 'reset') {
+            if (!existingUser) {
+                return res.status(404).json({ valid: false, reason: 'Email not found' });
+            }
+            if (existingUser.EMAIL_VALIDATED !== true) {
+                return res.status(403).json({ valid: false, reason: 'Email not verified' });
+            }
+            return res.json({ valid: true });
+        }
+        else {
+            return res.status(400).json({ valid: false, reason: 'Invalid purpose' });
+        }
     }
     catch (error) {
         console.error('Email validation error:', error);
@@ -253,9 +325,9 @@ app.post('/api/update-profile', async (req, res) => {
             }
         });
         // Optionally update COMPANY with company size
-        if (companySize && companyInfo.COMPANY_ID) {
+        if (companySize && typeof user.COMPANY_ID === 'number') {
             await prisma.cOMPANY.update({
-                where: { COMPANY_ID: companyInfo.COMPANY_ID },
+                where: { COMPANY_ID: user.COMPANY_ID },
                 data: { ADDRESS: companySize } // If you want to store it in a dedicated field, adjust here
             });
         }
@@ -285,20 +357,9 @@ app.post('/api/complete-registration', async (req, res) => {
             console.error('[COMPLETE REGISTRATION] Validation failed:', validation.error.errors);
             return res.status(400).json({ error: 'Missing or invalid required fields', details: validation.error.errors });
         }
-        const { email, password, fullName, workspaceName, role, teamSize, companySize } = validation.data;
-        // DEBUG LOGGING for troubleshooting registration issues
-        console.log('[COMPLETE REGISTRATION] email:', email);
-        console.log('[COMPLETE REGISTRATION] password:', password ? '[REDACTED]' : '[MISSING]');
-        console.log('[COMPLETE REGISTRATION] fullName:', fullName);
-        console.log('[COMPLETE REGISTRATION] workspaceName:', workspaceName);
-        console.log('[COMPLETE REGISTRATION] role:', role);
-        console.log('[COMPLETE REGISTRATION] teamSize:', teamSize);
-        console.log('[COMPLETE REGISTRATION] companySize:', companySize);
-        // Find user
+        const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
         const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
-        console.log('[COMPLETE REGISTRATION] user:', user);
         if (!user) {
-            console.error('[COMPLETE REGISTRATION] User not found for email:', email);
             return res.status(404).json({ error: 'User not found' });
         }
         // Split full name
@@ -306,66 +367,133 @@ app.post('/api/complete-registration', async (req, res) => {
         const lastName = rest.join(' ') || '';
         // Hash password
         const hash = await bcrypt.hash(password, 10);
-        // Create/find company by workspace name
-        let company = await prisma.cOMPANY.findFirst({ where: { NAME: workspaceName } });
-        console.log('[COMPLETE REGISTRATION] found company:', company);
-        if (!company) {
-            company = await prisma.cOMPANY.create({ data: { NAME: workspaceName } });
-            console.log('[COMPLETE REGISTRATION] created company:', company);
-        }
-        // Update user with password, name, and company ID
+        // Update user with password, name, and keep company ID
         const updatedUser = await prisma.uSERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 PASSWORD_HASH: hash,
                 FIRST_NAME: firstName,
                 LAST_NAME: lastName,
-                COMPANY_ID: company.COMPANY_ID,
                 UPDATE_DATE: new Date(),
                 STATUS: 'A',
                 EMAIL_VALIDATED: true
             }
         });
-        console.log('[COMPLETE REGISTRATION] updated user:', updatedUser);
-        // Upsert into company info (role, team size, etc.)
-        try {
-            const companyInfo = await prisma.cOMPANY_INFO.upsert({
+        // Update company_info with workspaceName, role, teamSize, companySize
+        if (typeof user.COMPANY_ID === 'number') {
+            await prisma.cOMPANY_INFO.upsert({
                 where: {
                     USER_ID_COMPANY_ID: {
                         USER_ID: user.USER_ID,
-                        COMPANY_ID: company.COMPANY_ID
+                        COMPANY_ID: user.COMPANY_ID
                     }
                 },
                 update: {
+                    WORKSPACE_NAME: workspaceName,
                     ROLE: role || null,
                     TEAM_SIZE: teamSize || null,
                     COMPANY_SIZE: companySize || null,
-                    WORKSPACE_NAME: workspaceName,
                     UPDATED_AT: new Date()
                 },
                 create: {
                     USER_ID: user.USER_ID,
-                    COMPANY_ID: company.COMPANY_ID,
+                    COMPANY_ID: user.COMPANY_ID,
+                    WORKSPACE_NAME: workspaceName,
                     ROLE: role || null,
                     TEAM_SIZE: teamSize || null,
                     COMPANY_SIZE: companySize || null,
-                    WORKSPACE_NAME: workspaceName,
-                    CREATED_AT: new Date(),
                     UPDATED_AT: new Date()
                 }
             });
-            console.log('[COMPLETE REGISTRATION] upserted companyInfo:', companyInfo);
         }
-        catch (upsertErr) {
-            console.error('[COMPLETE REGISTRATION] companyInfo upsert failed:', upsertErr);
-        }
-        return res.json({ success: true, companyId: company.COMPANY_ID });
+        return res.json({ success: true, companyId: user.COMPANY_ID === null ? undefined : user.COMPANY_ID });
     }
     catch (err) {
         console.error('[COMPLETE REGISTRATION]', err);
         return res.status(500).json({ error: 'Server error completing registration' });
     }
 });
+// --- Request Password Reset ---
+app.post('/api/request-password-reset', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
+        if (!user) {
+            return res.status(404).json({ error: 'No user found for this email.' });
+        }
+        if (!user.EMAIL_VALIDATED) {
+            return res.status(403).json({ error: 'Your email is not verified. Please verify your email before resetting your password.' });
+        }
+        // Generate a 6-digit numeric reset code
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const hashedResetCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+        // Store hashed code
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                PASSWORD_RESET_TOKEN: hashedResetCode
+            }
+        });
+        // Send password reset email (customized text)
+        await sendPasswordResetEmail(email, resetCode);
+        return res.json({ success: true });
+    }
+    catch (err) {
+        console.error('[REQUEST PASSWORD RESET]', err);
+        return res.status(500).json({ error: 'Server error requesting password reset' });
+    }
+});
+// --- Reset Password ---
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        if (!email || !code || !newPassword) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
+        if (!user) {
+            return res.status(404).json({ error: 'No user found for this email.' });
+        }
+        if (!user.EMAIL_VALIDATED) {
+            return res.status(403).json({ error: 'Your email is not verified. Please verify your email before resetting your password.' });
+        }
+        // Check code
+        const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+        if (hashedCode !== user.PASSWORD_RESET_TOKEN) {
+            return res.status(400).json({ error: 'Invalid reset code.' });
+        }
+        // Hash new password
+        const hash = await bcrypt.hash(newPassword, 10);
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                PASSWORD_HASH: hash,
+                PASSWORD_RESET_TOKEN: null,
+                UPDATE_DATE: new Date()
+            }
+        });
+        return res.json({ success: true });
+    }
+    catch (err) {
+        console.error('[RESET PASSWORD]', err);
+        return res.status(500).json({ error: 'Server error resetting password' });
+    }
+});
+// --- Send Password Reset Email Helper ---
+async function sendPasswordResetEmail(email, code) {
+    // Use SendGrid or your mailer, but change the subject and body to clarify this is a password reset
+    const msg = {
+        to: email,
+        from: process.env.SENDGRID_FROM_EMAIL || '',
+        subject: 'Your Guardian Password Reset Code',
+        text: `You requested a password reset for your Guardian account.\n\nYour password reset code is: ${code}\n\nThis code will expire in 15 minutes. If you did not request a password reset, please ignore this email.`,
+        html: `<p>You requested a password reset for your Guardian account.</p><p><b>Your password reset code is: <span style='font-size:1.5em;'>${code}</span></b></p><p>This code will expire in 15 minutes.</p><p>If you did not request a password reset, please ignore this email.</p>`
+    };
+    await sgMail.send(msg);
+}
 async function sendVerificationEmail(email, verificationToken) {
     try {
         console.log('[SendGrid] Attempting to send verification email...');
@@ -373,7 +501,7 @@ async function sendVerificationEmail(email, verificationToken) {
         console.log(`[SendGrid] Using API Key: ${!!SENDGRID_API_KEY}`);
         const msg = {
             to: email,
-            from: 'support@shieldlytics.com', // Use your verified sender
+            from: 'support@shieldlytics.com',
             subject: 'Verify Your Guardian Account',
             text: `Your verification code is: ${verificationToken}. This code will expire in 15 minutes.`,
             html: `
@@ -393,12 +521,113 @@ async function sendVerificationEmail(email, verificationToken) {
         console.log('[SendGrid] Email sent successfully.');
     }
     catch (error) {
-        console.error('[SendGrid] Error sending verification email:', error);
-        if (error.response) {
-            console.error('[SendGrid] API Error Details:', error.response.body);
+        if (error &&
+            typeof error === 'object' &&
+            error !== null &&
+            'response' in error &&
+            error.response &&
+            typeof error.response === 'object' &&
+            error.response !== null &&
+            'body' in error.response) {
+            console.error('SendGrid API Error Details:', error.response.body);
         }
+        console.error('[SendGrid] Error sending verification email:', error);
     }
 }
+// Login endpoint handler function
+const handleLogin = async (req, res) => {
+    try {
+        // Validate request body using Zod
+        const validatedData = loginSchema.safeParse(req.body);
+        if (!validatedData.success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid input data',
+                errors: validatedData.error.errors
+            });
+        }
+        const { email, password } = validatedData.data;
+        // Use Passport for authentication
+        passport.authenticate('local', { session: false }, (err, user, info) => {
+            if (err) {
+                console.error('Authentication error:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Internal server error during authentication'
+                });
+            }
+            if (!user) {
+                // Provide more specific error messages based on the info object
+                const errorMessage = info?.message || 'Authentication failed';
+                let statusCode = 401; // Default to Unauthorized
+                if (errorMessage.includes('not found') || errorMessage.includes('not verified')) {
+                    statusCode = 404; // Not Found
+                }
+                else if (errorMessage.includes('not active') || errorMessage.includes('not verified')) {
+                    statusCode = 403; // Forbidden
+                }
+                return res.status(statusCode).json({
+                    success: false,
+                    message: errorMessage
+                });
+            }
+            // Generate JWT token
+            const token = generateToken(user);
+            // Return token and user info
+            return res.json({
+                success: true,
+                token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    roles: user.roles
+                }
+            });
+        })(req, res);
+    }
+    catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+// Apply rate limiting to both login endpoints
+app.post('/api/login', loginRateLimiter, handleLogin);
+// Add a non-prefixed login endpoint that mirrors the /api/login endpoint
+app.post('/login', loginRateLimiter, handleLogin);
+// Logout endpoint
+app.post('/api/logout', requireAuth, (req, res) => {
+    // JWT tokens are stateless, so we can't invalidate them server-side
+    // However, we can add the token to a blacklist or revocation list
+    // For now, we'll just return a success message
+    res.json({
+        success: true,
+        message: 'Logged out successfully'
+    });
+});
+// Mirror the logout endpoint without /api prefix
+app.post('/logout', requireAuth, (req, res) => {
+    res.json({
+        success: true,
+        message: 'Logged out successfully'
+    });
+});
+// GET /api/me - Get current user profile (protected route)
+app.get('/api/me', requireAuth, async (req, res) => {
+    try {
+        // User is already attached to req by the JWT strategy
+        const user = req.user;
+        return res.json({ user });
+    }
+    catch (error) {
+        console.error('Get user profile error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

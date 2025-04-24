@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { showToast } from '../utils/toast';
 import Swal from 'sweetalert2';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -79,69 +78,106 @@ const ResetPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
     try {
       // Validate form data
       if (!formData.password || !formData.confirmPassword) {
         setError('Please fill in all required fields');
+        Swal.fire({
+          icon: 'error',
+          title: 'Missing Fields',
+          text: 'Please fill in all required fields.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-      
       if (passwordError) {
         setError(passwordError);
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid Password',
+          text: passwordError,
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-      
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match');
+        Swal.fire({
+          icon: 'error',
+          title: 'Password Mismatch',
+          text: 'Passwords do not match.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-
       // Get the pending password reset data
       const passwordResetData = localStorage.getItem('passwordResetData');
       if (!passwordResetData) {
-        setError('Password reset data not found. Please start over.');
+        setError('No pending password reset found. Please request a new code.');
+        Swal.fire({
+          icon: 'error',
+          title: 'No Pending Reset',
+          text: 'No pending password reset found. Please request a new code.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-
-      const resetData = JSON.parse(passwordResetData);
-      
-      // In a real app, you would update the user's password in the database here
-      // For this demo, we'll just update the localStorage
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Show success message with toast
-      showToast.success('Password reset successful!');
-      
-      // Remove the pending password reset
-      localStorage.removeItem('passwordResetData');
-      
-      // Show success message with SweetAlert2
-      await Swal.fire({
-        title: '<strong>Password Reset Successful!</strong>',
-        html: '<p>Your password has been successfully reset. Please sign in with your new password.</p>',
-        icon: 'success',
-        confirmButtonText: 'Sign In',
-        confirmButtonColor: '#0D9488', // secondary color
-        allowOutsideClick: false,
-        customClass: {
-          title: 'text-h4 font-display font-bold',
-          htmlContainer: 'text-body-md text-gray-1',
-          confirmButton: 'font-semibold'
-        }
+      const data = JSON.parse(passwordResetData);
+      // Call backend to reset password
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          code: data.verificationCode,
+          newPassword: formData.password
+        })
       });
-      
-      // Redirect to login page
-      navigate('/login');
+      const respData = await response.json();
+      if (response.ok && respData.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Password Reset Successful',
+          text: 'Your password has been reset successfully. You may now log in.',
+          confirmButtonText: 'Sign In',
+          confirmButtonColor: '#0D9488',
+          allowOutsideClick: false,
+          customClass: {
+            title: 'text-h4 font-display font-bold',
+            htmlContainer: 'text-body-md text-gray-1',
+            confirmButton: 'font-semibold'
+          }
+        }).then(() => {
+          navigate('/login');
+        });
+      } else if (respData.error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Password Reset Failed',
+          text: respData.error,
+          confirmButtonColor: '#0D9488'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Password Reset Failed',
+          text: 'An error occurred while resetting your password. Please try again.',
+          confirmButtonColor: '#0D9488'
+        });
+      }
     } catch (error) {
       console.error('Password reset error:', error);
       setError('An error occurred while resetting your password. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Reset Error',
+        text: 'An error occurred while resetting your password. Please try again.',
+        confirmButtonColor: '#0D9488'
+      });
     } finally {
       setIsLoading(false);
     }

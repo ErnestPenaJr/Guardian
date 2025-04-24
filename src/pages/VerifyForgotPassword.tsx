@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import sendgrid from '../utils/sendgrid';
 import { showToast } from '../utils/toast';
+import Swal from 'sweetalert2';
 
 // Helper function to validate email format
 const isValidEmail = (email: string): boolean => {
@@ -113,43 +114,63 @@ const VerifyForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
     try {
       // Get pending password reset data
       const passwordResetData = localStorage.getItem('passwordResetData');
-      
       if (!passwordResetData) {
         setError('No pending password reset found. Please request a new code.');
+        Swal.fire({
+          icon: 'error',
+          title: 'No Pending Reset',
+          text: 'No pending password reset found. Please request a new code.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-      
       const data = JSON.parse(passwordResetData);
-      
       // Check if verification code has expired
       if (data.expiryTime && new Date(data.expiryTime).getTime() < Date.now()) {
-        setError('Verification code has expired. Please request a new code.');
+        setError('Verification code expired. Please request a new code.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Code Expired',
+          text: 'Verification code expired. Please request a new code.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-      
-      // Check if verification code matches
       const storedCode = data.verificationCode;
-      
       if (verificationCode !== storedCode) {
         setError('Invalid verification code. Please check your email and try again.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid Code',
+          text: 'Invalid verification code. Please check your email and try again.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
-      
       // Verification successful
-      showToast.success('Verification successful!');
-      
-      // Navigate to reset password page
-      navigate('/reset-password', { state: { email, verified: true } });
+      Swal.fire({
+        icon: 'success',
+        title: 'Verification Successful',
+        text: 'Your code has been verified. Please choose a new password.',
+        confirmButtonColor: '#0D9488'
+      }).then(() => {
+        navigate('/reset-password', { state: { email, verified: true } });
+      });
     } catch (error) {
       console.error('Verification error:', error);
       setError('An error occurred during verification. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Verification Error',
+        text: 'An error occurred during verification. Please try again.',
+        confirmButtonColor: '#0D9488'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -167,6 +188,12 @@ const VerifyForgotPassword = () => {
       
       if (!passwordResetData) {
         setError('No pending password reset found. Please request a new code.');
+        Swal.fire({
+          icon: 'error',
+          title: 'No Pending Reset',
+          text: 'No pending password reset found. Please request a new code.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
@@ -196,6 +223,12 @@ const VerifyForgotPassword = () => {
       
       if (!userEmail) {
         setError('Email address not found. Please request a new code.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Email Not Found',
+          text: 'Email address not found. Please request a new code.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsLoading(false);
         return;
       }
@@ -216,21 +249,42 @@ const VerifyForgotPassword = () => {
         const emailSent = await sendgrid.sendVerificationEmail(userEmail, verificationData.code);
         
         if (emailSent) {
-          showToast.success(`Verification code resent to ${userEmail}`);
+          Swal.fire({
+            icon: 'success',
+            title: 'Code Resent',
+            text: `Verification code resent to ${userEmail}`,
+            confirmButtonColor: '#0D9488'
+          });
         } else {
           // For development purposes, show the verification code in the console
           console.log(`[DEV MODE] Verification code for ${userEmail}: ${verificationData.code}`);
-          showToast.warning('Email service unavailable. Check console for verification code (development only).');
+          Swal.fire({
+            icon: 'warning',
+            title: 'Email Service Unavailable',
+            text: 'Email service unavailable. Check console for verification code (development only).',
+            confirmButtonColor: '#0D9488'
+          });
         }
       } catch (emailError) {
         console.error('Error sending email:', emailError);
         // For development purposes, show the verification code in the console
         console.log(`[DEV MODE] Verification code for ${userEmail}: ${verificationData.code}`);
-        showToast.warning('Email service unavailable. Check console for verification code (development only).');
+        Swal.fire({
+          icon: 'error',
+          title: 'Email Error',
+          text: 'Error sending verification email. Please try again.',
+          confirmButtonColor: '#0D9488'
+        });
       }
     } catch (error) {
       console.error('Resend code error:', error);
       setError('An error occurred while resending the code. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Resend Error',
+        text: 'An error occurred while resending the code. Please try again.',
+        confirmButtonColor: '#0D9488'
+      });
     } finally {
       setIsLoading(false);
     }

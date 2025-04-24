@@ -34,7 +34,10 @@ model USERS {
   PASSWORD_HASH          String?        @db.VarChar(255)
   EMAIL_VALIDATED        Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
   EMAIL_VALIDATION_TOKEN String?        @db.VarChar(255)
+  EMAIL_VALIDATION_CODE_PLAIN   String?   @db.VarChar(255)
+  EMAIL_VALIDATION_TOKEN_EXPIRY DateTime? @db.DateTime
   PASSWORD_RESET_TOKEN   String?        @db.VarChar(255)
+  PASSWORD_RESET_TOKEN_EXPIRY DateTime? @db.DateTime
   COMPANY_ID             Int?
   COMPANY_INFO           COMPANY_INFO[]
 }

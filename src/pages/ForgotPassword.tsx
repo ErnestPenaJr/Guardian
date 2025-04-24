@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 import { devConsole } from '../utils/devConsole';
 import sendgrid from '../utils/sendgrid';
+import Swal from 'sweetalert2';
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -21,7 +22,12 @@ function ForgotPassword() {
       // First check basic format
       if (!sendgrid.validateEmailFormat(email)) {
         setEmailError('Please enter a valid email address');
-        showToast.error('Please enter a valid email address');
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid Email',
+          text: 'Please enter a valid email address.',
+          confirmButtonColor: '#0D9488'
+        });
         setIsValidatingEmail(false);
         return false;
       }
@@ -31,23 +37,67 @@ function ForgotPassword() {
         setTimeout(() => reject(new Error('Validation timed out')), 5000);
       });
       
-      // Then validate with SendGrid with a timeout
       try {
         const validationResult = await Promise.race([
-          sendgrid.validateEmail(email),
+          fetch('/api/validate-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, purpose: 'reset' })
+          }).then(async res => {
+            if (res.ok) return await res.json();
+            const errorData = await res.json();
+            throw { status: res.status, ...errorData };
+          }),
           timeoutPromise
         ]);
         
         if (!validationResult.valid) {
           setEmailError(validationResult.reason || 'Invalid email address');
-          showToast.error(validationResult.reason || 'Invalid email address');
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid Email',
+            text: validationResult.reason || 'Invalid email address',
+            confirmButtonColor: '#0D9488'
+          });
           setIsValidatingEmail(false);
           return false;
         }
-      } catch (error) {
-        console.warn('Email validation timed out or failed, using basic validation instead');
-        // If SendGrid validation fails or times out, just use basic validation
-        // We already checked basic format above, so we can proceed
+      } catch (error: any) {
+        if (error.status === 404) {
+          setEmailError('Email not found');
+          Swal.fire({
+            icon: 'error',
+            title: 'Email Not Found',
+            text: 'No account found with that email address.',
+            confirmButtonColor: '#0D9488'
+          });
+        } else if (error.status === 403) {
+          setEmailError('Email not verified');
+          Swal.fire({
+            icon: 'error',
+            title: 'Email Not Verified',
+            text: 'This email address has not been verified. Please check your inbox or register.',
+            confirmButtonColor: '#0D9488'
+          });
+        } else if (error.status === 409) {
+          setEmailError('Email already registered');
+          Swal.fire({
+            icon: 'error',
+            title: 'Email Already Registered',
+            text: 'This email is already registered. Please log in or reset your password.',
+            confirmButtonColor: '#0D9488'
+          });
+        } else {
+          setEmailError('Error validating email. Please try again.');
+          Swal.fire({
+            icon: 'error',
+            title: 'Email Validation Error',
+            text: 'Error validating email. Please try again.',
+            confirmButtonColor: '#0D9488'
+          });
+        }
+        setIsValidatingEmail(false);
+        return false;
       }
       
       setIsValidatingEmail(false);
@@ -55,7 +105,12 @@ function ForgotPassword() {
     } catch (error) {
       console.error('Email validation error:', error);
       setEmailError('Error validating email. Please try again.');
-      showToast.error('Error validating email. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Email Validation Error',
+        text: 'Error validating email. Please try again.',
+        confirmButtonColor: '#0D9488'
+      });
       setIsValidatingEmail(false);
       return false;
     }
@@ -65,14 +120,24 @@ function ForgotPassword() {
     e.preventDefault();
     
     if (!email) {
-      showToast.error('Please enter your email address');
+      Swal.fire({
+        icon: 'error',
+        title: 'Missing Email',
+        text: 'Please enter your email address.',
+        confirmButtonColor: '#0D9488'
+      });
       return;
     }
     
     // Basic email format validation
     if (!sendgrid.validateEmailFormat(email)) {
       setEmailError('Please enter a valid email address');
-      showToast.error('Please enter a valid email address');
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Email',
+        text: 'Please enter a valid email address.',
+        confirmButtonColor: '#0D9488'
+      });
       return;
     }
     
@@ -86,43 +151,53 @@ function ForgotPassword() {
     setError('');
     
     try {
-      // Get or create a verification code with expiration time
-      const verificationData = sendgrid.getOrCreateVerificationCode();
-      
-      // Store verification code and user data (in a real app, this would be in a database)
-      // For this example, we'll use localStorage
-      localStorage.setItem('passwordResetData', JSON.stringify({
-        email,
-        verificationCode: verificationData.code,
-        expiryTime: verificationData.expiryTime
-      }));
-      
-      console.log(`Sending verification email to: ${email}`);
-      
-      try {
-        // Send verification email
-        const emailSent = await sendgrid.sendVerificationEmail(email, verificationData.code);
-        
-        if (emailSent) {
-          showToast.success(`Verification code sent to ${email}`);
+      // Call backend to request password reset
+      const response = await fetch('/api/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Password Reset Code Sent',
+          text: 'A password reset code has been sent to your email. Please check your inbox.',
+          confirmButtonColor: '#0D9488'
+        }).then(() => {
           navigate('/verify-forgot-password', { state: { email } });
-        } else {
-          // For development purposes, show the verification code in the console
-          devConsole.log(`[DEV MODE] Verification code for ${email}: ${verificationData.code}`);
-          showToast.warning('Email service unavailable. Check console for verification code (development only).');
-          navigate('/verify-forgot-password', { state: { email } });
-        }
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        // For development purposes, show the verification code in the console
-        devConsole.log(`[DEV MODE] Verification code for ${email}: ${verificationData.code}`);
-        showToast.warning('Email service unavailable. Check console for verification code (development only).');
-        navigate('/verify-forgot-password', { state: { email } });
+        });
+      } else if (response.status === 403 && data.error) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Email Not Verified',
+          text: data.error,
+          confirmButtonColor: '#0D9488',
+          footer: '<a href="/verify-email">Verify your email</a>'
+        });
+      } else if (data.error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Password Reset Failed',
+          text: data.error,
+          confirmButtonColor: '#0D9488'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Password Reset Failed',
+          text: 'An error occurred during password reset request. Please try again.',
+          confirmButtonColor: '#0D9488'
+        });
       }
     } catch (error) {
       console.error('Password reset request error:', error);
-      setError('An error occurred during password reset request. Please try again.');
-      showToast.error('An error occurred during password reset request. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Request Error',
+        text: 'An error occurred during password reset request. Please try again.',
+        confirmButtonColor: '#0D9488'
+      });
     } finally {
       setIsLoading(false);
     }

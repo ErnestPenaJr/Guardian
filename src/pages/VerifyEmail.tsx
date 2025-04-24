@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import sendgrid from '../utils/sendgrid';
 import { showToast } from '../utils/toast';
 import Swal from 'sweetalert2';
 import axios from 'axios'; // Import axios
@@ -175,68 +174,48 @@ const VerifyEmail = () => {
     setError('');
     setIsResendDisabled(true);
     setResendCountdown(60); // 1 minute cooldown
-    
     try {
       // Get pending registration data
       const registrationData = localStorage.getItem('registrationData');
-      
       if (!registrationData) {
         setError('No pending registration found. Please register again.');
         setIsLoading(false);
         return;
       }
-      
       const data = JSON.parse(registrationData);
-      
-      // Check if we need a new code or can reuse the existing one
-      let verificationData;
-      
-      if (data.expiryTime && new Date(data.expiryTime).getTime() > Date.now()) {
-        // Reuse existing code if it hasn't expired
-        verificationData = {
-          code: data.verificationCode,
-          expiryTime: data.expiryTime
-        };
-      } else {
-        // Generate new code if expired
-        verificationData = sendgrid.getOrCreateVerificationCode();
-      }
-      
-      // Update the expiration time in state
-      const timeRemaining = Math.max(0, new Date(verificationData.expiryTime).getTime() - Date.now());
-      setTimeLeft(Math.floor(timeRemaining / 1000));
-      
       // Get the email from the pending registration
       const userEmail = data.userData?.email || data.email;
-      
       if (!userEmail) {
         setError('Email address not found. Please register again.');
         setIsLoading(false);
         return;
       }
-      
-      console.log(`Resending verification code to: ${userEmail}`);
-      
-      // Update the pending registration with new code
-      const updatedData = {
-        ...data,
-        verificationCode: verificationData.code,
-        expiryTime: verificationData.expiryTime
-      };
-      
-      localStorage.setItem('registrationData', JSON.stringify(updatedData));
-      
-      // Send verification email
-      const emailSent = await sendgrid.sendVerificationEmail(userEmail, verificationData.code);
-      
-      if (emailSent) {
+      // Call backend to resend verification code
+      const response = await axios.post('/api/send-verification-email', { email: userEmail });
+      if (response.data.success) {
         showToast.success(`Verification code resent to ${userEmail}`);
+        // Update localStorage with new code and expiry if returned
+        if (response.data.code && response.data.expiryTime) {
+          const updatedData = {
+            ...data,
+            verificationCode: response.data.code,
+            expiryTime: response.data.expiryTime
+          };
+          localStorage.setItem('registrationData', JSON.stringify(updatedData));
+          // Update timer
+          const timeRemaining = Math.max(0, new Date(response.data.expiryTime).getTime() - Date.now());
+          setTimeLeft(Math.floor(timeRemaining / 1000));
+        }
       } else {
-        setError(`Failed to resend verification code to ${userEmail}. Please try again.`);
+        setError(response.data.error || `Failed to resend verification code to ${userEmail}. Please try again.`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Resend code error:', error);
-      setError('An error occurred while resending the code. Please try again.');
+      if (error.response && error.response.data && error.response.data.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('An error occurred while resending the code. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -423,7 +402,9 @@ const VerifyEmail = () => {
       
       {timeLeft > 0 && (
         <div className="mb-6 text-center">
-          <p className="text-body-sm text-gray-2">Code expires in:</p>
+          <p className="text-body-sm text-gray-2 mb-2">
+            Code expires in:
+          </p>
           <p className="text-heading-sm font-medium text-primary">{formatTime(timeLeft)}</p>
         </div>
       )}
@@ -474,7 +455,7 @@ const VerifyEmail = () => {
         >
           {isLoading ? (
             <div className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -627,7 +608,7 @@ const VerifyEmail = () => {
         >
           {isLoading ? (
             <div className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -748,7 +729,7 @@ const VerifyEmail = () => {
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
