@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, Search, LogOut } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
