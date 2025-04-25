@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import VerifyForgotPassword from './pages/VerifyForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
+import InviteAccept from './pages/InviteAccept';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/style-guide" element={<StyleGuide />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/invite/accept" element={<InviteAccept />} />
       </Routes>
     </Router>
   );

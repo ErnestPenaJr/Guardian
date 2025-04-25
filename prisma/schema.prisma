@@ -19,27 +19,27 @@ model USER_ROLES {
 }
 
 model USERS {
-  USER_ID                Int            @id(map: "PK_USERS") @default(autoincrement())
-  FIRST_NAME             String         @db.VarChar(30)
-  LAST_NAME              String         @db.VarChar(30)
-  EMAIL                  String         @db.VarChar(100)
-  PIN                    Int?
-  CREATE_USER_ID         Int?
-  UPDATE_USER_ID         Int?
-  CREATE_DATE            DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
-  UPDATE_DATE            DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
-  STATUS                 String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
-  SysStartTime           DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
-  SysEndTime             DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
-  PASSWORD_HASH          String?        @db.VarChar(255)
-  EMAIL_VALIDATED        Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
-  EMAIL_VALIDATION_TOKEN String?        @db.VarChar(255)
-  EMAIL_VALIDATION_CODE_PLAIN   String?   @db.VarChar(255)
-  EMAIL_VALIDATION_TOKEN_EXPIRY DateTime? @db.DateTime
-  PASSWORD_RESET_TOKEN   String?        @db.VarChar(255)
-  PASSWORD_RESET_TOKEN_EXPIRY DateTime? @db.DateTime
-  COMPANY_ID             Int?
-  COMPANY_INFO           COMPANY_INFO[]
+  USER_ID                       Int            @id(map: "PK_USERS") @default(autoincrement())
+  FIRST_NAME                    String         @db.VarChar(30)
+  LAST_NAME                     String         @db.VarChar(30)
+  EMAIL                         String         @db.VarChar(100)
+  PIN                           Int?
+  CREATE_USER_ID                Int?
+  UPDATE_USER_ID                Int?
+  CREATE_DATE                   DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
+  UPDATE_DATE                   DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
+  STATUS                        String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
+  SysStartTime                  DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
+  SysEndTime                    DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
+  PASSWORD_HASH                 String?        @db.VarChar(255)
+  EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
+  EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
+  PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
+  COMPANY_ID                    Int?
+  EMAIL_VALIDATION_CODE_PLAIN   String?        @db.VarChar(10)
+  EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
+  PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
+  COMPANY_INFO                  COMPANY_INFO[]
 }
 
 model ATTACHMENTS {
@@ -74,8 +74,6 @@ model COMPANY_INFO {
   UPDATED_AT      DateTime @default(now(), map: "DF__COMPANY_I__UPDAT__1758727B") @db.DateTime
   COMPANY         COMPANY  @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_COMPANY")
   USERS           USERS    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_USERS")
-
-  @@unique([USER_ID, COMPANY_ID], name: "USER_ID_COMPANY_ID")
 }
 
 model FIELD_LOOKUP_DISPLAY_TYPE {
@@ -116,7 +114,7 @@ model FIELDS {
   ORGANIZATIONS                ORGANIZATIONS?             @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FIELDS__ORGANIZA__0539C240")
   FIELD_TYPE                   FIELD_TYPE                 @relation(fields: [FIELD_TYPE_ID], references: [FIELD_TYPE_ID], onUpdate: NoAction, map: "FK__FIELDS__UPDATE_D__5B438874")
   FIELDS_LOOKUP                FIELDS_LOOKUP[]
-  FORMS_FIELDS                 FORMS_FIELDS[]             @ignore
+  FORMS_FIELDS                 FORMS_FIELDS[] @ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -173,8 +171,8 @@ model FORMS {
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
-  FORMS_FIELDS     FORMS_FIELDS[]   @ignore
-  FORMS_INSTANCE   FORMS_INSTANCE[]
+  FORMS_FIELDS     FORMS_FIELDS[] @ignore
+  FORMS_INSTANCE   FORMS_INSTANCE[] @ignore
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -333,4 +331,17 @@ model TEST {
   NAME String? @db.VarChar(20)
 
   @@ignore
+}
+
+model INVITES {
+  INVITE_ID  Int       @id(map: "PK__INVITES__F55A91112E684DE5") @default(autoincrement())
+  EMAIL      String    @db.VarChar(100)
+  ROLE_ID    Int
+  
+  COMPANY_ID Int
+  TOKEN      String    @unique(map: "UQ__INVITES__05BE64EDCB9633D7") @db.VarChar(255)
+  STATUS     String    @db.Char(1)
+  EXPIRES_AT DateTime
+  USED_AT    DateTime?
+  CREATED_AT DateTime  @default(dbgenerated("sysdatetime()"), map: "DF__INVITES__CREATED__2C538F61")
 }

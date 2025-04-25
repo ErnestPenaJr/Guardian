@@ -17,15 +17,20 @@ const __dirname = dirname(__filename);
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
-
-const SENDGRID_API_KEY = process.env.VITE_SENDGRID_API_KEY;
+// Support both server- and client-named keys
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.VITE_SENDGRID_API_KEY;
+console.log('[SENDGRID] API Key set:', !!SENDGRID_API_KEY);
+// Determine sender email
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.VITE_SENDGRID_FROM_EMAIL || 'no-reply@yourdomain.com';
+console.log('[SENDGRID] From email:', SENDGRID_FROM_EMAIL);
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 } else {
-  console.error('SendGrid API key is not set. Email functionality will not work.');
+  console.warn('SendGrid API key is not set. Skipping email sends.');
 }
 
 const prisma = new PrismaClient();
+const prismaAny = prisma as any;
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -102,18 +107,13 @@ app.post('/api/register', async (req, res) => {
       },
     });
     // Only proceed if company.COMPANY_ID is a valid number
-    if (typeof company.COMPANY_ID === 'number') {
-      await prisma.cOMPANY_INFO.upsert({
-        where: {
-          USER_ID_COMPANY_ID: {
-            USER_ID: user.USER_ID,
-            COMPANY_ID: company.COMPANY_ID
-          }
-        },
-        update: {},
-        create: {
+    if (user.COMPANY_ID == null) throw new Error('User missing COMPANY_ID');
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+    if (!companyInfo) {
+      await prisma.cOMPANY_INFO.create({
+        data: {
           USER_ID: user.USER_ID,
-          COMPANY_ID: company.COMPANY_ID
+          COMPANY_ID: user.COMPANY_ID!,
         }
       });
     }
@@ -333,7 +333,7 @@ app.post('/api/update-profile', async (req, res) => {
       }
     });
     // Optionally update COMPANY with company size
-    if (companySize && typeof user.COMPANY_ID === 'number') {
+    if (companySize && user.COMPANY_ID != null) {
       await prisma.cOMPANY.update({
         where: { COMPANY_ID: user.COMPANY_ID },
         data: { ADDRESS: companySize } // If you want to store it in a dedicated field, adjust here
@@ -388,33 +388,31 @@ app.post('/api/complete-registration', async (req, res) => {
       }
     });
     // Update company_info with workspaceName, role, teamSize, companySize
-    if (typeof user.COMPANY_ID === 'number') {
-      await prisma.cOMPANY_INFO.upsert({
-        where: {
-          USER_ID_COMPANY_ID: {
-            USER_ID: user.USER_ID,
-            COMPANY_ID: user.COMPANY_ID
-          }
-        },
-        update: {
-          WORKSPACE_NAME: workspaceName,
-          ROLE: role || null,
-          TEAM_SIZE: teamSize || null,
-          COMPANY_SIZE: companySize || null,
-          UPDATED_AT: new Date()
-        },
-        create: {
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+    if (!companyInfo) {
+      if (user.COMPANY_ID == null) throw new Error('User missing COMPANY_ID');
+      await prisma.cOMPANY_INFO.create({
+        data: {
           USER_ID: user.USER_ID,
-          COMPANY_ID: user.COMPANY_ID,
+          COMPANY_ID: user.COMPANY_ID!,
           WORKSPACE_NAME: workspaceName,
-          ROLE: role || null,
-          TEAM_SIZE: teamSize || null,
-          COMPANY_SIZE: companySize || null,
-          UPDATED_AT: new Date()
+          ROLE: role,
+          TEAM_SIZE: teamSize,
+          COMPANY_SIZE: companySize
+        }
+      });
+    } else {
+      await prisma.cOMPANY_INFO.update({
+        where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
+        data: {
+          WORKSPACE_NAME: workspaceName,
+          ROLE: role,
+          TEAM_SIZE: teamSize,
+          COMPANY_SIZE: companySize
         }
       });
     }
-    return res.json({ success: true, companyId: user.COMPANY_ID === null ? undefined : user.COMPANY_ID });
+    return res.json({ success: true, companyId: user.COMPANY_ID });
   } catch (err) {
     console.error('[COMPLETE REGISTRATION]', err);
     return res.status(500).json({ error: 'Server error completing registration' });
@@ -495,7 +493,7 @@ async function sendPasswordResetEmail(email: string, code: string) {
   // Use SendGrid or your mailer, but change the subject and body to clarify this is a password reset
   const msg = {
     to: email,
-    from: process.env.SENDGRID_FROM_EMAIL || '',
+    from: SENDGRID_FROM_EMAIL,
     subject: 'Your Guardian Password Reset Code',
     text: `You requested a password reset for your Guardian account.\n\nYour password reset code is: ${code}\n\nThis code will expire in 15 minutes. If you did not request a password reset, please ignore this email.`,
     html: `<p>You requested a password reset for your Guardian account.</p><p><b>Your password reset code is: <span style='font-size:1.5em;'>${code}</span></b></p><p>This code will expire in 15 minutes.</p><p>If you did not request a password reset, please ignore this email.</p>`
@@ -510,24 +508,45 @@ async function sendVerificationEmail(email: string, verificationToken: string) {
     console.log(`[SendGrid] Using API Key: ${!!SENDGRID_API_KEY}`);
     const msg = {
       to: email,
-      from: 'support@shieldlytics.com', 
+      from: SENDGRID_FROM_EMAIL,
       subject: 'Verify Your Guardian Account',
-      text: `Your verification code is: ${verificationToken}. This code will expire in 15 minutes.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <h2 style="color: #2EBCBC;">Guardian Email Verification</h2>
-          <p>Thank you for registering. Please use the following code to verify your email address:</p>
-          <div style="background: #f4f4f4; padding: 10px 20px; margin: 20px 0; border-radius: 4px; text-align: center;">
-            <h3 style="margin: 0; font-size: 24px; letter-spacing: 5px;">${verificationToken}</h3>
-          </div>
-          <p>This code will expire in 15 minutes.</p>
-          <p>If you did not request this verification code, please ignore this email.</p>
-          <p style="margin-top: 30px; font-size: 12px; color: #777;">&copy; ${new Date().getFullYear()} Guardian. All rights reserved.</p>
-        </div>
-      `
+      text: `Hello,
+You requested to verify your Guardian account.
+Your verification code is: ${verificationToken}
+This code expires in 15 minutes.
+If you did not request this, please ignore this email.
+Best regards,
+The Guardian Team`,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Guardian Account</title>
+  <style>
+    body { margin:0; padding:0; background:#f9f9f9; font-family:Arial,sans-serif; }
+    .container { max-width:600px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; }
+    h2 { color:#2EBCBC; }
+    .code { background:#f4f4f4; padding:15px; text-align:center; font-size:24px; letter-spacing:6px; border-radius:4px; margin:20px 0; }
+    .footer { font-size:12px; color:#777; margin-top:30px; text-align:center; }
+    a { color:#2EBCBC; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Guardian Email Verification</h2>
+    <p>Thank you for registering with Guardian. Please use the following verification code to confirm your email address:</p>
+    <div class="code">${verificationToken}</div>
+    <p>This code will expire in 15 minutes.</p>
+    <p>If you did not request this, please ignore this email or contact <a href="mailto:support@shieldlytics.com">support@shieldlytics.com</a>.</p>
+    <div class="footer">&copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>123 Main St, City, State, ZIP</div>
+  </div>
+</body>
+</html>`
     };
-    await sgMail.send(msg);
+    const [response] = await sgMail.send(msg);
     console.log('[SendGrid] Email sent successfully.');
+    console.log('[SendGrid] SendGrid API response statusCode:', response.statusCode);
   } catch (error: any) {
     if (
       error &&
@@ -567,6 +586,174 @@ app.get('/api/roles', async (req, res) => {
   } catch (err) {
     console.error('[GET ROLES]', err);
     return res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+});
+
+// --- INVITE TABLE (PRISMA MODEL) ---
+// Table: INVITES (fields: INVITE_ID, EMAIL, ROLE_ID, TOKEN, STATUS, EXPIRES_AT, USED_AT, CREATED_AT)
+
+// --- SEND INVITES ENDPOINT ---
+app.post('/api/invites/send', requireAuth, async (req, res) => {
+  try {
+    const { invites } = req.body; // [{ email, roleId }]
+    const adminUserId = (req.user as any).id;
+    const adminUser = await prisma.uSERS.findUnique({ where: { USER_ID: adminUserId } });
+    if (!adminUser || !adminUser.COMPANY_ID) {
+      return res.status(400).json({ error: 'Admin user does not have a company_id' });
+    }
+    const companyId = adminUser.COMPANY_ID;
+    console.log('[SEND INVITES] Invites:', invites, 'adminUserId:', adminUserId, 'companyId:', companyId);
+    if (!Array.isArray(invites) || invites.length === 0) {
+      return res.status(400).json({ error: 'No invites provided' });
+    }
+    const results: { email: string; inviteUrl: string }[] = [];
+    for (const invite of invites) {
+      const token = crypto.randomBytes(32).toString('hex');
+      // Use admin's companyId for all invites
+      await prismaAny.iNVITES.create({
+        data: {
+          EMAIL: invite.email,
+          ROLE_ID: invite.roleId,
+          COMPANY_ID: companyId,
+          TOKEN: token,
+          STATUS: 'P', // Pending
+          EXPIRES_AT: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
+          CREATED_AT: new Date()
+        }
+      });
+      const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invite/accept?token=${token}`;
+      // Log email preparation
+      console.log('[SEND INVITES] About to send email for', invite.email);
+      // Attempt email send, but don't block on failure
+      if (SENDGRID_API_KEY) {
+        console.log('[SEND INVITES] Sending email to', invite.email, 'from', SENDGRID_FROM_EMAIL);
+        try {
+          // Include plain-text content to improve deliverability
+          const mailData = {
+            to: invite.email,
+            from: SENDGRID_FROM_EMAIL,
+            subject: 'You have been invited to Guardian!',
+            text: `Hello,
+
+You have been invited to join Guardian, a modern security and compliance platform designed to protect your organization and streamline your workflows.
+
+Your invitation is unique to you. Please click the link below to set up your account and get started:
+
+${inviteUrl}
+
+If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.
+
+Guardian by Shieldlytics
+123 Main St, City, State, ZIP
+https://shieldlytics.com
+`,
+            html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Guardian!</title>
+  <style>
+    body { margin:0; padding:0; background:#f9f9f9; font-family:Arial,sans-serif; }
+    .container { max-width:600px; margin:20px auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(44,44,44,0.06); }
+    h2 { color:#2EBCBC; }
+    .cta { display:inline-block; margin:24px 0; padding:12px 28px; background:#2EBCBC; color:#fff; border-radius:4px; text-decoration:none; font-weight:bold; letter-spacing:1px; }
+    .footer { font-size:12px; color:#777; margin-top:30px; text-align:center; }
+    .features { margin:24px 0 0 0; padding:0; }
+    .features li { margin-bottom:8px; }
+    a { color:#2EBCBC; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://shieldlytics.com/logo.png" alt="Guardian by Shieldlytics" style="height:40px; margin-bottom:16px;">
+    <h2>Welcome to Guardian!</h2>
+    <p>Hi there,</p>
+    <p>You have been invited to join <b>Guardian</b>, the modern security and compliance platform by <b>Shieldlytics</b>.</p>
+    <ul class="features">
+      <li>✔️ Real-time security monitoring</li>
+      <li>✔️ Automated compliance workflows</li>
+      <li>✔️ Easy team collaboration</li>
+      <li>✔️ Secure cloud-based access</li>
+    </ul>
+    <p style="margin-top:18px;">To get started, please click the button below to accept your invitation and set up your account:</p>
+    <p><a class="cta" href="${inviteUrl}">Accept Your Invitation</a></p>
+    <p>If you did not expect this invitation, please ignore this email or <a href="mailto:support@shieldlytics.com">contact support</a>.</p>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>
+      123 Main St, City, State, ZIP<br>
+      <a href="https://shieldlytics.com">https://shieldlytics.com</a>
+    </div>
+  </div>
+</body>
+</html>`
+          };
+          const [response] = await sgMail.send(mailData);
+          console.log('[SEND INVITES] SendGrid API response statusCode:', response.statusCode);
+        } catch (emailErr) {
+          console.error('[SEND INVITES] Email send status code:', (emailErr as any).code);
+          console.error('[SEND INVITES] SendGrid error response body:', (emailErr as any).response?.body);
+          const sgBody = (emailErr as any).response?.body;
+          console.error('[SEND INVITES] SendGrid response errors:', JSON.stringify(sgBody?.errors, null, 2));
+        }
+      }
+      results.push({ email: invite.email, inviteUrl });
+    }
+    return res.json({ success: true, invites: results });
+  } catch (err) {
+    console.error('[SEND INVITES]', err);
+    const message = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ error: message });
+  }
+});
+
+// --- ACCEPT INVITE ENDPOINT ---
+app.post('/api/invite/accept', async (req, res) => {
+  try {
+    const { token, firstName, lastName, password } = req.body;
+    if (!token || !firstName || !lastName || !password) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    // Find invite
+    const invite = await prismaAny.iNVITES.findFirst({ where: { TOKEN: token, STATUS: 'P' } });
+    if (!invite) {
+      return res.status(400).json({ error: 'Invalid or expired invite' });
+    }
+    // Create user
+    const hash = await bcrypt.hash(password, 10);
+    const user = await prisma.uSERS.create({
+      data: {
+        EMAIL: invite.EMAIL,
+        PASSWORD_HASH: hash,
+        FIRST_NAME: firstName,
+        LAST_NAME: lastName,
+        EMAIL_VALIDATED: true,
+        STATUS: 'A',
+        CREATE_DATE: new Date(),
+        UPDATE_DATE: new Date(),
+        COMPANY_ID: invite.COMPANY_ID
+      }
+    });
+    // Only proceed if invite.COMPANY_ID is a valid number
+    if (user.COMPANY_ID == null) throw new Error('User missing COMPANY_ID');
+    // Assign role
+    await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: invite.ROLE_ID } });
+    // Mark invite as used
+    await prismaAny.iNVITES.update({ where: { INVITE_ID: invite.INVITE_ID }, data: { STATUS: 'U', USED_AT: new Date() } });
+    // Create company_info
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+    if (!companyInfo) {
+      await prisma.cOMPANY_INFO.create({
+        data: {
+          USER_ID: user.USER_ID,
+          COMPANY_ID: user.COMPANY_ID!
+        }
+      });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[ACCEPT INVITE]', err);
+    return res.status(500).json({ error: 'Failed to accept invite' });
   }
 });
 
@@ -620,11 +807,11 @@ const handleLogin = async (req: express.Request, res: express.Response) => {
         success: true,
         token,
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          roles: user.roles
+          id: (user as any).id,
+          email: (user as any).email,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
+          roles: (user as any).roles
         }
       });
     })(req, res);
@@ -665,8 +852,8 @@ app.post('/logout', requireAuth, (req: express.Request, res: express.Response) =
 // GET /api/me - Get current user profile (protected route)
 app.get('/api/me', requireAuth, async (req, res) => {
   try {
-    // User is already attached to req by the JWT strategy
-    const user = req.user;
+    // requireAuth ensures req.user is defined
+    const user = req.user as any;
     return res.json({ user });
   } catch (error) {
     console.error('Get user profile error:', error);
