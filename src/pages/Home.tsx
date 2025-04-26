@@ -439,6 +439,18 @@ function Home() {
             </>
           )}
           <Tooltip id="sidebar-tooltip" place="right" />
+          {/* Logout button at bottom */}
+          <div className="flex-1 flex flex-col justify-end w-full items-center pb-2">
+            <button
+              className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-white hover:bg-primary/80 transition-all duration-150 mt-4"
+              onClick={handleLogout}
+              aria-label="Logout"
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </aside>
         {/* Bottom nav for mobile */}
         <nav className="sm:hidden fixed bottom-0 left-0 w-full bg-[#6DEBE8] flex justify-around items-center h-14 z-40 shadow-lg">
