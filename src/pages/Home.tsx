@@ -328,139 +328,122 @@ function Home() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Tooltip id="sidebar-tooltip" place="right" />
-      {/* Sidebar */}
-      <aside style={{ backgroundColor: sidebarBg }} className="h-full flex flex-col items-center py-6 w-20 min-w-[80px]">
-        {navItems.map(item => (
-          <button
-            key={item.key}
-            className={`flex items-center justify-center w-12 h-12 mb-4 rounded-full transition-all duration-150
-              ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
-            onClick={() => setSelectedSection(item.key)}
-            aria-label={item.key}
-            title={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
-            data-tooltip-id="sidebar-tooltip"
-            data-tooltip-content={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
-          >
-            <span className="text-2xl">{item.icon}</span>
-          </button>
-        ))}
-        {/* Admin-only links */}
-        {user && user.roles && user.roles.includes(1) && (
-          <>
-            <button
-              className={`flex items-center justify-center w-12 h-12 mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
-              onClick={() => setSelectedSection('admin')}
-              aria-label="Admin Dashboard"
-              title="Admin Dashboard"
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Admin Dashboard"
-            >
-              <span className="text-2xl"><FaUserShield /></span>
-            </button>
-            <button
-              className="flex items-center justify-center w-12 h-12 mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
-              onClick={handleSendInvite}
-              aria-label="Send Invites"
-              title="Send User Invites"
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Send User Invites"
-            >
-              <span className="text-2xl"><FaPaperPlane /></span>
-            </button>
-          </>
-        )}
-        <div className="flex-1" />
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm p-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Home</h1>
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-medium text-gray-800">
-                {formatUserName()}
-              </span>
-              <span className="text-xs text-gray-500">
-                {getUserRole()}
-              </span>
-            </div>
-            <button 
-              className="text-gray-600 hover:text-gray-800"
-              onClick={handleLogout}
-              aria-label="Logout"
-            >
-              <LogOut size={18} />
-            </button>
+      {/* Top Bar */}
+      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm flex items-center justify-between px-8 z-30">
+        <div className="flex items-center gap-3">
+          <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="h-8 w-auto" />
+          <span className="font-bold text-2xl text-gray-700">Guardian</span>
+        </div>
+        <div className="flex-1 flex justify-center">
+          <input
+            type="text"
+            placeholder="Search requests..."
+            className="w-[350px] px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center font-semibold">
+            NF
           </div>
-        </header>
+          <span className="font-medium text-gray-700">{formatUserName()}</span>
+          <svg className="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          <button 
+            className="text-gray-600 hover:text-gray-800"
+            onClick={handleLogout}
+            aria-label="Logout"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </header>
+
+      <div className="flex pt-16 h-screen bg-gray-100">
+        {/* Sidebar */}
+        <aside className="flex flex-col items-center py-6 w-16 min-w-[64px] bg-[#6DEBE8] h-full sticky top-16 z-20">
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              className={`flex items-center justify-center w-10 h-10 mb-4 rounded-full transition-all duration-150 ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+              onClick={() => setSelectedSection(item.key)}
+              aria-label={item.key}
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
+            >
+              <span className="text-2xl">{item.icon}</span>
+            </button>
+          ))}
+          {/* Admin-only links */}
+          {user && user.roles && user.roles.includes(1) && (
+            <>
+              <button
+                className={`flex items-center justify-center w-10 h-10 mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+                onClick={() => setSelectedSection('admin')}
+                aria-label="Admin Dashboard"
+                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-content="Admin Dashboard"
+              >
+                <span className="text-2xl"><FaUserShield /></span>
+              </button>
+              <button
+                className="flex items-center justify-center w-10 h-10 mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
+                onClick={handleSendInvite}
+                aria-label="Send Invites"
+                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-content="Send User Invites"
+              >
+                <span className="text-2xl"><FaPaperPlane /></span>
+              </button>
+            </>
+          )}
+          <Tooltip id="sidebar-tooltip" place="right" />
+        </aside>
 
         {/* Main Content */}
-        <main className="p-6">
+        <main className="flex-1 flex flex-col px-8 py-8 gap-8 overflow-y-auto w-full">
           {selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
             <AdminDashboard />
           ) : (
-            <>
-              {/* Search Bar */}
-              <div className="mb-6 flex items-center">
-                <div className="relative max-w-md flex-1">
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      placeholder="Search requests..."
-                      value={filterText}
-                      onChange={e => setFilterText(e.target.value)}
-                      className="w-full py-2 pl-10 pr-4 border border-gray-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-                    />
-                    <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
-                      <Search className="h-4 w-4 text-gray-3" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+              {/* Request Overview Card */}
+              <section className="bg-white rounded-lg shadow p-6 w-full">
+                <h2 className="text-lg font-semibold mb-4">Request Overview</h2>
+                <div className="flex items-center justify-between">
+                  <div className="w-48 h-48 flex items-center justify-center">
+                    <Pie data={pieData} options={chartOptions} />
+                  </div>
+                  <div className="ml-4">
+                    <div className="flex flex-col gap-2 text-sm">
+                      <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6DEBE8] rounded-full"></span>Pending</div>
+                      <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6c63ff] rounded-full"></span>Processed</div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Request Overview */}
-              <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold mb-4">Request Overview</h2>
-                <div className="h-64">
-                  <Pie data={pieData} options={chartOptions} />
-                </div>
               </section>
 
-              {/* Request Queue */}
-              <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
+              {/* Request Queue Card */}
+              <section className="bg-white rounded-lg shadow p-6 w-full">
                 <h2 className="text-lg font-semibold mb-4">Request Queue</h2>
                 <DataTable
                   columns={requestQueueColumns}
                   data={filteredQueueItems}
-                  customStyles={customStyles}
                   pagination
-                  paginationPerPage={5}
-                  paginationRowsPerPageOptions={[5, 10, 15]}
-                  responsive
                   highlightOnHover
-                  noDataComponent="No requests found"
+                  striped
                 />
               </section>
 
-              {/* My Requests */}
-              <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
+              {/* My Requests Card (spans both columns on large screens) */}
+              <section className="bg-white rounded-lg shadow p-6 w-full md:col-span-2">
                 <h2 className="text-lg font-semibold mb-4">My Requests</h2>
                 <DataTable
                   columns={myRequestsColumns}
                   data={filteredMyItems}
-                  customStyles={customStyles}
                   pagination
-                  paginationPerPage={5}
-                  paginationRowsPerPageOptions={[5, 10, 15]}
-                  responsive
                   highlightOnHover
-                  noDataComponent="No requests found"
+                  striped
                 />
               </section>
-            </>
+            </div>
           )}
         </main>
       </div>
