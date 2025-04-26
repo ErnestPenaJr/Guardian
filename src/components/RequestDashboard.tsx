@@ -41,7 +41,7 @@ const RequestDashboard: React.FC = () => {
       showCancelButton: false,
       customClass: { popup: 'p-0 bg-transparent shadow-none flex items-center justify-center' },
       width: '40rem',
-      background: 'transparent',
+      background: '#f8fafc', // subtle slate-50 background for modal
     });
   };
 
@@ -56,7 +56,8 @@ const RequestDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="bg-white rounded-lg shadow p-6 md:p-8 max-w-5xl mx-auto mt-6">
+      <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-900">Requests</h2>
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2">
           <button className="border rounded px-3 py-1 text-sm" disabled>Filter ▼</button>

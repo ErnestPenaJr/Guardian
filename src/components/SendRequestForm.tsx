@@ -89,7 +89,7 @@ const SendRequestForm: React.FC<SendRequestFormProps> = ({ onSubmit, onCancel })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-lg">
+    <form onSubmit={handleSubmit} className="w-full">
       {step === 0 && (
         <div>
           <div className="flex gap-4 mb-4">
