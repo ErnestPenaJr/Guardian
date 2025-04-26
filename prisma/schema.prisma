@@ -40,6 +40,8 @@ model USERS {
   EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
   PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
   COMPANY_INFO                  COMPANY_INFO[]
+  requestedRequests REQUESTS[] @relation("Requestor")
+  assignedRequests  REQUESTS[] @relation("Assigned")
 }
 
 model ATTACHMENTS {
@@ -298,6 +300,9 @@ model REQUESTS {
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
   TRACKINGID     String?   @db.NVarChar(4000)
+
+  requestor      USERS     @relation("Requestor", fields: [REQUESTOR_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction)
+  assigned       USERS     @relation("Assigned", fields: [ASSIGNED_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model ROLES {

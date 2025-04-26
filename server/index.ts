@@ -600,23 +600,22 @@ app.get('/api/requests', async (req, res) => {
   try {
     const requests = await prisma.rEQUESTS.findMany({
       select: {
-        REQUEST_ID: true,
+        TRACKINGID: true,
         REQUEST_NAME: true,
         EXTERNAL_USER: true,
         SUBMITTED_DATE: true,
-        REQUESTOR_ID: true,
-        ASSIGNED_ID: true,
         STATUS: true,
         CREATE_DATE: true,
         UPDATE_DATE: true,
         CREATE_USER_ID: true,
         UPDATE_USER_ID: true,
-        TRACKINGID: true
+        requestor: { select: { FIRST_NAME: true, LAST_NAME: true } },
+        assigned: { select: { FIRST_NAME: true, LAST_NAME: true } },
       }
     });
     res.json(requests);
-  } catch (err) {
-    console.error('[GET REQUESTS]', err);
+  } catch (error) {
+    console.error('Error fetching requests:', error);
     res.status(500).json({ error: 'Failed to fetch requests' });
   }
 });
