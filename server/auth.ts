@@ -150,13 +150,13 @@ passport.use(
           // Get role IDs
           const roleIds = userRoles.map((ur: { ROLE_ID: number }) => ur.ROLE_ID);
 
-          // Return user without sensitive data
+          // Return user without sensitive data, always include roles array
           const authenticatedUser: AuthUser = {
             id: user.USER_ID,
             email: user.EMAIL,
             firstName: user.FIRST_NAME,
             lastName: user.LAST_NAME,
-            roles: roleIds,
+            roles: Array.isArray(roleIds) ? roleIds : [],
           };
           return done(null, authenticatedUser);
         } catch (dbError) {

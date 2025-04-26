@@ -6,6 +6,8 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import DataTable from 'react-data-table-component';
 import Swal from 'sweetalert2';
 import api from '../utils/api'; // Assuming the api is imported from a separate file
+import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
+import AdminDashboard from './AdminDashboard';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -176,22 +178,8 @@ const customStyles = {
 function Home() {
   const [filterText, setFilterText] = useState('');
   const navigate = useNavigate();
-  
-  // Get user data from localStorage
-  const getUserData = () => {
-    const userString = localStorage.getItem('user');
-    if (userString) {
-      try {
-        return JSON.parse(userString);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const user = getUserData();
+  const { user } = useAuth(); // Get the user object from the useAuth hook
+  const [selectedSection, setSelectedSection] = useState('dashboard');
   
   // Format user name as first initial and last name
   const formatUserName = () => {
@@ -368,6 +356,16 @@ function Home() {
                 <span>Settings</span>
               </Link>
             </li>
+            {user && user.roles && user.roles.includes(1) && (
+              <li>
+                <button
+                  className={`sidebar-link${selectedSection === 'admin' ? ' active' : ''}`}
+                  onClick={() => setSelectedSection('admin')}
+                >
+                  Admin
+                </button>
+              </li>
+            )}
             {getUserRole() === 'Administrator' && (
               <li>
                 <button
@@ -408,63 +406,69 @@ function Home() {
 
         {/* Main Content */}
         <main className="p-6">
-          {/* Search Bar */}
-          <div className="mb-6 flex items-center">
-            <div className="relative max-w-md flex-1">
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  placeholder="Search requests..."
-                  value={filterText}
-                  onChange={e => setFilterText(e.target.value)}
-                  className="w-full py-2 pl-10 pr-4 border border-gray-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-                />
-                <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-3" />
+          {selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
+            <AdminDashboard />
+          ) : (
+            <>
+              {/* Search Bar */}
+              <div className="mb-6 flex items-center">
+                <div className="relative max-w-md flex-1">
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Search requests..."
+                      value={filterText}
+                      onChange={e => setFilterText(e.target.value)}
+                      className="w-full py-2 pl-10 pr-4 border border-gray-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
+                    />
+                    <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-3" />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Request Overview */}
-          <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">Request Overview</h2>
-            <div className="h-64">
-              <Pie data={pieData} options={chartOptions} />
-            </div>
-          </section>
+              {/* Request Overview */}
+              <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-lg font-semibold mb-4">Request Overview</h2>
+                <div className="h-64">
+                  <Pie data={pieData} options={chartOptions} />
+                </div>
+              </section>
 
-          {/* Request Queue */}
-          <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">Request Queue</h2>
-            <DataTable
-              columns={requestQueueColumns}
-              data={filteredQueueItems}
-              customStyles={customStyles}
-              pagination
-              paginationPerPage={5}
-              paginationRowsPerPageOptions={[5, 10, 15]}
-              responsive
-              highlightOnHover
-              noDataComponent="No requests found"
-            />
-          </section>
+              {/* Request Queue */}
+              <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-lg font-semibold mb-4">Request Queue</h2>
+                <DataTable
+                  columns={requestQueueColumns}
+                  data={filteredQueueItems}
+                  customStyles={customStyles}
+                  pagination
+                  paginationPerPage={5}
+                  paginationRowsPerPageOptions={[5, 10, 15]}
+                  responsive
+                  highlightOnHover
+                  noDataComponent="No requests found"
+                />
+              </section>
 
-          {/* My Requests */}
-          <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">My Requests</h2>
-            <DataTable
-              columns={myRequestsColumns}
-              data={filteredMyItems}
-              customStyles={customStyles}
-              pagination
-              paginationPerPage={5}
-              paginationRowsPerPageOptions={[5, 10, 15]}
-              responsive
-              highlightOnHover
-              noDataComponent="No requests found"
-            />
-          </section>
+              {/* My Requests */}
+              <section className="mb-6 bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-lg font-semibold mb-4">My Requests</h2>
+                <DataTable
+                  columns={myRequestsColumns}
+                  data={filteredMyItems}
+                  customStyles={customStyles}
+                  pagination
+                  paginationPerPage={5}
+                  paginationRowsPerPageOptions={[5, 10, 15]}
+                  responsive
+                  highlightOnHover
+                  noDataComponent="No requests found"
+                />
+              </section>
+            </>
+          )}
         </main>
       </div>
       {showInviteModal && (

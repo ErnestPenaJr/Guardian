@@ -11,6 +11,7 @@ import { dirname } from 'path';
 import bcrypt from 'bcryptjs';
 import { passport, loginSchema, generateToken, requireAuth, hashPassword } from './auth.js';
 import rateLimit from 'express-rate-limit';
+import { isAdmin } from './middleware/isAdmin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -50,6 +51,11 @@ const loginRateLimiter = rateLimit({
     success: false, 
     message: 'Too many login attempts. Please try again later.' 
   }
+});
+
+// --- ADMIN-ONLY TEST ENDPOINT ---
+app.get('/api/admin/secret', passport.authenticate('jwt', { session: false }), isAdmin, (req, res) => {
+  res.json({ secret: 'This is admin-only data.' });
 });
 
 // Zod schema for registration

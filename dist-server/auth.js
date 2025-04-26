@@ -111,13 +111,13 @@ passport.use(new LocalStrategy({
             });
             // Get role IDs
             const roleIds = userRoles.map((ur) => ur.ROLE_ID);
-            // Return user without sensitive data
+            // Return user without sensitive data, always include roles array
             const authenticatedUser = {
                 id: user.USER_ID,
                 email: user.EMAIL,
                 firstName: user.FIRST_NAME,
                 lastName: user.LAST_NAME,
-                roles: roleIds,
+                roles: Array.isArray(roleIds) ? roleIds : [],
             };
             return done(null, authenticatedUser);
         }

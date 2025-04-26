@@ -11,6 +11,7 @@ import { dirname } from 'path';
 import bcrypt from 'bcryptjs';
 import { passport, loginSchema, generateToken, requireAuth } from './auth.js';
 import rateLimit from 'express-rate-limit';
+import { isAdmin } from './middleware/isAdmin.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
@@ -46,6 +47,10 @@ const loginRateLimiter = rateLimit({
         success: false,
         message: 'Too many login attempts. Please try again later.'
     }
+});
+// --- ADMIN-ONLY TEST ENDPOINT ---
+app.get('/api/admin/secret', passport.authenticate('jwt', { session: false }), isAdmin, (req, res) => {
+    res.json({ secret: 'This is admin-only data.' });
 });
 // Zod schema for registration
 const registerSchema = z.object({
@@ -623,8 +628,60 @@ app.post('/api/invites/send', requireAuth, async (req, res) => {
                         to: invite.email,
                         from: SENDGRID_FROM_EMAIL,
                         subject: 'You have been invited to Guardian!',
-                        text: `You have been invited to join Guardian. Set up your account: ${inviteUrl}`,
-                        html: `<p>You have been invited to join Guardian.<br><a href="${inviteUrl}">Click here to set up your account.</a></p>`
+                        text: `Hello,
+
+You have been invited to join Guardian, a modern security and compliance platform designed to protect your organization and streamline your workflows.
+
+Your invitation is unique to you. Please click the link below to set up your account and get started:
+
+${inviteUrl}
+
+If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.
+
+Guardian by Shieldlytics
+123 Main St, City, State, ZIP
+https://shieldlytics.com
+`,
+                        html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Guardian!</title>
+  <style>
+    body { margin:0; padding:0; background:#f9f9f9; font-family:Arial,sans-serif; }
+    .container { max-width:600px; margin:20px auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(44,44,44,0.06); }
+    h2 { color:#2EBCBC; }
+    .cta { display:inline-block; margin:24px 0; padding:12px 28px; background:#2EBCBC; color:#fff; border-radius:4px; text-decoration:none; font-weight:bold; letter-spacing:1px; }
+    .footer { font-size:12px; color:#777; margin-top:30px; text-align:center; }
+    .features { margin:24px 0 0 0; padding:0; }
+    .features li { margin-bottom:8px; }
+    a { color:#2EBCBC; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://shieldlytics.com/logo.png" alt="Guardian by Shieldlytics" style="height:40px; margin-bottom:16px;">
+    <h2>Welcome to Guardian!</h2>
+    <p>Hi there,</p>
+    <p>You have been invited to join <b>Guardian</b>, the modern security and compliance platform by <b>Shieldlytics</b>.</p>
+    <ul class="features">
+      <li>✔️ Real-time security monitoring</li>
+      <li>✔️ Automated compliance workflows</li>
+      <li>✔️ Easy team collaboration</li>
+      <li>✔️ Secure cloud-based access</li>
+    </ul>
+    <p style="margin-top:18px;">To get started, please click the button below to accept your invitation and set up your account:</p>
+    <p><a class="cta" href="${inviteUrl}">Accept Your Invitation</a></p>
+    <p>If you did not expect this invitation, please ignore this email or <a href="mailto:support@shieldlytics.com">contact support</a>.</p>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>
+      123 Main St, City, State, ZIP<br>
+      <a href="https://shieldlytics.com">https://shieldlytics.com</a>
+    </div>
+  </div>
+</body>
+</html>`
                     };
                     const [response] = await sgMail.send(mailData);
                     console.log('[SEND INVITES] SendGrid API response statusCode:', response.statusCode);

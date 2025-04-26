@@ -8,6 +8,7 @@ import VerifyForgotPassword from './pages/VerifyForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
 import InviteAccept from './pages/InviteAccept';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/style-guide" element={<StyleGuide />} />
         <Route path="/home" element={<Home />} />
         <Route path="/invite/accept" element={<InviteAccept />} />
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </Router>
   );
