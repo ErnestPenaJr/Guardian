@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Search, LogOut, Trash2 } from 'lucide-react';
+import { Shield, Search, LogOut, Trash2, User, Settings, KeyRound, Bell, SunMoon } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 import DataTable from 'react-data-table-component';
@@ -273,6 +273,20 @@ function Home() {
     });
   };
   
+  // --- User Profile Dropdown State ---
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Filter data based on search input
   const filteredQueueItems = sampleRequestQueue.filter(
     item => {
@@ -341,19 +355,43 @@ function Home() {
             className="w-full px-3 md:px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-sm md:text-base"
           />
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="bg-primary text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-semibold text-sm md:text-base">
-            NF
-          </div>
-          <span className="font-medium text-gray-700 hidden sm:inline">E. Pena</span>
-          <svg className="w-4 h-4 ml-1 text-gray-500 hidden sm:inline" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-          <button 
-            className="text-gray-600 hover:text-gray-800"
-            onClick={handleLogout}
-            aria-label="Logout"
+        <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
+          <button
+            className="bg-primary text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-semibold text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary"
+            onClick={() => setProfileMenuOpen(v => !v)}
+            aria-haspopup="true"
+            aria-expanded={profileMenuOpen}
+            aria-label="Open user menu"
+            tabIndex={0}
           >
-            <LogOut size={18} />
+            NF
           </button>
+          <span className="font-medium text-gray-700 hidden sm:inline">E. Pena</span>
+          <svg className="w-4 h-4 ml-1 text-gray-500 hidden sm:inline cursor-pointer" onClick={() => setProfileMenuOpen(v => !v)} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          {/* Dropdown Menu */}
+          {profileMenuOpen && (
+            <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100 animate-fade-in">
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Account Settings */}}>
+                <Settings size={16} /> Account Settings
+              </button>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Update Profile */}}>
+                <User size={16} /> Update Profile
+              </button>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Change Password */}}>
+                <KeyRound size={16} /> Change Password
+              </button>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Notification Preferences */}}>
+                <Bell size={16} /> Notification Preferences
+              </button>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Toggle theme */}}>
+                <SunMoon size={16} /> Theme: Light/Dark
+              </button>
+              <div className="border-t my-2" />
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-sm" onClick={handleLogout}>
+                <LogOut size={16} /> Logout
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
