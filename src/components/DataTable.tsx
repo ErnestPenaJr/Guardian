@@ -1,95 +1,31 @@
-import React, { useState } from 'react';
-import DataTable from 'react-data-table-component';
+import React, { useState, useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { Search, Shield } from 'lucide-react';
 import { movies, Movie } from '../database';
 import { showToast } from '../utils/toast';
 
-const columns = [
-  {
-    name: 'Title',
-    selector: (row: Movie) => row.title,
-    sortable: true,
-  },
-  {
-    name: 'Year',
-    selector: (row: Movie) => row.year,
-    sortable: true,
-  },
-  {
-    name: 'Rating',
-    selector: (row: Movie) => row.rating,
-    sortable: true,
-  },
-];
-
-const customStyles = {
-  table: {
-    style: {
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-    },
-  },
-  headRow: {
-    style: {
-      backgroundColor: 'rgba(224, 224, 224, 0.2)',
-      borderBottomWidth: '1px',
-      borderBottomColor: '#E0E0E0',
-      minHeight: '3.75rem',
-    },
-  },
-  headCells: {
-    style: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#333333',
-      padding: '1rem 1.5rem',
-    },
-  },
-  cells: {
-    style: {
-      fontSize: '1rem',
-      padding: '1rem 1.5rem',
-      color: '#4F4F4F',
-    },
-  },
-  rows: {
-    style: {
-      backgroundColor: 'white',
-      '&:hover': {
-        backgroundColor: 'rgba(224, 224, 224, 0.1)',
-        cursor: 'pointer',
-      },
-      borderBottomWidth: '1px',
-      borderBottomColor: '#E0E0E0',
-      minHeight: '3.75rem',
-    },
-  },
-  pagination: {
-    style: {
-      borderTopWidth: '1px',
-      borderTopColor: '#E0E0E0',
-      padding: '1rem',
-    },
-  },
-};
-
 export function CustomDataTable() {
   const [filterText, setFilterText] = useState('');
-  
-  const filteredItems = movies.filter(
-    item => {
+
+  const filteredItems = useMemo(() =>
+    movies.filter(item => {
       const searchStr = filterText.toLowerCase();
       return (
         item.title.toLowerCase().includes(searchStr) ||
         item.year.toString().includes(searchStr) ||
         item.rating.toString().includes(searchStr)
       );
-    }
+    }),
+    [filterText]
   );
 
-  const handleSort = (column: any, sortDirection: string) => {
-    showToast.info(`Sorted by ${column.name} ${sortDirection}`);
-  };
+  const columnDefs = useMemo(() => [
+    { headerName: 'Title', field: 'title', sortable: true, filter: true },
+    { headerName: 'Year', field: 'year', sortable: true, filter: true },
+    { headerName: 'Rating', field: 'rating', sortable: true, filter: true },
+  ], []);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-4xl">
@@ -112,17 +48,15 @@ export function CustomDataTable() {
         />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredItems}
-        customStyles={customStyles}
-        pagination
-        paginationPerPage={5}
-        paginationRowsPerPageOptions={[5, 10, 15, 20]}
-        onSort={handleSort}
-        responsive
-        highlightOnHover
-      />
+      <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+        <AgGridReact
+          rowData={filteredItems}
+          columnDefs={columnDefs}
+          pagination={true}
+          paginationPageSize={5}
+          domLayout="autoHeight"
+        />
+      </div>
 
       <div className="mt-8 pt-8 border-t border-gray-5 text-center">
         <p className="text-body-sm text-gray-3">

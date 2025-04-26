@@ -57,6 +57,18 @@ const SendRequestForm: React.FC<SendRequestFormProps> = ({ onSubmit, onCancel })
     availableToExternal: false,
     active: false
   });
+
+  // Utility to auto-generate abbreviation from name
+  const generateAbbreviation = (name: string) => {
+    // Take first letter of each word, up to 4 chars, uppercase
+    return name
+      .split(/\s+/)
+      .map(word => word[0] || '')
+      .join('')
+      .slice(0, 4)
+      .toUpperCase();
+  };
+
   const [workflow, setWorkflow] = useState('');
   const [workflowLevels, setWorkflowLevels] = useState<WorkflowLevel[]>([
     { fieldName: 'Approver', approvalType: '', approverList: '' }
@@ -65,10 +77,16 @@ const SendRequestForm: React.FC<SendRequestFormProps> = ({ onSubmit, onCancel })
   // Handlers for each step
   const handleDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type, checked } = e.target;
-    setDetails(d => ({
-      ...d,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setDetails(d => {
+      let next = { ...d, [name]: type === 'checkbox' ? checked : value };
+      if (name === 'name') {
+        // Only auto-update abbreviation if user hasn't manually edited it
+        if (!d.abbreviation || d.abbreviation === generateAbbreviation(d.name)) {
+          next.abbreviation = generateAbbreviation(value);
+        }
+      }
+      return next;
+    });
   };
 
   const handleWorkflowChange = (e: React.ChangeEvent<HTMLInputElement>) => {
