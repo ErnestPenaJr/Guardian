@@ -102,7 +102,7 @@ const RequestDashboard: React.FC = () => {
         <AgGridReact
           rowData={requests}
           columnDefs={columnDefs}
-          rowSelection={{ mode: 'multiple', checkboxes: true }}
+          rowSelection={{ mode: 'multiRow', checkboxes: true }}
           pagination={true}
           paginationPageSize={10}
           paginationPageSizeSelector={[10, 20, 50, 100]}
