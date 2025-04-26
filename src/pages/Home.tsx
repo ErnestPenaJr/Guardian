@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, Search, LogOut, Trash2 } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 import DataTable from 'react-data-table-component';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
@@ -11,9 +11,11 @@ import api from '../utils/api'; // Assuming the api is imported from a separate 
 import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
 import AdminDashboard from './AdminDashboard';
 import { FaThLarge, FaRegCommentDots, FaRegFileAlt, FaCog, FaUserShield, FaPaperPlane } from 'react-icons/fa';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
 // Register Chart.js components
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 // Sample data for the pie chart
 const pieData = {
@@ -326,6 +328,7 @@ function Home() {
 
   return (
     <div className="flex h-screen bg-gray-100">
+      <Tooltip id="sidebar-tooltip" place="right" />
       {/* Sidebar */}
       <aside style={{ backgroundColor: sidebarBg }} className="h-full flex flex-col items-center py-6 w-20 min-w-[80px]">
         {navItems.map(item => (
@@ -335,7 +338,9 @@ function Home() {
               ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
             onClick={() => setSelectedSection(item.key)}
             aria-label={item.key}
-            title={item.key.charAt(0).toUpperCase() + item.key.slice(1).replace(/([A-Z])/g, ' $1')}
+            title={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
+            data-tooltip-id="sidebar-tooltip"
+            data-tooltip-content={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
           >
             <span className="text-2xl">{item.icon}</span>
           </button>
@@ -348,6 +353,8 @@ function Home() {
               onClick={() => setSelectedSection('admin')}
               aria-label="Admin Dashboard"
               title="Admin Dashboard"
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content="Admin Dashboard"
             >
               <span className="text-2xl"><FaUserShield /></span>
             </button>
@@ -355,7 +362,9 @@ function Home() {
               className="flex items-center justify-center w-12 h-12 mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
               onClick={handleSendInvite}
               aria-label="Send Invites"
-              title="Send Invites"
+              title="Send User Invites"
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content="Send User Invites"
             >
               <span className="text-2xl"><FaPaperPlane /></span>
             </button>
