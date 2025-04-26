@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 import api from '../utils/api'; // Assuming the api is imported from a separate file
 import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
 import AdminDashboard from './AdminDashboard';
+import { FaThLarge, FaRegCommentDots, FaRegFileAlt, FaCog, FaUserShield, FaPaperPlane } from 'react-icons/fa';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -327,58 +328,55 @@ function Home() {
     }
   };
 
+  const navItems = [
+    { key: 'dashboard', icon: <FaThLarge /> },
+    { key: 'notices', icon: <FaRegCommentDots /> },
+    { key: 'workorder', icon: <FaRegFileAlt /> },
+    { key: 'settings', icon: <FaCog /> },
+  ];
+
+  // Add a custom color for the sidebar background (matches provided image)
+  const sidebarBg = '#6DEBE8';
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-md">
-        <div className="p-4 flex items-center gap-2 border-b border-gray-200">
-          <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-6 h-6" />
-          <span className="text-xl font-display font-bold text-primary">Guardian</span>
-        </div>
-        
-        <nav className="p-4">
-          <ul className="space-y-2">
-            <li>
-              <Link to="/home" className="flex items-center gap-2 p-2 bg-secondary/10 text-secondary rounded-lg">
-                <Shield size={18} />
-                <span>Home</span>
-              </Link>
-            </li>
-            <li>
-              <Link to="/my-requests" className="flex items-center gap-2 p-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                <Shield size={18} />
-                <span>My Requests</span>
-              </Link>
-            </li>
-            <li>
-              <Link to="/settings" className="flex items-center gap-2 p-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                <Shield size={18} />
-                <span>Settings</span>
-              </Link>
-            </li>
-            {user && user.roles && user.roles.includes(1) && (
-              <li>
-                <button
-                  className={`sidebar-link${selectedSection === 'admin' ? ' active' : ''}`}
-                  onClick={() => setSelectedSection('admin')}
-                >
-                  Admin
-                </button>
-              </li>
-            )}
-            {getUserRole() === 'Administrator' && (
-              <li>
-                <button
-                  className="ml-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition"
-                  onClick={() => setShowInviteModal(true)}
-                >
-                  Send Invites
-                </button>
-              </li>
-            )}
-          </ul>
-        </nav>
-      </div>
+      <aside style={{ backgroundColor: sidebarBg }} className="h-full flex flex-col items-center py-6 w-20 min-w-[80px]">
+        {navItems.map(item => (
+          <button
+            key={item.key}
+            className={`flex items-center justify-center w-12 h-12 mb-4 rounded-full transition-all duration-150
+              ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+            onClick={() => setSelectedSection(item.key)}
+            aria-label={item.key}
+            title={item.key.charAt(0).toUpperCase() + item.key.slice(1).replace(/([A-Z])/g, ' $1')}
+          >
+            <span className="text-2xl">{item.icon}</span>
+          </button>
+        ))}
+        {/* Admin-only links */}
+        {user && user.roles && user.roles.includes(1) && (
+          <>
+            <button
+              className={`flex items-center justify-center w-12 h-12 mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+              onClick={() => setSelectedSection('admin')}
+              aria-label="Admin Dashboard"
+              title="Admin Dashboard"
+            >
+              <span className="text-2xl"><FaUserShield /></span>
+            </button>
+            <button
+              className="flex items-center justify-center w-12 h-12 mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
+              onClick={() => setShowInviteModal(true)}
+              aria-label="Send Invites"
+              title="Send Invites"
+            >
+              <span className="text-2xl"><FaPaperPlane /></span>
+            </button>
+          </>
+        )}
+        <div className="flex-1" />
+      </aside>
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
