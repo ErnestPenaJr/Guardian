@@ -7,6 +7,7 @@ import DataTable from 'react-data-table-component';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
 import SendInvitesForm from '../components/SendInvitesForm';
+import RequestDashboard from '../components/RequestDashboard';
 import api from '../utils/api'; // Assuming the api is imported from a separate file
 import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
 import AdminDashboard from './AdminDashboard';
@@ -354,7 +355,7 @@ function Home() {
   return (
     <div className={`flex h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Top Bar */}
-      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm flex items-center justify-between px-4 md:px-8 z-30">
+      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-black flex items-center justify-between px-4 md:px-8 z-40">
         <div className="flex items-center gap-2 md:gap-3">
           <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="h-8 w-auto" />
           <span className="font-bold text-lg md:text-2xl text-gray-700 hidden sm:inline">Guardian</span>
@@ -408,7 +409,7 @@ function Home() {
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Notification Preferences */}}>
                 <Bell size={16} /> Notification Preferences
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={handleToggleTheme}>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => handleToggleTheme}>
                 <SunMoon size={16} /> Theme: {theme === 'dark' ? 'Dark' : 'Light'}
               </button>
               <div className="border-t my-2" />
@@ -419,139 +420,113 @@ function Home() {
           )}
         </div>
       </header>
-
-      <div className="flex pt-16 h-screen">
-        {/* Sidebar: collapses to bottom bar on mobile */}
-        <aside className="hidden sm:flex flex-col items-center py-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full sticky top-16 z-20">
-          {navItems.filter(item => item.key !== 'settings').map(item => (
+      {/* Sidebar: collapses to bottom bar on mobile */}
+      <aside className="hidden sm:flex flex-col items-center pt-20 py-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full fixed top-0 left-0 z-30">
+        {navItems.filter(item => item.key !== 'settings').map(item => (
+          <button
+            key={item.key}
+            className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+            onClick={() => setSelectedSection(item.key)}
+            aria-label={item.key}
+            data-tooltip-id="sidebar-tooltip"
+            data-tooltip-content={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
+          >
+            <span className="text-xl md:text-2xl">{item.icon}</span>
+          </button>
+        ))}
+        {user && user.roles && user.roles.includes(1) && (
+          <>
             <button
-              key={item.key}
-              className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
-              onClick={() => setSelectedSection(item.key)}
-              aria-label={item.key}
+              className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+              onClick={() => setSelectedSection('admin')}
+              aria-label="Admin Dashboard"
               data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
+              data-tooltip-content="Admin Dashboard"
             >
-              <span className="text-xl md:text-2xl">{item.icon}</span>
+              <span className="text-xl md:text-2xl"><FaUserShield /></span>
             </button>
-          ))}
-          {user && user.roles && user.roles.includes(1) && (
-            <>
-              <button
-                className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
-                onClick={() => setSelectedSection('admin')}
-                aria-label="Admin Dashboard"
-                data-tooltip-id="sidebar-tooltip"
-                data-tooltip-content="Admin Dashboard"
-              >
-                <span className="text-xl md:text-2xl"><FaUserShield /></span>
-              </button>
-              <button
-                className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
-                onClick={handleSendInvite}
-                aria-label="Send Invites"
-                data-tooltip-id="sidebar-tooltip"
-                data-tooltip-content="Send User Invites"
-              >
-                <span className="text-xl md:text-2xl"><FaPaperPlane /></span>
-              </button>
-            </>
-          )}
-          <Tooltip id="sidebar-tooltip" place="right" />
-          {/* Logout button at bottom */}
-          <div className="flex-1 flex flex-col justify-end w-full items-center pb-2">
             <button
-              className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-white hover:bg-primary/80 transition-all duration-150 mt-4"
-              onClick={handleLogout}
-              aria-label="Logout"
+              className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
+              onClick={handleSendInvite}
+              aria-label="Send Invites"
               data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Logout"
+              data-tooltip-content="Send User Invites"
             >
-              <LogOut size={20} />
+              <span className="text-xl md:text-2xl"><FaPaperPlane /></span>
             </button>
-          </div>
-        </aside>
-        {/* Bottom nav for mobile */}
-        <nav className="sm:hidden fixed bottom-0 left-0 w-full bg-[#6DEBE8] flex justify-around items-center h-14 z-40 shadow-lg">
-          {navItems.filter(item => item.key !== 'settings').map(item => (
-            <button
-              key={item.key}
-              className={`flex flex-col items-center justify-center w-10 h-10 ${selectedSection === item.key ? 'bg-white text-primary shadow' : 'text-white hover:bg-primary/80'} rounded-full`}
-              onClick={() => setSelectedSection(item.key)}
-              aria-label={item.key}
-            >
-              <span className="text-xl">{item.icon}</span>
-            </button>
-          ))}
-          {user && user.roles && user.roles.includes(1) && (
-            <>
-              <button
-                className={`flex flex-col items-center justify-center w-10 h-10 ${selectedSection === 'admin' ? 'bg-white text-primary shadow' : 'text-white hover:bg-primary/80'} rounded-full`}
-                onClick={() => setSelectedSection('admin')}
-                aria-label="Admin Dashboard"
-              >
-                <span className="text-xl"><FaUserShield /></span>
-              </button>
-              <button
-                className="flex flex-col items-center justify-center w-10 h-10 text-white hover:bg-primary/80 rounded-full"
-                onClick={handleSendInvite}
-                aria-label="Send Invites"
-              >
-                <span className="text-xl"><FaPaperPlane /></span>
-              </button>
-            </>
-          )}
-        </nav>
-
-        {/* Main Content Responsive Grid */}
-        <main className="flex-1 flex flex-col px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full">
-          {selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
-            <AdminDashboard />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
-              {/* Request Overview Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Overview</h2>
-                <div className="flex flex-col md:flex-row items-center justify-between">
-                  <div className="w-36 h-36 md:w-48 md:h-48 flex items-center justify-center mx-auto md:mx-0">
-                    <Pie data={pieData} options={chartOptions} />
-                  </div>
-                  <div className="mt-4 md:mt-0 md:ml-4">
-                    <div className="flex flex-col gap-2 text-sm">
-                      <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6DEBE8] rounded-full"></span>Pending</div>
-                      <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6c63ff] rounded-full"></span>Processed</div>
-                    </div>
+          </>
+        )}
+        <Tooltip id="sidebar-tooltip" place="right" />
+        {/* Logout button at bottom */}
+        <div className="flex-1 flex flex-col justify-end w-full items-center pb-2">
+          <button
+            className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-white hover:bg-primary/80 transition-all duration-150 mt-4"
+            onClick={handleLogout}
+            aria-label="Logout"
+            data-tooltip-id="sidebar-tooltip"
+            data-tooltip-content="Logout"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
+      </aside>
+      {/* Main Content: Switchable Dashboard */}
+      <main className="flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ml-0 sm:ml-14 md:ml-16">
+        {selectedSection === 'dashboard' ? (
+          // Default Dashboard Overview (original content)
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
+            {/* Request Overview Card */}
+            <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
+              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Overview</h2>
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                <div className="w-36 h-36 md:w-48 md:h-48 flex items-center justify-center mx-auto md:mx-0">
+                  <Pie data={pieData} options={chartOptions} />
+                </div>
+                <div className="mt-4 md:mt-0 md:ml-4">
+                  <div className="flex flex-col gap-2 text-sm">
+                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6DEBE8] rounded-full"></span>Pending</div>
+                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6c63ff] rounded-full"></span>Processed</div>
                   </div>
                 </div>
-              </section>
-
-              {/* Request Queue Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Queue</h2>
-                <DataTable
-                  columns={requestQueueColumns}
-                  data={filteredQueueItems}
-                  pagination
-                  highlightOnHover
-                  striped
-                />
-              </section>
-
-              {/* My Requests Card (spans both columns on large screens) */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-2`}>
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">My Requests</h2>
-                <DataTable
-                  columns={myRequestsColumns}
-                  data={filteredMyItems}
-                  pagination
-                  highlightOnHover
-                  striped
-                />
-              </section>
-            </div>
-          )}
-        </main>
-      </div>
+              </div>
+            </section>
+            {/* Request Queue Card */}
+            <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
+              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
+              <DataTable
+                columns={requestQueueColumns}
+                data={filteredQueueItems}
+                pagination
+                highlightOnHover
+                striped
+              />
+            </section>
+            {/* My Requests Card (spans both columns on large screens) */}
+            <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-2`}>
+              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">My Requests</h2>
+              <DataTable
+                columns={myRequestsColumns}
+                data={filteredMyItems}
+                pagination
+                highlightOnHover
+                striped
+              />
+            </section>
+          </div>
+        ) : selectedSection === 'workorder' ? (
+          <div className="mt-4 md:mt-6">
+            <RequestDashboard />
+          </div>
+        ) : selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
+          <div className="mt-4 md:mt-6">
+            <AdminDashboard />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-400 text-2xl">
+            Select a section from the left nav
+          </div>
+        )}
+      </main>
     </div>
   );
 }
