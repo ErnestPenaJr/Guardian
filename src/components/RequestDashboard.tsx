@@ -4,17 +4,40 @@ import withReactContent from 'sweetalert2-react-content';
 import SendRequestForm from './SendRequestForm';
 import api from '../utils/api';
 import { AgGridReact } from 'ag-grid-react';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { ModuleRegistry } from 'ag-grid-community';
+import { ClientSideRowModelModule } from 'ag-grid-community';
+import { ValidationModule } from 'ag-grid-community';
+import { RowSelectionModule, PaginationModule, TextFilterModule, NumberFilterModule, DateFilterModule } from 'ag-grid-community';
+
+// Register required ag-Grid modules
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ValidationModule,
+  RowSelectionModule,
+  PaginationModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule
+]);
 
 const MySwal = withReactContent(Swal);
 
 interface RequestRow {
-  name: string;
-  abbreviation: string;
-  workflow: string;
-  allowExternal: boolean;
-  status: string;
+  REQUEST_ID: string;
+  REQUEST_NAME: string;
+  EXTERNAL_USER: string;
+  SUBMITTED_DATE: string;
+  REQUESTOR_ID: string;
+  ASSIGNED_ID: string;
+  STATUS: string;
+  CREATE_DATE: string;
+  UPDATE_DATE: string;
+  CREATE_USER_ID: string;
+  UPDATE_USER_ID: string;
+  TRACKINGID: string;
 }
 
 const RequestDashboard: React.FC = () => {
@@ -50,12 +73,18 @@ const RequestDashboard: React.FC = () => {
     }
   };
 
-  const columnDefs = useMemo(() => [
-    { headerName: 'Name', field: 'name', sortable: true, filter: true, checkboxSelection: true },
-    { headerName: 'Abbreviation', field: 'abbreviation', sortable: true, filter: true },
-    { headerName: 'Workflow', field: 'workflow', sortable: true, filter: true },
-    { headerName: 'Allow External?', field: 'allowExternal', sortable: true, filter: true, valueFormatter: params => params.value ? 'Yes' : 'No' },
-    { headerName: 'Status', field: 'status', sortable: true, filter: true },
+  const columnDefs: ColDef[] = useMemo(() => [
+    { headerName: 'Request ID', field: 'TRACKINGID', sortable: true, filter: true },
+    { headerName: 'Request Name', field: 'REQUEST_NAME', sortable: true, filter: true },
+    { headerName: 'External User', field: 'EXTERNAL_USER', sortable: true, filter: true },
+    { headerName: 'Submitted Date', field: 'SUBMITTED_DATE', sortable: true, filter: true },
+    { headerName: 'Requestor ID', field: 'REQUESTOR_ID', sortable: true, filter: true },
+    { headerName: 'Assigned ID', field: 'ASSIGNED_ID', sortable: true, filter: true },
+    { headerName: 'Status', field: 'STATUS', sortable: true, filter: true },
+    { headerName: 'Create Date', field: 'CREATE_DATE', sortable: true, filter: true },
+    { headerName: 'Update Date', field: 'UPDATE_DATE', sortable: true, filter: true },
+    { headerName: 'Create User ID', field: 'CREATE_USER_ID', sortable: true, filter: true },
+    { headerName: 'Update User ID', field: 'UPDATE_USER_ID', sortable: true, filter: true }
   ], []);
 
   return (
@@ -73,13 +102,15 @@ const RequestDashboard: React.FC = () => {
         <AgGridReact
           rowData={requests}
           columnDefs={columnDefs}
-          rowSelection="multiple"
+          rowSelection={{ mode: 'multiple', checkboxes: true }}
           pagination={true}
           paginationPageSize={10}
+          paginationPageSizeSelector={[10, 20, 50, 100]}
           domLayout="autoHeight"
           loadingOverlayComponentParams={{ loadingMessage: 'Loading...' }}
           onSelectionChanged={params => setSelectedRows(params.api.getSelectedRows())}
           overlayLoadingTemplate={'<span class="ag-overlay-loading-center">Loading...</span>'}
+          theme="legacy"
         />
       </div>
       {/* Example: Show selected rows count */}

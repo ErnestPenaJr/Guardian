@@ -585,6 +585,32 @@ app.get('/api/roles', async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch roles' });
     }
 });
+// --- GET REQUESTS ENDPOINT ---
+app.get('/api/requests', async (req, res) => {
+    try {
+        const requests = await prisma.rEQUESTS.findMany({
+            select: {
+                REQUEST_ID: true,
+                REQUEST_NAME: true,
+                EXTERNAL_USER: true,
+                SUBMITTED_DATE: true,
+                REQUESTOR_ID: true,
+                ASSIGNED_ID: true,
+                STATUS: true,
+                CREATE_DATE: true,
+                UPDATE_DATE: true,
+                CREATE_USER_ID: true,
+                UPDATE_USER_ID: true,
+                TRACKINGID: true
+            }
+        });
+        res.json(requests);
+    }
+    catch (err) {
+        console.error('[GET REQUESTS]', err);
+        res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+});
 // --- INVITE TABLE (PRISMA MODEL) ---
 // Table: INVITES (fields: INVITE_ID, EMAIL, ROLE_ID, TOKEN, STATUS, EXPIRES_AT, USED_AT, CREATED_AT)
 // --- SEND INVITES ENDPOINT ---

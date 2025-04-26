@@ -5,6 +5,13 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { Search, Shield } from 'lucide-react';
 import { movies, Movie } from '../database';
 import { showToast } from '../utils/toast';
+import { ModuleRegistry } from 'ag-grid-community';
+import { ClientSideRowModelModule } from 'ag-grid-community';
+import { ValidationModule } from 'ag-grid-community';
+import { RowSelectionModule, PaginationModule } from 'ag-grid-community';
+
+// Register required ag-Grid modules
+ModuleRegistry.registerModules([ClientSideRowModelModule, ValidationModule, RowSelectionModule, PaginationModule]);
 
 export function CustomDataTable() {
   const [filterText, setFilterText] = useState('');
@@ -54,7 +61,9 @@ export function CustomDataTable() {
           columnDefs={columnDefs}
           pagination={true}
           paginationPageSize={5}
+          rowSelection="multiple"
           domLayout="autoHeight"
+          theme="legacy"
         />
       </div>
 
