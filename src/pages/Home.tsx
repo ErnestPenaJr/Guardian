@@ -364,9 +364,15 @@ function Home() {
             aria-label="Open user menu"
             tabIndex={0}
           >
-            NF
+            {user?.profilePhotoUrl ? (
+              <img src={user.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
+            ) : (
+              (user?.firstName && user?.lastName)
+                ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+                : (user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U')
+            )}
           </button>
-          <span className="font-medium text-gray-700 hidden sm:inline">E. Pena</span>
+          <span className="font-medium text-gray-700 hidden sm:inline">{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}</span>
           <svg className="w-4 h-4 ml-1 text-gray-500 hidden sm:inline cursor-pointer" onClick={() => setProfileMenuOpen(v => !v)} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           {/* Dropdown Menu */}
           {profileMenuOpen && (
