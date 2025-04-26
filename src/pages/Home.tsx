@@ -273,6 +273,18 @@ function Home() {
     });
   };
   
+  // --- Theme State ---
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    () => (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => setTheme(t => (t === 'light' ? 'dark' : 'light'));
+
   // --- User Profile Dropdown State ---
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -340,7 +352,7 @@ function Home() {
   const sidebarBg = '#6DEBE8';
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className={`flex h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Top Bar */}
       <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm flex items-center justify-between px-4 md:px-8 z-30">
         <div className="flex items-center gap-2 md:gap-3">
@@ -396,8 +408,8 @@ function Home() {
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Notification Preferences */}}>
                 <Bell size={16} /> Notification Preferences
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Toggle theme */}}>
-                <SunMoon size={16} /> Theme: Light/Dark
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={handleToggleTheme}>
+                <SunMoon size={16} /> Theme: {theme === 'dark' ? 'Dark' : 'Light'}
               </button>
               <div className="border-t my-2" />
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-sm" onClick={handleLogout}>
@@ -408,7 +420,7 @@ function Home() {
         </div>
       </header>
 
-      <div className="flex pt-16 h-screen bg-gray-100">
+      <div className="flex pt-16 h-screen">
         {/* Sidebar: collapses to bottom bar on mobile */}
         <aside className="hidden sm:flex flex-col items-center py-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full sticky top-16 z-20">
           {navItems.filter(item => item.key !== 'settings').map(item => (
@@ -498,7 +510,7 @@ function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
               {/* Request Overview Card */}
-              <section className="bg-white rounded-lg shadow p-4 md:p-6 w-full">
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Overview</h2>
                 <div className="flex flex-col md:flex-row items-center justify-between">
                   <div className="w-36 h-36 md:w-48 md:h-48 flex items-center justify-center mx-auto md:mx-0">
@@ -514,7 +526,7 @@ function Home() {
               </section>
 
               {/* Request Queue Card */}
-              <section className="bg-white rounded-lg shadow p-4 md:p-6 w-full">
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Queue</h2>
                 <DataTable
                   columns={requestQueueColumns}
@@ -526,7 +538,7 @@ function Home() {
               </section>
 
               {/* My Requests Card (spans both columns on large screens) */}
-              <section className="bg-white rounded-lg shadow p-4 md:p-6 w-full md:col-span-2">
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-2`}>
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">My Requests</h2>
                 <DataTable
                   columns={myRequestsColumns}
