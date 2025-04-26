@@ -10,7 +10,7 @@ import SendInvitesForm from '../components/SendInvitesForm';
 import api from '../utils/api'; // Assuming the api is imported from a separate file
 import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
 import AdminDashboard from './AdminDashboard';
-import { FaThLarge, FaRegCommentDots, FaRegFileAlt, FaCog, FaUserShield, FaPaperPlane } from 'react-icons/fa';
+import { FaThLarge, FaRegCommentDots, FaRegEdit, FaCog, FaUserShield, FaPaperPlane } from 'react-icons/fa';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 
@@ -333,8 +333,7 @@ function Home() {
   const navItems = [
     { key: 'dashboard', icon: <FaThLarge /> },
     { key: 'notices', icon: <FaRegCommentDots /> },
-    { key: 'workorder', icon: <FaRegFileAlt /> },
-    { key: 'settings', icon: <FaCog /> },
+    { key: 'workorder', icon: <FaRegEdit /> },
   ];
 
   // Add a custom color for the sidebar background (matches provided image)
@@ -356,24 +355,32 @@ function Home() {
           />
         </div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
-          <button
-            className="bg-primary text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-semibold text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary"
-            onClick={() => setProfileMenuOpen(v => !v)}
-            aria-haspopup="true"
-            aria-expanded={profileMenuOpen}
-            aria-label="Open user menu"
-            tabIndex={0}
-          >
-            {user?.profilePhotoUrl ? (
-              <img src={user.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
-            ) : (
-              (user?.firstName && user?.lastName)
-                ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-                : (user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U')
-            )}
-          </button>
-          <span className="font-medium text-gray-700 hidden sm:inline">{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}</span>
-          <svg className="w-4 h-4 ml-1 text-gray-500 hidden sm:inline cursor-pointer" onClick={() => setProfileMenuOpen(v => !v)} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          <div className="flex items-center gap-2 md:gap-3 relative cursor-pointer" onClick={() => setProfileMenuOpen(v => !v)} tabIndex={0} role="button" aria-haspopup="true" aria-expanded={profileMenuOpen}>
+            <button
+              className="bg-primary text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-semibold text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Open user menu"
+              tabIndex={-1}
+              style={{ pointerEvents: 'none' }}
+            >
+              {user?.profilePhotoUrl ? (
+                <img src={user.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                (user?.firstName && user?.lastName)
+                  ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+                  : (user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U')
+              )}
+            </button>
+            <span className="font-medium text-gray-700 hidden sm:inline">{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}</span>
+            <svg
+              className={`w-4 h-4 ml-1 text-gray-500 hidden sm:inline cursor-pointer transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
           {/* Dropdown Menu */}
           {profileMenuOpen && (
             <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100 animate-fade-in">
@@ -404,7 +411,7 @@ function Home() {
       <div className="flex pt-16 h-screen bg-gray-100">
         {/* Sidebar: collapses to bottom bar on mobile */}
         <aside className="hidden sm:flex flex-col items-center py-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full sticky top-16 z-20">
-          {navItems.map(item => (
+          {navItems.filter(item => item.key !== 'settings').map(item => (
             <button
               key={item.key}
               className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
@@ -454,7 +461,7 @@ function Home() {
         </aside>
         {/* Bottom nav for mobile */}
         <nav className="sm:hidden fixed bottom-0 left-0 w-full bg-[#6DEBE8] flex justify-around items-center h-14 z-40 shadow-lg">
-          {navItems.map(item => (
+          {navItems.filter(item => item.key !== 'settings').map(item => (
             <button
               key={item.key}
               className={`flex flex-col items-center justify-center w-10 h-10 ${selectedSection === item.key ? 'bg-white text-primary shadow' : 'text-white hover:bg-primary/80'} rounded-full`}
