@@ -17,7 +17,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
 
   return (
     <div className="container">
-      <h2 className="text-2xl font-bold mb-8">Admin Dashboard</h2>
+      <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Users Card - triggers callback to show user management */}
         <a

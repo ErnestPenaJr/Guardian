@@ -496,48 +496,51 @@ function Home() {
       <main className="flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ml-0 sm:ml-14 md:ml-16">
         {selectedSection === 'dashboard' ? (
           // Default Dashboard Overview (original content)
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
-            {/* Request Overview Card */}
-            <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
-              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Overview</h2>
-              <div className="flex flex-col md:flex-row items-center justify-between">
-                <div className="w-56 h-56 md:w-80 md:h-80 flex items-center justify-center mx-auto md:mx-0"> {/* Increased size */}
-                  <Pie data={pieData} options={chartOptions} />
+          <div className="container">
+            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Home</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
+              {/* Request Overview Card */}
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
+                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Overview</h2>
+                <div className="flex flex-col md:flex-row items-center justify-between">
+                  <div className="w-56 h-56 md:w-80 md:h-80 flex items-center justify-center mx-auto md:mx-0"> {/* Increased size */}
+                    <Pie data={pieData} options={chartOptions} />
+                  </div>
+                  <div className="mt-4 md:mt-0 md:ml-4 flex flex-col gap-2 text-sm">
+                    <div className="mb-2 text-gray-700 font-semibold">Total Requests: {totalRequests}</div>
+                    {requestStatusData.map((s) => (
+                      <div key={s.label} className="flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></span>
+                        <span>{s.label}</span>
+                        <span className="ml-2 text-xs text-gray-500">{s.value} ({((s.value / totalRequests) * 100).toFixed(1)}%)</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-4 md:mt-0 md:ml-4 flex flex-col gap-2 text-sm">
-                  <div className="mb-2 text-gray-700 font-semibold">Total Requests: {totalRequests}</div>
-                  {requestStatusData.map((s) => (
-                    <div key={s.label} className="flex items-center gap-2">
-                      <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></span>
-                      <span>{s.label}</span>
-                      <span className="ml-2 text-xs text-gray-500">{s.value} ({((s.value / totalRequests) * 100).toFixed(1)}%)</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-            {/* Request Queue Card */}
-            <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
-              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
-              <DataTable
-                columns={requestQueueColumns}
-                data={filteredQueueItems}
-                pagination
-                highlightOnHover
-                striped
-              />
-            </section>
-            {/* My Requests Card (spans both columns on large screens) */}
-            <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-2`}>
-              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">My Requests</h2>
-              <DataTable
-                columns={myRequestsColumns}
-                data={filteredMyItems}
-                pagination
-                highlightOnHover
-                striped
-              />
-            </section>
+              </section>
+              {/* Request Queue Card */}
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
+                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
+                <DataTable
+                  columns={requestQueueColumns}
+                  data={filteredQueueItems}
+                  pagination
+                  highlightOnHover
+                  striped
+                />
+              </section>
+              {/* My Requests Card (spans both columns on large screens) */}
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-2`}>
+                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">My Requests</h2>
+                <DataTable
+                  columns={myRequestsColumns}
+                  data={filteredMyItems}
+                  pagination
+                  highlightOnHover
+                  striped
+                />
+              </section>
+            </div>
           </div>
         ) : selectedSection === 'workorder' ? (
           <div className="mt-4 md:mt-6">

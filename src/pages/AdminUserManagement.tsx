@@ -138,7 +138,7 @@ const AdminUserManagement: React.FC = () => {
   return (
     <div className="container">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold text-primary">User Management</h2>
+        <h2 className="fw-bold text-uppercase fs-2">User Management</h2>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={handleExport}>
             <FaFileExport /> Export to Excel

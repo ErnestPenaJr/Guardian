@@ -98,11 +98,11 @@ const RequestDashboard: React.FC = () => {
   ], []);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Request Dashboard</h2>
+    <div className="container">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="fw-bold text-uppercase fs-2">Request Dashboard</h2>
         <button
-          className="bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark"
+          className="btn btn-outline-primary d-flex align-items-center gap-2"
           onClick={handleCreateRequest}
         >
           + New Request
