@@ -22,6 +22,11 @@ steps:
     npm install
   displayName: 'Install backend dependencies'
 
+# Clean old frontend build from backend
+- script: |
+    rm -rf server/dist
+  displayName: 'Clean old frontend build from backend'
+
 # Copy frontend build to backend (adjust if your backend serves static files from a specific folder)
 - script: |
     cp -r dist server/dist
