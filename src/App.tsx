@@ -9,6 +9,7 @@ import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
 import InviteAccept from './pages/InviteAccept';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminUserManagement from './pages/AdminUserManagement';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/invite/accept" element={<InviteAccept />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin-user-management" element={<AdminUserManagement />} />
       </Routes>
     </Router>
   );

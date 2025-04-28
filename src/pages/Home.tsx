@@ -11,7 +11,8 @@ import RequestDashboard from '../components/RequestDashboard';
 import api from '../utils/api'; // Assuming the api is imported from a separate file
 import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
 import AdminDashboard from './AdminDashboard';
-import { FaThLarge, FaRegCommentDots, FaRegEdit, FaCog, FaUserShield, FaPaperPlane } from 'react-icons/fa';
+import AdminUserManagement from './AdminUserManagement';
+import { FaThLarge, FaRegCommentDots, FaRegEdit, FaCog, FaUserShield, FaPaperPlane, FaSlidersH } from 'react-icons/fa';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 
@@ -19,25 +20,44 @@ import 'react-tooltip/dist/react-tooltip.css';
 ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 // Sample data for the pie chart
+const requestStatusData = [
+  { label: 'Pending', value: 12, color: '#6DEBE8' },
+  { label: 'Processing', value: 7, color: '#FFD600' },
+  { label: 'Completed', value: 25, color: '#6C63FF' },
+  { label: 'Rejected', value: 4, color: '#FF6B6B' },
+  { label: 'Failed', value: 2, color: '#BDBDBD' },
+];
+
+const totalRequests = requestStatusData.reduce((sum, s) => sum + s.value, 0);
+
 const pieData = {
-  labels: ['Pending', 'Processed'],
+  labels: requestStatusData.map((s) => s.label),
   datasets: [
     {
-      data: [30, 70],
-      backgroundColor: ['#6C63FF', '#E0E0E0'],
-      borderColor: ['#6C63FF', '#E0E0E0'],
+      data: requestStatusData.map((s) => s.value),
+      backgroundColor: requestStatusData.map((s) => s.color),
+      borderColor: requestStatusData.map((s) => s.color),
       borderWidth: 1,
     },
   ],
 };
 
-// Chart options
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'right' as const,
+      display: false, // Hide Chart.js legend (use only custom legend)
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context: any) {
+          const label = context.label || '';
+          const value = context.raw;
+          const percent = ((value / totalRequests) * 100).toFixed(1);
+          return `${label}: ${value} (${percent}%)`;
+        },
+      },
     },
   },
 };
@@ -187,7 +207,7 @@ function Home() {
   const [filterText, setFilterText] = useState('');
   const navigate = useNavigate();
   const { user } = useAuth(); // Get the user object from the useAuth hook
-  const [selectedSection, setSelectedSection] = useState('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement'>('dashboard');
   
   // Format user name as first initial and last name
   const formatUserName = () => {
@@ -329,9 +349,7 @@ function Home() {
   const handleSendInvite = () => {
     MySwal.fire({
       html: (
-        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mx-auto">
-          <SendInvitesForm onClose={() => MySwal.close()} />
-        </div>
+        <SendInvitesForm onClose={() => MySwal.close()} />
       ),
       showConfirmButton: false,
       showCancelButton: false,
@@ -355,7 +373,7 @@ function Home() {
   return (
     <div className={`flex h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Top Bar */}
-      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-black flex items-center justify-between px-4 md:px-8 z-40">
+      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-teal-500 flex items-center justify-between px-4 md:px-8 z-40">
         <div className="flex items-center gap-2 md:gap-3">
           <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="h-8 w-auto" />
           <span className="font-bold text-lg md:text-2xl text-gray-700 hidden sm:inline">Guardian</span>
@@ -421,17 +439,20 @@ function Home() {
         </div>
       </header>
       {/* Sidebar: collapses to bottom bar on mobile */}
-      <aside className="hidden sm:flex flex-col items-center pt-20 py-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full fixed top-0 left-0 z-30">
+      <nav aria-label="Sidebar navigation" className="hidden sm:flex flex-col items-center pt-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full fixed top-16 left-0 z-30">
         {navItems.filter(item => item.key !== 'settings').map(item => (
           <button
             key={item.key}
             className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
             onClick={() => setSelectedSection(item.key)}
-            aria-label={item.key}
+            aria-label={item.key === 'dashboard' ? 'Home' : item.key.charAt(0).toUpperCase() + item.key.slice(1)}
             data-tooltip-id="sidebar-tooltip"
-            data-tooltip-content={item.key === 'dashboard' ? 'Go to Dashboard' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
+            data-tooltip-content={item.key === 'dashboard' ? 'Go to Home' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
           >
-            <span className="text-xl md:text-2xl">{item.icon}</span>
+            <span className="text-xl md:text-2xl" aria-hidden="true">{item.icon}</span>
+            {item.key === 'dashboard' && (
+              <span className="sr-only">Home</span>
+            )}
           </button>
         ))}
         {user && user.roles && user.roles.includes(1) && (
@@ -443,7 +464,7 @@ function Home() {
               data-tooltip-id="sidebar-tooltip"
               data-tooltip-content="Admin Dashboard"
             >
-              <span className="text-xl md:text-2xl"><FaUserShield /></span>
+              <span className="text-xl md:text-2xl"><FaSlidersH /></span>
             </button>
             <button
               className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
@@ -469,7 +490,7 @@ function Home() {
             <LogOut size={20} />
           </button>
         </div>
-      </aside>
+      </nav>
       {/* Main Content: Switchable Dashboard */}
       <main className="flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ml-0 sm:ml-14 md:ml-16">
         {selectedSection === 'dashboard' ? (
@@ -479,14 +500,18 @@ function Home() {
             <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
               <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Overview</h2>
               <div className="flex flex-col md:flex-row items-center justify-between">
-                <div className="w-36 h-36 md:w-48 md:h-48 flex items-center justify-center mx-auto md:mx-0">
+                <div className="w-56 h-56 md:w-80 md:h-80 flex items-center justify-center mx-auto md:mx-0"> {/* Increased size */}
                   <Pie data={pieData} options={chartOptions} />
                 </div>
-                <div className="mt-4 md:mt-0 md:ml-4">
-                  <div className="flex flex-col gap-2 text-sm">
-                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6DEBE8] rounded-full"></span>Pending</div>
-                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 bg-[#6c63ff] rounded-full"></span>Processed</div>
-                  </div>
+                <div className="mt-4 md:mt-0 md:ml-4 flex flex-col gap-2 text-sm">
+                  <div className="mb-2 text-gray-700 font-semibold">Total Requests: {totalRequests}</div>
+                  {requestStatusData.map((s) => (
+                    <div key={s.label} className="flex items-center gap-2">
+                      <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></span>
+                      <span>{s.label}</span>
+                      <span className="ml-2 text-xs text-gray-500">{s.value} ({((s.value / totalRequests) * 100).toFixed(1)}%)</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
@@ -519,7 +544,11 @@ function Home() {
           </div>
         ) : selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
           <div className="mt-4 md:mt-6">
-            <AdminDashboard />
+            <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
+          </div>
+        ) : selectedSection === 'adminUserManagement' ? (
+          <div className="mt-4 md:mt-6">
+            <AdminUserManagement />
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400 text-2xl">

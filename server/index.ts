@@ -148,7 +148,6 @@ app.post('/api/send-verification-email', async (req, res) => {
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
-    // Check if user exists
     const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
     if (!user) {
       return res.status(404).json({ error: 'No user found for this email. Please register again.' });
@@ -615,8 +614,13 @@ app.get('/api/requests', async (req, res) => {
     });
     res.json(requests);
   } catch (error) {
-    console.error('Error fetching requests:', error);
-    res.status(500).json({ error: 'Failed to fetch requests' });
+    // Enhanced error logging for debugging
+    console.error('[GET REQUESTS] Error:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message, stack: error.stack });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch requests', detail: error });
+    }
   }
 });
 
@@ -889,6 +893,116 @@ app.get('/api/me', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Get user profile error:', error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- GET USERS (ADMIN ONLY, SAFE ROLES QUERY) ---
+app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const users = await prisma.uSERS.findMany({
+      select: {
+        USER_ID: true,
+        FIRST_NAME: true,
+        LAST_NAME: true,
+        EMAIL: true,
+        CREATE_DATE: true,
+        STATUS: true,
+        COMPANY_ID: true,
+      }
+    });
+    // Fetch all roles for these users
+    const userIds = users.map(u => u.USER_ID);
+    const userRoles = await prisma.uSER_ROLES.findMany({
+      where: { USER_ID: { in: userIds } },
+      select: { USER_ID: true, ROLE_ID: true }
+    });
+    // Map roles to users
+    const usersWithRoles = users.map(u => ({
+      id: u.USER_ID,
+      name: `${u.FIRST_NAME} ${u.LAST_NAME}`,
+      email: u.EMAIL,
+      dateCreated: u.CREATE_DATE,
+      status: u.STATUS,
+      companyId: u.COMPANY_ID,
+      roles: userRoles.filter(r => r.USER_ID === u.USER_ID).map(r => r.ROLE_ID),
+    }));
+    res.json(usersWithRoles);
+  } catch (err) {
+    console.error('[GET USERS]', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// --- GET INVITES (ADMIN ONLY) ---
+app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const invites = await prisma.iNVITES.findMany({
+      select: {
+        INVITE_ID: true,
+        EMAIL: true,
+        ROLE_ID: true,
+        STATUS: true,
+        EXPIRES_AT: true,
+        CREATED_AT: true,
+        USED_AT: true,
+      },
+      orderBy: { CREATED_AT: 'desc' }
+    });
+    // Determine invite status
+    const now = new Date();
+    const invitesWithStatus = invites.map(invite => {
+      let status = 'pending';
+      if (invite.USED_AT) status = 'accepted';
+      else if (invite.EXPIRES_AT && new Date(invite.EXPIRES_AT) < now) status = 'expired';
+      return { ...invite, status };
+    });
+    res.json(invitesWithStatus);
+  } catch (err) {
+    console.error('[GET INVITES]', err);
+    res.status(500).json({ error: 'Failed to fetch invites' });
+  }
+});
+
+// --- RESEND INVITE (ADMIN ONLY) ---
+app.post('/api/invites/resend', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const { inviteId } = req.body;
+    const invite = await prisma.iNVITES.findUnique({ where: { INVITE_ID: inviteId } });
+    if (!invite) return res.status(404).json({ error: 'Invite not found' });
+    // Generate new token and expiry
+    const token = crypto.randomBytes(32).toString('hex');
+    const newExpiry = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
+    await prisma.iNVITES.update({
+      where: { INVITE_ID: inviteId },
+      data: { TOKEN: token, EXPIRES_AT: newExpiry, STATUS: 'P', USED_AT: null }
+    });
+    // Send invite email (reuse logic)
+    if (SENDGRID_API_KEY) {
+      const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invite/accept?token=${token}`;
+      await sgMail.send({
+        to: invite.EMAIL,
+        from: SENDGRID_FROM_EMAIL,
+        subject: 'Your Guardian Invitation (Resent)',
+        text: `You have been re-invited to Guardian. Please use the following link to accept: ${inviteUrl}`,
+        html: `<p>You have been re-invited to Guardian.<br>Click <a href="${inviteUrl}">here</a> to accept your invitation.</p>`
+      });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[RESEND INVITE]', err);
+    res.status(500).json({ error: 'Failed to resend invite' });
+  }
+});
+
+// --- REMOVE INVITE (ADMIN ONLY) ---
+app.delete('/api/invites/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const inviteId = parseInt(req.params.id, 10);
+    await prisma.iNVITES.delete({ where: { INVITE_ID: inviteId } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[REMOVE INVITE]', err);
+    res.status(500).json({ error: 'Failed to remove invite' });
   }
 });
 
