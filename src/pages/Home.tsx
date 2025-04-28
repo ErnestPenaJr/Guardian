@@ -15,6 +15,7 @@ import AdminUserManagement from './AdminUserManagement';
 import { FaThLarge, FaRegCommentDots, FaRegEdit, FaCog, FaUserShield, FaPaperPlane, FaSlidersH } from 'react-icons/fa';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import '../styles/sidebar.css';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, ChartTooltip, Legend);
@@ -443,7 +444,7 @@ function Home() {
         {navItems.filter(item => item.key !== 'settings').map(item => (
           <button
             key={item.key}
-            className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === item.key ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+            className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === item.key ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
             onClick={() => setSelectedSection(item.key)}
             aria-label={item.key === 'dashboard' ? 'Home' : item.key.charAt(0).toUpperCase() + item.key.slice(1)}
             data-tooltip-id="sidebar-tooltip"
