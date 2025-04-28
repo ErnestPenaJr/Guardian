@@ -28,6 +28,7 @@
     "ag-grid-react": "^33.2.4",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
+    "bootstrap": "^5.3.5",
     "chart.js": "^4.4.9",
     "connect-history-api-fallback": "^2.0.0",
     "cors": "^2.8.5",
