@@ -497,7 +497,7 @@ function Home() {
         {selectedSection === 'dashboard' ? (
           // Default Dashboard Overview (original content)
           <div className="container">
-            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Home</h1>
+            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Main Dashboard</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
               {/* Request Overview Card */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
