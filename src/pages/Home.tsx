@@ -16,6 +16,7 @@ import { FaThLarge, FaRegCommentDots, FaRegEdit, FaCog, FaUserShield, FaPaperPla
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 import '../styles/sidebar.css';
+import MobileNavBar from '../components/MobileNavBar';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, ChartTooltip, Legend);
@@ -209,7 +210,8 @@ function Home() {
   const navigate = useNavigate();
   const { user } = useAuth(); // Get the user object from the useAuth hook
   const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement'>('dashboard');
-  
+  const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
+
   // Format user name as first initial and last name
   const formatUserName = () => {
     if (!user) return 'User';
@@ -371,8 +373,18 @@ function Home() {
   // Add a custom color for the sidebar background (matches provided image)
   const sidebarBg = '#6DEBE8';
 
+  // Center action handler (could open a modal or perform an action)
+  const handleCenterAction = () => {
+    Swal.fire({
+      title: 'Quick Action',
+      text: 'Center action tapped! Implement your quick action here.',
+      icon: 'info',
+      confirmButtonText: 'OK',
+    });
+  };
+
   return (
-    <div className={`flex h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+    <div className="flex flex-col min-h-screen">
       {/* Top Bar */}
       <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-teal-500 flex items-center justify-between px-4 md:px-8 z-40">
         <div className="flex items-center gap-2 md:gap-3">
@@ -440,62 +452,63 @@ function Home() {
         </div>
       </header>
       {/* Sidebar: collapses to bottom bar on mobile */}
-      <nav aria-label="Sidebar navigation" className="hidden sm:flex flex-col items-center pt-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-full fixed top-16 left-0 z-30">
-        {navItems.filter(item => item.key !== 'settings').map(item => (
-          <button
-            key={item.key}
-            className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === item.key ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
-            onClick={() => setSelectedSection(item.key)}
-            aria-label={item.key === 'dashboard' ? 'Home' : item.key.charAt(0).toUpperCase() + item.key.slice(1)}
-            data-tooltip-id="sidebar-tooltip"
-            data-tooltip-content={item.key === 'dashboard' ? 'Go to Home' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
-          >
-            <span className="text-xl md:text-2xl" aria-hidden="true">{item.icon}</span>
-            {item.key === 'dashboard' && (
-              <span className="sr-only">Home</span>
-            )}
-          </button>
-        ))}
-        {user && user.roles && user.roles.includes(1) && (
-          <>
+      <nav aria-label="Sidebar navigation" className="hidden sm:flex flex-col justify-between items-center pt-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-screen fixed top-16 left-0 z-30">
+        <div className="flex flex-col items-center w-full flex-1">
+          {navItems.filter(item => item.key !== 'settings').map(item => (
             <button
-              className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
-              onClick={() => setSelectedSection('admin')}
-              aria-label="Admin Dashboard"
+              key={item.key}
+              className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === item.key ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
+              onClick={() => setSelectedSection(item.key)}
+              aria-label={item.key === 'dashboard' ? 'Home' : item.key.charAt(0).toUpperCase() + item.key.slice(1)}
               data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Admin Dashboard"
+              data-tooltip-content={item.key === 'dashboard' ? 'Go to Home' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
             >
-              <span className="text-xl md:text-2xl"><FaSlidersH /></span>
+              <span className="text-xl md:text-2xl" aria-hidden="true">{item.icon}</span>
+              {item.key === 'dashboard' && (
+                <span className="sr-only">Home</span>
+              )}
             </button>
-            <button
-              className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
-              onClick={handleSendInvite}
-              aria-label="Send Invites"
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Send User Invites"
-            >
-              <span className="text-xl md:text-2xl"><FaPaperPlane /></span>
-            </button>
-          </>
-        )}
-        <Tooltip id="sidebar-tooltip" place="right" />
-        {/* Logout button at bottom */}
-        <div className="flex-1 flex flex-col justify-end w-full items-center pb-2">
+          ))}
+          {user && user.roles && user.roles.includes(1) && (
+            <>
+              <button
+                className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+                onClick={() => setSelectedSection('admin')}
+                aria-label="Admin Dashboard"
+                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-content="Admin Dashboard"
+              >
+                <span className="text-xl md:text-2xl"><FaSlidersH /></span>
+              </button>
+              <button
+                className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
+                onClick={handleSendInvite}
+                aria-label="Send Invites"
+                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-content="Send User Invites"
+              >
+                <span className="text-xl md:text-2xl"><FaPaperPlane /></span>
+              </button>
+            </>
+          )}
+        </div>
+        <div className="flex flex-col items-center w-full pb-2">
           <button
             className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-white hover:bg-primary/80 transition-all duration-150 mt-4"
-            onClick={handleLogout}
             aria-label="Logout"
             data-tooltip-id="sidebar-tooltip"
             data-tooltip-content="Logout"
+            onClick={handleLogout}
           >
-            <LogOut size={20} />
+            <LogOut className="lucide lucide-log-out" />
           </button>
         </div>
+        <Tooltip id="sidebar-tooltip" place="right" />
       </nav>
       {/* Main Content: Switchable Dashboard */}
       <main className="flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ml-0 sm:ml-14 md:ml-16">
-        {selectedSection === 'dashboard' ? (
-          // Default Dashboard Overview (original content)
+        {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
+          // Dashboard Overview
           <div className="container">
             <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Main Dashboard</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
@@ -542,24 +555,46 @@ function Home() {
               </section>
             </div>
           </div>
-        ) : selectedSection === 'workorder' ? (
-          <div className="mt-4 md:mt-6">
-            <RequestDashboard />
+        ) : mobileNav === 'search' ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
+            Search (coming soon)
           </div>
-        ) : selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
-          <div className="mt-4 md:mt-6">
-            <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
+        ) : mobileNav === 'notifications' ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
+            Notifications (coming soon)
           </div>
-        ) : selectedSection === 'adminUserManagement' ? (
-          <div className="mt-4 md:mt-6">
-            <AdminUserManagement />
+        ) : mobileNav === 'profile' ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
+            Profile (coming soon)
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400 text-2xl">
-            Select a section from the left nav
-          </div>
+          // Existing desktop logic
+          selectedSection === 'workorder' ? (
+            <div className="mt-4 md:mt-6">
+              <RequestDashboard />
+            </div>
+          ) : selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
+            <div className="mt-4 md:mt-6">
+              <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
+            </div>
+          ) : selectedSection === 'adminUserManagement' ? (
+            <div className="mt-4 md:mt-6">
+              <AdminUserManagement />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400 text-2xl">
+              Select a section from the left nav
+            </div>
+          )
         )}
       </main>
+      {/* Mobile Bottom Nav */}
+      <MobileNavBar
+        selected={mobileNav}
+        onSelect={setMobileNav}
+        onCenterAction={handleCenterAction}
+        onInvite={handleSendInvite}
+      />
     </div>
   );
 }

@@ -13,22 +13,24 @@ import AdminUserManagement from './pages/AdminUserManagement';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-forgot-password" element={<VerifyForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/style-guide" element={<StyleGuide />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/invite/accept" element={<InviteAccept />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin-user-management" element={<AdminUserManagement />} />
-      </Routes>
-    </Router>
+    <div className="min-h-screen bg-gray-50">
+      <Router>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-forgot-password" element={<VerifyForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/style-guide" element={<StyleGuide />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/invite/accept" element={<InviteAccept />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin-user-management" element={<AdminUserManagement />} />
+        </Routes>
+      </Router>
+    </div>
   );
 }
 
