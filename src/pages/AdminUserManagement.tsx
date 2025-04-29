@@ -5,6 +5,7 @@ import { FaUserPlus, FaFileExport, FaSyncAlt, FaTrashAlt, FaClock, FaEdit, FaEnv
 import Swal from 'sweetalert2';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
+import { useAuth } from '../hooks/useAuth';
 
 interface UserRow {
   id: number;
@@ -26,10 +27,83 @@ interface InviteRow {
   status: 'pending' | 'expired' | 'accepted';
 }
 
+interface Role {
+  id: number;
+  name: string;
+}
+
+const AddUserModal: React.FC<{
+  show: boolean;
+  onClose: () => void;
+  roles: Role[];
+  user: any;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}> = ({ show, onClose, roles, user, onSubmit }) => {
+  if (!show) return null;
+  return (
+    <div
+      className="modal fade show d-block"
+      tabIndex={-1}
+      role="dialog"
+      style={{ background: 'rgba(0,0,0,0.4)' }}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-dialog modal-dialog-centered" role="document" onClick={e => e.stopPropagation()}>
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">
+              Add New User
+              <span className="text-muted" data-component-name="AddUserModal">
+                ({user?.companyName || user?.organization || 'Company'}
+                {user?.companyId ? ` | ID: ${user.companyId}` : ''})
+              </span>
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
+          </div>
+          <div className="modal-body">
+            <form id="add-user-form" onSubmit={onSubmit} autoComplete="off">
+              <div className="mb-3">
+                <label className="form-label">First Name</label>
+                <input type="text" className="form-control" name="firstName" required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Last Name</label>
+                <input type="text" className="form-control" name="lastName" required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Email</label>
+                <input type="email" className="form-control" name="email" required />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Role</label>
+                <select className="form-select" name="role" required>
+                  <option value="" disabled>Select role</option>
+                  {roles.map((role, idx) => (
+                    <option key={role.id ?? idx} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer px-0">
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Add User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminUserManagement: React.FC = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [resendingInviteId, setResendingInviteId] = useState<number | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -39,6 +113,19 @@ const AdminUserManagement: React.FC = () => {
       setUsers(usersRes.data);
       setInvites(invitesRes.data);
     });
+  }, []);
+
+  useEffect(() => {
+    api.get('/roles')
+      .then(res => {
+        // Normalize roles to { id, name }
+        const normalized = res.data.map((r: any) => ({
+          id: r.ROLE_ID ?? r.id,
+          name: r.NAME ?? r.name,
+        }));
+        setRoles(normalized);
+      })
+      .catch(() => setRoles([]));
   }, []);
 
   const handleResendInvite = async (inviteId: number) => {
@@ -135,6 +222,45 @@ const AdminUserManagement: React.FC = () => {
     saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'user_management.xlsx');
   };
 
+  const handleAddUserSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const email = formData.get('email') as string;
+    const roleId = formData.get('role') as string;
+
+    // --- Verification ---
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !roleId) {
+      Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
+      return;
+    }
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Swal.fire('Invalid Email', 'Please enter a valid email address.', 'warning');
+      return;
+    }
+
+    try {
+      await api.post('/users', {
+        firstName,
+        lastName,
+        email,
+        roleId: Number(roleId),
+        companyId: user?.companyId,
+      });
+      Swal.fire('User added!', '', 'success');
+      setShowAddUserModal(false);
+      // Refresh users list
+      const usersRes = await api.get('/users');
+      setUsers(usersRes.data);
+    } catch (err: any) {
+      Swal.fire('Failed to add user', err?.response?.data?.error || err.message || 'Unknown error', 'error');
+    }
+  };
+
   return (
     <div className="container">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -143,7 +269,7 @@ const AdminUserManagement: React.FC = () => {
           <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={handleExport}>
             <FaFileExport /> Export to Excel
           </button>
-          <button className="btn btn-success d-flex align-items-center gap-2" onClick={() => {/* Add user logic */}}>
+          <button className="btn btn-success d-flex align-items-center gap-2" onClick={() => setShowAddUserModal(true)}>
             <FaUserPlus /> Add New User
           </button>
         </div>
@@ -256,6 +382,7 @@ const AdminUserManagement: React.FC = () => {
           </table>
         </div>
       </div>
+      {showAddUserModal && <AddUserModal show={showAddUserModal} onClose={() => setShowAddUserModal(false)} roles={roles} user={user} onSubmit={handleAddUserSubmit} />}
     </div>
   );
 };

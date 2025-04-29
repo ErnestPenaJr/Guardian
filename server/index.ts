@@ -808,7 +808,7 @@ const handleLogin = async (req: express.Request, res: express.Response) => {
     const { email, password } = validatedData.data;
 
     // Use Passport for authentication
-    passport.authenticate('local', { session: false }, (err: Error | null, user: any, info: { message?: string } | undefined) => {
+    passport.authenticate('local', { session: false }, async (err: Error | null, user: any, info: { message?: string } | undefined) => {
       if (err) {
         console.error('Authentication error:', err);
         return res.status(500).json({ 
@@ -834,19 +834,34 @@ const handleLogin = async (req: express.Request, res: express.Response) => {
         });
       }
 
+      // --- ENHANCEMENT: Fetch company info ---
+      let companyId = null;
+      let companyName = null;
+      if (user.companyId) {
+        // If companyId is already present, fetch company name
+        const company = await prisma.cOMPANY.findUnique({ where: { COMPANY_ID: user.companyId } });
+        companyId = user.companyId;
+        companyName = company?.NAME || null;
+      } else if (user.company && user.company.COMPANY_ID) {
+        companyId = user.company.COMPANY_ID;
+        companyName = user.company.NAME;
+      }
+
       // Generate JWT token
       const token = generateToken(user);
 
-      // Return token and user info
+      // Return token and user info (with company info)
       return res.json({
         success: true,
         token,
         user: {
-          id: (user as any).id,
-          email: (user as any).email,
-          firstName: (user as any).firstName,
-          lastName: (user as any).lastName,
-          roles: (user as any).roles
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          roles: user.roles,
+          companyId,
+          companyName
         }
       });
     })(req, res);

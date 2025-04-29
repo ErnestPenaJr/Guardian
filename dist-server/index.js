@@ -798,7 +798,7 @@ const handleLogin = async (req, res) => {
         }
         const { email, password } = validatedData.data;
         // Use Passport for authentication
-        passport.authenticate('local', { session: false }, (err, user, info) => {
+        passport.authenticate('local', { session: false }, async (err, user, info) => {
             if (err) {
                 console.error('Authentication error:', err);
                 return res.status(500).json({
@@ -821,9 +821,22 @@ const handleLogin = async (req, res) => {
                     message: errorMessage
                 });
             }
+            // --- ENHANCEMENT: Fetch company info ---
+            let companyId = null;
+            let companyName = null;
+            if (user.companyId) {
+                // If companyId is already present, fetch company name
+                const company = await prisma.cOMPANY.findUnique({ where: { COMPANY_ID: user.companyId } });
+                companyId = user.companyId;
+                companyName = company?.NAME || null;
+            }
+            else if (user.company && user.company.COMPANY_ID) {
+                companyId = user.company.COMPANY_ID;
+                companyName = user.company.NAME;
+            }
             // Generate JWT token
             const token = generateToken(user);
-            // Return token and user info
+            // Return token and user info (with company info)
             return res.json({
                 success: true,
                 token,
@@ -832,7 +845,9 @@ const handleLogin = async (req, res) => {
                     email: user.email,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    roles: user.roles
+                    roles: user.roles,
+                    companyId,
+                    companyName
                 }
             });
         })(req, res);

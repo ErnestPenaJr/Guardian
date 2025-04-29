@@ -38,6 +38,12 @@ interface RequestRow {
   CREATE_USER_ID: string;
   UPDATE_USER_ID: string;
   TRACKINGID: string;
+  TYPE: string;
+  PRIORITY: string;
+  requestor: {
+    FIRST_NAME: string;
+    LAST_NAME: string;
+  };
 }
 
 const RequestDashboard: React.FC = () => {
@@ -74,27 +80,64 @@ const RequestDashboard: React.FC = () => {
   };
 
   const columnDefs: ColDef[] = useMemo(() => [
-    { headerName: 'Request ID', field: 'TRACKINGID', sortable: true, filter: true },
-    { headerName: 'Request Name', field: 'REQUEST_NAME', sortable: true, filter: true },
-    { headerName: 'External User', field: 'EXTERNAL_USER', sortable: true, filter: true },
-    { headerName: 'Submitted Date', field: 'SUBMITTED_DATE', sortable: true, filter: true },
+    {
+      headerName: 'Status',
+      field: 'STATUS',
+      cellRenderer: (params: any) => {
+        // Use the full status string, not just the initial
+        const status = params.data.STATUS || params.value;
+        let color = 'bg-teal-300';
+        if (status === 'In Progress') color = 'bg-blue-400';
+        return (
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${color}`}>{status}</span>
+        );
+      },
+      width: 120,
+    },
     {
       headerName: 'Requestor',
-      valueGetter: params => params.data.requestor ? `${params.data.requestor.FIRST_NAME} ${params.data.requestor.LAST_NAME}` : '',
-      sortable: true,
-      filter: true,
+      field: 'REQUESTOR',
+      valueGetter: (params: any) => {
+        if (params.data.requestor) {
+          return `${params.data.requestor.FIRST_NAME} ${params.data.requestor.LAST_NAME}`;
+        }
+        return params.data.REQUESTOR_ID || '';
+      },
+      cellRenderer: (params: any) => (
+        <span className="inline-flex items-center gap-2">
+          <svg width="18" height="18" fill="none" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
+          {params.value}
+        </span>
+      ),
+      width: 180,
     },
     {
-      headerName: 'Assigned',
-      valueGetter: params => params.data.assigned ? `${params.data.assigned.FIRST_NAME} ${params.data.assigned.LAST_NAME}` : '',
-      sortable: true,
-      filter: true,
+      headerName: 'Date/Time',
+      field: 'SUBMITTED_DATE',
+      valueGetter: (params: any) => {
+        if (!params.value) return '';
+        const date = new Date(params.value);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      },
+      width: 170,
     },
-    { headerName: 'Status', field: 'STATUS', sortable: true, filter: true },
-    { headerName: 'Create Date', field: 'CREATE_DATE', sortable: true, filter: true },
-    { headerName: 'Update Date', field: 'UPDATE_DATE', sortable: true, filter: true },
-    { headerName: 'Create User ID', field: 'CREATE_USER_ID', sortable: true, filter: true },
-    { headerName: 'Update User ID', field: 'UPDATE_USER_ID', sortable: true, filter: true }
+    {
+      headerName: 'Type',
+      field: 'TYPE',
+      width: 110,
+    },
+    {
+      headerName: 'Priority',
+      field: 'PRIORITY',
+      cellRenderer: (params: any) => {
+        let color = 'bg-green-300';
+        if (params.value === 'Medium') color = 'bg-yellow-200';
+        if (params.value === 'High') color = 'bg-red-400';
+        return <span className={`inline-block w-4 h-4 rounded-full ${color}`}></span>;
+      },
+      width: 90,
+    },
   ], []);
 
   return (
