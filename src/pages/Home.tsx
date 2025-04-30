@@ -7,7 +7,7 @@ import DataTable from 'react-data-table-component';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
 import SendInvitesForm from '../components/SendInvitesForm';
-import RequestDashboard from '../components/RequestDashboard';
+import RequestDashboard from './RequestDashboard';
 import api from '../utils/api'; // Assuming the api is imported from a separate file
 import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
 import AdminDashboard from './AdminDashboard';
@@ -514,7 +514,7 @@ function Home() {
           {user && user.roles && user.roles.includes(1) && (
             <>
               <button
-                className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full transition-all duration-150 ${selectedSection === 'admin' ? 'bg-white text-primary shadow-lg' : 'text-white hover:bg-primary/80'}`}
+                className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === 'admin' ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
                 onClick={() => setSelectedSection('admin')}
                 aria-label="Admin Dashboard"
                 data-tooltip-id="sidebar-tooltip"

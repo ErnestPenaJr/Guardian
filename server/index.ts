@@ -13,6 +13,12 @@ import { passport, loginSchema, generateToken, requireAuth, hashPassword } from 
 import rateLimit from 'express-rate-limit';
 import { isAdmin } from './middleware/isAdmin.js';
 
+// --- Type Inference for Role, User, UserRole, Invite ---
+type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
+type User = { USER_ID: number; FIRST_NAME: string; LAST_NAME: string; EMAIL: string; CREATE_DATE: Date; STATUS: string; COMPANY_ID: number | null };
+type UserRole = { USER_ID: number; ROLE_ID: number };
+type Invite = { INVITE_ID: number; EMAIL: string; ROLE_ID: number; STATUS: string; EXPIRES_AT: Date; CREATED_AT: Date; USED_AT: Date | null };
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -582,7 +588,7 @@ app.get('/api/roles', async (req, res) => {
       }
     });
     return res.json(
-      roles.map(r => ({
+      roles.map((r: Role) => ({
         id: r.ROLE_ID,
         name: r.DISPLAY_NAME || r.NAME,
         description: r.DESCRIPTION
@@ -599,18 +605,19 @@ app.get('/api/requests', async (req, res) => {
   try {
     const requests = await prisma.rEQUESTS.findMany({
       select: {
-        TRACKINGID: true,
+        REQUEST_ID: true,
         REQUEST_NAME: true,
         EXTERNAL_USER: true,
         SUBMITTED_DATE: true,
+        REQUESTOR_ID: true,
+        ASSIGNED_ID: true,
         STATUS: true,
         CREATE_DATE: true,
         UPDATE_DATE: true,
         CREATE_USER_ID: true,
         UPDATE_USER_ID: true,
-        requestor: { select: { FIRST_NAME: true, LAST_NAME: true } },
-        assigned: { select: { FIRST_NAME: true, LAST_NAME: true } },
-      }
+        TRACKINGID: true,
+      },
     });
     res.json(requests);
   } catch (error) {
@@ -926,20 +933,20 @@ app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin,
       }
     });
     // Fetch all roles for these users
-    const userIds = users.map(u => u.USER_ID);
+    const userIds = users.map((u: { USER_ID: number; FIRST_NAME: string; LAST_NAME: string; EMAIL: string; CREATE_DATE: Date; STATUS: string; COMPANY_ID: number | null }) => u.USER_ID);
     const userRoles = await prisma.uSER_ROLES.findMany({
       where: { USER_ID: { in: userIds } },
       select: { USER_ID: true, ROLE_ID: true }
     });
     // Map roles to users
-    const usersWithRoles = users.map(u => ({
+    const usersWithRoles = users.map((u: { USER_ID: number; FIRST_NAME: string; LAST_NAME: string; EMAIL: string; CREATE_DATE: Date; STATUS: string; COMPANY_ID: number | null }) => ({
       id: u.USER_ID,
       name: `${u.FIRST_NAME} ${u.LAST_NAME}`,
       email: u.EMAIL,
       dateCreated: u.CREATE_DATE,
       status: u.STATUS,
       companyId: u.COMPANY_ID,
-      roles: userRoles.filter(r => r.USER_ID === u.USER_ID).map(r => r.ROLE_ID),
+      roles: userRoles.filter((r: UserRole) => r.USER_ID === u.USER_ID).map((r: UserRole) => r.ROLE_ID),
     }));
     res.json(usersWithRoles);
   } catch (err) {
@@ -965,7 +972,7 @@ app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmi
     });
     // Determine invite status
     const now = new Date();
-    const invitesWithStatus = invites.map(invite => {
+    const invitesWithStatus = invites.map((invite: { EMAIL: string; STATUS: string; ROLE_ID: number; CREATED_AT: Date; INVITE_ID: number; EXPIRES_AT: Date; USED_AT: Date | null }) => {
       let status = 'pending';
       if (invite.USED_AT) status = 'accepted';
       else if (invite.EXPIRES_AT && new Date(invite.EXPIRES_AT) < now) status = 'expired';

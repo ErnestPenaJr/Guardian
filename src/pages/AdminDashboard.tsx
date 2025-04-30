@@ -36,6 +36,21 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             <li>Manage invitations</li>
           </ul>
         </a>
+        {/* Requests Dashboard Card */}
+        {/*
+        <a
+          href="/requests-dashboard"
+          className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
+        >
+          <FaClipboardList className="h-12 w-12 text-secondary mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Requests Dashboard</h3>
+          <ul className="text-gray-600">
+            <li>View all requests</li>
+            <li>Status tracking</li>
+            <li>Request management</li>
+          </ul>
+        </a>
+        */}
         {/* Account Card */}
         <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center">
           <FaClipboardList className="h-12 w-12 text-secondary mb-4" />

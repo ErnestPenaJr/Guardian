@@ -573,7 +573,7 @@ app.get('/api/roles', async (req, res) => {
                 DESCRIPTION: true
             }
         });
-        return res.json(roles.map(r => ({
+        return res.json(roles.map((r) => ({
             id: r.ROLE_ID,
             name: r.DISPLAY_NAME || r.NAME,
             description: r.DESCRIPTION
@@ -589,18 +589,19 @@ app.get('/api/requests', async (req, res) => {
     try {
         const requests = await prisma.rEQUESTS.findMany({
             select: {
-                TRACKINGID: true,
+                REQUEST_ID: true,
                 REQUEST_NAME: true,
                 EXTERNAL_USER: true,
                 SUBMITTED_DATE: true,
+                REQUESTOR_ID: true,
+                ASSIGNED_ID: true,
                 STATUS: true,
                 CREATE_DATE: true,
                 UPDATE_DATE: true,
                 CREATE_USER_ID: true,
                 UPDATE_USER_ID: true,
-                requestor: { select: { FIRST_NAME: true, LAST_NAME: true } },
-                assigned: { select: { FIRST_NAME: true, LAST_NAME: true } },
-            }
+                TRACKINGID: true,
+            },
         });
         res.json(requests);
     }
@@ -908,20 +909,20 @@ app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin,
             }
         });
         // Fetch all roles for these users
-        const userIds = users.map(u => u.USER_ID);
+        const userIds = users.map((u) => u.USER_ID);
         const userRoles = await prisma.uSER_ROLES.findMany({
             where: { USER_ID: { in: userIds } },
             select: { USER_ID: true, ROLE_ID: true }
         });
         // Map roles to users
-        const usersWithRoles = users.map(u => ({
+        const usersWithRoles = users.map((u) => ({
             id: u.USER_ID,
             name: `${u.FIRST_NAME} ${u.LAST_NAME}`,
             email: u.EMAIL,
             dateCreated: u.CREATE_DATE,
             status: u.STATUS,
             companyId: u.COMPANY_ID,
-            roles: userRoles.filter(r => r.USER_ID === u.USER_ID).map(r => r.ROLE_ID),
+            roles: userRoles.filter((r) => r.USER_ID === u.USER_ID).map((r) => r.ROLE_ID),
         }));
         res.json(usersWithRoles);
     }
@@ -947,7 +948,7 @@ app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmi
         });
         // Determine invite status
         const now = new Date();
-        const invitesWithStatus = invites.map(invite => {
+        const invitesWithStatus = invites.map((invite) => {
             let status = 'pending';
             if (invite.USED_AT)
                 status = 'accepted';
