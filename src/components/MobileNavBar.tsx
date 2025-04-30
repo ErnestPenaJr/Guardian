@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Home, Bell, PlusCircle, ChevronDown, Send } from 'lucide-react';
+import { Home, Bell, ChevronDown, Send, Shield } from 'lucide-react';
 
 interface MobileNavBarProps {
   selected: string;
@@ -10,7 +10,7 @@ interface MobileNavBarProps {
 
 const dashboards = [
   { key: 'dashboard', label: 'Main Dashboard' },
-  { key: 'workorder', label: 'Requests' },
+  { key: 'workorder', label: 'Requests Dashboard' },
   { key: 'admin', label: 'Admin' },
   { key: 'adminUserManagement', label: 'User Management' },
 ];
@@ -75,7 +75,7 @@ const MobileNavBar: React.FC<MobileNavBarProps> = ({ selected, onSelect, onCente
         onClick={onCenterAction}
         style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
       >
-        <PlusCircle className="w-6 h-6 text-primary" />
+        <Shield className="w-6 h-6 text-primary" />
       </button>
       <button
         className="flex flex-col items-center flex-1 pt-2"

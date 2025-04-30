@@ -633,7 +633,13 @@ function Home() {
       {/* Mobile Bottom Nav */}
       <MobileNavBar
         selected={mobileNav}
-        onSelect={setMobileNav}
+        onSelect={(key) => {
+          setMobileNav(key);
+          if (key === 'dashboard') {
+            setSelectedSection('dashboard');
+            navigate('/home');
+          }
+        }}
         onCenterAction={handleCenterAction}
         onInvite={handleSendInvite}
       />
