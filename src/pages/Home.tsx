@@ -239,15 +239,10 @@ function Home() {
   const getUserRole = () => {
     if (!user || !user.roles || user.roles.length === 0) return 'User';
     
-    // Map role IDs to role names - this would ideally come from a roles mapping
-    const roleMap: Record<number, string> = {
-      1: 'Administrator',
-      2: 'Manager',
-      3: 'Analyst',
-      4: 'User'
-    };
-    
-    return roleMap[user.roles[0]] || 'User';
+    // Get the display name from the role object
+    // The roles are now objects with id, name, and displayName properties
+    const role = user.roles[0];
+    return role.displayName || role.name || 'User';
   };
   
   // Handle logout
@@ -423,7 +418,7 @@ function Home() {
               <span className="font-bold text-lg leading-tight text-gray-900">
                 {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}
               </span><br></br>
-              {user && (
+              {user && user.roles && user.roles.some((role: any) => role.id === 1) && (
                 <span className="text-sm text-gray-500 font-medium text-end">{getUserRole()}</span>
               )}
             </span>
@@ -495,7 +490,7 @@ function Home() {
               )}
             </button>
           ))}
-          {user && user.roles && user.roles.includes(1) && (
+          {user && user.roles && user.roles.some((role: any) => role.id === 1) && (
             <>
               <button
                 className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === 'admin' ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
@@ -599,7 +594,7 @@ function Home() {
             <div className="mt-4 md:mt-6">
               <RequestDashboard />
             </div>
-          ) : selectedSection === 'admin' && user && user.roles && user.roles.includes(1) ? (
+          ) : selectedSection === 'admin' && user && user.roles && user.roles.some((role: any) => role.id === 1) ? (
             <div className="mt-4 md:mt-6">
               <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
             </div>

@@ -9,22 +9,33 @@ import { useAuth } from '../hooks/useAuth';
 
 interface UserRow {
   id: number;
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
   email: string;
   dateCreated: string;
+  createdAt?: string;
   status: string;
-  roles: number[];
+  roles: any[];
+  emailVerified?: boolean;
 }
 
 interface InviteRow {
-  INVITE_ID: number;
-  EMAIL: string;
-  ROLE_ID: number;
-  STATUS: string;
-  EXPIRES_AT: string;
-  CREATED_AT: string;
-  USED_AT: string | null;
-  status: 'pending' | 'expired' | 'accepted';
+  id?: number;
+  INVITE_ID?: number;
+  email?: string;
+  EMAIL?: string;
+  roleId?: number;
+  ROLE_ID?: number;
+  roleName?: string;
+  status?: string;
+  STATUS?: string;
+  expiresAt?: string;
+  EXPIRES_AT?: string;
+  createdAt?: string;
+  CREATED_AT?: string;
+  usedAt?: string | null;
+  USED_AT?: string | null;
 }
 
 interface Role {
@@ -40,6 +51,11 @@ const AddUserModal: React.FC<{
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }> = ({ show, onClose, roles, user, onSubmit }) => {
   if (!show) return null;
+  
+  // Extract company information from user object
+  const companyName = user?.company?.name || user?.companyName || user?.organization || 'Company';
+  const companyId = user?.company?.id || user?.companyId || '';
+  
   return (
     <div
       className="modal fade show d-block"
@@ -55,9 +71,9 @@ const AddUserModal: React.FC<{
           <div className="modal-header">
             <h5 className="modal-title">
               Add New User
-              <span className="text-muted" data-component-name="AddUserModal">
-                ({user?.companyName || user?.organization || 'Company'}
-                {user?.companyId ? ` | ID: ${user.companyId}` : ''})
+              <span className="text-muted ms-2" data-component-name="AddUserModal">
+                ({companyName}
+                {companyId ? ` | ID: ${companyId}` : ''})
               </span>
             </h5>
             <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
@@ -109,24 +125,83 @@ const AdminUserManagement: React.FC = () => {
     Promise.all([
       api.get('/users'),
       api.get('/invites'),
-    ]).then(([usersRes, invitesRes]) => {
-      setUsers(usersRes.data);
-      setInvites(invitesRes.data);
+      api.get('/roles')
+    ]).then(([usersRes, invitesRes, rolesRes]) => {
+      // Format user data
+      const formattedUsers = usersRes.data.map((user: any) => {
+        // Format date properly
+        let dateCreated = 'Invalid Date';
+        try {
+          if (user.createdAt) {
+            dateCreated = new Date(user.createdAt).toISOString();
+          }
+        } catch (e) {
+          console.error('Error formatting date:', e);
+        }
+        
+        return {
+          id: user.id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+          email: user.email,
+          dateCreated,
+          status: user.status || 'P',
+          roles: user.roles || []
+        };
+      });
+      
+      // Format invite data
+      const formattedInvites = invitesRes.data.map((invite: any) => {
+        // Format dates properly
+        let createdAt = 'Invalid Date';
+        let expiresAt = null;
+        
+        try {
+          if (invite.createdAt) {
+            createdAt = new Date(invite.createdAt).toISOString();
+          }
+          if (invite.expiresAt) {
+            expiresAt = new Date(invite.expiresAt).toISOString();
+          }
+        } catch (e) {
+          console.error('Error formatting invite dates:', e);
+        }
+        
+        return {
+          INVITE_ID: invite.id,
+          EMAIL: invite.email,
+          ROLE_ID: invite.roleId,
+          STATUS: invite.status,
+          EXPIRES_AT: expiresAt,
+          CREATED_AT: createdAt,
+          USED_AT: invite.usedAt,
+          status: invite.status === 'P' ? 'pending' : 
+                 invite.status === 'A' ? 'accepted' : 'expired'
+        };
+      });
+      
+      setUsers(formattedUsers);
+      setInvites(formattedInvites);
+      
+      // Set roles from API response
+      setRoles(rolesRes.data || []);
+      
+      // Ensure user has company information
+      if (user && !user.company && localStorage.getItem('user')) {
+        try {
+          const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          if (storedUser.company) {
+            user.company = storedUser.company;
+            user.companyId = storedUser.company.id;
+            user.companyName = storedUser.company.name;
+          }
+        } catch (e) {
+          console.error('Error parsing user from localStorage:', e);
+        }
+      }
+    }).catch(err => {
+      console.error('Error fetching data:', err);
     });
-  }, []);
-
-  useEffect(() => {
-    api.get('/roles')
-      .then(res => {
-        // Normalize roles to { id, name }
-        const normalized = res.data.map((r: any) => ({
-          id: r.ROLE_ID ?? r.id,
-          name: r.NAME ?? r.name,
-        }));
-        setRoles(normalized);
-      })
-      .catch(() => setRoles([]));
-  }, []);
+  }, [user]);
 
   const handleResendInvite = async (inviteId: number) => {
     setResendingInviteId(inviteId);
@@ -156,8 +231,43 @@ const AdminUserManagement: React.FC = () => {
     setInvites(invitesRes.data);
   };
 
+  const handleDeleteUser = async (userId: number) => {
+    // Confirm deletion with the user
+    const result = await Swal.fire({
+      title: 'Delete User?',
+      text: 'This action cannot be undone. Are you sure you want to delete this user?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete user',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        console.log(`Attempting to delete user with ID: ${userId}`);
+        // Use the new simplified endpoint
+        const response = await api.delete(`/delete-user/${userId}`);
+        console.log('Delete response:', response);
+        
+        Swal.fire('User Deleted!', 'The user has been successfully deleted.', 'success');
+        // Refresh users list
+        const usersRes = await api.get('/users');
+        setUsers(usersRes.data);
+      } catch (err: any) {
+        console.error('Error deleting user:', err);
+        Swal.fire(
+          'Delete Failed', 
+          err?.response?.data?.error || err.message || 'An error occurred while deleting the user.', 
+          'error'
+        );
+      }
+    }
+  };
+
   // Countdown state for invited users
-  const [inviteCountdowns, setInviteCountdowns] = useState<{ [id: number]: string }>({});
+  const [inviteCountdowns, setInviteCountdowns] = useState<{ [key: number]: string }>({});
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -166,20 +276,19 @@ const AdminUserManagement: React.FC = () => {
     // Set up countdown interval
     countdownIntervalRef.current = setInterval(() => {
       const now = Date.now();
-      const newCountdowns: { [id: number]: string } = {};
+      const newCountdowns: { [key: number]: string } = {};
       invites.forEach(invite => {
-        if (invite.EXPIRES_AT) {
-          const expires = new Date(invite.EXPIRES_AT).getTime();
-          const diff = Math.max(0, Math.floor((expires - now) / 1000));
+        const expiryDate = invite.EXPIRES_AT || invite.expiresAt;
+        if (expiryDate) {
+          const expires = new Date(expiryDate).getTime();
+          const diff = expires - now;
           if (diff > 0) {
-            const hours = Math.floor(diff / 3600);
-            const mins = Math.floor((diff % 3600) / 60);
-            const secs = diff % 60;
-            newCountdowns[invite.INVITE_ID] =
-              hours > 0 ? `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-              : `${mins}:${String(secs).padStart(2, '0')}`;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            newCountdowns[invite.INVITE_ID || invite.id || 0] = `${days}d ${hours}h ${minutes}m`;
           } else {
-            newCountdowns[invite.INVITE_ID] = 'Expired';
+            newCountdowns[invite.INVITE_ID || invite.id || 0] = 'Expired';
           }
         }
       });
@@ -192,29 +301,36 @@ const AdminUserManagement: React.FC = () => {
 
   // Export to Excel
   const handleExport = () => {
-    const exportRows = [...users, ...invites].map((row, idx) => {
-      if ('id' in row) {
-        return {
-          '#': idx + 1,
-          'Name': row.name,
-          'Email': row.email,
-          'Date Created': new Date(row.dateCreated).toLocaleDateString(),
-          'Role': row.roles.includes(1) ? 'Admin' : 'User',
-          'Status': row.status === 'A' ? 'Active' : row.status === 'S' ? 'Suspended' : 'Inactive',
-          'Type': 'User',
-        };
-      } else {
-        return {
-          '#': idx + 1,
-          'Name': row.EMAIL,
-          'Email': row.EMAIL,
-          'Date Created': new Date(row.CREATED_AT).toLocaleDateString(),
-          'Role': row.ROLE_ID === 1 ? 'Admin' : 'User',
-          'Status': row.status.charAt(0).toUpperCase() + row.status.slice(1),
-          'Type': 'Invite',
-        };
-      }
-    });
+    const exportRows = [
+      ...users.map((user) => ({
+        '#': users.indexOf(user) + 1,
+        'Name': user.name || '',
+        'Email': user.email || '',
+        'Date Created': user.dateCreated && user.dateCreated !== 'Invalid Date' 
+          ? new Date(user.dateCreated).toLocaleDateString() 
+          : 'N/A',
+        'Role': user.roles && Array.isArray(user.roles) ? 
+          (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
+          'User',
+        'Status': user.status === 'A' ? 'Active' : user.status === 'S' ? 'Suspended' : 'Inactive',
+        'Type': 'User',
+      })),
+      ...invites.map((invite) => ({
+        '#': users.length + invites.indexOf(invite) + 1,
+        'Name': invite.EMAIL || invite.email || '',
+        'Email': invite.EMAIL || invite.email || '',
+        'Date Created': (invite.CREATED_AT || invite.createdAt) && 
+                       (invite.CREATED_AT !== 'Invalid Date' && invite.createdAt !== 'Invalid Date') ? 
+          new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
+          : 'N/A',
+        'Role': (invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User',
+        'Status': invite.status ? 
+          (invite.status.charAt(0).toUpperCase() + invite.status.slice(1)) : 
+          (invite.STATUS === 'P' ? 'Pending' : invite.STATUS === 'A' ? 'Accepted' : 'Expired'),
+        'Type': 'Invite',
+      }))
+    ];
+    
     const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'UserManagement');
@@ -243,13 +359,32 @@ const AdminUserManagement: React.FC = () => {
       return;
     }
 
+    // Get company ID from user object or localStorage
+    let companyId = null;
+    if (user?.companyId) {
+      companyId = user.companyId;
+    } else if (user?.company?.id) {
+      companyId = user.company.id;
+    } else if (localStorage.getItem('user')) {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (storedUser.company && storedUser.company.id) {
+          companyId = storedUser.company.id;
+        }
+      } catch (e) {
+        console.error('Error parsing user from localStorage:', e);
+      }
+    }
+
+    console.log('Adding user with company ID:', companyId);
+
     try {
       await api.post('/users', {
         firstName,
         lastName,
         email,
         roleId: Number(roleId),
-        companyId: user?.companyId,
+        companyId
       });
       Swal.fire('User added!', '', 'success');
       setShowAddUserModal(false);
@@ -297,8 +432,14 @@ const AdminUserManagement: React.FC = () => {
                     <b>{user.name}</b><br />
                     <span className="text-secondary small">{user.email}</span>
                   </td>
-                  <td>{new Date(user.dateCreated).toLocaleDateString()}</td>
-                  <td>{user.roles.includes(1) ? 'Admin' : 'User'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {user.dateCreated && user.dateCreated !== 'Invalid Date' 
+                      ? new Date(user.dateCreated).toLocaleDateString() 
+                      : 'N/A'}
+                  </td>
+                  <td>{user.roles && Array.isArray(user.roles) ? 
+                    (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
+                    'User'}</td>
                   <td>
                     {user.status === 'A' ? <span className="text-success fw-semibold">Active</span> :
                       user.status === 'S' ? <span className="text-danger fw-semibold">Suspended</span> :
@@ -308,7 +449,7 @@ const AdminUserManagement: React.FC = () => {
                     <button className="btn btn-sm btn-outline-primary me-1" title="Edit User">
                       <FaEdit />
                     </button>
-                    <button className="btn btn-sm btn-outline-danger" title="Delete User"><FaTrashAlt /></button>
+                    <button className="btn btn-sm btn-outline-danger" title="Delete User" onClick={() => handleDeleteUser(user.id)}><FaTrashAlt /></button>
                   </td>
                 </tr>
               ))}
@@ -334,15 +475,20 @@ const AdminUserManagement: React.FC = () => {
             </thead>
             <tbody>
               {invites.map((invite, idx) => {
-                const isExpired = inviteCountdowns[invite.INVITE_ID] === 'Expired' || invite.status === 'expired';
+                const isExpired = inviteCountdowns[invite.INVITE_ID || invite.id || 0] === 'Expired' || invite.status === 'expired';
                 return (
-                  <tr key={`invite-${invite.INVITE_ID}`}> 
+                  <tr key={`invite-${invite.INVITE_ID || invite.id || 0}`}> 
                     <td style={{ whiteSpace: 'nowrap' }}>{idx + 1}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
-                      <b>{invite.EMAIL}</b><br />
+                      <b>{invite.EMAIL || invite.email}</b><br />
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(invite.CREATED_AT).toLocaleDateString()}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{invite.ROLE_ID === 1 ? 'Admin' : 'User'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {(invite.CREATED_AT || invite.createdAt) && 
+                       (invite.CREATED_AT !== 'Invalid Date' && invite.createdAt !== 'Invalid Date') ? 
+                        new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
+                        : 'N/A'}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{(invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User'}</td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
                       {invite.status === 'pending' && !isExpired && (
                         <span className="text-primary fw-semibold d-flex align-items-center justify-content-start gap-1">
@@ -361,19 +507,19 @@ const AdminUserManagement: React.FC = () => {
                       )}
                     </td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
-                      {inviteCountdowns[invite.INVITE_ID] && inviteCountdowns[invite.INVITE_ID] !== 'Expired'
-                        ? inviteCountdowns[invite.INVITE_ID]
+                      {inviteCountdowns[invite.INVITE_ID || invite.id || 0] && inviteCountdowns[invite.INVITE_ID || invite.id || 0] !== 'Expired'
+                        ? inviteCountdowns[invite.INVITE_ID || invite.id || 0]
                         : <span className="text-danger fw-bold d-flex align-items-center justify-content-start gap-1">Expired!</span>}
                     </td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start', display: 'flex', gap: '0.5rem' }}>
-                      {(isExpired || (invite.status === 'pending' && inviteCountdowns[invite.INVITE_ID] === 'Expired')) && (
-                        <button className="btn btn-sm btn-outline-primary me-1 d-flex align-items-center justify-content-start" title="Resend Invite" onClick={() => handleResendInvite(invite.INVITE_ID)} disabled={resendingInviteId === invite.INVITE_ID}>
-                          {resendingInviteId === invite.INVITE_ID ? (
+                      {(isExpired || (invite.status === 'pending' && inviteCountdowns[invite.INVITE_ID || invite.id || 0] === 'Expired')) && (
+                        <button className="btn btn-sm btn-outline-primary me-1 d-flex align-items-center justify-content-start" title="Resend Invite" onClick={() => handleResendInvite(invite.INVITE_ID || invite.id || 0)} disabled={resendingInviteId === (invite.INVITE_ID || invite.id || 0)}>
+                          {resendingInviteId === (invite.INVITE_ID || invite.id || 0) ? (
                             <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
                           ) : <FaEnvelope className="me-1" />} Resend
                         </button>
                       )}
-                      <button className="btn btn-sm btn-outline-danger d-flex align-items-end justify-content-end" title="Remove Invite" onClick={() => handleRemoveInvite(invite.INVITE_ID)}><FaTrashAlt /></button>
+                      <button className="btn btn-sm btn-outline-danger d-flex align-items-end justify-content-end" title="Remove Invite" onClick={() => handleRemoveInvite(invite.INVITE_ID || invite.id || 0)}><FaTrashAlt /></button>
                     </td>
                   </tr>
                 );

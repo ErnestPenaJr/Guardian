@@ -11,7 +11,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   }
 
   // Only allow users with admin role_id (1)
-  if (!user || !user.roles || !user.roles.includes(1)) {
+  if (!user || !user.roles || !user.roles.some((role: any) => role.id === 1)) {
     return <Navigate to="/login" replace />;
   }
 
