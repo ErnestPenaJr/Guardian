@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../hooks/useAuth';
+import { Modal } from 'react-bootstrap';
 
 interface UserRow {
   id: number;
@@ -132,54 +133,38 @@ interface InviteUserModalProps {
 
 const InviteUserModal = ({ show, onClose, roles, onSubmit }: InviteUserModalProps) => {
   return (
-    <div
-      className={`modal fade ${show ? 'show' : ''}`}
-      style={{ display: show ? 'block' : 'none' }}
-      tabIndex={-1}
-      role="dialog"
-      aria-hidden={!show}
-    >
-      <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Invite User</h5>
-            <button
-              type="button"
-              className="btn-close"
-              aria-label="Close"
-              onClick={onClose}
-            ></button>
+    <Modal show={show} onHide={onClose}>
+      <Modal.Header closeButton>
+        <h5 className="modal-title">Invite User <span className="text-muted ms-2">(DEV-TEAM | ID: 14)</span></h5>
+      </Modal.Header>
+      <Modal.Body>
+        <form id="invite-user-form" onSubmit={onSubmit} autoComplete="off">
+          <div className="mb-3">
+            <label className="form-label">Email</label>
+            <input type="email" className="form-control" name="email" required />
           </div>
-          <div className="modal-body">
-            <form id="invite-user-form" onSubmit={onSubmit} autoComplete="off">
-              <div className="mb-3">
-                <label className="form-label">Email</label>
-                <input type="email" className="form-control" name="email" required />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Role</label>
-                <select className="form-select" name="role" required>
-                  <option value="">Select a role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="d-flex justify-content-end">
-                <button type="button" className="btn btn-secondary me-2" onClick={onClose}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Send Invitation
-                </button>
-              </div>
-            </form>
+          <div className="mb-3">
+            <label className="form-label">Role</label>
+            <select className="form-select" name="role" required>
+              <option value="">Select a role</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      </div>
-    </div>
+          <div className="d-flex justify-content-end">
+            <button type="button" className="btn btn-secondary me-2" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Send Invitation
+            </button>
+          </div>
+        </form>
+      </Modal.Body>
+    </Modal>
   );
 };
 
@@ -917,395 +902,403 @@ const AdminUserManagement: React.FC = () => {
   };
 
   return (
-    <div className="container px-4 pb-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold text-uppercase fs-2">User Management</h2>
-        <div className="d-flex gap-2">
-          <button className="btn btn-outline-primary d-flex align-items-center gap-2 me-2" onClick={handleExport}>
-            <FaFileExport /> Export to Excel
-          </button>
-          <button className="btn btn-primary d-flex align-items-center gap-2 me-2" onClick={() => setShowAddUserModal(true)}>
-            <FaUserPlus /> Add User
-          </button>
-        </div>
-      </div>
-      
-      {/* Users Table */}
-      <div className="card shadow-sm mb-4">
-        <div className="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
-          <span>Active Users</span>
-          <div className="d-flex align-items-center">
-            <div className="input-group me-3">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search users..."
-                value={userSearch}
-                onChange={(e) => {
-                  setUserSearch(e.target.value);
-                  setUserPage(1); // Reset to first page on search
-                }}
-              />
-              <span className="input-group-text">
-                <FaSearch />
-              </span>
-            </div>
-            <div className="d-flex align-items-center">
-              <label htmlFor="userRecordsPerPage" className="text-white me-2 mb-0">Show</label>
-              <select 
-                id="userRecordsPerPage" 
-                className="form-select form-select-sm"
-                value={recordsPerPage}
-                onChange={handleRecordsPerPageChange}
-                style={{ width: 'auto' }}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
+    <div className="container-fluid px-4 pb-4">
+      <div className="row justify-content-center">
+        <div className="col-12 col-lg-11 col-xl-10">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2 className="fw-bold text-uppercase fs-2">User Management</h2>
+            <div className="d-flex gap-2">
+              <button className="btn btn-outline-primary d-flex align-items-center gap-2 me-2" onClick={handleExport}>
+                <FaFileExport /> Export to Excel
+              </button>
+              <button className="btn btn-primary d-flex align-items-center gap-2 me-2" onClick={() => setShowAddUserModal(true)}>
+                <FaUserPlus /> Add User
+              </button>
             </div>
           </div>
-        </div>
-        <div className="card-body p-0">
-          <table className="table table-striped table-hover mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>#</th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleUserSort('name')}
-                    style={{ cursor: 'pointer' }}
+          
+          {/* Users Table */}
+          <div className="card shadow-sm mb-4">
+            <div className="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+              <span>Active Users</span>
+              <div className="d-flex align-items-center">
+                <div className="input-group me-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search users..."
+                    value={userSearch}
+                    onChange={(e) => {
+                      setUserSearch(e.target.value);
+                      setUserPage(1); // Reset to first page on search
+                    }}
+                  />
+                  <span className="input-group-text">
+                    <FaSearch />
+                  </span>
+                </div>
+                <div className="d-flex align-items-center">
+                  <label htmlFor="userRecordsPerPage" className="text-white me-2 mb-0">Show</label>
+                  <select 
+                    id="userRecordsPerPage" 
+                    className="form-select form-select-sm"
+                    value={recordsPerPage}
+                    onChange={handleRecordsPerPageChange}
+                    style={{ width: 'auto' }}
                   >
-                    Name/Email
-                    {userSortField === 'name' && (
-                      <span className="ms-1">
-                        {userSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleUserSort('dateCreated')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Date Added
-                    {userSortField === 'dateCreated' && (
-                      <span className="ms-1">
-                        {userSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleUserSort('roles')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Role
-                    {userSortField === 'roles' && (
-                      <span className="ms-1">
-                        {userSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleUserSort('status')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Status
-                    {userSortField === 'status' && (
-                      <span className="ms-1">
-                        {userSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedUsers.length > 0 ? (
-                paginatedUsers.map((user, idx) => (
-                  <tr key={`user-${user.id}`}>
-                    <td>{idx + 1}</td>
-                    <td>
-                      <b>{user.name}</b><br />
-                      <span className="text-secondary small">{user.email}</span>
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      {user.dateCreated && user.dateCreated !== 'Invalid Date' 
-                        ? new Date(user.dateCreated).toLocaleDateString() 
-                        : 'N/A'}
-                    </td>
-                    <td>{user.roles && Array.isArray(user.roles) ? 
-                      (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
-                      'User'}</td>
-                    <td>
-                      {user.status === 'A' ? <span className="text-success fw-semibold">Active</span> :
-                        user.status === 'S' ? <span className="text-danger fw-semibold">Suspended</span> :
-                          <span className="text-warning fw-semibold">Inactive</span>}
-                    </td>
-                    <td>
-                      <button className="btn btn-sm btn-outline-primary me-1" title="Edit User">
-                        <FaEdit />
-                      </button>
-                      <button className="btn btn-sm btn-outline-danger" title="Delete User" onClick={() => handleDeleteUser(user.id)}><FaTrashAlt /></button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="text-center">
-                    {userSearch ? 'No users match your search' : 'No users found'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination for Users */}
-        {filteredUsers.length > 0 && (
-          <div className="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
-            <div className="ms-2">
-              Showing {Math.min((userPage - 1) * recordsPerPage + 1, filteredUsers.length)} to {Math.min(userPage * recordsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <nav aria-label="User pagination">
-              <ul className="pagination mb-0">
-                <li className={`page-item ${userPage === 1 ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => handleUserPageChange(userPage - 1)}>
-                    Previous
-                  </button>
-                </li>
-                {[...Array(totalUserPages)].map((_, i) => (
-                  <li key={i} className={`page-item ${userPage === i + 1 ? 'active' : ''}`}>
-                    <button className="page-link" onClick={() => handleUserPageChange(i + 1)}>
-                      {i + 1}
-                    </button>
-                  </li>
-                ))}
-                <li className={`page-item ${userPage === totalUserPages ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => handleUserPageChange(userPage + 1)}>
-                    Next
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        )}
-      </div>
-      
-      {/* Invite User button and Invited Users Table heading */}
-      <div className="d-flex justify-content-between align-items-center mb-4 mt-5">
-        <h3 className="fw-bold fs-4">Invited Users</h3>
-        <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowInviteUserModal(true)}>
-          <FaEnvelope /> Invite User
-        </button>
-      </div>
-      
-      {/* Invited Users Table */}
-      <div className="card shadow-sm">
-        <div className="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
-          <span>Invited Users</span>
-          <div className="d-flex align-items-center">
-            <div className="input-group me-3">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search invites..."
-                value={inviteSearch}
-                onChange={(e) => {
-                  setInviteSearch(e.target.value);
-                  setInvitePage(1); // Reset to first page on search
-                }}
-              />
-              <span className="input-group-text">
-                <FaSearch />
-              </span>
-            </div>
-            <div className="d-flex align-items-center">
-              <label htmlFor="inviteRecordsPerPage" className="text-white me-2 mb-0">Show</label>
-              <select 
-                id="inviteRecordsPerPage" 
-                className="form-select form-select-sm"
-                value={recordsPerPage}
-                onChange={handleRecordsPerPageChange}
-                style={{ width: 'auto' }}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="card-body p-0">
-          <table className="table table-striped table-hover mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>#</th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleInviteSort('EMAIL')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Email
-                    {inviteSortField === 'EMAIL' && (
-                      <span className="ms-1">
-                        {inviteSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleInviteSort('CREATED_AT')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Date Sent
-                    {inviteSortField === 'CREATED_AT' && (
-                      <span className="ms-1">
-                        {inviteSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleInviteSort('ROLE_ID')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Role
-                    {inviteSortField === 'ROLE_ID' && (
-                      <span className="ms-1">
-                        {inviteSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>
-                  <div 
-                    className="d-flex align-items-center cursor-pointer" 
-                    onClick={() => handleInviteSort('status')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    Status
-                    {inviteSortField === 'status' && (
-                      <span className="ms-1">
-                        {inviteSortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th>Expires In</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedInvites.length > 0 ? (
-                paginatedInvites.map((invite, idx) => {
-                  const isExpired = inviteCountdowns[invite.INVITE_ID || invite.id || 0] === 'Expired' || invite.status === 'expired';
-                  return (
-                    <tr key={`invite-${invite.INVITE_ID || invite.id || 0}`}> 
-                      <td>{idx + 1}</td>
-                      <td>
-                        <b>{invite.EMAIL || invite.email}</b><br />
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {(invite.CREATED_AT || invite.createdAt) && 
-                         (invite.CREATED_AT !== 'Invalid Date' && invite.createdAt !== 'Invalid Date') ? 
-                          new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
-                          : 'N/A'}
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{(invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User'}</td>
-                      <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
-                        {invite.status === 'pending' && !isExpired && (
-                          <span className="text-primary fw-semibold d-flex align-items-center justify-content-start gap-1">
-                            Pending
-                          </span>
-                        )}
-                        {isExpired && (
-                          <span className="text-danger fw-semibold d-flex align-items-center justify-content-start gap-1">
-                            <FaClock className="me-1" />Expired
-                          </span>
-                        )}
-                        {invite.status === 'accepted' && (
-                          <span className="text-success fw-semibold d-flex align-items-center justify-content-start gap-1">
-                            Accepted
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
-                        {inviteCountdowns[invite.INVITE_ID || invite.id || 0] && inviteCountdowns[invite.INVITE_ID || invite.id || 0] !== 'Expired'
-                          ? inviteCountdowns[invite.INVITE_ID || invite.id || 0]
-                          : <span className="text-danger fw-bold d-flex align-items-center justify-content-start gap-1">Expired!</span>}
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start', display: 'flex', gap: '0.5rem' }}>
-                        {(isExpired || (invite.status === 'pending' && inviteCountdowns[invite.INVITE_ID || invite.id || 0] === 'Expired')) && (
-                          <button className="btn btn-sm btn-outline-primary me-1 d-flex align-items-center justify-content-start" title="Resend Invite" onClick={() => handleResendInvite(invite.INVITE_ID || invite.id || 0)} disabled={resendingInviteId === (invite.INVITE_ID || invite.id || 0)}>
-                            {resendingInviteId === (invite.INVITE_ID || invite.id || 0) ? (
-                              <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                            ) : <FaEnvelope className="me-1" />} Resend
-                          </button>
-                        )}
-                        <button className="btn btn-sm btn-outline-danger d-flex align-items-end justify-content-end" title="Remove Invite" onClick={() => handleRemoveInvite(invite.INVITE_ID || invite.id || 0)}><FaTrashAlt /></button>
-                      </td>
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-striped table-hover mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleUserSort('name')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Name/Email
+                          {userSortField === 'name' && (
+                            <span className="ms-1">
+                              {userSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleUserSort('dateCreated')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Date Added
+                          {userSortField === 'dateCreated' && (
+                            <span className="ms-1">
+                              {userSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleUserSort('roles')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Role
+                          {userSortField === 'roles' && (
+                            <span className="ms-1">
+                              {userSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleUserSort('status')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Status
+                          {userSortField === 'status' && (
+                            <span className="ms-1">
+                              {userSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>Actions</th>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="text-center">
-                    {inviteSearch ? 'No invites match your search' : 'No pending invites'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination for Invites */}
-        {filteredInvites.length > 0 && (
-          <div className="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
-            <div className="ms-2">
-              Showing {Math.min((invitePage - 1) * recordsPerPage + 1, filteredInvites.length)} to {Math.min(invitePage * recordsPerPage, filteredInvites.length)} of {filteredInvites.length} invites
+                  </thead>
+                  <tbody>
+                    {paginatedUsers.length > 0 ? (
+                      paginatedUsers.map((user, idx) => (
+                        <tr key={`user-${user.id}`}>
+                          <td>{idx + 1}</td>
+                          <td>
+                            <b>{user.name}</b><br />
+                            <span className="text-secondary small">{user.email}</span>
+                          </td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            {user.dateCreated && user.dateCreated !== 'Invalid Date' 
+                              ? new Date(user.dateCreated).toLocaleDateString() 
+                              : 'N/A'}
+                          </td>
+                          <td>{user.roles && Array.isArray(user.roles) ? 
+                            (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
+                            'User'}</td>
+                          <td>
+                            {user.status === 'A' ? <span className="text-success fw-semibold">Active</span> :
+                              user.status === 'S' ? <span className="text-danger fw-semibold">Suspended</span> :
+                                <span className="text-warning fw-semibold">Inactive</span>}
+                          </td>
+                          <td>
+                            <button className="btn btn-sm btn-outline-primary me-1" title="Edit User">
+                              <FaEdit />
+                            </button>
+                            <button className="btn btn-sm btn-outline-danger" title="Delete User" onClick={() => handleDeleteUser(user.id)}><FaTrashAlt /></button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="text-center">
+                          {userSearch ? 'No users match your search' : 'No users found'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <nav aria-label="Invite pagination">
-              <ul className="pagination mb-0">
-                <li className={`page-item ${invitePage === 1 ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => handleInvitePageChange(invitePage - 1)}>
-                    Previous
-                  </button>
-                </li>
-                {[...Array(totalInvitePages)].map((_, i) => (
-                  <li key={i} className={`page-item ${invitePage === i + 1 ? 'active' : ''}`}>
-                    <button className="page-link" onClick={() => handleInvitePageChange(i + 1)}>
-                      {i + 1}
-                    </button>
-                  </li>
-                ))}
-                <li className={`page-item ${invitePage === totalInvitePages ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => handleInvitePageChange(invitePage + 1)}>
-                    Next
-                  </button>
-                </li>
-              </ul>
-            </nav>
+            {/* Pagination for Users */}
+            {filteredUsers.length > 0 && (
+              <div className="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                <div className="ms-2">
+                  Showing {Math.min((userPage - 1) * recordsPerPage + 1, filteredUsers.length)} to {Math.min(userPage * recordsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                </div>
+                <nav aria-label="User pagination">
+                  <ul className="pagination mb-0">
+                    <li className={`page-item ${userPage === 1 ? 'disabled' : ''}`}>
+                      <button className="page-link" onClick={() => handleUserPageChange(userPage - 1)}>
+                        Previous
+                      </button>
+                    </li>
+                    {[...Array(totalUserPages)].map((_, i) => (
+                      <li key={i} className={`page-item ${userPage === i + 1 ? 'active' : ''}`}>
+                        <button className="page-link" onClick={() => handleUserPageChange(i + 1)}>
+                          {i + 1}
+                        </button>
+                      </li>
+                    ))}
+                    <li className={`page-item ${userPage === totalUserPages ? 'disabled' : ''}`}>
+                      <button className="page-link" onClick={() => handleUserPageChange(userPage + 1)}>
+                        Next
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Invite User button and Invited Users Table heading */}
+          <div className="d-flex justify-content-end align-items-center mb-4 mt-5">
+            
+            <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowInviteUserModal(true)}>
+              <FaEnvelope /> Invite User
+            </button>
+          </div>
+          
+          {/* Invited Users Table */}
+          <div className="card shadow-sm">
+            <div className="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
+              <span>Invited Users</span>
+              <div className="d-flex align-items-center">
+                <div className="input-group me-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search invites..."
+                    value={inviteSearch}
+                    onChange={(e) => {
+                      setInviteSearch(e.target.value);
+                      setInvitePage(1); // Reset to first page on search
+                    }}
+                  />
+                  <span className="input-group-text">
+                    <FaSearch />
+                  </span>
+                </div>
+                <div className="d-flex align-items-center">
+                  <label htmlFor="inviteRecordsPerPage" className="text-white me-2 mb-0">Show</label>
+                  <select 
+                    id="inviteRecordsPerPage" 
+                    className="form-select form-select-sm"
+                    value={recordsPerPage}
+                    onChange={handleRecordsPerPageChange}
+                    style={{ width: 'auto' }}
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-striped table-hover mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleInviteSort('EMAIL')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Email
+                          {inviteSortField === 'EMAIL' && (
+                            <span className="ms-1">
+                              {inviteSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleInviteSort('CREATED_AT')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Date Sent
+                          {inviteSortField === 'CREATED_AT' && (
+                            <span className="ms-1">
+                              {inviteSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleInviteSort('ROLE_ID')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Role
+                          {inviteSortField === 'ROLE_ID' && (
+                            <span className="ms-1">
+                              {inviteSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>
+                        <div 
+                          className="d-flex align-items-center cursor-pointer" 
+                          onClick={() => handleInviteSort('status')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Status
+                          {inviteSortField === 'status' && (
+                            <span className="ms-1">
+                              {inviteSortDirection === 'asc' ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th>Expires In</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedInvites.length > 0 ? (
+                      paginatedInvites.map((invite, idx) => {
+                        const isExpired = inviteCountdowns[invite.INVITE_ID || invite.id || 0] === 'Expired' || invite.status === 'expired';
+                        return (
+                          <tr key={`invite-${invite.INVITE_ID || invite.id || 0}`}> 
+                            <td>{idx + 1}</td>
+                            <td>
+                              <b>{invite.EMAIL || invite.email}</b><br />
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap' }}>
+                              {(invite.CREATED_AT || invite.createdAt) && 
+                               (invite.CREATED_AT !== 'Invalid Date' && invite.createdAt !== 'Invalid Date') ? 
+                                new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
+                                : 'N/A'}
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap'}}>{(invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User'}</td>
+                            <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
+                              {invite.status === 'pending' && !isExpired && (
+                                <span className="text-primary fw-semibold d-flex align-items-center justify-content-start gap-1">
+                                  Pending
+                                </span>
+                              )}
+                              {isExpired && (
+                                <span className="text-danger fw-semibold d-flex align-items-center justify-content-start gap-1">
+                                  <FaClock className="me-1" />Expired
+                                </span>
+                              )}
+                              {invite.status === 'accepted' && (
+                                <span className="text-success fw-semibold d-flex align-items-center justify-content-start gap-1">
+                                  Accepted
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
+                              {inviteCountdowns[invite.INVITE_ID || invite.id || 0] && inviteCountdowns[invite.INVITE_ID || invite.id || 0] !== 'Expired'
+                                ? inviteCountdowns[invite.INVITE_ID || invite.id || 0]
+                                : <span className="text-danger fw-bold d-flex align-items-center justify-content-start gap-1">Expired!</span>}
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start', display: 'flex', gap: '0.5rem' }}>
+                              {(isExpired || (invite.status === 'pending' && inviteCountdowns[invite.INVITE_ID || invite.id || 0] === 'Expired')) && (
+                                <button className="btn btn-sm btn-outline-primary me-1 d-flex align-items-center justify-content-start" title="Resend Invite" onClick={() => handleResendInvite(invite.INVITE_ID || invite.id || 0)} disabled={resendingInviteId === (invite.INVITE_ID || invite.id || 0)}>
+                                  {resendingInviteId === (invite.INVITE_ID || invite.id || 0) ? (
+                                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                  ) : <FaEnvelope className="me-1" />} Resend
+                                </button>
+                              )}
+                              <button className="btn btn-sm btn-outline-danger d-flex align-items-end justify-content-end" title="Remove Invite" onClick={() => handleRemoveInvite(invite.INVITE_ID || invite.id || 0)}><FaTrashAlt /></button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="text-center">
+                          {inviteSearch ? 'No invites match your search' : 'No pending invites'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {/* Pagination for Invites */}
+            {filteredInvites.length > 0 && (
+              <div className="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                <div className="ms-2">
+                  Showing {Math.min((invitePage - 1) * recordsPerPage + 1, filteredInvites.length)} to {Math.min(invitePage * recordsPerPage, filteredInvites.length)} of {filteredInvites.length} invites
+                </div>
+                <nav aria-label="Invite pagination">
+                  <ul className="pagination mb-0">
+                    <li className={`page-item ${invitePage === 1 ? 'disabled' : ''}`}>
+                      <button className="page-link" onClick={() => handleInvitePageChange(invitePage - 1)}>
+                        Previous
+                      </button>
+                    </li>
+                    {[...Array(totalInvitePages)].map((_, i) => (
+                      <li key={i} className={`page-item ${invitePage === i + 1 ? 'active' : ''}`}>
+                        <button className="page-link" onClick={() => handleInvitePageChange(i + 1)}>
+                          {i + 1}
+                        </button>
+                      </li>
+                    ))}
+                    <li className={`page-item ${invitePage === totalInvitePages ? 'disabled' : ''}`}>
+                      <button className="page-link" onClick={() => handleInvitePageChange(invitePage + 1)}>
+                        Next
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            )}
+          </div>
+          {showAddUserModal && <AddUserModal show={showAddUserModal} onClose={() => setShowAddUserModal(false)} roles={roles} user={user} onSubmit={handleAddUserSubmit} />}
+          {showInviteUserModal && <InviteUserModal show={showInviteUserModal} onClose={() => setShowInviteUserModal(false)} roles={roles} onSubmit={handleInviteUserSubmit} />}
+        </div>
       </div>
-      {showAddUserModal && <AddUserModal show={showAddUserModal} onClose={() => setShowAddUserModal(false)} roles={roles} user={user} onSubmit={handleAddUserSubmit} />}
-      {showInviteUserModal && <InviteUserModal show={showInviteUserModal} onClose={() => setShowInviteUserModal(false)} roles={roles} onSubmit={handleInviteUserSubmit} />}
     </div>
   );
 };
