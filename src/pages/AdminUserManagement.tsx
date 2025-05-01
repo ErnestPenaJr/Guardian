@@ -56,6 +56,16 @@ const AddUserModal: React.FC<{
   const companyName = user?.company?.name || user?.companyName || user?.organization || 'Company';
   const companyId = user?.company?.id || user?.companyId || '';
   
+  // Function to capitalize first letter of each word
+  const capitalizeWords = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const words = value.split(' ');
+    const capitalizedWords = words.map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    );
+    e.target.value = capitalizedWords.join(' ');
+  };
+
   return (
     <div
       className="modal fade show d-block"
@@ -82,11 +92,11 @@ const AddUserModal: React.FC<{
             <form id="add-user-form" onSubmit={onSubmit} autoComplete="off">
               <div className="mb-3">
                 <label className="form-label">First Name</label>
-                <input type="text" className="form-control" name="firstName" required />
+                <input type="text" className="form-control" name="firstName" required onChange={capitalizeWords} />
               </div>
               <div className="mb-3">
                 <label className="form-label">Last Name</label>
-                <input type="text" className="form-control" name="lastName" required />
+                <input type="text" className="form-control" name="lastName" required onChange={capitalizeWords} />
               </div>
               <div className="mb-3">
                 <label className="form-label">Email</label>
