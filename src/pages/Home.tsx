@@ -478,7 +478,7 @@ function Home() {
         </div>
       </header>
       {/* Sidebar: collapses to bottom bar on mobile */}
-      <nav aria-label="Sidebar navigation" className="hidden sm:flex flex-col justify-between items-center pt-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-screen fixed top-16 left-0 z-30">
+      <nav aria-label="Sidebar navigation" className="hidden sm:flex flex-col items-center pt-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-[calc(100vh-4rem)] fixed top-16 left-0 z-50">
         <div className="flex flex-col items-center w-full flex-1">
           {navItems.filter(item => item.key !== 'settings').map(item => (
             <button
@@ -518,7 +518,7 @@ function Home() {
             </>
           )}
         </div>
-        <div className="flex flex-col items-center w-full pb-2">
+        <div className="flex flex-col items-center w-full pb-2 mt-auto">
           <button
             className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-white hover:bg-primary/80 transition-all duration-150 mt-4"
             aria-label="Logout"
