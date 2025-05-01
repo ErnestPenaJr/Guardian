@@ -817,7 +817,7 @@ https://shieldlytics.com
     </ul>
     <p style="margin-top:18px;">To get started, please click the button below to accept your invitation and set up your account:</p>
     <p><a class="cta" href="${inviteUrl}">Accept Your Invitation</a></p>
-    <p>If you did not expect this invitation, please ignore this email or <a href="mailto:support@shieldlytics.com">contact support</a>.</p>
+    <p>If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.</p>
     <div class="footer">
       &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>
       123 Main St, City, State, ZIP<br>
@@ -1058,8 +1058,33 @@ app.post('/api/users', passport.authenticate('jwt', { session: false }), isAdmin
     }
     
     // Generate a random temporary password
-    const tempPassword = crypto.randomBytes(12).toString('hex');
-    const hashedPassword = await hashPassword(tempPassword);
+    const generateSimplePassword = () => {
+      // Define character sets
+      const uppercaseChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed confusing chars like I, O
+      const lowercaseChars = 'abcdefghijkmnpqrstuvwxyz'; // Removed confusing chars like l, o
+      const numberChars = '23456789'; // Removed confusing chars like 0, 1
+      
+      // Ensure at least one character from each set
+      let password = '';
+      password += uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length));
+      password += lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length));
+      password += numberChars.charAt(Math.floor(Math.random() * numberChars.length));
+      
+      // Fill the rest with random characters from all sets
+      const allChars = uppercaseChars + lowercaseChars + numberChars;
+      for (let i = password.length; i < 8; i++) {
+        password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+      }
+      
+      // Shuffle the password
+      return password.split('').sort(() => 0.5 - Math.random()).join('');
+    };
+    
+    const tempPassword = generateSimplePassword();
+    console.log(`[ADD USER] Generated temporary password for ${email}: ${tempPassword}`);
+    
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
     
     // Determine the company ID to use
     // First try the company ID from the request, then from the admin user, then null as last resort
