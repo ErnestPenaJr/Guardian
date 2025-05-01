@@ -247,15 +247,112 @@ const AdminUserManagement: React.FC = () => {
     if (result.isConfirmed) {
       try {
         console.log(`Attempting to delete user with ID: ${userId}`);
-        // Use the new simplified endpoint
+        
+        // Show loading state
+        Swal.fire({
+          title: 'Deleting User...',
+          text: 'Please wait while we delete the user account.',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Use the simplified endpoint
         const response = await api.delete(`/delete-user/${userId}`);
         console.log('Delete response:', response);
         
-        Swal.fire('User Deleted!', 'The user has been successfully deleted.', 'success');
-        // Refresh users list
-        const usersRes = await api.get('/users');
-        setUsers(usersRes.data);
+        // Close loading dialog
+        Swal.close();
+        
+        // Show success message
+        await Swal.fire({
+          title: 'User Deleted!',
+          text: 'The user has been successfully deleted.',
+          icon: 'success',
+          confirmButtonText: 'OK'
+        });
+        
+        // Refresh data from both endpoints
+        try {
+          const [usersRes, invitesRes, rolesRes] = await Promise.all([
+            api.get('/users'),
+            api.get('/invites'),
+            api.get('/roles')
+          ]);
+          
+          // Format and update user data
+          const formattedUsers = usersRes.data.map((user: any) => {
+            // Format date properly
+            let dateCreated = 'Invalid Date';
+            try {
+              if (user.createdAt) {
+                dateCreated = new Date(user.createdAt).toISOString();
+              }
+            } catch (e) {
+              console.error('Error formatting date:', e);
+            }
+            
+            return {
+              id: user.id,
+              name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+              email: user.email,
+              dateCreated,
+              status: user.status || 'P',
+              roles: user.roles || []
+            };
+          });
+          
+          // Format and update invite data
+          const formattedInvites = invitesRes.data.map((invite: any) => {
+            // Format dates properly
+            let createdAt = 'Invalid Date';
+            let expiresAt = null;
+            
+            try {
+              if (invite.createdAt) {
+                createdAt = new Date(invite.createdAt).toISOString();
+              }
+              if (invite.expiresAt) {
+                expiresAt = new Date(invite.expiresAt).toISOString();
+              }
+            } catch (e) {
+              console.error('Error formatting invite dates:', e);
+            }
+            
+            return {
+              INVITE_ID: invite.id,
+              EMAIL: invite.email,
+              ROLE_ID: invite.roleId,
+              STATUS: invite.status,
+              EXPIRES_AT: expiresAt,
+              CREATED_AT: createdAt,
+              USED_AT: invite.usedAt,
+              status: invite.status === 'P' ? 'pending' : 
+                     invite.status === 'A' ? 'accepted' : 'expired'
+            };
+          });
+          
+          // Update state with fresh data
+          setUsers(formattedUsers);
+          setInvites(formattedInvites);
+          setRoles(rolesRes.data || []);
+          
+          console.log('Table data refreshed successfully after deletion');
+        } catch (refreshErr) {
+          console.error('Error refreshing data after deletion:', refreshErr);
+          // Show error but don't block the flow
+          Swal.fire({
+            title: 'Warning',
+            text: 'User was deleted but there was an error refreshing the table data. Please reload the page.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+          });
+        }
       } catch (err: any) {
+        // Close loading dialog if open
+        Swal.close();
+        
         console.error('Error deleting user:', err);
         Swal.fire(
           'Delete Failed', 
@@ -379,19 +476,117 @@ const AdminUserManagement: React.FC = () => {
     console.log('Adding user with company ID:', companyId);
 
     try {
-      await api.post('/users', {
+      // Show loading state
+      Swal.fire({
+        title: 'Adding User...',
+        text: 'Please wait while we create the user account and send login details.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
+      const response = await api.post('/users', {
         firstName,
         lastName,
         email,
         roleId: Number(roleId),
         companyId
       });
-      Swal.fire('User added!', '', 'success');
+      
+      // Close loading dialog
+      Swal.close();
+      
+      // Show success message with email notification info
+      await Swal.fire({
+        title: 'User Added!',
+        text: response.data.message || 'User has been successfully added.',
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+      
       setShowAddUserModal(false);
-      // Refresh users list
-      const usersRes = await api.get('/users');
-      setUsers(usersRes.data);
+      
+      // Refresh data from both endpoints using the same approach as delete
+      try {
+        const [usersRes, invitesRes, rolesRes] = await Promise.all([
+          api.get('/users'),
+          api.get('/invites'),
+          api.get('/roles')
+        ]);
+        
+        // Format and update user data
+        const formattedUsers = usersRes.data.map((user: any) => {
+          // Format date properly
+          let dateCreated = 'Invalid Date';
+          try {
+            if (user.createdAt) {
+              dateCreated = new Date(user.createdAt).toISOString();
+            }
+          } catch (e) {
+            console.error('Error formatting date:', e);
+          }
+          
+          return {
+            id: user.id,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+            email: user.email,
+            dateCreated,
+            status: user.status || 'P',
+            roles: user.roles || []
+          };
+        });
+        
+        // Format and update invite data
+        const formattedInvites = invitesRes.data.map((invite: any) => {
+          // Format dates properly
+          let createdAt = 'Invalid Date';
+          let expiresAt = null;
+          
+          try {
+            if (invite.createdAt) {
+              createdAt = new Date(invite.createdAt).toISOString();
+            }
+            if (invite.expiresAt) {
+              expiresAt = new Date(invite.expiresAt).toISOString();
+            }
+          } catch (e) {
+            console.error('Error formatting invite dates:', e);
+          }
+          
+          return {
+            INVITE_ID: invite.id,
+            EMAIL: invite.email,
+            ROLE_ID: invite.roleId,
+            STATUS: invite.status,
+            EXPIRES_AT: expiresAt,
+            CREATED_AT: createdAt,
+            USED_AT: invite.usedAt,
+            status: invite.status === 'P' ? 'pending' : 
+                   invite.status === 'A' ? 'accepted' : 'expired'
+          };
+        });
+        
+        // Update state with fresh data
+        setUsers(formattedUsers);
+        setInvites(formattedInvites);
+        setRoles(rolesRes.data || []);
+        
+        console.log('Table data refreshed successfully after adding user');
+      } catch (refreshErr) {
+        console.error('Error refreshing data after adding user:', refreshErr);
+        // Show error but don't block the flow
+        Swal.fire({
+          title: 'Warning',
+          text: 'User was added but there was an error refreshing the table data. Please reload the page.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+      }
     } catch (err: any) {
+      // Close loading dialog
+      Swal.close();
+      
       Swal.fire('Failed to add user', err?.response?.data?.error || err.message || 'Unknown error', 'error');
     }
   };

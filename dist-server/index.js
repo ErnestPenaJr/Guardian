@@ -626,7 +626,8 @@ The Guardian Team`,
     <div class="code">${verificationToken}</div>
     <p>This code will expire in 15 minutes.</p>
     <p>If you did not request this, please ignore this email or contact <a href="mailto:support@shieldlytics.com">support@shieldlytics.com</a>.</p>
-    <div class="footer">&copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>123 Main St, City, State, ZIP</div>
+    <div class="footer">&copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>123 Main St, City, State, ZIP<br>
+    <a href="https://shieldlytics.com" style="color: #2EBCBC;">https://shieldlytics.com</a>
   </div>
 </body>
 </html>`
@@ -905,7 +906,7 @@ app.post('/api/invites/resend', passport.authenticate('jwt', { session: false })
   <body style="font-family: 'Inter', 'Montserrat', Arial, sans-serif; background: #fff; color: #222;">
     <div style="max-width: 520px; margin: 0 auto; border: 1px solid #e3e3e3; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 32px;">
       <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height: 38px; margin-bottom: 18px;">
-      <h2 style="color: #25c6c6; margin: 0 0 18px;">Re-invitation to Guardian!</h2>
+      <h2 style="color: #333; text-align: center;">Re-invitation to Guardian!</h2>
       <p>
         Hi there,<br><br>
         This is a <b>reminder</b> that you have been invited to join <b>Guardian</b>, the modern security and compliance platform by <b>Shieldlytics</b>.
@@ -1055,29 +1056,95 @@ app.post('/api/users', passport.authenticate('jwt', { session: false }), isAdmin
         // Send invitation email with temporary password
         if (SENDGRID_API_KEY) {
             try {
+                console.log(`[ADD USER] Sending welcome email to ${email}`);
+                // Get company information if available
+                let companyName = "Guardian";
+                if (userCompanyId) {
+                    try {
+                        const company = await prisma.cOMPANY.findUnique({
+                            where: { COMPANY_ID: userCompanyId }
+                        });
+                        if (company && company.NAME) {
+                            companyName = company.NAME;
+                        }
+                    }
+                    catch (companyErr) {
+                        console.error('[ADD USER] Error fetching company:', companyErr);
+                    }
+                }
+                // Get role name
+                let roleName = "User";
+                try {
+                    const role = await prisma.rOLES.findUnique({
+                        where: { ROLE_ID: Number(roleId) }
+                    });
+                    if (role && role.NAME) {
+                        roleName = role.NAME;
+                    }
+                }
+                catch (roleErr) {
+                    console.error('[ADD USER] Error fetching role:', roleErr);
+                }
+                // Create login URL
+                const loginUrl = process.env.NODE_ENV === 'production'
+                    ? `${req.protocol}://${req.get('host')}`
+                    : 'http://localhost:5175';
                 const mailData = {
                     to: email,
                     from: SENDGRID_FROM_EMAIL,
-                    subject: 'Welcome to Guardian - Your Account Details',
-                    text: `Hello ${firstName} ${lastName},\n\nYou have been added to Guardian. Your temporary password is: ${tempPassword}\n\nPlease login and change your password immediately.\n\nRegards,\nThe Guardian Team`,
+                    subject: `Welcome to ${companyName} on Guardian - Your Account Details`,
+                    text: `
+Hello ${firstName.toLowerCase()} ${lastName.toLowerCase()},
+
+You have been added to ${companyName} on the Guardian platform as a ${roleName}.
+
+Your Account Details:
+Email: ${email}
+Temporary Password: ${tempPassword}
+
+Please login and change your password immediately for security reasons.
+
+If you have any questions, please contact your administrator.
+          `,
                     html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to Guardian!</h2>
-            <p>Hello ${firstName} ${lastName},</p>
-            <p>You have been added to the Guardian platform. Here are your account details:</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-            <p>Please login and change your password immediately for security reasons.</p>
-            <p>Best regards,<br>The Guardian Team</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img src="https://shieldlytics.com/logo.png" alt="SHIELDLYTICS" style="max-width: 150px;">
+            </div>
+            <h2 style="color: #333; text-align: center;">Welcome to ${companyName} on Guardian!</h2>
+            
+            <p>Hello ${firstName.toLowerCase()} ${lastName.toLowerCase()},</p>
+            
+            <p>You have been added to <strong>${companyName}</strong> on the Guardian platform as a <strong>${roleName}</strong>.</p>
+            
+            <div style="border-left: 4px solid #007bff; padding: 0 0 0 15px; margin: 20px 0;">
+              <p style="margin: 0; font-weight: bold;">Your Account Details:</p>
+              <p style="margin: 10px 0 0;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #007bff;">${email}</a></p>
+              <p style="margin: 5px 0 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
+            </div>
+            
+            <p>Please <a href="${loginUrl}" style="color: #007bff;">login</a> and change your password immediately for security reasons.</p>
+            
+            <hr style="border: none; border-top: 1px solid #eaeaea; margin: 30px 0 20px;">
+            <p style="color: #777; font-size: 12px; text-align: center;">
+              If you have any questions, please contact your administrator.<br>
+              &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.
+            </p>
           </div>
           `
                 };
-                await sgMail.send(mailData);
+                const response = await sgMail.send(mailData);
+                console.log(`[ADD USER] Email sent successfully to ${email}. Status code:`, response[0]?.statusCode);
             }
             catch (emailErr) {
                 console.error('[ADD USER] Failed to send email:', emailErr);
+                console.error('[ADD USER] Error details:', emailErr.response?.body?.errors || emailErr.message);
                 // Continue execution even if email fails
             }
+        }
+        else {
+            console.log('[ADD USER] Email not sent - SendGrid API key not configured');
+            console.log('[ADD USER] Would have sent temporary password:', tempPassword);
         }
         res.status(201).json({
             success: true,
@@ -1085,8 +1152,14 @@ app.post('/api/users', passport.authenticate('jwt', { session: false }), isAdmin
                 id: result.USER_ID,
                 firstName: result.FIRST_NAME,
                 lastName: result.LAST_NAME,
-                email: result.EMAIL
-            }
+                email: result.EMAIL,
+                role: roleId,
+                companyId: userCompanyId,
+                tempPassword: process.env.NODE_ENV === 'development' ? tempPassword : undefined
+            },
+            message: SENDGRID_API_KEY
+                ? 'User added successfully. An email with login details has been sent.'
+                : 'User added successfully. Email notification is disabled.'
         });
     }
     catch (err) {
@@ -1226,9 +1299,7 @@ app.delete('/api/delete-user/:id', passport.authenticate('jwt', { session: false
         }
         console.log(`[DELETE USER] Attempting to delete user with ID: ${userId}`);
         // Check if user exists
-        const user = await prisma.uSERS.findUnique({
-            where: { USER_ID: userId }
-        });
+        const user = await prisma.uSERS.findUnique({ where: { USER_ID: userId } });
         if (!user) {
             console.log(`[DELETE USER] User not found: ${userId}`);
             return res.status(404).json({ error: 'User not found' });
