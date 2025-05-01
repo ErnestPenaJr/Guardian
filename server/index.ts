@@ -799,190 +799,6 @@ app.post('/api/invite/accept', async (req, res) => {
   }
 });
 
-// Login endpoint handler function
-const handleLogin = async (req: express.Request, res: express.Response) => {
-  try {
-    // Validate request body using Zod
-    const validatedData = loginSchema.safeParse(req.body);
-    if (!validatedData.success) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid input data', 
-        errors: validatedData.error.errors 
-      });
-    }
-
-    const { email, password } = validatedData.data;
-
-    // Use Passport for authentication
-    passport.authenticate('local', { session: false }, async (err: Error | null, user: any, info: { message?: string } | undefined) => {
-      if (err) {
-        console.error('Authentication error:', err);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Internal server error during authentication' 
-        });
-      }
-
-      if (!user) {
-        // Provide more specific error messages based on the info object
-        const errorMessage = info?.message || 'Authentication failed';
-        let statusCode = 401; // Default to Unauthorized
-
-        if (errorMessage.includes('not found') || errorMessage.includes('not verified')) {
-          statusCode = 404; // Not Found
-        } else if (errorMessage.includes('not active') || errorMessage.includes('not verified')) {
-          statusCode = 403; // Forbidden
-        }
-
-        return res.status(statusCode).json({ 
-          success: false, 
-          message: errorMessage 
-        });
-      }
-
-      // --- ENHANCEMENT: Fetch company info ---
-      let companyId = null;
-      let companyName = null;
-      // Always fetch companyId from user.COMPANY_ID (DB column)
-      if (user.COMPANY_ID) {
-        companyId = user.COMPANY_ID;
-        // Fetch company name from COMPANY table
-        const company = await prisma.cOMPANY.findUnique({ where: { COMPANY_ID: user.COMPANY_ID } });
-        companyName = company?.NAME || null;
-      }
-
-      // Generate JWT token
-      const token = generateToken(user);
-
-      // Return token and user info (with company info)
-      return res.json({
-        success: true,
-        token,
-        user: {
-          id: user.USER_ID || user.id,
-          email: user.EMAIL || user.email,
-          firstName: user.FIRST_NAME || user.firstName,
-          lastName: user.LAST_NAME || user.lastName,
-          roles: user.roles,
-          companyId,
-          companyName
-        }
-      });
-    })(req, res);
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
-  }
-};
-
-// Apply rate limiting to both login endpoints
-app.post('/api/login', loginRateLimiter, handleLogin);
-
-// Add a non-prefixed login endpoint that mirrors the /api/login endpoint
-app.post('/login', loginRateLimiter, handleLogin);
-
-// Logout endpoint
-app.post('/api/logout', requireAuth, (req: express.Request, res: express.Response) => {
-  // JWT tokens are stateless, so we can't invalidate them server-side
-  // However, we can add the token to a blacklist or revocation list
-  // For now, we'll just return a success message
-  res.json({ 
-    success: true, 
-    message: 'Logged out successfully' 
-  });
-});
-
-// Mirror the logout endpoint without /api prefix
-app.post('/logout', requireAuth, (req: express.Request, res: express.Response) => {
-  res.json({ 
-    success: true, 
-    message: 'Logged out successfully' 
-  });
-});
-
-// GET /api/me - Get current user profile (protected route)
-app.get('/api/me', requireAuth, async (req, res) => {
-  try {
-    // requireAuth ensures req.user is defined
-    const user = req.user as any;
-    return res.json({ user });
-  } catch (error) {
-    console.error('Get user profile error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// --- GET USERS (ADMIN ONLY, SAFE ROLES QUERY) ---
-app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
-  try {
-    const users = await prisma.uSERS.findMany({
-      select: {
-        USER_ID: true,
-        FIRST_NAME: true,
-        LAST_NAME: true,
-        EMAIL: true,
-        CREATE_DATE: true,
-        STATUS: true,
-        COMPANY_ID: true,
-      }
-    });
-    // Fetch all roles for these users
-    const userIds = users.map((u: { USER_ID: number; FIRST_NAME: string; LAST_NAME: string; EMAIL: string; CREATE_DATE: Date; STATUS: string; COMPANY_ID: number | null }) => u.USER_ID);
-    const userRoles = await prisma.uSER_ROLES.findMany({
-      where: { USER_ID: { in: userIds } },
-      select: { USER_ID: true, ROLE_ID: true }
-    });
-    // Map roles to users
-    const usersWithRoles = users.map((u: { USER_ID: number; FIRST_NAME: string; LAST_NAME: string; EMAIL: string; CREATE_DATE: Date; STATUS: string; COMPANY_ID: number | null }) => ({
-      id: u.USER_ID,
-      name: `${u.FIRST_NAME} ${u.LAST_NAME}`,
-      email: u.EMAIL,
-      dateCreated: u.CREATE_DATE,
-      status: u.STATUS,
-      companyId: u.COMPANY_ID,
-      roles: userRoles.filter((r: UserRole) => r.USER_ID === u.USER_ID).map((r: UserRole) => r.ROLE_ID),
-    }));
-    res.json(usersWithRoles);
-  } catch (err) {
-    console.error('[GET USERS]', err);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
-
-// --- GET INVITES (ADMIN ONLY) ---
-app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
-  try {
-    const invites = await prisma.iNVITES.findMany({
-      select: {
-        INVITE_ID: true,
-        EMAIL: true,
-        ROLE_ID: true,
-        STATUS: true,
-        EXPIRES_AT: true,
-        CREATED_AT: true,
-        USED_AT: true,
-      },
-      orderBy: { CREATED_AT: 'desc' }
-    });
-    // Determine invite status
-    const now = new Date();
-    const invitesWithStatus = invites.map((invite: { EMAIL: string; STATUS: string; ROLE_ID: number; CREATED_AT: Date; INVITE_ID: number; EXPIRES_AT: Date; USED_AT: Date | null }) => {
-      let status = 'pending';
-      if (invite.USED_AT) status = 'accepted';
-      else if (invite.EXPIRES_AT && new Date(invite.EXPIRES_AT) < now) status = 'expired';
-      return { ...invite, status };
-    });
-    res.json(invitesWithStatus);
-  } catch (err) {
-    console.error('[GET INVITES]', err);
-    res.status(500).json({ error: 'Failed to fetch invites' });
-  }
-});
-
 // --- RESEND INVITE (ADMIN ONLY) ---
 app.post('/api/invites/resend', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
   try {
@@ -999,12 +815,51 @@ app.post('/api/invites/resend', passport.authenticate('jwt', { session: false })
     // Send invite email (reuse logic)
     if (SENDGRID_API_KEY) {
       const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invite/accept?token=${token}`;
+      const expirationHours = 168;
+      const days = Math.floor(expirationHours / 24);
+      const expiresAtString = newExpiry.toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+      });
       await sgMail.send({
         to: invite.EMAIL,
         from: SENDGRID_FROM_EMAIL,
         subject: 'Your Guardian Invitation (Resent)',
         text: `You have been re-invited to Guardian. Please use the following link to accept: ${inviteUrl}`,
-        html: `<p>You have been re-invited to Guardian.<br>Click <a href="${inviteUrl}">here</a> to accept your invitation.</p>`
+        html: `<!DOCTYPE html>
+<html>
+  <body style="font-family: 'Inter', 'Montserrat', Arial, sans-serif; background: #fff; color: #222;">
+    <div style="max-width: 520px; margin: 0 auto; border: 1px solid #e3e3e3; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 32px;">
+      <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height: 38px; margin-bottom: 18px;">
+      <h2 style="color: #25c6c6; margin: 0 0 18px;">Re-invitation to Guardian!</h2>
+      <p>
+        Hi there,<br><br>
+        This is a <b>reminder</b> that you have been invited to join <b>Guardian</b>, the modern security and compliance platform by <b>Shieldlytics</b>.
+      </p>
+      <ul style="margin: 18px 0 18px 18px; padding: 0;">
+        <li>✔ Real-time security monitoring</li>
+        <li>✔ Automated compliance workflows</li>
+        <li>✔ Easy team collaboration</li>
+        <li>✔ Secure cloud-based access</li>
+      </ul>
+      <p>
+        <b>Please note:</b> This is a re-invite. Your invitation will <b>expire in ${days} days (${expirationHours} hours)</b>, on <b>${expiresAtString}</b> from the time this email was sent.<br>
+        If you have not yet accepted, please use the button below to activate your account:
+      </p>
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${inviteUrl}" style="background: #25c6c6; color: #fff; font-weight: 600; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 18px;">Accept Your Invitation</a>
+      </div>
+      <p style="font-size: 13px; color: #666;">
+        If you did not expect this invitation, please ignore this email or <a href="mailto:support@shieldlytics.com" style="color: #25c6c6;">contact support</a>.
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+      <div style="font-size: 12px; color: #aaa; text-align: center;">
+        &copy; 2025 Guardian by Shieldlytics. All rights reserved.<br>
+        123 Main St, City, State, ZIP<br>
+        <a href="https://shieldlytics.com" style="color: #25c6c6;">https://shieldlytics.com</a>
+      </div>
+    </div>
+  </body>
+</html>`
       });
     }
     res.json({ success: true });
