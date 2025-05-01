@@ -410,10 +410,10 @@ function Home() {
           />
         </div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
-          <div className="relative mr-2">
+          <div className="relative mr-4 px-2 py-1">
             <div
               className="bg-white rounded-lg shadow-sm flex items-center justify-center cursor-pointer border border-gray-200"
-              style={{ width: '38px', height: '38px' }}
+              style={{ width: '42px', height: '42px' }}
               onClick={() => setNotifOpen((open) => !open)}
               tabIndex={0}
               aria-label="Show notifications"
@@ -440,22 +440,9 @@ function Home() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 md:gap-3 relative cursor-pointer" onClick={() => setProfileMenuOpen(v => !v)} tabIndex={0} role="button" aria-haspopup="true" aria-expanded={profileMenuOpen}>
+          <div className="flex items-center gap-2 md:gap-3 relative cursor-pointer border border-gray-200 rounded-lg px-2 mr-4" onClick={() => setProfileMenuOpen(v => !v)} tabIndex={0} role="button" aria-haspopup="true" aria-expanded={profileMenuOpen}>
             {/* Profile */}
-            <button
-              className="bg-primary text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-semibold text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="Open user menu"
-              tabIndex={-1}
-              style={{ pointerEvents: 'none' }}
-            >
-              {user?.profilePhotoUrl ? (
-                <img src={user.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
-              ) : (
-                (user?.firstName && user?.lastName)
-                  ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-                  : (user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U')
-              )}
-            </button>
+           
             <span className="flex flex-col items-start hidden sm:inline">
               <span className="font-bold text-lg leading-tight text-gray-900">
                 {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}
@@ -474,6 +461,20 @@ function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
+           <button
+              className="bg-primary text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center font-semibold text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Open user menu"
+              tabIndex={-1}
+              style={{ pointerEvents: 'none' }}
+            >
+              {user?.profilePhotoUrl ? (
+                <img src={user.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                (user?.firstName && user?.lastName)
+                  ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+                  : (user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U')
+              )}
+            </button>
           {/* Dropdown Menu */}
           {profileMenuOpen && (
             <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100 animate-fade-in">
