@@ -412,7 +412,7 @@ function Home() {
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
           <div className="relative mr-2">
             <div
-              className="bg-white rounded-lg shadow-sm flex items-center justify-center cursor-pointer"
+              className="bg-white rounded-lg shadow-sm flex items-center justify-center cursor-pointer border border-gray-200"
               style={{ width: '38px', height: '38px' }}
               onClick={() => setNotifOpen((open) => !open)}
               tabIndex={0}
@@ -456,7 +456,14 @@ function Home() {
                   : (user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U')
               )}
             </button>
-            <span className="font-medium text-gray-700 hidden sm:inline">{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}</span>
+            <span className="flex flex-col items-start hidden sm:inline">
+              <span className="font-bold text-lg leading-tight text-gray-900">
+                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}
+              </span><br></br>
+              {user && (
+                <span className="text-sm text-gray-500 font-medium text-end">{getUserRole()}</span>
+              )}
+            </span>
             <svg
               className={`w-4 h-4 ml-1 text-gray-500 hidden sm:inline cursor-pointer transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
               fill="none"
