@@ -7,7 +7,8 @@
 
 /* Ensure SweetAlert2 modal overlay is visible and dimmed above all dashboard content */
 .swal2-container {
-  background: rgba(30, 41, 59, 0.55) !important; /* slate-800/55 */
+  background: rgba(30, 41, 59, 0.55) !important;
+  /* slate-800/55 */
   z-index: 99999 !important;
 }
 
@@ -16,7 +17,6 @@
   background: #fff !important;
   border-radius: 1rem !important;
   padding: 2rem 1rem !important;
-  box-shadow: 0 6px 32px rgba(0,0,0,0.12) !important;
   display: flex !important;
   justify-content: center !important;
 }
