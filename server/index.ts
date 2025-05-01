@@ -59,6 +59,102 @@ const loginRateLimiter = rateLimit({
   }
 });
 
+// --- LOGIN ENDPOINT ---
+app.post('/api/login', loginRateLimiter, async (req, res) => {
+  try {
+    const parseResult = loginSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Invalid input', details: parseResult.error.errors });
+    }
+    const { email, password } = parseResult.data;
+    const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
+    if (!user || !user.PASSWORD_HASH) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const valid = await bcrypt.compare(password, user.PASSWORD_HASH);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Fetch user roles
+    const userRoles = await prisma.uSER_ROLES.findMany({
+      where: { USER_ID: user.USER_ID }
+    });
+    
+    // Fetch role details
+    const roleIds = userRoles.map(ur => ur.ROLE_ID);
+    const roles = await prisma.rOLES.findMany({
+      where: {
+        ROLE_ID: { in: roleIds }
+      }
+    });
+    
+    // Format roles for response
+    const formattedRoles = roles.map(role => ({
+      id: role.ROLE_ID,
+      name: role.NAME,
+      displayName: role.DISPLAY_NAME
+    }));
+    
+    // Get company information if available
+    let company = null;
+    if (user.COMPANY_ID) {
+      const companyData = await prisma.cOMPANY.findUnique({
+        where: { COMPANY_ID: user.COMPANY_ID }
+      });
+      if (companyData) {
+        company = {
+          id: companyData.COMPANY_ID,
+          name: companyData.NAME
+        } as any; // Type assertion to avoid null assignment error
+      }
+    }
+    
+    // Create AuthUser object for generateToken
+    const authUser = {
+      id: user.USER_ID,
+      email: user.EMAIL,
+      firstName: user.FIRST_NAME,
+      lastName: user.LAST_NAME,
+      roles: roleIds,
+      COMPANY_ID: user.COMPANY_ID
+    };
+    
+    const token = generateToken(authUser);
+    res.json({ 
+      token, 
+      user: { 
+        id: user.USER_ID, 
+        email: user.EMAIL, 
+        firstName: user.FIRST_NAME,
+        lastName: user.LAST_NAME,
+        roles: formattedRoles,
+        company
+      } 
+    });
+  } catch (err) {
+    console.error('[LOGIN]', err);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// --- LOGOUT ENDPOINT ---
+app.post('/api/logout', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    // Since we're using JWT, the actual logout happens client-side
+    // by removing the token from localStorage
+    
+    // Here we can add any server-side cleanup if needed in the future
+    // For example, if we implement token blacklisting or session tracking
+    
+    // For now, just return a success response
+    res.json({ success: true, message: 'Logout successful' });
+  } catch (err) {
+    console.error('[LOGOUT]', err);
+    res.status(500).json({ error: 'Server error during logout' });
+  }
+});
+
 // --- ADMIN-ONLY TEST ENDPOINT ---
 app.get('/api/admin/secret', passport.authenticate('jwt', { session: false }), isAdmin, (req, res) => {
   res.json({ secret: 'This is admin-only data.' });
@@ -708,7 +804,7 @@ https://shieldlytics.com
 </head>
 <body>
   <div class="container">
-    <img src="https://shieldlytics.com/logo.png" alt="Guardian by Shieldlytics" style="height:40px; margin-bottom:16px;">
+    <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height:40px; margin-bottom:16px;">
     <h2>Welcome to Guardian!</h2>
     <p>Hi there,</p>
     <p>You have been invited to join <b>Guardian</b>, the modern security and compliance platform by <b>Shieldlytics</b>.</p>
@@ -872,12 +968,366 @@ app.post('/api/invites/resend', passport.authenticate('jwt', { session: false })
 // --- REMOVE INVITE (ADMIN ONLY) ---
 app.delete('/api/invites/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
   try {
-    const inviteId = parseInt(req.params.id, 10);
+    const inviteId = parseInt(req.params.id);
+    
+    if (isNaN(inviteId)) {
+      return res.status(400).json({ error: 'Invalid invite ID' });
+    }
+    
     await prisma.iNVITES.delete({ where: { INVITE_ID: inviteId } });
     res.json({ success: true });
   } catch (err) {
     console.error('[REMOVE INVITE]', err);
     res.status(500).json({ error: 'Failed to remove invite' });
+  }
+});
+
+// --- GET USERS ENDPOINT ---
+app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    // Get all users
+    const users = await prisma.uSERS.findMany();
+    
+    // Get user roles
+    const userRoles = await prisma.uSER_ROLES.findMany();
+    
+    // Get roles
+    const roles = await prisma.rOLES.findMany();
+    
+    // Create a map of roles by ID for quick lookup
+    const rolesMap = roles.reduce((acc, role) => {
+      acc[role.ROLE_ID] = role;
+      return acc;
+    }, {} as Record<number, any>);
+    
+    // Group roles by user ID
+    const rolesByUserId = userRoles.reduce((acc, ur) => {
+      if (!acc[ur.USER_ID]) {
+        acc[ur.USER_ID] = [];
+      }
+      const role = rolesMap[ur.ROLE_ID];
+      if (role) {
+        acc[ur.USER_ID].push({
+          id: role.ROLE_ID,
+          name: role.NAME,
+          displayName: role.DISPLAY_NAME
+        });
+      }
+      return acc;
+    }, {} as Record<number, any[]>);
+    
+    // Format the response to match what the frontend expects
+    const formattedUsers = users.map(user => ({
+      id: user.USER_ID,
+      firstName: user.FIRST_NAME,
+      lastName: user.LAST_NAME,
+      email: user.EMAIL,
+      createdAt: user.CREATE_DATE,
+      status: user.STATUS,
+      roles: rolesByUserId[user.USER_ID] || []
+    }));
+    
+    res.json(formattedUsers);
+  } catch (err) {
+    console.error('[GET USERS]', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// --- ADD USER ENDPOINT ---
+app.post('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const { firstName, lastName, email, roleId, companyId } = req.body;
+    
+    // Get the admin user's information from the JWT
+    const adminUser = req.user as any;
+    
+    // Validate input
+    if (!firstName || !lastName || !email || !roleId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Check if user already exists
+    const existingUser = await prisma.uSERS.findFirst({
+      where: { EMAIL: email }
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+    
+    // Generate a random temporary password
+    const tempPassword = crypto.randomBytes(12).toString('hex');
+    const hashedPassword = await hashPassword(tempPassword);
+    
+    // Determine the company ID to use
+    // First try the company ID from the request, then from the admin user, then null as last resort
+    const userCompanyId = companyId || adminUser.COMPANY_ID || null;
+    
+    console.log('[ADD USER] Using company ID:', userCompanyId, 'Admin user:', adminUser.id);
+    
+    // Create user in transaction
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create user
+      const newUser = await prisma.uSERS.create({
+        data: {
+          FIRST_NAME: firstName,
+          LAST_NAME: lastName,
+          EMAIL: email,
+          PASSWORD_HASH: hashedPassword,
+          STATUS: 'A', // Active
+          COMPANY_ID: userCompanyId,
+          CREATE_DATE: new Date()
+        }
+      });
+      
+      // Assign role
+      await prisma.uSER_ROLES.create({
+        data: {
+          USER_ID: newUser.USER_ID,
+          ROLE_ID: Number(roleId)
+        }
+      });
+      
+      return newUser;
+    });
+    
+    // Send invitation email with temporary password
+    if (SENDGRID_API_KEY) {
+      try {
+        const mailData = {
+          to: email,
+          from: SENDGRID_FROM_EMAIL,
+          subject: 'Welcome to Guardian - Your Account Details',
+          text: `Hello ${firstName} ${lastName},\n\nYou have been added to Guardian. Your temporary password is: ${tempPassword}\n\nPlease login and change your password immediately.\n\nRegards,\nThe Guardian Team`,
+          html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome to Guardian!</h2>
+            <p>Hello ${firstName} ${lastName},</p>
+            <p>You have been added to the Guardian platform. Here are your account details:</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+            <p>Please login and change your password immediately for security reasons.</p>
+            <p>Best regards,<br>The Guardian Team</p>
+          </div>
+          `
+        };
+        
+        await sgMail.send(mailData);
+      } catch (emailErr) {
+        console.error('[ADD USER] Failed to send email:', emailErr);
+        // Continue execution even if email fails
+      }
+    }
+    
+    res.status(201).json({
+      success: true,
+      user: {
+        id: result.USER_ID,
+        firstName: result.FIRST_NAME,
+        lastName: result.LAST_NAME,
+        email: result.EMAIL
+      }
+    });
+  } catch (err) {
+    console.error('[ADD USER]', err);
+    res.status(500).json({ error: 'Failed to add user' });
+  }
+});
+
+// --- GET INVITES ENDPOINT ---
+app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    // Get all invites
+    const invites = await prisma.iNVITES.findMany();
+    
+    // Get roles separately
+    const roles = await prisma.rOLES.findMany();
+    
+    // Create a map of role IDs to role objects for quick lookup
+    const roleMap = roles.reduce((map, role) => {
+      map[role.ROLE_ID] = role;
+      return map;
+    }, {} as Record<number, any>);
+
+    // Format the response to match what the frontend expects
+    const formattedInvites = invites.map(invite => {
+      const role = roleMap[invite.ROLE_ID];
+      return {
+        id: invite.INVITE_ID,
+        email: invite.EMAIL,
+        roleId: invite.ROLE_ID,
+        roleName: role?.NAME || 'Unknown',
+        status: invite.STATUS,
+        expiresAt: invite.EXPIRES_AT,
+        createdAt: invite.CREATED_AT,
+        usedAt: invite.USED_AT
+      };
+    });
+
+    res.json(formattedInvites);
+  } catch (err) {
+    console.error('[GET INVITES]', err);
+    res.status(500).json({ error: 'Server error while fetching invites' });
+  }
+});
+
+// --- RESEND INVITE ENDPOINT ---
+app.post('/api/invites/resend', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const { inviteId, INVITE_ID } = req.body;
+    const id = inviteId || INVITE_ID;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Invite ID is required' });
+    }
+
+    const invite = await prisma.iNVITES.findUnique({
+      where: { INVITE_ID: id }
+    });
+
+    if (!invite) {
+      return res.status(404).json({ error: 'Invite not found' });
+    }
+
+    // Update the invite with a new expiration date
+    const updatedInvite = await prisma.iNVITES.update({
+      where: { INVITE_ID: id },
+      data: {
+        EXPIRES_AT: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        STATUS: 'P' // Set status back to pending
+      }
+    });
+
+    // TODO: Send email with invite link (implement this based on your email sending logic)
+
+    res.json({ success: true, invite: updatedInvite });
+  } catch (err) {
+    console.error('[RESEND INVITE]', err);
+    res.status(500).json({ error: 'Server error while resending invite' });
+  }
+});
+
+// --- DELETE INVITE ENDPOINT ---
+app.delete('/api/invites/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid invite ID' });
+    }
+
+    const invite = await prisma.iNVITES.findUnique({
+      where: { INVITE_ID: id }
+    });
+
+    if (!invite) {
+      return res.status(404).json({ error: 'Invite not found' });
+    }
+
+    await prisma.iNVITES.delete({
+      where: { INVITE_ID: id }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE INVITE]', err);
+    res.status(500).json({ error: 'Server error while deleting invite' });
+  }
+});
+
+// --- DELETE USER ENDPOINT ---
+app.delete('/api/users/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Check if user exists
+    const user = await prisma.uSERS.findUnique({
+      where: { USER_ID: userId }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Don't allow admins to delete themselves
+    const adminUser = req.user as any;
+    if (adminUser.id === userId) {
+      return res.status(403).json({ error: 'You cannot delete your own account' });
+    }
+    
+    // Delete user in transaction to ensure all related data is removed
+    await prisma.$transaction(async (prisma) => {
+      // First delete user roles
+      await prisma.uSER_ROLES.deleteMany({
+        where: { USER_ID: userId }
+      });
+      
+      // Then delete the user
+      await prisma.uSERS.delete({
+        where: { USER_ID: userId }
+      });
+    });
+    
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('[DELETE USER]', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// --- DELETE USER ENDPOINT (SIMPLIFIED) ---
+app.delete('/api/delete-user/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    console.log(`[DELETE USER] Attempting to delete user with ID: ${userId}`);
+    
+    // Check if user exists
+    const user = await prisma.uSERS.findUnique({
+      where: { USER_ID: userId }
+    });
+    
+    if (!user) {
+      console.log(`[DELETE USER] User not found: ${userId}`);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Don't allow admins to delete themselves
+    const adminUser = req.user as any;
+    if (adminUser.id === userId) {
+      console.log(`[DELETE USER] Admin attempted to delete own account: ${userId}`);
+      return res.status(403).json({ error: 'You cannot delete your own account' });
+    }
+    
+    console.log(`[DELETE USER] Deleting user: ${userId}`);
+    
+    // Delete user in transaction to ensure all related data is removed
+    await prisma.$transaction(async (prisma) => {
+      // First delete user roles
+      await prisma.uSER_ROLES.deleteMany({
+        where: { USER_ID: userId }
+      });
+      
+      // Then delete the user
+      await prisma.uSERS.delete({
+        where: { USER_ID: userId }
+      });
+    });
+    
+    console.log(`[DELETE USER] Successfully deleted user: ${userId}`);
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('[DELETE USER] Error:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 
