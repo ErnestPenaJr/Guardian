@@ -306,16 +306,34 @@ function Home() {
   };
   
   // --- Theme State ---
-  const [theme, setTheme] = useState<'light' | 'dark'>(
-    () => (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(
+    () => (localStorage.getItem('theme') as 'light' | 'dark' | 'system') || 'system'
   );
 
+  // Track system theme if 'system' is selected
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    function applyTheme(selectedTheme: 'light' | 'dark' | 'system') {
+      if (selectedTheme === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', isDark);
+      } else {
+        document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
+      }
+    }
+    applyTheme(theme);
     localStorage.setItem('theme', theme);
+    let mql: MediaQueryList | null = null;
+    if (theme === 'system') {
+      mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = (e: MediaQueryListEvent) => {
+        document.documentElement.classList.toggle('dark', e.matches);
+      };
+      mql.addEventListener('change', listener);
+      return () => mql && mql.removeEventListener('change', listener);
+    }
   }, [theme]);
 
-  const handleToggleTheme = () => setTheme(t => (t === 'light' ? 'dark' : 'light'));
+  const handleThemeChange = (value: 'light' | 'dark' | 'system') => setTheme(value);
 
   // --- User Profile Dropdown State ---
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -331,6 +349,40 @@ function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // --- Theme Dropdown State ---
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [themeMenuDirection, setThemeMenuDirection] = useState<'left' | 'right'>('right');
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Dynamic direction for theme dropdown
+  const handleThemeMenuOpen = () => {
+    if (themeButtonRef.current) {
+      const rect = themeButtonRef.current.getBoundingClientRect();
+      const spaceRight = window.innerWidth - rect.right;
+      const dropdownWidth = 170; // px, estimate
+      if (spaceRight < dropdownWidth) {
+        setThemeMenuDirection('left');
+      } else {
+        setThemeMenuDirection('right');
+      }
+    }
+    setThemeMenuOpen(true);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setThemeMenuOpen(false);
+      }
+    }
+    if (themeMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [themeMenuOpen]);
+
+  // --- User Profile Dropdown State ---
   const handleSendInvite = () => {
     MySwal.fire({
       html: (
@@ -423,7 +475,7 @@ function Home() {
               )}
             </span>
             <svg
-              className={`w-4 h-4 ml-1 text-gray-500 hidden sm:inline cursor-pointer transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
+              className={`w-4 h-4 ml-1 text-gray-400 hidden sm:inline cursor-pointer transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -461,9 +513,40 @@ function Home() {
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Notification Preferences */}}>
                 <Bell size={16} /> Notification Preferences
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => handleToggleTheme}>
-                <SunMoon size={16} /> Theme: {theme === 'dark' ? 'Dark' : 'Light'}
-              </button>
+              {/* Theme Nested Dropdown */}
+              <div className="relative" ref={themeMenuRef}>
+                <button
+                  ref={themeButtonRef}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm"
+                  onClick={() => { handleThemeMenuOpen(); }}
+                  onMouseEnter={handleThemeMenuOpen}
+                  onMouseLeave={() => setThemeMenuOpen(false)}
+                  aria-haspopup="menu"
+                  aria-expanded={themeMenuOpen}
+                  type="button"
+                >
+                  <SunMoon size={16} /> Theme
+                  <svg className="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                {themeMenuOpen && (
+                  <div
+                    className={`absolute ${themeMenuDirection==='right' ? 'left-full ml-1' : 'right-full mr-1'} top-0 mt-0 w-40 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 animate-fade-in`}
+                    onMouseEnter={handleThemeMenuOpen}
+                    onMouseLeave={() => setThemeMenuOpen(false)}
+                    role="menu"
+                  >
+                    <button className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 ${theme==='light'?'font-bold text-primary':'text-gray-700'}`} onClick={() => {handleThemeChange('light'); setThemeMenuOpen(false);}}>
+                      <SunMoon size={16} /> Light {theme==='light' && <span className="ml-auto">✓</span>}
+                    </button>
+                    <button className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 ${theme==='dark'?'font-bold text-primary':'text-gray-700'}`} onClick={() => {handleThemeChange('dark'); setThemeMenuOpen(false);}}>
+                      <SunMoon size={16} /> Dark {theme==='dark' && <span className="ml-auto">✓</span>}
+                    </button>
+                    <button className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 ${theme==='system'?'font-bold text-primary':'text-gray-700'}`} onClick={() => {handleThemeChange('system'); setThemeMenuOpen(false);}}>
+                      <Monitor size={16} /> System {theme==='system' && <span className="ml-auto">✓</span>}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="border-t my-2" />
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-sm" onClick={handleLogout}>
                 <LogOut size={16} /> Logout
