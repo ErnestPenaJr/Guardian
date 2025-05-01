@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import api from '../utils/api';
 import { FaTrash } from 'react-icons/fa';
+import { Mail } from 'lucide-react';
 
 export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
   const [inviteEmails, setInviteEmails] = useState([{ email: '', roleId: null }]);

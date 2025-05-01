@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Search, LogOut, Trash2, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, MessageCircle, CheckCircle, FileText, Monitor, CreditCard } from 'lucide-react';
-import { Pie } from 'react-chartjs-2';
+import {
+  Shield, Edit, LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, MessageCircle, CheckCircle, FileText, Monitor, CreditCard, Sliders, Send, LayoutDashboard, MessageSquareText
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Pie 
+} from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 import DataTable from 'react-data-table-component';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
 import SendInvitesForm from '../components/SendInvitesForm';
 import RequestDashboard from './RequestDashboard';
-import api from '../utils/api'; // Assuming the api is imported from a separate file
-import { useAuth } from '../hooks/useAuth'; // Import the useAuth hook
+import api from '../utils/api';
+import { useAuth } from '../hooks/useAuth';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
-import { FaThLarge, FaRegCommentDots, FaRegEdit, FaCog, FaUserShield, FaPaperPlane, FaSlidersH } from 'react-icons/fa';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 import '../styles/sidebar.css';
@@ -206,9 +209,8 @@ const customStyles = {
 const MySwal = withReactContent(Swal);
 
 function Home() {
-  const [filterText, setFilterText] = useState('');
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get the user object from the useAuth hook
+  const { user } = useAuth();
   const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [notifOpen, setNotifOpen] = useState(false);
@@ -334,32 +336,6 @@ function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter data based on search input
-  const filteredQueueItems = sampleRequestQueue.filter(
-    item => {
-      const searchStr = filterText.toLowerCase();
-      return (
-        item.id.toLowerCase().includes(searchStr) ||
-        item.type.toLowerCase().includes(searchStr) ||
-        item.status.toLowerCase().includes(searchStr) ||
-        item.date.toLowerCase().includes(searchStr) ||
-        item.assignedTo.toLowerCase().includes(searchStr)
-      );
-    }
-  );
-
-  const filteredMyItems = sampleMyRequests.filter(
-    item => {
-      const searchStr = filterText.toLowerCase();
-      return (
-        item.id.toLowerCase().includes(searchStr) ||
-        item.type.toLowerCase().includes(searchStr) ||
-        item.status.toLowerCase().includes(searchStr) ||
-        item.date.toLowerCase().includes(searchStr)
-      );
-    }
-  );
-
   const handleSendInvite = () => {
     MySwal.fire({
       html: (
@@ -376,9 +352,9 @@ function Home() {
   };
 
   const navItems = [
-    { key: 'dashboard', icon: <FaThLarge /> },
-    { key: 'notices', icon: <FaRegCommentDots /> },
-    { key: 'workorder', icon: <FaRegEdit /> },
+    { key: 'dashboard', icon: <LayoutDashboard /> },
+    { key: 'notices', icon: <MessageSquareText /> },
+    { key: 'workorder', icon: <Edit /> },
   ];
 
   // Add a custom color for the sidebar background (matches provided image)
@@ -430,7 +406,7 @@ function Home() {
                     <div className="text-center text-gray-500 py-8">No notifications</div>
                   ) : (
                     notifications.slice(0, 6).map((notif, idx) => (
-                      <div key={notif.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 border-b last:border-b-0 text-gray-800 text-sm">
+                      <div key={notif.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 border-b last:border-b-0 text-gray-800 text-sm">
                         {notif.icon}
                         <span>{notif.message}</span>
                       </div>
@@ -528,7 +504,7 @@ function Home() {
                 data-tooltip-id="sidebar-tooltip"
                 data-tooltip-content="Admin Dashboard"
               >
-                <span className="text-xl md:text-2xl"><FaSlidersH /></span>
+                <span className="text-xl md:text-2xl"><Sliders /></span>
               </button>
               <button
                 className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
@@ -537,7 +513,7 @@ function Home() {
                 data-tooltip-id="sidebar-tooltip"
                 data-tooltip-content="Send User Invites"
               >
-                <span className="text-xl md:text-2xl"><FaPaperPlane /></span>
+                <span className="text-xl md:text-2xl"><Send /></span>
               </button>
             </>
           )}
@@ -586,7 +562,7 @@ function Home() {
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
                 <DataTable
                   columns={requestQueueColumns}
-                  data={filteredQueueItems}
+                  data={sampleRequestQueue}
                   pagination
                   highlightOnHover
                   striped
@@ -597,7 +573,7 @@ function Home() {
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">My Requests</h2>
                 <DataTable
                   columns={myRequestsColumns}
-                  data={filteredMyItems}
+                  data={sampleMyRequests}
                   pagination
                   highlightOnHover
                   striped
@@ -642,10 +618,9 @@ function Home() {
       <MobileNavBar
         selected={mobileNav}
         onSelect={(key) => {
-          setMobileNav(key);
-          if (key === 'dashboard') {
-            setSelectedSection('dashboard');
-            navigate('/home');
+          if (["dashboard", "search", "notifications", "profile"].includes(key)) {
+            setMobileNav(key as 'dashboard' | 'search' | 'notifications' | 'profile');
+            if (key === 'dashboard') setSelectedSection('dashboard');
           }
         }}
         onCenterAction={handleCenterAction}
