@@ -96,7 +96,12 @@ function Login() {
       
       // Store user info in localStorage
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      
+
+      // Store companyId and companyName from the user object
+      const { companyId, companyName } = response.data.user || {};
+      if (companyId) localStorage.setItem('companyId', companyId.toString());
+      if (companyName) localStorage.setItem('companyName', companyName);
+
       // Show success message
       Swal.fire({
         title: 'Success',

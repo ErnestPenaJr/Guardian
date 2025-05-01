@@ -151,7 +151,7 @@ app.post('/api/send-verification-email', async (req, res) => {
         let expiryTime;
         let hashedCode = user.EMAIL_VALIDATION_TOKEN;
         // If you have an expiry column, use it; otherwise, fallback to 15min after UPDATE_DATE
-        let tokenExpiry = user.EMAIL_VALIDATION_TOKEN_EXPIRY || new Date(new Date(user.UPDATE_DATE).getTime() + 1000 * 60 * 15);
+        const tokenExpiry = user.EMAIL_VALIDATION_TOKEN_EXPIRY || new Date(new Date(user.UPDATE_DATE).getTime() + 1000 * 60 * 15);
         if (hashedCode && tokenExpiry > new Date()) {
             // Reuse the existing code (but we don't have the plain code, so cannot email it)
             // Instead, require that plain code is stored in a temp field or in-memory cache for resend, or always generate a new one
@@ -825,15 +825,12 @@ const handleLogin = async (req, res) => {
             // --- ENHANCEMENT: Fetch company info ---
             let companyId = null;
             let companyName = null;
-            if (user.companyId) {
-                // If companyId is already present, fetch company name
-                const company = await prisma.cOMPANY.findUnique({ where: { COMPANY_ID: user.companyId } });
-                companyId = user.companyId;
+            // Always fetch companyId from user.COMPANY_ID (DB column)
+            if (user.COMPANY_ID) {
+                companyId = user.COMPANY_ID;
+                // Fetch company name from COMPANY table
+                const company = await prisma.cOMPANY.findUnique({ where: { COMPANY_ID: user.COMPANY_ID } });
                 companyName = company?.NAME || null;
-            }
-            else if (user.company && user.company.COMPANY_ID) {
-                companyId = user.company.COMPANY_ID;
-                companyName = user.company.NAME;
             }
             // Generate JWT token
             const token = generateToken(user);
@@ -842,10 +839,10 @@ const handleLogin = async (req, res) => {
                 success: true,
                 token,
                 user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
+                    id: user.USER_ID || user.id,
+                    email: user.EMAIL || user.email,
+                    firstName: user.FIRST_NAME || user.firstName,
+                    lastName: user.LAST_NAME || user.lastName,
                     roles: user.roles,
                     companyId,
                     companyName

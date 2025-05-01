@@ -35,6 +35,7 @@ interface AuthUser {
   firstName: string;
   lastName: string;
   roles: number[];
+  COMPANY_ID: number | null; // Allow null for COMPANY_ID
 }
 
 // Test user for development purposes
@@ -99,6 +100,7 @@ passport.use(
               firstName: testUser.firstName,
               lastName: testUser.lastName,
               roles: testUser.roles,
+              COMPANY_ID: 0, // Add COMPANY_ID to test user
             };
             return done(null, authenticatedUser);
           } else {
@@ -157,6 +159,7 @@ passport.use(
             firstName: user.FIRST_NAME,
             lastName: user.LAST_NAME,
             roles: Array.isArray(roleIds) ? roleIds : [],
+            COMPANY_ID: user.COMPANY_ID // Pass COMPANY_ID to downstream handlers
           };
           return done(null, authenticatedUser);
         } catch (dbError) {
@@ -170,6 +173,7 @@ passport.use(
               firstName: (testUser as TestUser).firstName,
               lastName: (testUser as TestUser).lastName,
               roles: (testUser as TestUser).roles,
+              COMPANY_ID: 0, // Add COMPANY_ID to test user
             };
             return done(null, authenticatedUser);
           }
@@ -202,6 +206,7 @@ passport.use(
             firstName: testUser.firstName,
             lastName: testUser.lastName,
             roles: testUser.roles,
+            COMPANY_ID: 0, // Add COMPANY_ID to test user
           };
           return done(null, authenticatedUser);
         }
@@ -236,6 +241,7 @@ passport.use(
             firstName: user.FIRST_NAME,
             lastName: user.LAST_NAME,
             roles: roleIds,
+            COMPANY_ID: user.COMPANY_ID // Pass COMPANY_ID to downstream handlers
           };
           return done(null, authenticatedUser);
         } catch (dbError) {
@@ -251,6 +257,7 @@ passport.use(
               firstName: fallbackUser.firstName,
               lastName: fallbackUser.lastName,
               roles: fallbackUser.roles,
+              COMPANY_ID: 0, // Add COMPANY_ID to test user
             };
             return done(null, authenticatedUser);
           }
@@ -272,6 +279,7 @@ export const generateToken = (user: AuthUser) => {
       firstName: user.firstName,
       lastName: user.lastName,
       roles: user.roles,
+      COMPANY_ID: user.COMPANY_ID // Add COMPANY_ID to JWT payload
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
