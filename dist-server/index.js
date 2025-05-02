@@ -143,6 +143,7 @@ app.get('/api/admin/secret', passport.authenticate('jwt', { session: false }), i
 // Zod schema for registration
 const registerSchema = z.object({
     email: z.string().email(),
+    companyName: z.string().optional()
 });
 // POST /api/register
 app.post('/api/register', async (req, res) => {
@@ -151,7 +152,10 @@ app.post('/api/register', async (req, res) => {
         if (!parseResult.success) {
             return res.status(400).json({ error: 'Invalid input', details: parseResult.error.errors });
         }
-        const { email } = parseResult.data;
+        const { email, companyName } = parseResult.data;
+        console.log('%c Registration Request', 'background: #673AB7; color: #fff', { email, companyName });
+        // Debug log: Show raw companyName from request body
+        console.log('%c Raw companyName from req.body:', 'background: #FFEB3B; color: #000', companyName);
         // Check if user already exists
         const existingUser = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
         if (existingUser) {
@@ -168,51 +172,142 @@ app.post('/api/register', async (req, res) => {
         const firstName = email.split('@')[0].split('.')[0];
         // get last name from email
         const lastName = email.split('@')[0].split('.')[1] || '';
-        // Use default company instead of creating one based on domain
-        // Find or create a default company for self-registered users
-        let defaultCompany = await prisma.cOMPANY.findFirst({ where: { NAME: 'Default Company' } });
-        if (!defaultCompany) {
-            defaultCompany = await prisma.cOMPANY.create({ data: { NAME: 'Default Company' } });
-        }
-        // Save user with default company association
-        const user = await prisma.uSERS.create({
-            data: {
-                EMAIL: email,
-                PASSWORD_HASH: passwordHash,
-                EMAIL_VALIDATION_TOKEN: hashedCode,
-                EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
-                EMAIL_VALIDATED: false,
-                STATUS: 'P',
-                CREATE_DATE: new Date(),
-                UPDATE_DATE: new Date(),
-                FIRST_NAME: firstName,
-                LAST_NAME: lastName,
-                COMPANY_ID: defaultCompany.COMPANY_ID // assign default company
-            },
-        });
-        // Create company_info entry
-        const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
-        if (!companyInfo) {
-            await prisma.cOMPANY_INFO.create({
+        // Ensure companyNameToUse is 'Default Company' if trimmed companyName is empty
+        const trimmedCompanyName = companyName?.trim() || '';
+        const companyNameToUse = trimmedCompanyName.length === 0 ? 'Default Company' : trimmedCompanyName;
+        console.log('%c Company Name', 'background: #009688; color: #fff', companyNameToUse);
+        // IMPORTANT: Completely bypass the Prisma ORM for company creation
+        // Use a direct SQL query with explicit parameters
+        try {
+            console.log('%c Creating Company', 'background: #FF5722; color: #fff', companyNameToUse);
+            // First try to find if company exists with exact name match
+            const existingCompanies = await prisma.$queryRawUnsafe(`SELECT COMPANY_ID, NAME FROM COMPANY WHERE NAME = @p1`, companyNameToUse);
+            console.log('%c Existing Companies', 'background: #9C27B0; color: #fff', existingCompanies);
+            let companyId;
+            if (!Array.isArray(existingCompanies) || existingCompanies.length === 0) {
+                // Create new company with explicit parameter
+                const insertResult = await prisma.$executeRawUnsafe(`INSERT INTO COMPANY (NAME, CREATED_AT) VALUES (@p1, GETDATE())`, companyNameToUse);
+                console.log('%c Insert Result', 'background: #E91E63; color: #fff', insertResult);
+                // Get the newly created company
+                const newCompanies = await prisma.$queryRawUnsafe(`SELECT TOP 1 COMPANY_ID FROM COMPANY WHERE NAME = @p1 ORDER BY CREATED_AT DESC`, companyNameToUse);
+                console.log('%c New Company Query', 'background: #3F51B5; color: #fff', newCompanies);
+                if (Array.isArray(newCompanies) && newCompanies.length > 0) {
+                    companyId = newCompanies[0].COMPANY_ID;
+                }
+                else {
+                    throw new Error('Failed to retrieve new company ID');
+                }
+            }
+            else {
+                // Use existing company
+                companyId = existingCompanies[0].COMPANY_ID;
+            }
+            console.log('%c Final Company ID', 'background: #607D8B; color: #fff', companyId);
+            if (!companyId) {
+                throw new Error('No valid company ID available');
+            }
+            // Log every insert to COMPANY table
+            if (companyNameToUse === 'Default Company' || trimmedCompanyName.length > 0) {
+                console.warn('%c [COMPANY INSERT] Attempting to insert company:', 'background: #E57373; color: #fff', companyNameToUse, new Date().toISOString());
+            }
+            // Save user with company association
+            const user = await prisma.uSERS.create({
                 data: {
+                    EMAIL: email,
+                    PASSWORD_HASH: passwordHash,
+                    EMAIL_VALIDATION_TOKEN: hashedCode,
+                    EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+                    EMAIL_VALIDATED: false,
+                    STATUS: 'P',
+                    CREATE_DATE: new Date(),
+                    UPDATE_DATE: new Date(),
+                    FIRST_NAME: firstName,
+                    LAST_NAME: lastName,
+                    COMPANY_ID: companyId
+                },
+            });
+            // Create company_info entry
+            const companyInfo = await prisma.cOMPANY_INFO.findFirst({
+                where: {
                     USER_ID: user.USER_ID,
-                    COMPANY_ID: defaultCompany.COMPANY_ID,
+                    COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
                 }
             });
-        }
-        // Assign Admin role to new user
-        try {
-            let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
-            if (!adminRole) {
-                adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
+            if (!companyInfo && user.COMPANY_ID) {
+                await prisma.cOMPANY_INFO.create({
+                    data: {
+                        USER_ID: user.USER_ID,
+                        COMPANY_ID: user.COMPANY_ID,
+                    }
+                });
             }
-            await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
+            // Assign Admin role to new user
+            try {
+                let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+                if (!adminRole) {
+                    adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
+                }
+                await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
+            }
+            catch (roleError) {
+                console.error('[REGISTER] Role assignment failed:', roleError);
+            }
+            await sendVerificationEmail(email, verificationCode);
+            return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
         }
-        catch (roleError) {
-            console.error('[REGISTER] Role assignment failed:', roleError);
+        catch (error) {
+            console.error('[REGISTER] Error creating company:', error);
+            // Fallback to using Default Company if company creation fails
+            let defaultCompany = await prisma.cOMPANY.findFirst({ where: { NAME: 'Default Company' } });
+            if (!defaultCompany) {
+                defaultCompany = await prisma.cOMPANY.create({ data: { NAME: 'Default Company' } });
+            }
+            console.log('Fallback to Default Company:', defaultCompany);
+            // Save user with company association
+            const user = await prisma.uSERS.create({
+                data: {
+                    EMAIL: email,
+                    PASSWORD_HASH: passwordHash,
+                    EMAIL_VALIDATION_TOKEN: hashedCode,
+                    EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+                    EMAIL_VALIDATED: false,
+                    STATUS: 'P',
+                    CREATE_DATE: new Date(),
+                    UPDATE_DATE: new Date(),
+                    FIRST_NAME: firstName,
+                    LAST_NAME: lastName,
+                    COMPANY_ID: defaultCompany.COMPANY_ID // assign company
+                },
+            });
+            // Create company_info entry
+            const companyInfo = await prisma.cOMPANY_INFO.findFirst({
+                where: {
+                    USER_ID: user.USER_ID,
+                    COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
+                }
+            });
+            if (!companyInfo && user.COMPANY_ID) {
+                await prisma.cOMPANY_INFO.create({
+                    data: {
+                        USER_ID: user.USER_ID,
+                        COMPANY_ID: user.COMPANY_ID,
+                    }
+                });
+            }
+            // Assign Admin role to new user
+            try {
+                let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+                if (!adminRole) {
+                    adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
+                }
+                await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
+            }
+            catch (roleError) {
+                console.error('[REGISTER] Role assignment failed:', roleError);
+            }
+            await sendVerificationEmail(email, verificationCode);
+            return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
         }
-        await sendVerificationEmail(email, verificationCode);
-        return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
     }
     catch (err) {
         console.error(err);
@@ -343,7 +438,6 @@ app.post('/api/verify-email', async (req, res) => {
         }
         // Hash the provided code
         const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
-        // Find the user and check code match
         const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -402,24 +496,35 @@ app.post('/api/update-profile', async (req, res) => {
         const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
         if (!user)
             return res.status(404).json({ error: 'User not found' });
-        const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
-        if (!companyInfo)
-            return res.status(404).json({ error: 'Company info not found' });
-        // Update COMPANY_INFO
-        await prisma.cOMPANY_INFO.update({
-            where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
-            data: {
-                ROLE: role,
-                TEAM_SIZE: teamSize,
-                COMPANY_SIZE: companySize,
-                WORKSPACE_NAME: workspaceName
+        const companyInfo = await prisma.cOMPANY_INFO.findFirst({
+            where: {
+                USER_ID: user.USER_ID,
+                COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
             }
         });
-        // Optionally update COMPANY with company size
-        if (companySize && user.COMPANY_ID != null) {
-            await prisma.cOMPANY.update({
-                where: { COMPANY_ID: user.COMPANY_ID },
-                data: { ADDRESS: companySize } // If you want to store it in a dedicated field, adjust here
+        if (!companyInfo) {
+            if (user.COMPANY_ID == null)
+                throw new Error('User missing COMPANY_ID');
+            await prisma.cOMPANY_INFO.create({
+                data: {
+                    USER_ID: user.USER_ID,
+                    COMPANY_ID: user.COMPANY_ID,
+                    ROLE: role,
+                    TEAM_SIZE: teamSize,
+                    COMPANY_SIZE: companySize,
+                    WORKSPACE_NAME: workspaceName
+                }
+            });
+        }
+        else {
+            await prisma.cOMPANY_INFO.update({
+                where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
+                data: {
+                    ROLE: role,
+                    TEAM_SIZE: teamSize,
+                    COMPANY_SIZE: companySize,
+                    WORKSPACE_NAME: workspaceName
+                }
             });
         }
         return res.json({ success: true });
@@ -471,7 +576,12 @@ app.post('/api/complete-registration', async (req, res) => {
             }
         });
         // Update company_info with workspaceName, role, teamSize, companySize
-        const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+        const companyInfo = await prisma.cOMPANY_INFO.findFirst({
+            where: {
+                USER_ID: user.USER_ID,
+                COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
+            }
+        });
         if (!companyInfo) {
             if (user.COMPANY_ID == null)
                 throw new Error('User missing COMPANY_ID');
@@ -479,10 +589,10 @@ app.post('/api/complete-registration', async (req, res) => {
                 data: {
                     USER_ID: user.USER_ID,
                     COMPANY_ID: user.COMPANY_ID,
-                    WORKSPACE_NAME: workspaceName,
                     ROLE: role,
                     TEAM_SIZE: teamSize,
-                    COMPANY_SIZE: companySize
+                    COMPANY_SIZE: companySize,
+                    WORKSPACE_NAME: workspaceName
                 }
             });
         }
@@ -490,10 +600,10 @@ app.post('/api/complete-registration', async (req, res) => {
             await prisma.cOMPANY_INFO.update({
                 where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
                 data: {
-                    WORKSPACE_NAME: workspaceName,
                     ROLE: role,
                     TEAM_SIZE: teamSize,
-                    COMPANY_SIZE: companySize
+                    COMPANY_SIZE: companySize,
+                    WORKSPACE_NAME: workspaceName
                 }
             });
         }
@@ -785,7 +895,7 @@ Your invitation is unique to you. Please click the link below to set up your acc
 
 ${inviteUrl}
 
-If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.
+If you have any questions or did not expect this, please contact our support team at support@shieldlytics.com.
 
 Guardian by Shieldlytics
 123 Main St, City, State, ZIP
@@ -822,7 +932,7 @@ https://shieldlytics.com
     </ul>
     <p style="margin-top:18px;">To get started, please click the button below to accept your invitation and set up your account:</p>
     <p><a class="cta" href="${inviteUrl}">Accept Your Invitation</a></p>
-    <p>If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.</p>
+    <p>If you have any questions or did not expect this, please contact our support team at support@shieldlytics.com.</p>
     <div class="footer">
       &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>
       123 Main St, City, State, ZIP<br>
@@ -887,12 +997,21 @@ app.post('/api/invite/accept', async (req, res) => {
         // Mark invite as used
         await prismaAny.iNVITES.update({ where: { INVITE_ID: invite.INVITE_ID }, data: { STATUS: 'U', USED_AT: new Date() } });
         // Create company_info
-        const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+        const companyInfo = await prisma.cOMPANY_INFO.findFirst({
+            where: {
+                USER_ID: user.USER_ID,
+                COMPANY_ID: user.COMPANY_ID
+            }
+        });
         if (!companyInfo) {
             await prisma.cOMPANY_INFO.create({
                 data: {
                     USER_ID: user.USER_ID,
-                    COMPANY_ID: user.COMPANY_ID
+                    COMPANY_ID: user.COMPANY_ID,
+                    ROLE: '',
+                    TEAM_SIZE: '',
+                    COMPANY_SIZE: '',
+                    WORKSPACE_NAME: ''
                 }
             });
         }
@@ -1174,7 +1293,7 @@ If you have any questions, please contact your administrator.
             
             <p>Please <a href="${loginUrl}" style="color: #007bff;">login</a> and change your password immediately for security reasons.</p>
             
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px;">
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
             <p style="color: #777; font-size: 12px; text-align: center;">
               If you have any questions, please contact your administrator.<br>
               &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.
@@ -1348,7 +1467,7 @@ app.delete('/api/delete-user/:id', passport.authenticate('jwt', { session: false
         }
         console.log(`[DELETE USER] Attempting to delete user with ID: ${userId}`);
         // Check if user exists
-        const user = await prisma.uSERS.findUnique({ where: { USER_ID: userId } });
+        const user = await prisma.uSERS.findFirst({ where: { USER_ID: userId } });
         if (!user) {
             console.log(`[DELETE USER] User not found: ${userId}`);
             return res.status(404).json({ error: 'User not found' });

@@ -77,6 +77,11 @@ function Register() {
       return;
     }
     
+    if (!companyName.trim()) {
+      showToast.error('Please enter your company name');
+      return;
+    }
+    
     // Validate email with SendGrid
     const isValid = await validateEmailWithSendGrid(email);
     if (!isValid) {
@@ -87,13 +92,14 @@ function Register() {
     setError('');
     
     try {
+      // Debug log: Show company name state just before API call
+      console.log('%c Company name being sent (frontend):', 'background: #FFEB3B; color: #000', companyName);
       // Call backend registration endpoint with company name
       console.log('%c Registration Submission', 'background: #4CAF50; color: #fff', {
         email,
         companyName,
         timestamp: new Date().toISOString()
       });
-      
       const response = await axios.post('/api/register', { 
         email, 
         companyName 

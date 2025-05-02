@@ -176,6 +176,9 @@ app.post('/api/register', async (req, res) => {
     const { email, companyName } = parseResult.data;
     console.log('%c Registration Request', 'background: #673AB7; color: #fff', { email, companyName });
 
+    // Debug log: Show raw companyName from request body
+    console.log('%c Raw companyName from req.body:', 'background: #FFEB3B; color: #000', companyName);
+
     // Check if user already exists
     const existingUser = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
     if (existingUser) {
@@ -194,29 +197,62 @@ app.post('/api/register', async (req, res) => {
     // get last name from email
     const lastName = email.split('@')[0].split('.')[1] || '';
 
-    // Use provided company name or default
-    const companyNameToUse = companyName?.trim() || 'Default Company';
+    // Ensure companyNameToUse is 'Default Company' if trimmed companyName is empty
+    const trimmedCompanyName = companyName?.trim() || '';
+    const companyNameToUse = trimmedCompanyName.length === 0 ? 'Default Company' : trimmedCompanyName;
     console.log('%c Company Name', 'background: #009688; color: #fff', companyNameToUse);
     
-    // Create a new company with the provided name using direct SQL
+    // IMPORTANT: Completely bypass the Prisma ORM for company creation
+    // Use a direct SQL query with explicit parameters
     try {
       console.log('%c Creating Company', 'background: #FF5722; color: #fff', companyNameToUse);
       
-      // Create company directly with SQL query
-      const result = await prisma.$queryRaw`
-        INSERT INTO COMPANY (NAME, CREATED_AT) 
-        VALUES (${companyNameToUse}, GETDATE())
-        SELECT SCOPE_IDENTITY() as COMPANY_ID
-      `;
+      // First try to find if company exists with exact name match
+      const existingCompanies = await prisma.$queryRawUnsafe(
+        `SELECT COMPANY_ID, NAME FROM COMPANY WHERE NAME = @p1`,
+        companyNameToUse
+      );
       
-      console.log('%c SQL Result', 'background: #3F51B5; color: #fff', result);
+      console.log('%c Existing Companies', 'background: #9C27B0; color: #fff', existingCompanies);
       
-      // Get the newly created company ID
-      const companyId = Array.isArray(result) && result.length > 0 ? result[0].COMPANY_ID : null;
-      console.log('%c Company ID', 'background: #607D8B; color: #fff', companyId);
+      let companyId;
+      
+      if (!Array.isArray(existingCompanies) || existingCompanies.length === 0) {
+        // Create new company with explicit parameter
+        const insertResult = await prisma.$executeRawUnsafe(
+          `INSERT INTO COMPANY (NAME, CREATED_AT) VALUES (@p1, GETDATE())`,
+          companyNameToUse
+        );
+        
+        console.log('%c Insert Result', 'background: #E91E63; color: #fff', insertResult);
+        
+        // Get the newly created company
+        const newCompanies = await prisma.$queryRawUnsafe(
+          `SELECT TOP 1 COMPANY_ID FROM COMPANY WHERE NAME = @p1 ORDER BY CREATED_AT DESC`,
+          companyNameToUse
+        );
+        
+        console.log('%c New Company Query', 'background: #3F51B5; color: #fff', newCompanies);
+        
+        if (Array.isArray(newCompanies) && newCompanies.length > 0) {
+          companyId = newCompanies[0].COMPANY_ID;
+        } else {
+          throw new Error('Failed to retrieve new company ID');
+        }
+      } else {
+        // Use existing company
+        companyId = existingCompanies[0].COMPANY_ID;
+      }
+      
+      console.log('%c Final Company ID', 'background: #607D8B; color: #fff', companyId);
       
       if (!companyId) {
-        throw new Error('Failed to get new company ID');
+        throw new Error('No valid company ID available');
+      }
+      
+      // Log every insert to COMPANY table
+      if (companyNameToUse === 'Default Company' || trimmedCompanyName.length > 0) {
+        console.warn('%c [COMPANY INSERT] Attempting to insert company:', 'background: #E57373; color: #fff', companyNameToUse, new Date().toISOString());
       }
       
       // Save user with company association
