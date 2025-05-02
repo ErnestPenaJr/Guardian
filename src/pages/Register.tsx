@@ -46,7 +46,7 @@ function Register() {
           return false;
         }
       } catch (error) {
-        console.warn('Email validation timed out or failed, using basic validation instead');
+        console.warn('%c Email validation timed out or failed', 'background: #FFC107; color: #000', 'using basic validation instead');
         // If SendGrid validation fails or times out, just use basic validation
         // We already checked basic format above, so we can proceed
       }
@@ -54,7 +54,7 @@ function Register() {
       setIsValidatingEmail(false);
       return true;
     } catch (error) {
-      console.error('Email validation error:', error);
+      console.error('%c Email validation error:', 'background: #F44336; color: #fff', error);
       setEmailError('Error validating email. Please try again.');
       showToast.error('Error validating email. Please try again.');
       setIsValidatingEmail(false);
@@ -88,7 +88,19 @@ function Register() {
     
     try {
       // Call backend registration endpoint with company name
-      await axios.post('/api/register', { email, companyName });
+      console.log('%c Registration Submission', 'background: #4CAF50; color: #fff', {
+        email,
+        companyName,
+        timestamp: new Date().toISOString()
+      });
+      
+      const response = await axios.post('/api/register', { 
+        email, 
+        companyName 
+      });
+      
+      console.log('%c Registration API Response', 'background: #2196F3; color: #fff', response.data);
+      
       // Success: proceed to verification
       showToast.success(`Verification code sent to ${email}`);
       // Persist registration data for verification page

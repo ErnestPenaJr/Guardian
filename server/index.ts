@@ -174,6 +174,7 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: 'Invalid input', details: parseResult.error.errors });
     }
     const { email, companyName } = parseResult.data;
+    console.log('%c Registration Request', 'background: #673AB7; color: #fff', { email, companyName });
 
     // Check if user already exists
     const existingUser = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
@@ -195,59 +196,128 @@ app.post('/api/register', async (req, res) => {
 
     // Use provided company name or default
     const companyNameToUse = companyName?.trim() || 'Default Company';
+    console.log('%c Company Name', 'background: #009688; color: #fff', companyNameToUse);
     
-    // Find or create a company with the provided name
-    let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
-    if (!company) {
-      company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
-    }
-
-    // Save user with company association
-    const user = await prisma.uSERS.create({
-      data: {
-        EMAIL: email,
-        PASSWORD_HASH: passwordHash,
-        EMAIL_VALIDATION_TOKEN: hashedCode,
-        EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
-        EMAIL_VALIDATED: false,
-        STATUS: 'P',
-        CREATE_DATE: new Date(),
-        UPDATE_DATE: new Date(),
-        FIRST_NAME: firstName,
-        LAST_NAME: lastName,
-        COMPANY_ID: company.COMPANY_ID // assign company
-      },
-    });
-
-    // Create company_info entry
-    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
-      where: { 
-        USER_ID: user.USER_ID,
-        COMPANY_ID: company.COMPANY_ID 
-      } 
-    });
-    
-    if (!companyInfo) {
-      await prisma.cOMPANY_INFO.create({
-        data: {
-          USER_ID: user.USER_ID,
-          COMPANY_ID: company.COMPANY_ID,
-        }
-      });
-    }
-
-    // Assign Admin role to new user
+    // Create a new company with the provided name using direct SQL
     try {
-      let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
-      if (!adminRole) {
-        adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
+      console.log('%c Creating Company', 'background: #FF5722; color: #fff', companyNameToUse);
+      
+      // Create company directly with SQL query
+      const result = await prisma.$queryRaw`
+        INSERT INTO COMPANY (NAME, CREATED_AT) 
+        VALUES (${companyNameToUse}, GETDATE())
+        SELECT SCOPE_IDENTITY() as COMPANY_ID
+      `;
+      
+      console.log('%c SQL Result', 'background: #3F51B5; color: #fff', result);
+      
+      // Get the newly created company ID
+      const companyId = Array.isArray(result) && result.length > 0 ? result[0].COMPANY_ID : null;
+      console.log('%c Company ID', 'background: #607D8B; color: #fff', companyId);
+      
+      if (!companyId) {
+        throw new Error('Failed to get new company ID');
       }
-      await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
-    } catch (roleError) {
-      console.error('[REGISTER] Role assignment failed:', roleError);
+      
+      // Save user with company association
+      const user = await prisma.uSERS.create({
+        data: {
+          EMAIL: email,
+          PASSWORD_HASH: passwordHash,
+          EMAIL_VALIDATION_TOKEN: hashedCode,
+          EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+          EMAIL_VALIDATED: false,
+          STATUS: 'P',
+          CREATE_DATE: new Date(),
+          UPDATE_DATE: new Date(),
+          FIRST_NAME: firstName,
+          LAST_NAME: lastName,
+          COMPANY_ID: companyId
+        },
+      });
+      
+      // Create company_info entry
+      const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
+        where: { 
+          USER_ID: user.USER_ID,
+          COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
+        } 
+      });
+      
+      if (!companyInfo && user.COMPANY_ID) {
+        await prisma.cOMPANY_INFO.create({
+          data: {
+            USER_ID: user.USER_ID,
+            COMPANY_ID: user.COMPANY_ID,
+          }
+        });
+      }
+      
+      // Assign Admin role to new user
+      try {
+        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+        if (!adminRole) {
+          adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
+        }
+        await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
+      } catch (roleError) {
+        console.error('[REGISTER] Role assignment failed:', roleError);
+      }
+      await sendVerificationEmail(email, verificationCode);
+      return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
+    } catch (error) {
+      console.error('[REGISTER] Error creating company:', error);
+      // Fallback to using Default Company if company creation fails
+      let defaultCompany = await prisma.cOMPANY.findFirst({ where: { NAME: 'Default Company' } });
+      if (!defaultCompany) {
+        defaultCompany = await prisma.cOMPANY.create({ data: { NAME: 'Default Company' } });
+      }
+      console.log('Fallback to Default Company:', defaultCompany);
+      // Save user with company association
+      const user = await prisma.uSERS.create({
+        data: {
+          EMAIL: email,
+          PASSWORD_HASH: passwordHash,
+          EMAIL_VALIDATION_TOKEN: hashedCode,
+          EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+          EMAIL_VALIDATED: false,
+          STATUS: 'P',
+          CREATE_DATE: new Date(),
+          UPDATE_DATE: new Date(),
+          FIRST_NAME: firstName,
+          LAST_NAME: lastName,
+          COMPANY_ID: defaultCompany.COMPANY_ID // assign company
+        },
+      });
+      // Create company_info entry
+      const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
+        where: { 
+          USER_ID: user.USER_ID,
+          COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
+        } 
+      });
+      
+      if (!companyInfo && user.COMPANY_ID) {
+        await prisma.cOMPANY_INFO.create({
+          data: {
+            USER_ID: user.USER_ID,
+            COMPANY_ID: user.COMPANY_ID,
+          }
+        });
+      }
+      // Assign Admin role to new user
+      try {
+        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+        if (!adminRole) {
+          adminRole = await prisma.rOLES.create({ data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } });
+        }
+        await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } });
+      } catch (roleError) {
+        console.error('[REGISTER] Role assignment failed:', roleError);
+      }
+      await sendVerificationEmail(email, verificationCode);
+      return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
     }
-    await sendVerificationEmail(email, verificationCode);
-    return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -377,8 +447,6 @@ app.post('/api/verify-email', async (req, res) => {
     }
     // Hash the provided code
     const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
-
-    // Find the user and check code match
     const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -441,7 +509,7 @@ app.post('/api/update-profile', async (req, res) => {
     const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
       where: { 
         USER_ID: user.USER_ID,
-        ...(user.COMPANY_ID ? { COMPANY_ID: user.COMPANY_ID } : {})
+        COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
       } 
     });
     if (!companyInfo) {
@@ -519,7 +587,7 @@ app.post('/api/complete-registration', async (req, res) => {
     const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
       where: { 
         USER_ID: user.USER_ID,
-        ...(user.COMPANY_ID ? { COMPANY_ID: user.COMPANY_ID } : {})
+        COMPANY_ID: user.COMPANY_ID ?? undefined // Fix lint error related to null handling for COMPANY_ID
       } 
     });
     if (!companyInfo) {
@@ -1458,7 +1526,7 @@ app.delete('/api/delete-user/:id', passport.authenticate('jwt', { session: false
     console.log(`[DELETE USER] Attempting to delete user with ID: ${userId}`);
     
     // Check if user exists
-    const user = await prisma.uSERS.findUnique({ where: { USER_ID: userId } });
+    const user = await prisma.uSERS.findFirst({ where: { USER_ID: userId } });
     
     if (!user) {
       console.log(`[DELETE USER] User not found: ${userId}`);

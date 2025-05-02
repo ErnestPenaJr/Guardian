@@ -64,7 +64,7 @@ const VerifyEmail = () => {
         setTimeLeft(Math.floor(timeRemaining / 1000));
       }
     } catch (error) {
-      console.error('Error parsing registration data:', error);
+      console.error('%c Error parsing registration data:', 'background: #F44336; color: #fff', error);
       navigate('/register');
     }
   }, [navigate]);
@@ -210,7 +210,7 @@ const VerifyEmail = () => {
         setError(response.data.error || `Failed to resend verification code to ${userEmail}. Please try again.`);
       }
     } catch (error: any) {
-      console.error('Resend code error:', error);
+      console.error('%c Resend code error:', 'background: #F44336; color: #fff', error);
       if (error.response && error.response.data && error.response.data.error) {
         setError(error.response.data.error);
       } else {
@@ -275,7 +275,7 @@ const VerifyEmail = () => {
         setError(response.data.error || 'Registration failed.');
       }
     } catch (error: any) {
-      console.error('Registration completion error:', error);
+      console.error('%c Registration completion error:', 'background: #F44336; color: #fff', error);
       if (error.response && error.response.data && error.response.data.error) {
         setError(error.response.data.error);
       } else {
@@ -588,7 +588,7 @@ const VerifyEmail = () => {
             id="workspaceName"
             value={formData.workspaceName}
             onChange={(e) => setFormData({ ...formData, workspaceName: e.target.value })}
-            placeholder="Your company or team name"
+            placeholder="Add a team name"
             className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
           />
         </div>
