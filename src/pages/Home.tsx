@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  Shield, Edit, LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, MessageCircle, CheckCircle, FileText, Monitor, CreditCard, Sliders, Send, LayoutDashboard, MessageSquareText
+  LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, 
+  MessageCircle, CheckCircle, FileText, Monitor, CreditCard,
+  LayoutDashboard, MessageSquareText, ChevronLeft, ChevronRight, Sliders, Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Pie 
-} from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 import DataTable from 'react-data-table-component';
 import withReactContent from 'sweetalert2-react-content';
@@ -156,52 +156,21 @@ const sampleMyRequests = [
 
 // Table styles
 const customStyles = {
-  table: {
+  rows: {
     style: {
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-    },
-  },
-  headRow: {
-    style: {
-      backgroundColor: 'rgba(224, 224, 224, 0.2)',
-      borderBottomWidth: '1px',
-      borderBottomColor: '#E0E0E0',
-      minHeight: '3rem',
+      minHeight: '52px',
     },
   },
   headCells: {
     style: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#333333',
-      padding: '0.75rem 1rem',
+      paddingLeft: '8px',
+      paddingRight: '8px',
     },
   },
   cells: {
     style: {
-      fontSize: '0.875rem',
-      padding: '0.75rem 1rem',
-      color: '#4F4F4F',
-    },
-  },
-  rows: {
-    style: {
-      backgroundColor: 'white',
-      '&:hover': {
-        backgroundColor: 'rgba(224, 224, 224, 0.1)',
-        cursor: 'pointer',
-      },
-      borderBottomWidth: '1px',
-      borderBottomColor: '#E0E0E0',
-      minHeight: '3rem',
-    },
-  },
-  pagination: {
-    style: {
-      borderTopWidth: '1px',
-      borderTopColor: '#E0E0E0',
-      padding: '0.5rem',
+      paddingLeft: '8px',
+      paddingRight: '8px',
     },
   },
 };
@@ -214,6 +183,7 @@ function Home() {
   const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [notifOpen, setNotifOpen] = useState(false);
+  const [isNavExpanded, setIsNavExpanded] = useState(true);
   const notifications = [
     { id: 1, message: 'New user registered.', icon: <UserPlus className="w-5 h-5 text-primary" /> },
     { id: 2, message: 'System update available.', icon: <RefreshCw className="w-5 h-5 text-blue-500" /> },
@@ -225,16 +195,6 @@ function Home() {
     { id: 8, message: 'Subscription renewed.', icon: <CreditCard className="w-5 h-5 text-pink-500" /> },
   ];
 
-  // Format user name as first initial and last name
-  const formatUserName = () => {
-    if (!user) return 'User';
-    
-    const firstInitial = user.firstName ? user.firstName.charAt(0) : '';
-    const lastName = user.lastName || '';
-    
-    return `${firstInitial}. ${lastName}`;
-  };
-  
   // Get user role
   const getUserRole = () => {
     if (!user || !user.roles || user.roles.length === 0) return 'User';
@@ -255,7 +215,7 @@ function Home() {
       showCancelButton: true,
       confirmButtonText: 'Yes, logout',
       cancelButtonText: 'Cancel'
-    }).then(async (result) => {
+    }).then(async (result: { isConfirmed: boolean }) => {
       if (result.isConfirmed) {
         try {
           // Get token from localStorage
@@ -312,24 +272,13 @@ function Home() {
 
   // Track system theme if 'system' is selected
   useEffect(() => {
-    function applyTheme(selectedTheme: 'light' | 'dark' | 'system') {
-      if (selectedTheme === 'system') {
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.classList.toggle('dark', isDark);
-      } else {
-        document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
-      }
-    }
-    applyTheme(theme);
-    localStorage.setItem('theme', theme);
-    let mql: MediaQueryList | null = null;
     if (theme === 'system') {
-      mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const mql = window.matchMedia('(prefers-color-scheme: dark)');
       const listener = (e: MediaQueryListEvent) => {
         document.documentElement.classList.toggle('dark', e.matches);
       };
       mql.addEventListener('change', listener);
-      return () => mql && mql.removeEventListener('change', listener);
+      return () => mql.removeEventListener('change', listener);
     }
   }, [theme]);
 
@@ -340,14 +289,17 @@ function Home() {
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    if (!profileMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setProfileMenuOpen(false);
       }
-    }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [profileMenuOpen]);
 
   // --- Theme Dropdown State ---
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
@@ -371,15 +323,16 @@ function Home() {
   };
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    if (!themeMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
       if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
         setThemeMenuOpen(false);
       }
-    }
-    if (themeMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [themeMenuOpen]);
 
   // --- User Profile Dropdown State ---
@@ -399,13 +352,39 @@ function Home() {
   };
 
   const navItems = [
-    { key: 'dashboard', icon: <LayoutDashboard /> },
-    { key: 'notices', icon: <MessageSquareText /> },
-    { key: 'workorder', icon: <Edit /> },
+    {
+      icon: <LayoutDashboard className="w-6 h-6" />,
+      label: 'Dashboard',
+      onClick: () => setSelectedSection('dashboard'),
+      active: selectedSection === 'dashboard',
+    },
+    {
+      icon: <MessageSquareText className="w-6 h-6" />,
+      label: 'Notices',
+      onClick: () => navigate('/notices'),
+      active: false,
+    },
+    {
+      icon: <FileText className="w-6 h-6" />,
+      label: 'Requests',
+      onClick: () => setSelectedSection('workorder'),
+      active: selectedSection === 'workorder',
+    },
+    ...(user?.roles?.some((role: any) => role.id === 1) ? [
+      {
+        icon: <Sliders className="w-6 h-6" />,
+        label: 'Admin',
+        onClick: () => setSelectedSection('admin'),
+        active: selectedSection === 'admin',
+      },
+      {
+        icon: <Send className="w-6 h-6" />,
+        label: 'Invites',
+        onClick: handleSendInvite,
+        active: false,
+      }
+    ] : [])
   ];
-
-  // Add a custom color for the sidebar background (matches provided image)
-  const sidebarBg = '#6DEBE8';
 
   // Center action handler (could open a modal or perform an action)
   const handleCenterAction = () => {
@@ -452,7 +431,7 @@ function Home() {
                   {notifications.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">No notifications</div>
                   ) : (
-                    notifications.slice(0, 6).map((notif, idx) => (
+                    notifications.map((notif) => (
                       <div key={notif.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 border-b last:border-b-0 text-gray-800 text-sm">
                         {notif.icon}
                         <span>{notif.message}</span>
@@ -556,61 +535,56 @@ function Home() {
         </div>
       </header>
       {/* Sidebar: collapses to bottom bar on mobile */}
-      <nav aria-label="Sidebar navigation" className="hidden sm:flex flex-col items-center pt-4 w-14 md:w-16 min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-[calc(100vh-4rem)] fixed top-16 left-0 z-50">
+      <nav aria-label="Sidebar navigation" className={`hidden sm:flex flex-col items-center pt-1 ${isNavExpanded ? 'w-48' : 'w-16'} min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-[calc(100vh-4rem)] fixed top-16 left-0 z-50 transition-all duration-300 ease-in-out`}>
+        {/* Expand/Collapse Button */}
+        <button
+          onClick={() => setIsNavExpanded(!isNavExpanded)}
+          className="mb-1 py-0.5 px-1 hover:bg-[#4AB0B9]/70 rounded transition-colors"
+          aria-label={isNavExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {isNavExpanded ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        </button>
         <div className="flex flex-col items-center w-full flex-1">
-          {navItems.filter(item => item.key !== 'settings').map(item => (
+          {navItems.map((item, index) => (
             <button
-              key={item.key}
-              className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === item.key ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
-              onClick={() => setSelectedSection(item.key)}
-              aria-label={item.key === 'dashboard' ? 'Home' : item.key.charAt(0).toUpperCase() + item.key.slice(1)}
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content={item.key === 'dashboard' ? 'Go to Home' : item.key === 'notices' ? 'View Notices' : item.key === 'workorder' ? 'View Requests' : 'Account Settings'}
+              key={index}
+              onClick={item.onClick}
+              className={`flex items-center ${isNavExpanded ? 'justify-start px-4' : 'justify-center'} w-full h-10 mb-3 transition-all duration-150 ${
+                item.active ? 'bg-[#4AB0B9]' : 'hover:bg-[#4AB0B9]/70'
+              }`}
+              aria-label={item.label}
+              data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
+              data-tooltip-content={isNavExpanded ? undefined : item.label}
             >
-              <span className="text-xl md:text-2xl" aria-hidden="true">{item.icon}</span>
-              {item.key === 'dashboard' && (
-                <span className="sr-only">Home</span>
+              <span className="text-xl" aria-hidden="true">
+                {item.icon}
+              </span>
+              {isNavExpanded && (
+                <span className="ml-3 text-sm font-medium">{item.label}</span>
               )}
             </button>
           ))}
-          {user && user.roles && user.roles.some((role: any) => role.id === 1) && (
-            <>
-              <button
-                className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 transition-all duration-150 ${selectedSection === 'admin' ? 'selected-dashboard' : 'rounded-full text-white hover:bg-primary/80'}`}
-                onClick={() => setSelectedSection('admin')}
-                aria-label="Admin Dashboard"
-                data-tooltip-id="sidebar-tooltip"
-                data-tooltip-content="Admin Dashboard"
-              >
-                <span className="text-xl md:text-2xl"><Sliders /></span>
-              </button>
-              <button
-                className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 mb-3 md:mb-4 rounded-full text-white hover:bg-primary/80 transition-all duration-150"
-                onClick={handleSendInvite}
-                aria-label="Send Invites"
-                data-tooltip-id="sidebar-tooltip"
-                data-tooltip-content="Send User Invites"
-              >
-                <span className="text-xl md:text-2xl"><Send /></span>
-              </button>
-            </>
-          )}
         </div>
         <div className="flex flex-col items-center w-full pb-2 mt-auto">
           <button
-            className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full text-white hover:bg-primary/80 transition-all duration-150 mt-4"
-            aria-label="Logout"
-            data-tooltip-id="sidebar-tooltip"
-            data-tooltip-content="Logout"
+            className={`flex items-center ${isNavExpanded ? 'justify-start px-4' : 'justify-center'} w-full h-10 mb-3 transition-all duration-150 hover:bg-[#4AB0B9]/70`}
             onClick={handleLogout}
+            aria-label="Logout"
+            data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
+            data-tooltip-content={isNavExpanded ? undefined : "Logout"}
           >
-            <LogOut className="lucide lucide-log-out" />
+            <span className="text-xl" aria-hidden="true">
+              <LogOut className="w-6 h-6" />
+            </span>
+            {isNavExpanded && (
+              <span className="ml-3 text-sm font-medium">Logout</span>
+            )}
           </button>
         </div>
         <Tooltip id="sidebar-tooltip" place="right" />
       </nav>
       {/* Main Content: Switchable Dashboard */}
-      <main className="flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ml-0 sm:ml-14 md:ml-16">
+      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ${isNavExpanded ? 'ml-48' : 'ml-16'} transition-all duration-300 ease-in-out`}>
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container">
@@ -644,6 +618,7 @@ function Home() {
                   pagination
                   highlightOnHover
                   striped
+                  customStyles={customStyles}
                 />
               </section>
               {/* My Requests Card (spans both columns on large screens) */}
@@ -655,6 +630,7 @@ function Home() {
                   pagination
                   highlightOnHover
                   striped
+                  customStyles={customStyles}
                 />
               </section>
             </div>

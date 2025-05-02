@@ -24,14 +24,16 @@ export const validateEmailFormat = (email: string): boolean => {
 /**
  * Validates an email address using SendGrid's Email Validation API
  * @param email - The email address to validate
+ * @param purpose - The purpose of validation ('register' or 'reset')
  * @returns Object containing validation result and reason if invalid
  */
 export const validateEmail = async (
-  email: string
+  email: string,
+  purpose: 'register' | 'reset' = 'register'
 ): Promise<{ valid: boolean; reason?: string }> => {
   try {
     // Call our backend API to validate the email
-    const response = await axios.post(VALIDATE_EMAIL_ENDPOINT, { email });
+    const response = await axios.post(VALIDATE_EMAIL_ENDPOINT, { email, purpose });
     return response.data;
   } catch (error: any) {
     console.error('Error validating email:', error);

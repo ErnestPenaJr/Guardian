@@ -191,14 +191,15 @@ app.post('/api/register', async (req, res) => {
     const firstName = email.split('@')[0].split('.')[0];
     // get last name from email
     const lastName = email.split('@')[0].split('.')[1] || '';
-    // Company by domain
-    const domain = email.split('@')[1];
-    const companyName = domain.split('.')[0];
-    let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyName } });
-    if (!company) {
-      company = await prisma.cOMPANY.create({ data: { NAME: companyName } });
+
+    // Use default company instead of creating one based on domain
+    // Find or create a default company for self-registered users
+    let defaultCompany = await prisma.cOMPANY.findFirst({ where: { NAME: 'Default Company' } });
+    if (!defaultCompany) {
+      defaultCompany = await prisma.cOMPANY.create({ data: { NAME: 'Default Company' } });
     }
-    // Save user and hashed token
+
+    // Save user with default company association
     const user = await prisma.uSERS.create({
       data: {
         EMAIL: email,
@@ -211,20 +212,27 @@ app.post('/api/register', async (req, res) => {
         UPDATE_DATE: new Date(),
         FIRST_NAME: firstName,
         LAST_NAME: lastName,
-        COMPANY_ID: company.COMPANY_ID // assign directly from company
+        COMPANY_ID: defaultCompany.COMPANY_ID // assign default company
       },
     });
-    // Only proceed if company.COMPANY_ID is a valid number
-    if (user.COMPANY_ID == null) throw new Error('User missing COMPANY_ID');
-    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+
+    // Create company_info entry
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
+      where: { 
+        USER_ID: user.USER_ID,
+        COMPANY_ID: defaultCompany.COMPANY_ID 
+      } 
+    });
+    
     if (!companyInfo) {
       await prisma.cOMPANY_INFO.create({
         data: {
           USER_ID: user.USER_ID,
-          COMPANY_ID: user.COMPANY_ID!,
+          COMPANY_ID: defaultCompany.COMPANY_ID,
         }
       });
     }
+
     // Assign Admin role to new user
     try {
       let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
@@ -427,23 +435,33 @@ app.post('/api/update-profile', async (req, res) => {
     // Find user and their company info
     const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
-    if (!companyInfo) return res.status(404).json({ error: 'Company info not found' });
-    // Update COMPANY_INFO
-    await prisma.cOMPANY_INFO.update({
-      where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
-      data: {
-        ROLE: role,
-        TEAM_SIZE: teamSize,
-        COMPANY_SIZE: companySize,
-        WORKSPACE_NAME: workspaceName
-      }
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
+      where: { 
+        USER_ID: user.USER_ID,
+        ...(user.COMPANY_ID ? { COMPANY_ID: user.COMPANY_ID } : {})
+      } 
     });
-    // Optionally update COMPANY with company size
-    if (companySize && user.COMPANY_ID != null) {
-      await prisma.cOMPANY.update({
-        where: { COMPANY_ID: user.COMPANY_ID },
-        data: { ADDRESS: companySize } // If you want to store it in a dedicated field, adjust here
+    if (!companyInfo) {
+      if (user.COMPANY_ID == null) throw new Error('User missing COMPANY_ID');
+      await prisma.cOMPANY_INFO.create({
+        data: {
+          USER_ID: user.USER_ID,
+          COMPANY_ID: user.COMPANY_ID,
+          ROLE: role,
+          TEAM_SIZE: teamSize,
+          COMPANY_SIZE: companySize,
+          WORKSPACE_NAME: workspaceName
+        }
+      });
+    } else {
+      await prisma.cOMPANY_INFO.update({
+        where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
+        data: {
+          ROLE: role,
+          TEAM_SIZE: teamSize,
+          COMPANY_SIZE: companySize,
+          WORKSPACE_NAME: workspaceName
+        }
       });
     }
     return res.json({ success: true });
@@ -495,27 +513,32 @@ app.post('/api/complete-registration', async (req, res) => {
       }
     });
     // Update company_info with workspaceName, role, teamSize, companySize
-    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
+      where: { 
+        USER_ID: user.USER_ID,
+        ...(user.COMPANY_ID ? { COMPANY_ID: user.COMPANY_ID } : {})
+      } 
+    });
     if (!companyInfo) {
       if (user.COMPANY_ID == null) throw new Error('User missing COMPANY_ID');
       await prisma.cOMPANY_INFO.create({
         data: {
           USER_ID: user.USER_ID,
-          COMPANY_ID: user.COMPANY_ID!,
-          WORKSPACE_NAME: workspaceName,
+          COMPANY_ID: user.COMPANY_ID,
           ROLE: role,
           TEAM_SIZE: teamSize,
-          COMPANY_SIZE: companySize
+          COMPANY_SIZE: companySize,
+          WORKSPACE_NAME: workspaceName
         }
       });
     } else {
       await prisma.cOMPANY_INFO.update({
         where: { COMPANY_INFO_ID: companyInfo.COMPANY_INFO_ID },
         data: {
-          WORKSPACE_NAME: workspaceName,
           ROLE: role,
           TEAM_SIZE: teamSize,
-          COMPANY_SIZE: companySize
+          COMPANY_SIZE: companySize,
+          WORKSPACE_NAME: workspaceName
         }
       });
     }
@@ -645,7 +668,7 @@ The Guardian Team`,
     <p>Thank you for registering with Guardian. Please use the following verification code to confirm your email address:</p>
     <div class="code">${verificationToken}</div>
     <p>This code will expire in 15 minutes.</p>
-    <p>If you did not request this, please ignore this email or contact <a href="mailto:support@shieldlytics.com">support@shieldlytics.com</a>.</p>
+    <p>If you have any questions or did not expect this, please contact our support team at support@shieldlytics.com.</p>
     <div class="footer">&copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>123 Main St, City, State, ZIP<br>
     <a href="https://shieldlytics.com" style="color: #2EBCBC;">https://shieldlytics.com</a>
   </div>
@@ -812,7 +835,7 @@ Your invitation is unique to you. Please click the link below to set up your acc
 
 ${inviteUrl}
 
-If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.
+If you have any questions or did not expect this, please contact our support team at support@shieldlytics.com.
 
 Guardian by Shieldlytics
 123 Main St, City, State, ZIP
@@ -849,7 +872,7 @@ https://shieldlytics.com
     </ul>
     <p style="margin-top:18px;">To get started, please click the button below to accept your invitation and set up your account:</p>
     <p><a class="cta" href="${inviteUrl}">Accept Your Invitation</a></p>
-    <p>If you have any questions or did not expect this invitation, please contact our support team at support@shieldlytics.com.</p>
+    <p>If you have any questions or did not expect this, please contact our support team at support@shieldlytics.com.</p>
     <div class="footer">
       &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>
       123 Main St, City, State, ZIP<br>
@@ -912,12 +935,21 @@ app.post('/api/invite/accept', async (req, res) => {
     // Mark invite as used
     await prismaAny.iNVITES.update({ where: { INVITE_ID: invite.INVITE_ID }, data: { STATUS: 'U', USED_AT: new Date() } });
     // Create company_info
-    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
+    const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
+      where: { 
+        USER_ID: user.USER_ID,
+        COMPANY_ID: user.COMPANY_ID 
+      } 
+    });
     if (!companyInfo) {
       await prisma.cOMPANY_INFO.create({
         data: {
           USER_ID: user.USER_ID,
-          COMPANY_ID: user.COMPANY_ID!
+          COMPANY_ID: user.COMPANY_ID,
+          ROLE: '',
+          TEAM_SIZE: '',
+          COMPANY_SIZE: '',
+          WORKSPACE_NAME: ''
         }
       });
     }
@@ -1224,7 +1256,7 @@ If you have any questions, please contact your administrator.
             
             <p>Please <a href="${loginUrl}" style="color: #007bff;">login</a> and change your password immediately for security reasons.</p>
             
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px;">
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
             <p style="color: #777; font-size: 12px; text-align: center;">
               If you have any questions, please contact your administrator.<br>
               &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.

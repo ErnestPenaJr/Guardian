@@ -34,7 +34,7 @@ function Register() {
       // Then validate with SendGrid with a timeout
       try {
         const validationResult = await Promise.race([
-          sendgrid.validateEmail(email),
+          sendgrid.validateEmail(email, 'register'),
           timeoutPromise
         ]);
         
@@ -87,7 +87,7 @@ function Register() {
     
     try {
       // Call backend registration endpoint
-      const response = await axios.post('/api/register', { email });
+      await axios.post('/api/register', { email });
       // Success: proceed to verification
       showToast.success(`Verification code sent to ${email}`);
       // Persist registration data for verification page

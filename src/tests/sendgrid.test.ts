@@ -21,7 +21,7 @@ async function testEmailValidation() {
   console.log(`Testing with email: ${TEST_EMAIL}`);
   
   try {
-    const result = await sendgrid.validateEmail(TEST_EMAIL);
+    const result = await sendgrid.validateEmail(TEST_EMAIL, 'register');
     
     console.log('✅ Email validation test completed');
     console.log('Result:', result);

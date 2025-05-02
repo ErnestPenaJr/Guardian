@@ -168,14 +168,13 @@ app.post('/api/register', async (req, res) => {
         const firstName = email.split('@')[0].split('.')[0];
         // get last name from email
         const lastName = email.split('@')[0].split('.')[1] || '';
-        // Company by domain
-        const domain = email.split('@')[1];
-        const companyName = domain.split('.')[0];
-        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyName } });
-        if (!company) {
-            company = await prisma.cOMPANY.create({ data: { NAME: companyName } });
+        // Use default company instead of creating one based on domain
+        // Find or create a default company for self-registered users
+        let defaultCompany = await prisma.cOMPANY.findFirst({ where: { NAME: 'Default Company' } });
+        if (!defaultCompany) {
+            defaultCompany = await prisma.cOMPANY.create({ data: { NAME: 'Default Company' } });
         }
-        // Save user and hashed token
+        // Save user with default company association
         const user = await prisma.uSERS.create({
             data: {
                 EMAIL: email,
@@ -188,18 +187,16 @@ app.post('/api/register', async (req, res) => {
                 UPDATE_DATE: new Date(),
                 FIRST_NAME: firstName,
                 LAST_NAME: lastName,
-                COMPANY_ID: company.COMPANY_ID // assign directly from company
+                COMPANY_ID: defaultCompany.COMPANY_ID // assign default company
             },
         });
-        // Only proceed if company.COMPANY_ID is a valid number
-        if (user.COMPANY_ID == null)
-            throw new Error('User missing COMPANY_ID');
+        // Create company_info entry
         const companyInfo = await prisma.cOMPANY_INFO.findFirst({ where: { USER_ID: user.USER_ID } });
         if (!companyInfo) {
             await prisma.cOMPANY_INFO.create({
                 data: {
                     USER_ID: user.USER_ID,
-                    COMPANY_ID: user.COMPANY_ID,
+                    COMPANY_ID: defaultCompany.COMPANY_ID,
                 }
             });
         }
@@ -625,7 +622,7 @@ The Guardian Team`,
     <p>Thank you for registering with Guardian. Please use the following verification code to confirm your email address:</p>
     <div class="code">${verificationToken}</div>
     <p>This code will expire in 15 minutes.</p>
-    <p>If you did not request this, please ignore this email or contact <a href="mailto:support@shieldlytics.com">support@shieldlytics.com</a>.</p>
+    <p>If you have any questions or did not expect this, please contact our support team at support@shieldlytics.com.</p>
     <div class="footer">&copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>123 Main St, City, State, ZIP<br>
     <a href="https://shieldlytics.com" style="color: #2EBCBC;">https://shieldlytics.com</a>
   </div>
