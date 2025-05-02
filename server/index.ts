@@ -163,6 +163,7 @@ app.get('/api/admin/secret', passport.authenticate('jwt', { session: false }), i
 // Zod schema for registration
 const registerSchema = z.object({
   email: z.string().email(),
+  companyName: z.string().optional()
 });
 
 // POST /api/register
@@ -172,7 +173,7 @@ app.post('/api/register', async (req, res) => {
     if (!parseResult.success) {
       return res.status(400).json({ error: 'Invalid input', details: parseResult.error.errors });
     }
-    const { email } = parseResult.data;
+    const { email, companyName } = parseResult.data;
 
     // Check if user already exists
     const existingUser = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
@@ -192,14 +193,16 @@ app.post('/api/register', async (req, res) => {
     // get last name from email
     const lastName = email.split('@')[0].split('.')[1] || '';
 
-    // Use default company instead of creating one based on domain
-    // Find or create a default company for self-registered users
-    let defaultCompany = await prisma.cOMPANY.findFirst({ where: { NAME: 'Default Company' } });
-    if (!defaultCompany) {
-      defaultCompany = await prisma.cOMPANY.create({ data: { NAME: 'Default Company' } });
+    // Use provided company name or default
+    const companyNameToUse = companyName?.trim() || 'Default Company';
+    
+    // Find or create a company with the provided name
+    let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
+    if (!company) {
+      company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
     }
 
-    // Save user with default company association
+    // Save user with company association
     const user = await prisma.uSERS.create({
       data: {
         EMAIL: email,
@@ -212,7 +215,7 @@ app.post('/api/register', async (req, res) => {
         UPDATE_DATE: new Date(),
         FIRST_NAME: firstName,
         LAST_NAME: lastName,
-        COMPANY_ID: defaultCompany.COMPANY_ID // assign default company
+        COMPANY_ID: company.COMPANY_ID // assign company
       },
     });
 
@@ -220,7 +223,7 @@ app.post('/api/register', async (req, res) => {
     const companyInfo = await prisma.cOMPANY_INFO.findFirst({ 
       where: { 
         USER_ID: user.USER_ID,
-        COMPANY_ID: defaultCompany.COMPANY_ID 
+        COMPANY_ID: company.COMPANY_ID 
       } 
     });
     
@@ -228,7 +231,7 @@ app.post('/api/register', async (req, res) => {
       await prisma.cOMPANY_INFO.create({
         data: {
           USER_ID: user.USER_ID,
-          COMPANY_ID: defaultCompany.COMPANY_ID,
+          COMPANY_ID: company.COMPANY_ID,
         }
       });
     }

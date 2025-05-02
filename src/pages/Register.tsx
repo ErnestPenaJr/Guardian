@@ -11,6 +11,7 @@ function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
+  const [companyName, setCompanyName] = useState('');
 
   // Handle email validation
   const validateEmailWithSendGrid = async (email: string) => {
@@ -86,13 +87,13 @@ function Register() {
     setError('');
     
     try {
-      // Call backend registration endpoint
-      await axios.post('/api/register', { email });
+      // Call backend registration endpoint with company name
+      await axios.post('/api/register', { email, companyName });
       // Success: proceed to verification
       showToast.success(`Verification code sent to ${email}`);
       // Persist registration data for verification page
       const expiryTime = new Date(Date.now() + 1000 * 60 * 30).toISOString();
-      localStorage.setItem('registrationData', JSON.stringify({ email, expiryTime }));
+      localStorage.setItem('registrationData', JSON.stringify({ email, companyName, expiryTime }));
       navigate('/verify-email', { state: { email } });
     } catch (error: any) {
       if (error.response && error.response.data && error.response.data.error) {
@@ -145,6 +146,22 @@ function Register() {
                 {emailError}
               </p>
             )}
+          </div>
+          
+          <div className="mb-6">
+            <label htmlFor="companyName" className="block text-body-sm font-medium text-gray-1 mb-2">
+              Company Name
+            </label>
+            <input
+              type="text"
+              id="companyName"
+              name="companyName"
+              placeholder="Your Company Name"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+              disabled={isLoading}
+            />
           </div>
           
           <p className="text-center text-body-sm mb-6">
