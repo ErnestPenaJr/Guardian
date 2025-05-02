@@ -11,6 +11,7 @@ import InviteAccept from './pages/InviteAccept';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUserManagement from './pages/AdminUserManagement';
 import RequestDashboard from './pages/RequestDashboard';
+import Health from './pages/Health';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin-user-management" element={<AdminUserManagement />} />
           <Route path="/requests-dashboard" element={<RequestDashboard />} />
+          <Route path="/health" element={<Health />} />
         </Routes>
       </Router>
     </div>

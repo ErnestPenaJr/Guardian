@@ -650,6 +650,38 @@ The Guardian Team`,
         console.error('[SendGrid] Error sending verification email:', error);
     }
 }
+// --- HEALTH CHECK ENDPOINT ---
+app.get('/health', (req, res) => {
+    try {
+        // Check database connection
+        prisma.$queryRaw `SELECT 1`
+            .then(() => {
+            res.status(200).json({
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+                database: 'connected',
+                message: 'Guardian API is running'
+            });
+        })
+            .catch(err => {
+            console.error('[HEALTH CHECK] Database connection error:', err);
+            res.status(503).json({
+                status: 'unhealthy',
+                timestamp: new Date().toISOString(),
+                database: 'disconnected',
+                message: 'Database connection error'
+            });
+        });
+    }
+    catch (err) {
+        console.error('[HEALTH CHECK]', err);
+        res.status(500).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            message: 'Server error during health check'
+        });
+    }
+});
 // --- GET ROLES ENDPOINT ---
 app.get('/api/roles', async (req, res) => {
     try {
@@ -929,7 +961,7 @@ app.post('/api/invites/resend', passport.authenticate('jwt', { session: false })
       </p>
       <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
       <div style="font-size: 12px; color: #aaa; text-align: center;">
-        &copy; 2025 Guardian by Shieldlytics. All rights reserved.<br>
+        &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.<br>
         123 Main St, City, State, ZIP<br>
         <a href="https://shieldlytics.com" style="color: #25c6c6;">https://shieldlytics.com</a>
       </div>
@@ -1145,7 +1177,7 @@ If you have any questions, please contact your administrator.
             
             <p>Please <a href="${loginUrl}" style="color: #007bff;">login</a> and change your password immediately for security reasons.</p>
             
-            <hr style="border: none; border-top: 1px solid #eaeaea; margin: 30px 0 20px;">
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px;">
             <p style="color: #777; font-size: 12px; text-align: center;">
               If you have any questions, please contact your administrator.<br>
               &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.
