@@ -27,15 +27,3 @@
   margin: 0 auto;
   padding: 0 !important;
 }
-
-/* Custom utility classes */
-.float-svg-left {
-  float: left;
-  margin-right: 0.5rem;
-}
-
-/* Specific styling for chevron-left icon */
-.lucide-chevron-left {
-  float: left;
-  margin-right: 0.5rem;
-}

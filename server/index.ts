@@ -1152,13 +1152,30 @@ app.delete('/api/invites/:id', passport.authenticate('jwt', { session: false }),
 });
 
 // --- GET USERS ENDPOINT ---
-app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req: any, res) => {
   try {
-    // Get all users
-    const users = await prisma.uSERS.findMany();
+    // Get admin's company ID from JWT token
+    const adminCompanyId = req.user.COMPANY_ID;
+
+    if (adminCompanyId === null) {
+      return res.status(403).json({ error: 'Admin user is not associated with a company' });
+    }
+
+    // Get all users from the same company
+    const users = await prisma.uSERS.findMany({
+      where: {
+        COMPANY_ID: adminCompanyId
+      }
+    });
     
     // Get user roles
-    const userRoles = await prisma.uSER_ROLES.findMany();
+    const userRoles = await prisma.uSER_ROLES.findMany({
+      where: {
+        USER_ID: {
+          in: users.map(user => user.USER_ID)
+        }
+      }
+    });
     
     // Get roles
     const roles = await prisma.rOLES.findMany();
@@ -1193,13 +1210,14 @@ app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin,
       email: user.EMAIL,
       createdAt: user.CREATE_DATE,
       status: user.STATUS,
-      roles: rolesByUserId[user.USER_ID] || []
+      roles: rolesByUserId[user.USER_ID] || [],
+      companyId: user.COMPANY_ID
     }));
     
     res.json(formattedUsers);
   } catch (err) {
     console.error('[GET USERS]', err);
-    res.status(500).json({ error: 'Failed to fetch users' });
+    res.status(500).json({ error: 'Server error while fetching users' });
   }
 });
 
@@ -1403,10 +1421,21 @@ If you have any questions, please contact your administrator.
 });
 
 // --- GET INVITES ENDPOINT ---
-app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmin, async (req: any, res) => {
   try {
-    // Get all invites
-    const invites = await prisma.iNVITES.findMany();
+    // Get admin's company ID from JWT token
+    const adminCompanyId = req.user.COMPANY_ID;
+
+    if (adminCompanyId === null) {
+      return res.status(403).json({ error: 'Admin user is not associated with a company' });
+    }
+
+    // Get all invites for the same company
+    const invites = await prisma.iNVITES.findMany({
+      where: {
+        COMPANY_ID: adminCompanyId
+      }
+    });
     
     // Get roles separately
     const roles = await prisma.rOLES.findMany();
@@ -1428,7 +1457,8 @@ app.get('/api/invites', passport.authenticate('jwt', { session: false }), isAdmi
         status: invite.STATUS,
         expiresAt: invite.EXPIRES_AT,
         createdAt: invite.CREATED_AT,
-        usedAt: invite.USED_AT
+        usedAt: invite.USED_AT,
+        companyId: invite.COMPANY_ID
       };
     });
 
