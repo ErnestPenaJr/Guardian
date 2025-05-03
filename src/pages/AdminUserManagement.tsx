@@ -483,7 +483,6 @@ const AdminUserManagement: React.FC = () => {
           (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
           'User',
         'Status': user.status === 'A' ? 'Active' : user.status === 'S' ? 'Suspended' : 'Inactive',
-        'Company ID': user.companyId !== null ? user.companyId : 'N/A',
         'Type': 'User',
       })),
       ...invites.map((invite) => ({
@@ -498,7 +497,6 @@ const AdminUserManagement: React.FC = () => {
         'Status': invite.status ? 
           (invite.status.charAt(0).toUpperCase() + invite.status.slice(1)) : 
           (invite.STATUS === 'P' ? 'Pending' : invite.STATUS === 'A' ? 'Accepted' : 'Expired'),
-        'Company ID': invite.companyId !== null ? invite.companyId : 'N/A',
         'Type': 'Invite',
       }))
     ];
@@ -1017,20 +1015,6 @@ const AdminUserManagement: React.FC = () => {
                       <th>
                         <div 
                           className="d-flex align-items-center cursor-pointer" 
-                          onClick={() => handleUserSort('companyId')}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          Company ID
-                          {userSortField === 'companyId' && (
-                            <span className="ms-1">
-                              {userSortDirection === 'asc' ? '▲' : '▼'}
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                      <th>
-                        <div 
-                          className="d-flex align-items-center cursor-pointer" 
                           onClick={() => handleUserSort('status')}
                           style={{ cursor: 'pointer' }}
                         >
@@ -1062,7 +1046,6 @@ const AdminUserManagement: React.FC = () => {
                           <td>{user.roles && Array.isArray(user.roles) ? 
                             (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
                             'User'}</td>
-                          <td>{user.companyId !== null ? user.companyId : 'N/A'}</td>
                           <td>
                             {user.status === 'A' ? <span className="text-success fw-semibold">Active</span> :
                               user.status === 'S' ? <span className="text-danger fw-semibold">Suspended</span> :
@@ -1078,7 +1061,7 @@ const AdminUserManagement: React.FC = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="text-center">
+                        <td colSpan={5} className="text-center">
                           {userSearch ? 'No users match your search' : 'No users found'}
                         </td>
                       </tr>
@@ -1214,20 +1197,6 @@ const AdminUserManagement: React.FC = () => {
                       <th>
                         <div 
                           className="d-flex align-items-center cursor-pointer" 
-                          onClick={() => handleInviteSort('companyId')}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          Company ID
-                          {inviteSortField === 'companyId' && (
-                            <span className="ms-1">
-                              {inviteSortDirection === 'asc' ? '▲' : '▼'}
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                      <th>
-                        <div 
-                          className="d-flex align-items-center cursor-pointer" 
                           onClick={() => handleInviteSort('status')}
                           style={{ cursor: 'pointer' }}
                         >
@@ -1260,7 +1229,6 @@ const AdminUserManagement: React.FC = () => {
                                 : 'N/A'}
                             </td>
                             <td style={{ whiteSpace: 'nowrap'}}>{(invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User'}</td>
-                            <td>{invite.companyId !== null ? invite.companyId : 'N/A'}</td>
                             <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
                               {invite.status === 'pending' && !isExpired && (
                                 <span className="text-primary fw-semibold d-flex align-items-center justify-content-start gap-1">
@@ -1298,7 +1266,7 @@ const AdminUserManagement: React.FC = () => {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={8} className="text-center">
+                        <td colSpan={7} className="text-center">
                           {inviteSearch ? 'No invites match your search' : 'No pending invites'}
                         </td>
                       </tr>
