@@ -181,15 +181,21 @@ app.post('/api/register', async (req, res) => {
         try {
             console.log('%c Creating Company', 'background: #FF5722; color: #fff', companyNameToUse);
             // First try to find if company exists with exact name match
-            const existingCompanies = await prisma.$queryRawUnsafe(`SELECT COMPANY_ID, NAME FROM COMPANY WHERE NAME = @p1`, companyNameToUse);
+            const existingCompanies = await prisma.$queryRaw `
+        SELECT COMPANY_ID, NAME FROM COMPANY WHERE NAME = ${companyNameToUse}
+      `;
             console.log('%c Existing Companies', 'background: #9C27B0; color: #fff', existingCompanies);
             let companyId;
             if (!Array.isArray(existingCompanies) || existingCompanies.length === 0) {
                 // Create new company with explicit parameter
-                const insertResult = await prisma.$executeRawUnsafe(`INSERT INTO COMPANY (NAME, CREATED_AT) VALUES (@p1, GETDATE())`, companyNameToUse);
+                const insertResult = await prisma.$executeRaw `
+          INSERT INTO COMPANY (NAME, CREATED_AT) VALUES (${companyNameToUse}, GETDATE())
+        `;
                 console.log('%c Insert Result', 'background: #E91E63; color: #fff', insertResult);
                 // Get the newly created company
-                const newCompanies = await prisma.$queryRawUnsafe(`SELECT TOP 1 COMPANY_ID FROM COMPANY WHERE NAME = @p1 ORDER BY CREATED_AT DESC`, companyNameToUse);
+                const newCompanies = await prisma.$queryRaw `
+          SELECT TOP 1 COMPANY_ID FROM COMPANY WHERE NAME = ${companyNameToUse} ORDER BY CREATED_AT DESC
+        `;
                 console.log('%c New Company Query', 'background: #3F51B5; color: #fff', newCompanies);
                 if (Array.isArray(newCompanies) && newCompanies.length > 0) {
                     companyId = newCompanies[0].COMPANY_ID;
