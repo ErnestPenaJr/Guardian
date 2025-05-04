@@ -724,15 +724,6 @@ function Home() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
                         <button 
-                          className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center mr-2"
-                          onClick={() => console.log('New Request')}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          New Request
-                        </button>
-                        <button 
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
                           onClick={() => console.log('Refresh')}
                         >
