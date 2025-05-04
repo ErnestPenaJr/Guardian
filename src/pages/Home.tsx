@@ -12,12 +12,16 @@ import 'react-tooltip/dist/react-tooltip.css';
 import '../styles/sidebar.css';
 import MobileNavBar from '../components/MobileNavBar';
 import DataTable from 'react-data-table-component';
-import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 import SendInvitesForm from '../components/SendInvitesForm';
 import RequestDashboard from './RequestDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
+
+ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 const MySwal = withReactContent(Swal);
 
@@ -53,18 +57,21 @@ interface Request {
 const requestColumns = [
   {
     name: 'Request ID',
-    selector: (row: Request) => row.REQUEST_ID,
+    selector: (row: Request) => row.TRACKINGID || 'N/A',
     sortable: true,
+    width: '120px',
   },
   {
     name: 'Type',
     selector: (row: Request) => row.REQUEST_NAME || 'N/A',
     sortable: true,
+    width: '180px',
   },
   {
     name: 'Status',
     selector: (row: Request) => row.STATUS,
     sortable: true,
+    width: '130px',
     cell: (row: Request) => {
       const statusColor = {
         'P': 'bg-yellow-200 text-yellow-800',
@@ -95,16 +102,58 @@ const requestColumns = [
     name: 'Date',
     selector: (row: Request) => new Date(row.CREATE_DATE).toLocaleDateString(),
     sortable: true,
+    width: '120px',
   },
   {
     name: 'Requestor',
     selector: (row: Request) => row.requestorName,
     sortable: true,
+    width: '150px',
   },
   {
     name: 'Assigned To',
     selector: (row: Request) => row.assignedName,
     sortable: true,
+    width: '150px',
+  },
+  {
+    name: 'Actions',
+    cell: (row: Request) => (
+      <div className="flex items-center space-x-2">
+        <button 
+          className="p-1 text-blue-600 hover:text-blue-800"
+          onClick={() => console.log('View details', row.REQUEST_ID)}
+          title="View Details"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </button>
+        <button 
+          className="p-1 text-green-600 hover:text-green-800"
+          onClick={() => console.log('Edit', row.REQUEST_ID)}
+          title="Edit"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+        <button 
+          className="p-1 text-red-600 hover:text-red-800"
+          onClick={() => console.log('Delete', row.REQUEST_ID)}
+          title="Delete"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    ),
+    width: '120px',
+    ignoreRowClick: true,
+    selector: (_: Request) => '',
+    sortable: false,
   }
 ];
 
@@ -334,6 +383,8 @@ function Home() {
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
   const [selectedRows, setSelectedRows] = useState<Request[]>([]);
   const [toggleCleared, setToggleCleared] = useState(false);
+  const [requestStatusData, setRequestStatusData] = useState<{ label: string; value: number; color: string }[]>([]);
+  const [totalRequests, setTotalRequests] = useState(0);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -343,6 +394,37 @@ function Home() {
         console.log('Fetched requests:', response.data);
         setRequests(response.data);
         setFilteredRequests(response.data);
+        
+        // Process request data for the chart
+        const statusCounts: Record<string, number> = {
+          'Completed': 0,
+          'In Progress': 0,
+          'Pending': 0
+        };
+        
+        response.data.forEach((request: Request) => {
+          // Map status codes to display names
+          let status = 'Pending';
+          if (request.STATUS === 'C' || request.STATUS === 'Closed' || request.STATUS === 'A' || request.STATUS === 'Approved') {
+            status = 'Completed';
+          } else if (request.STATUS === 'IP' || request.STATUS === 'In Progress' || request.STATUS === 'P') {
+            status = 'In Progress';
+          } else {
+            status = 'Pending'; // Default for 'N', 'New', 'Open', etc.
+          }
+          
+          statusCounts[status]++;
+        });
+        
+        // Create data for the chart
+        const chartData = [
+          { label: 'Completed', value: statusCounts['Completed'], color: '#005f73' },
+          { label: 'In Progress', value: statusCounts['In Progress'], color: '#3a9396' },
+          { label: 'Pending', value: statusCounts['Pending'], color: '#94d2bd' }
+        ];
+        
+        setRequestStatusData(chartData);
+        setTotalRequests(response.data.length);
         setError(null);
       } catch (err) {
         console.error('Error fetching requests:', err);
@@ -355,8 +437,37 @@ function Home() {
     fetchRequests();
   }, []);
 
+  // Chart data and options
+  const pieData = {
+    labels: requestStatusData.map(item => item.label),
+    datasets: [
+      {
+        data: requestStatusData.map(item => item.value),
+        backgroundColor: ['#005f73', '#3a9396', '#94d2bd'],
+        borderColor: '#ffffff',
+        borderWidth: 0,
+        cutout: '75%', // Make it a donut chart like in the image
+        borderRadius: 15, // Increased rounded edges on segments for more curvature
+        spacing: 4, // Add spacing between segments
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        display: false, // Hide the default legend
+      },
+      tooltip: {
+        enabled: false, // Disable tooltips to match the image
+      }
+    },
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Top Bar */}
       <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-teal-500 flex items-center justify-between px-4 md:px-8 z-40">
         <div className="flex items-center gap-2 md:gap-3">
@@ -364,11 +475,30 @@ function Home() {
           <span className="font-bold text-lg md:text-2xl text-gray-700 hidden sm:inline">Guardian</span>
         </div>
         <div className="flex-1 flex justify-center max-w-xs md:max-w-md">
-          <input
-            type="text"
-            placeholder="Search requests..."
-            className="w-full px-3 md:px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-sm md:text-base"
-          />
+          <div className="relative w-64">
+            <input
+              type="text"
+              placeholder="Search requests..."
+              className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 bg-gray-50"
+              onChange={(e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                if (searchTerm) {
+                  const filteredData = requests.filter(item => {
+                    return (
+                      (item.REQUEST_NAME?.toLowerCase().includes(searchTerm)) ||
+                      (item.TRACKINGID?.toLowerCase().includes(searchTerm)) ||
+                      (item.STATUS?.toLowerCase().includes(searchTerm)) ||
+                      (item.requestorName?.toLowerCase().includes(searchTerm)) ||
+                      (item.assignedName?.toLowerCase().includes(searchTerm))
+                    );
+                  });
+                  setFilteredRequests(filteredData);
+                } else {
+                  setFilteredRequests(requests);
+                }
+              }}
+            />
+          </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
           <div className="relative mr-4 px-2 py-1">
@@ -419,7 +549,7 @@ function Home() {
               strokeWidth="2"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </div>
            <button
@@ -543,33 +673,44 @@ function Home() {
         <Tooltip id="sidebar-tooltip" place="right" />
       </nav>
       {/* Main Content: Switchable Dashboard */}
-      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ${isNavExpanded ? 'ml-48' : 'ml-16'} transition-all duration-300 ease-in-out`}>
+      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ${isNavExpanded ? 'ml-48' : 'ml-16'} transition-all duration-300 ease-in-out bg-gray-50`}>
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container">
             <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Main Dashboard</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
               {/* Request Overview Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Overview</h2>
-                <div className="flex flex-col md:flex-row items-center justify-between">
-                  <div className="w-56 h-56 md:w-80 md:h-80 flex items-center justify-center mx-auto md:mx-0"> {/* Increased size */}
-                    {/* <Pie data={pieData} options={chartOptions} /> */}
-                  </div>
-                  <div className="mt-4 md:mt-0 md:ml-4 flex flex-col gap-2 text-sm">
-                    {/* <div className="mb-2 text-gray-700 font-semibold">Total Requests: {totalRequests}</div>
-                    {requestStatusData.map((s) => (
-                      <div key={s.label} className="flex items-center gap-2">
-                        <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></span>
-                        <span>{s.label}</span>
-                        <span className="ml-2 text-xs text-gray-500">{s.value} ({((s.value / totalRequests) * 100).toFixed(1)}%)</span>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-3 md:p-4 w-full flex flex-col items-center justify-center`} data-component-name="Home">
+                <h2 className="text-sm md:text-base font-semibold mb-2 md:mb-3 text-center">Requests Overview</h2>
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-28 h-28 md:w-40 md:h-40 flex items-center justify-center relative" data-component-name="Home">
+                    {loading ? (
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                       </div>
-                    ))} */}
+                    ) : error ? (
+                      <div className="text-red-500 text-xs">Error loading data</div>
+                    ) : (
+                      <>
+                        <Pie data={pieData} options={chartOptions} />
+                        <div className="absolute inset-0 flex items-center justify-center flex-col">
+                          <span className="text-2xl md:text-3xl font-bold">{totalRequests}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="mt-3 flex justify-center gap-3 text-xs">
+                    {requestStatusData.map((s) => (
+                      <div key={s.label} className="flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></span>
+                        <span className="dark:text-gray-300">{s.label}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </section>
               {/* Request Queue Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-3`} data-component-name="Home">
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
                 
                 {error ? (
@@ -580,39 +721,61 @@ function Home() {
                   </div>
                 ) : (
                   <>
-                    <div className="mb-4">
-                      <input
-                        type="text"
-                        placeholder="Search requests..."
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        onChange={(e) => {
-                          const searchTerm = e.target.value.toLowerCase();
-                          if (searchTerm) {
-                            const filteredData = requests.filter(item => {
-                              return (
-                                (item.REQUEST_NAME?.toLowerCase().includes(searchTerm)) ||
-                                (item.TRACKINGID?.toLowerCase().includes(searchTerm)) ||
-                                (item.STATUS?.toLowerCase().includes(searchTerm)) ||
-                                (item.requestorName?.toLowerCase().includes(searchTerm)) ||
-                                (item.assignedName?.toLowerCase().includes(searchTerm))
-                              );
-                            });
-                            setFilteredRequests(filteredData);
-                          } else {
-                            setFilteredRequests(requests);
-                          }
-                        }}
-                      />
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <button 
+                          className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center mr-2"
+                          onClick={() => console.log('New Request')}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          New Request
+                        </button>
+                        <button 
+                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
+                          onClick={() => console.log('Refresh')}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </button>
+                      </div>
+                      <div className="relative w-64">
+                        <input
+                          type="text"
+                          placeholder="Search requests..."
+                          className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 bg-gray-50"
+                          onChange={(e) => {
+                            const searchTerm = e.target.value.toLowerCase();
+                            if (searchTerm) {
+                              const filteredData = requests.filter(item => {
+                                return (
+                                  (item.REQUEST_NAME?.toLowerCase().includes(searchTerm)) ||
+                                  (item.TRACKINGID?.toLowerCase().includes(searchTerm)) ||
+                                  (item.STATUS?.toLowerCase().includes(searchTerm)) ||
+                                  (item.requestorName?.toLowerCase().includes(searchTerm)) ||
+                                  (item.assignedName?.toLowerCase().includes(searchTerm))
+                                );
+                              });
+                              setFilteredRequests(filteredData);
+                            } else {
+                              setFilteredRequests(requests);
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                     
                     <DataTable
                       columns={requestColumns}
                       data={filteredRequests || requests}
                       pagination
-                      paginationPerPage={10}
+                      paginationPerPage={5}
                       paginationRowsPerPageOptions={[5, 10, 15, 20, 50]}
                       paginationComponentOptions={{
-                        rowsPerPageText: 'Records per page:',
+                        rowsPerPageText: 'Show:',
                         rangeSeparatorText: 'of',
                       }}
                       selectableRows
@@ -629,22 +792,98 @@ function Home() {
                         <div className="p-4 text-center text-gray-500">No requests found</div>
                       }
                       customStyles={{
-                        rows: {
+                        table: {
                           style: {
-                            minHeight: '60px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: '1px solid #e2e8f0',
+                          },
+                        },
+                        header: {
+                          style: {
+                            padding: '0',
+                          },
+                        },
+                        subHeader: {
+                          style: {
+                            padding: '0',
+                          },
+                        },
+                        head: {
+                          style: {
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            backgroundColor: '#f8fafc',
+                            borderBottom: '1px solid #e2e8f0',
+                          },
+                        },
+                        headRow: {
+                          style: {
+                            borderBottom: '1px solid #e2e8f0',
+                            backgroundColor: '#f8fafc',
                           },
                         },
                         headCells: {
                           style: {
-                            paddingLeft: '8px',
-                            paddingRight: '8px',
+                            paddingLeft: '16px',
+                            paddingRight: '16px',
+                            paddingTop: '12px',
+                            paddingBottom: '12px',
                             fontWeight: '600',
+                            color: '#334155',
+                          },
+                        },
+                        rows: {
+                          style: {
+                            fontSize: '0.875rem',
+                            fontWeight: '400',
+                            color: '#334155',
+                            backgroundColor: '#ffffff',
+                            minHeight: '48px',
+                            '&:not(:last-of-type)': {
+                              borderBottomStyle: 'solid',
+                              borderBottomWidth: '1px',
+                              borderBottomColor: '#e2e8f0',
+                            },
+                            '&:hover': {
+                              backgroundColor: '#f1f5f9',
+                            },
                           },
                         },
                         cells: {
                           style: {
-                            paddingLeft: '8px',
-                            paddingRight: '8px',
+                            paddingLeft: '16px',
+                            paddingRight: '16px',
+                          },
+                        },
+                        pagination: {
+                          style: {
+                            borderTop: '1px solid #e2e8f0',
+                            backgroundColor: '#f8fafc',
+                          },
+                          pageButtonsStyle: {
+                            borderRadius: '4px',
+                            height: '32px',
+                            width: '32px',
+                            padding: '4px',
+                            margin: '0px 4px',
+                            cursor: 'pointer',
+                            transition: '0.4s',
+                            color: '#334155',
+                            fill: '#334155',
+                            backgroundColor: 'transparent',
+                            '&:disabled': {
+                              cursor: 'not-allowed',
+                              color: '#cbd5e1',
+                              fill: '#cbd5e1',
+                            },
+                            '&:hover:not(:disabled)': {
+                              backgroundColor: '#e2e8f0',
+                            },
+                            '&:focus': {
+                              outline: 'none',
+                              backgroundColor: '#e2e8f0',
+                            },
                           },
                         },
                       }}
@@ -654,14 +893,32 @@ function Home() {
                       <div className="mt-4 p-3 bg-gray-100 rounded-md">
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{selectedRows.length} request(s) selected</span>
-                          <button 
-                            className="px-3 py-1 bg-teal-500 text-white rounded-md hover:bg-teal-600"
-                            onClick={() => {
-                              setToggleCleared(!toggleCleared);
-                            }}
-                          >
-                            Clear Selection
-                          </button>
+                          <div className="flex gap-2">
+                            <button 
+                              className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                              onClick={() => {
+                                console.log('Process selected', selectedRows);
+                              }}
+                            >
+                              Process
+                            </button>
+                            <button 
+                              className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                              onClick={() => {
+                                console.log('Delete selected', selectedRows);
+                              }}
+                            >
+                              Delete
+                            </button>
+                            <button 
+                              className="px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                              onClick={() => {
+                                setToggleCleared(!toggleCleared);
+                              }}
+                            >
+                              Clear
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
