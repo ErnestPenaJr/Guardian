@@ -4,8 +4,6 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
-import dotenv from 'dotenv';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import bcrypt from 'bcryptjs';
@@ -15,7 +13,6 @@ import { isAdmin } from './middleware/isAdmin.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env') });
 // Support both server- and client-named keys
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.VITE_SENDGRID_API_KEY;
 console.log('[SENDGRID] API Key set:', !!SENDGRID_API_KEY);
@@ -29,7 +26,6 @@ else {
     console.warn('SendGrid API key is not set. Skipping email sends.');
 }
 const prisma = new PrismaClient();
-const prismaAny = prisma;
 const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors());
@@ -696,7 +692,8 @@ async function sendPasswordResetEmail(email, code) {
         to: email,
         from: SENDGRID_FROM_EMAIL,
         subject: 'Your Guardian Password Reset Code',
-        text: `You requested a password reset for your Guardian account.\n\nYour password reset code is: ${code}\n\nThis code will expire in 15 minutes. If you did not request a password reset, please ignore this email.`,
+        text: `
+You requested a password reset for your Guardian account.\n\nYour password reset code is: ${code}\n\nThis code will expire in 15 minutes. If you did not request a password reset, please ignore this email.`,
         html: `<p>You requested a password reset for your Guardian account.</p><p><b>Your password reset code is: <span style='font-size:1.5em;'>${code}</span></b></p><p>This code will expire in 15 minutes.</p><p>If you did not request a password reset, please ignore this email.</p>`
     };
     await sgMail.send(msg);
@@ -710,7 +707,8 @@ async function sendVerificationEmail(email, verificationToken) {
             to: email,
             from: SENDGRID_FROM_EMAIL,
             subject: 'Verify Your Guardian Account',
-            text: `Hello,
+            text: `
+Hello,
 You requested to verify your Guardian account.
 Your verification code is: ${verificationToken}
 This code expires in 15 minutes.
@@ -725,11 +723,11 @@ The Guardian Team`,
   <title>Verify Your Guardian Account</title>
   <style>
     body { margin:0; padding:0; background:#f9f9f9; font-family:Arial,sans-serif; }
-    .container { max-width:600px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; }
+    .container { max-width:600px; margin:20px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(44,44,44,0.06); }
     h2 { color:#2EBCBC; }
     .code { background:#f4f4f4; padding:15px; text-align:center; font-size:24px; letter-spacing:6px; border-radius:4px; margin:20px 0; }
     .footer { font-size:12px; color:#777; margin-top:30px; text-align:center; }
-    a { color:#2EBCBC; text-decoration:none; }
+    a { color:#2EBCBC; }
   </style>
 </head>
 <body>
@@ -819,8 +817,14 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 // --- GET REQUESTS ENDPOINT ---
-app.get('/api/requests', async (req, res) => {
+app.get('/api/requests', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
+        // Get user's company ID from JWT token
+        const userCompanyId = req.user.COMPANY_ID;
+        if (userCompanyId === null) {
+            return res.status(403).json({ error: 'User is not associated with a company' });
+        }
+        // Get requests for the user's company by joining with USERS table
         const requests = await prisma.rEQUESTS.findMany({
             select: {
                 REQUEST_ID: true,
@@ -835,9 +839,36 @@ app.get('/api/requests', async (req, res) => {
                 CREATE_USER_ID: true,
                 UPDATE_USER_ID: true,
                 TRACKINGID: true,
+                requestor: {
+                    select: {
+                        FIRST_NAME: true,
+                        LAST_NAME: true,
+                        EMAIL: true
+                    }
+                },
+                assigned: {
+                    select: {
+                        FIRST_NAME: true,
+                        LAST_NAME: true,
+                        EMAIL: true
+                    }
+                }
             },
+            orderBy: {
+                CREATE_DATE: 'desc'
+            }
         });
-        res.json(requests);
+        // Format the response to include user names
+        const formattedRequests = requests.map(request => ({
+            ...request,
+            requestorName: request.requestor
+                ? `${request.requestor.FIRST_NAME} ${request.requestor.LAST_NAME}`
+                : 'N/A',
+            assignedName: request.assigned
+                ? `${request.assigned.FIRST_NAME} ${request.assigned.LAST_NAME}`
+                : 'Unassigned'
+        }));
+        res.json(formattedRequests);
     }
     catch (error) {
         // Enhanced error logging for debugging
@@ -848,6 +879,43 @@ app.get('/api/requests', async (req, res) => {
         else {
             res.status(500).json({ error: 'Failed to fetch requests', detail: error });
         }
+    }
+});
+// --- CREATE REQUEST ENDPOINT ---
+app.post('/api/requests', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const { REQUEST_NAME, EXTERNAL_USER, STATUS } = req.body;
+        // Validate required fields
+        if (!REQUEST_NAME) {
+            return res.status(400).json({ error: 'Request name is required' });
+        }
+        // Get user information from JWT
+        const userId = req.user.id;
+        const userCompanyId = req.user.COMPANY_ID;
+        if (!userCompanyId) {
+            return res.status(403).json({ error: 'User is not associated with a company' });
+        }
+        // Create the request
+        const newRequest = await prisma.rEQUESTS.create({
+            data: {
+                REQUEST_NAME,
+                EXTERNAL_USER: EXTERNAL_USER ? 'Y' : 'N', // Convert to Y/N format for CHAR(1)
+                STATUS: STATUS || 'N', // Default to 'N' (New) if not provided
+                SUBMITTED_DATE: new Date(),
+                REQUESTOR_ID: userId,
+                CREATE_USER_ID: userId,
+                // TRACKINGID is computed by the database
+            }
+        });
+        // Return the created request
+        res.status(201).json(newRequest);
+    }
+    catch (error) {
+        console.error('[CREATE REQUEST] Error:', error);
+        res.status(500).json({
+            error: 'Failed to create request',
+            details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        });
     }
 });
 // --- INVITE TABLE (PRISMA MODEL) ---
@@ -870,7 +938,7 @@ app.post('/api/invites/send', requireAuth, async (req, res) => {
         for (const invite of invites) {
             const token = crypto.randomBytes(32).toString('hex');
             // Use admin's companyId for all invites
-            await prismaAny.iNVITES.create({
+            await prisma.iNVITES.create({
                 data: {
                     EMAIL: invite.email,
                     ROLE_ID: invite.roleId,
@@ -893,7 +961,8 @@ app.post('/api/invites/send', requireAuth, async (req, res) => {
                         to: invite.email,
                         from: SENDGRID_FROM_EMAIL,
                         subject: 'You have been invited to Guardian!',
-                        text: `Hello,
+                        text: `
+Hello,
 
 You have been invited to join Guardian, a modern security and compliance platform designed to protect your organization and streamline your workflows.
 
@@ -907,7 +976,8 @@ Guardian by Shieldlytics
 123 Main St, City, State, ZIP
 https://shieldlytics.com
 `,
-                        html: `<!DOCTYPE html>
+                        html: `
+            <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -919,8 +989,6 @@ https://shieldlytics.com
     h2 { color:#2EBCBC; }
     .cta { display:inline-block; margin:24px 0; padding:12px 28px; background:#2EBCBC; color:#fff; border-radius:4px; text-decoration:none; font-weight:bold; letter-spacing:1px; }
     .footer { font-size:12px; color:#777; margin-top:30px; text-align:center; }
-    .features { margin:24px 0 0 0; padding:0; }
-    .features li { margin-bottom:8px; }
     a { color:#2EBCBC; }
   </style>
 </head>
@@ -976,7 +1044,7 @@ app.post('/api/invite/accept', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
         // Find invite
-        const invite = await prismaAny.iNVITES.findFirst({ where: { TOKEN: token, STATUS: 'P' } });
+        const invite = await prisma.iNVITES.findFirst({ where: { TOKEN: token, STATUS: 'P' } });
         if (!invite) {
             return res.status(400).json({ error: 'Invalid or expired invite' });
         }
@@ -1001,7 +1069,7 @@ app.post('/api/invite/accept', async (req, res) => {
         // Assign role
         await prisma.uSER_ROLES.create({ data: { USER_ID: user.USER_ID, ROLE_ID: invite.ROLE_ID } });
         // Mark invite as used
-        await prismaAny.iNVITES.update({ where: { INVITE_ID: invite.INVITE_ID }, data: { STATUS: 'U', USED_AT: new Date() } });
+        await prisma.iNVITES.update({ where: { INVITE_ID: invite.INVITE_ID }, data: { STATUS: 'U', USED_AT: new Date() } });
         // Create company_info
         const companyInfo = await prisma.cOMPANY_INFO.findFirst({
             where: {
@@ -1528,6 +1596,97 @@ app.delete('/api/delete-user/:id', passport.authenticate('jwt', { session: false
     catch (err) {
         console.error('[DELETE USER] Error:', err);
         res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+// --- TEST DATA ENDPOINT (Development Only) ---
+app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // Only allow in development environment
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(403).json({ error: 'This endpoint is only available in development environment' });
+        }
+        const userCompanyId = req.user.COMPANY_ID;
+        const userId = req.user.id;
+        if (userCompanyId === null) {
+            return res.status(403).json({ error: 'User is not associated with a company' });
+        }
+        // Get all users from the same company for assigning requests
+        const companyUsers = await prisma.uSERS.findMany({
+            where: {
+                COMPANY_ID: userCompanyId
+            },
+            select: {
+                USER_ID: true,
+                FIRST_NAME: true,
+                LAST_NAME: true
+            }
+        });
+        if (companyUsers.length === 0) {
+            return res.status(404).json({ error: 'No users found in your company' });
+        }
+        // Create 10 sample requests
+        let createdCount = 0;
+        // Sample request types
+        const requestTypes = [
+            'Security Assessment',
+            'Vulnerability Scan',
+            'Penetration Test',
+            'Compliance Review',
+            'Security Incident',
+            'Access Request',
+            'Policy Exception',
+            'Security Training'
+        ];
+        // Sample statuses
+        const statuses = ['New', 'In Progress', 'Pending', 'Completed', 'Cancelled'];
+        // Create requests one by one to avoid TypeScript issues with createMany
+        for (let i = 0; i < 10; i++) {
+            const requestorId = companyUsers[Math.floor(Math.random() * companyUsers.length)].USER_ID;
+            const assignedId = Math.random() > 0.3 ? companyUsers[Math.floor(Math.random() * companyUsers.length)].USER_ID : null;
+            const requestType = requestTypes[Math.floor(Math.random() * requestTypes.length)];
+            const status = statuses[Math.floor(Math.random() * statuses.length)];
+            // Create a date between 1-30 days ago
+            const daysAgo = Math.floor(Math.random() * 30) + 1;
+            const createdDate = new Date();
+            createdDate.setDate(createdDate.getDate() - daysAgo);
+            // Create a tracking ID with format REQ-YYYY-XXXXX
+            const year = new Date().getFullYear();
+            const randomNum = Math.floor(10000 + Math.random() * 90000);
+            const trackingId = `REQ-${year}-${randomNum}`;
+            try {
+                await prisma.rEQUESTS.create({
+                    data: {
+                        REQUEST_NAME: requestType,
+                        EXTERNAL_USER: Math.random() > 0.5 ? `external${i}@example.com` : null,
+                        SUBMITTED_DATE: createdDate,
+                        REQUESTOR_ID: requestorId,
+                        ASSIGNED_ID: assignedId,
+                        STATUS: status,
+                        CREATE_DATE: createdDate,
+                        UPDATE_DATE: new Date(),
+                        CREATE_USER_ID: requestorId,
+                        UPDATE_USER_ID: assignedId || requestorId
+                    }
+                });
+                createdCount++;
+            }
+            catch (err) {
+                console.error(`Error creating request ${i}:`, err);
+            }
+        }
+        res.json({
+            message: `Successfully created ${createdCount} sample requests`,
+            count: createdCount
+        });
+    }
+    catch (error) {
+        console.error('[CREATE SAMPLE REQUESTS] Error:', error);
+        if (error instanceof Error) {
+            res.status(500).json({ error: error.message, stack: error.stack });
+        }
+        else {
+            res.status(500).json({ error: 'Failed to create sample requests', detail: error });
+        }
     }
 });
 app.listen(PORT, () => {

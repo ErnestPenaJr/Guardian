@@ -2,180 +2,111 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, 
   MessageCircle, CheckCircle, FileText, Monitor, CreditCard,
-  LayoutDashboard, MessageSquareText, ChevronLeft, ChevronRight, Sliders, Send
+  LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
+import { useAuth } from '../hooks/useAuth';
+import api from '../utils/api';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
+import '../styles/sidebar.css';
+import MobileNavBar from '../components/MobileNavBar';
 import DataTable from 'react-data-table-component';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
 import SendInvitesForm from '../components/SendInvitesForm';
 import RequestDashboard from './RequestDashboard';
-import api from '../utils/api';
-import { useAuth } from '../hooks/useAuth';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
-import { Tooltip } from 'react-tooltip';
-import 'react-tooltip/dist/react-tooltip.css';
-import '../styles/sidebar.css';
-import MobileNavBar from '../components/MobileNavBar';
 
-// Register Chart.js components
-ChartJS.register(ArcElement, ChartTooltip, Legend);
+const MySwal = withReactContent(Swal);
 
-// Sample data for the pie chart
-const requestStatusData = [
-  { label: 'Pending', value: 12, color: '#6DEBE8' },
-  { label: 'Processing', value: 7, color: '#FFD600' },
-  { label: 'Completed', value: 25, color: '#6C63FF' },
-  { label: 'Rejected', value: 4, color: '#FF6B6B' },
-  { label: 'Failed', value: 2, color: '#BDBDBD' },
-];
+// Define Request interface
+interface Request {
+  REQUEST_ID: number;
+  REQUEST_NAME: string;
+  EXTERNAL_USER: string;
+  SUBMITTED_DATE: string;
+  REQUESTOR_ID: number | null;
+  ASSIGNED_ID: number | null;
+  STATUS: string;
+  CREATE_DATE: string;
+  UPDATE_DATE: string;
+  CREATE_USER_ID: number | null;
+  UPDATE_USER_ID: number | null;
+  TRACKINGID: string;
+  requestorName: string;
+  assignedName: string;
+  requestor?: {
+    FIRST_NAME: string;
+    LAST_NAME: string;
+    EMAIL: string;
+  };
+  assigned?: {
+    FIRST_NAME: string;
+    LAST_NAME: string;
+    EMAIL: string;
+  };
+}
 
-const totalRequests = requestStatusData.reduce((sum, s) => sum + s.value, 0);
-
-const pieData = {
-  labels: requestStatusData.map((s) => s.label),
-  datasets: [
-    {
-      data: requestStatusData.map((s) => s.value),
-      backgroundColor: requestStatusData.map((s) => s.color),
-      borderColor: requestStatusData.map((s) => s.color),
-      borderWidth: 1,
-    },
-  ],
-};
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false, // Hide Chart.js legend (use only custom legend)
-    },
-    tooltip: {
-      callbacks: {
-        label: function(context: any) {
-          const label = context.label || '';
-          const value = context.raw;
-          const percent = ((value / totalRequests) * 100).toFixed(1);
-          return `${label}: ${value} (${percent}%)`;
-        },
-      },
-    },
-  },
-};
-
-// Sample data for request tables
-const requestQueueColumns = [
+// Define columns for the requests table
+const requestColumns = [
   {
     name: 'Request ID',
-    selector: (row: any) => row.id,
+    selector: (row: Request) => row.REQUEST_ID,
     sortable: true,
   },
   {
     name: 'Type',
-    selector: (row: any) => row.type,
+    selector: (row: Request) => row.REQUEST_NAME || 'N/A',
     sortable: true,
   },
   {
     name: 'Status',
-    selector: (row: any) => row.status,
+    selector: (row: Request) => row.STATUS,
     sortable: true,
-    cell: (row: any) => (
-      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-        row.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
-        row.status === 'Processing' ? 'bg-blue-100 text-blue-800' : 
-        'bg-green-100 text-green-800'
-      }`}>
-        {row.status}
-      </div>
-    ),
+    cell: (row: Request) => {
+      const statusColor = {
+        'P': 'bg-yellow-200 text-yellow-800',
+        'A': 'bg-green-200 text-green-800',
+        'R': 'bg-red-200 text-red-800',
+        'C': 'bg-blue-200 text-blue-800',
+        'N': 'bg-gray-200 text-gray-800',
+        'X': 'bg-red-200 text-red-800'
+      }[row.STATUS] || 'bg-gray-200 text-gray-800';
+      
+      const statusText = {
+        'P': 'In Progress',
+        'A': 'Approved',
+        'R': 'Rejected',
+        'C': 'Completed',
+        'N': 'New',
+        'X': 'Cancelled'
+      }[row.STATUS] || 'Unknown';
+
+      return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+          {statusText}
+        </span>
+      );
+    }
   },
   {
     name: 'Date',
-    selector: (row: any) => row.date,
+    selector: (row: Request) => new Date(row.CREATE_DATE).toLocaleDateString(),
+    sortable: true,
+  },
+  {
+    name: 'Requestor',
+    selector: (row: Request) => row.requestorName,
     sortable: true,
   },
   {
     name: 'Assigned To',
-    selector: (row: any) => row.assignedTo,
+    selector: (row: Request) => row.assignedName,
     sortable: true,
-  },
+  }
 ];
-
-const myRequestsColumns = [
-  {
-    name: 'Request ID',
-    selector: (row: any) => row.id,
-    sortable: true,
-  },
-  {
-    name: 'Type',
-    selector: (row: any) => row.type,
-    sortable: true,
-  },
-  {
-    name: 'Status',
-    selector: (row: any) => row.status,
-    sortable: true,
-    cell: (row: any) => (
-      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-        row.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
-        row.status === 'Processing' ? 'bg-blue-100 text-blue-800' : 
-        'bg-green-100 text-green-800'
-      }`}>
-        {row.status}
-      </div>
-    ),
-  },
-  {
-    name: 'Date',
-    selector: (row: any) => row.date,
-    sortable: true,
-  },
-];
-
-// Sample data
-const sampleRequestQueue = [
-  { id: 'REG-2025-001', type: 'Access Request', status: 'Pending', date: '2025-04-24', assignedTo: 'John Doe' },
-  { id: 'PER-2025-002', type: 'Permission Change', status: 'Processing', date: '2025-04-23', assignedTo: 'Jane Smith' },
-  { id: 'REG-2025-003', type: 'Access Request', status: 'Completed', date: '2025-04-22', assignedTo: 'John Doe' },
-  { id: 'SYS-2025-004', type: 'System Access', status: 'Pending', date: '2025-04-21', assignedTo: 'Jane Smith' },
-  { id: 'PER-2025-005', type: 'Permission Change', status: 'Completed', date: '2025-04-20', assignedTo: 'John Doe' },
-];
-
-const sampleMyRequests = [
-  { id: 'REG-2025-006', type: 'Access Request', status: 'Pending', date: '2025-04-24' },
-  { id: 'PER-2025-007', type: 'Permission Change', status: 'Completed', date: '2025-04-22' },
-  { id: 'SYS-2025-008', type: 'System Access', status: 'Processing', date: '2025-04-20' },
-  { id: 'REG-2025-009', type: 'Access Request', status: 'Completed', date: '2025-04-18' },
-  { id: 'PER-2025-010', type: 'Permission Change', status: 'Pending', date: '2025-04-16' },
-];
-
-// Table styles
-const customStyles = {
-  rows: {
-    style: {
-      minHeight: '52px',
-    },
-  },
-  headCells: {
-    style: {
-      paddingLeft: '8px',
-      paddingRight: '8px',
-    },
-  },
-  cells: {
-    style: {
-      paddingLeft: '8px',
-      paddingRight: '8px',
-    },
-  },
-};
-
-const MySwal = withReactContent(Swal);
 
 function Home() {
   const navigate = useNavigate();
@@ -358,22 +289,23 @@ function Home() {
       onClick: () => setSelectedSection('dashboard'),
       active: selectedSection === 'dashboard',
     },
-    {
+    // Notices item hidden per request
+    /*{
       icon: <MessageSquareText className="w-6 h-6" />,
       label: 'Notices',
       onClick: () => navigate('/notices'),
       active: false,
-    },
+    },*/
     {
       icon: <FileText className="w-6 h-6" />,
-      label: 'Requests',
+      label: 'My Requests',
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
     },
     ...(user?.roles?.some((role: any) => role.id === 1) ? [
       {
         icon: <Sliders className="w-6 h-6" />,
-        label: 'Admin',
+        label: 'Settings',
         onClick: () => setSelectedSection('admin'),
         active: selectedSection === 'admin',
       },
@@ -395,6 +327,33 @@ function Home() {
       confirmButtonText: 'OK',
     });
   };
+
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Request[]>([]);
+  const [toggleCleared, setToggleCleared] = useState(false);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/requests');
+        console.log('Fetched requests:', response.data);
+        setRequests(response.data);
+        setFilteredRequests(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching requests:', err);
+        setError('Failed to fetch requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -595,43 +554,119 @@ function Home() {
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Overview</h2>
                 <div className="flex flex-col md:flex-row items-center justify-between">
                   <div className="w-56 h-56 md:w-80 md:h-80 flex items-center justify-center mx-auto md:mx-0"> {/* Increased size */}
-                    <Pie data={pieData} options={chartOptions} />
+                    {/* <Pie data={pieData} options={chartOptions} /> */}
                   </div>
                   <div className="mt-4 md:mt-0 md:ml-4 flex flex-col gap-2 text-sm">
-                    <div className="mb-2 text-gray-700 font-semibold">Total Requests: {totalRequests}</div>
+                    {/* <div className="mb-2 text-gray-700 font-semibold">Total Requests: {totalRequests}</div>
                     {requestStatusData.map((s) => (
                       <div key={s.label} className="flex items-center gap-2">
                         <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></span>
                         <span>{s.label}</span>
                         <span className="ml-2 text-xs text-gray-500">{s.value} ({((s.value / totalRequests) * 100).toFixed(1)}%)</span>
                       </div>
-                    ))}
+                    ))} */}
                   </div>
                 </div>
               </section>
               {/* Request Queue Card */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full`}>
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
-                <DataTable
-                  columns={requestQueueColumns}
-                  data={sampleRequestQueue}
-                  pagination
-                  highlightOnHover
-                  striped
-                  customStyles={customStyles}
-                />
-              </section>
-              {/* My Requests Card (spans both columns on large screens) */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-2`}>
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">My Requests</h2>
-                <DataTable
-                  columns={myRequestsColumns}
-                  data={sampleMyRequests}
-                  pagination
-                  highlightOnHover
-                  striped
-                  customStyles={customStyles}
-                />
+                
+                {error ? (
+                  <div className="text-red-600 p-4 rounded bg-red-50">{error}</div>
+                ) : loading ? (
+                  <div className="flex justify-center items-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-4">
+                      <input
+                        type="text"
+                        placeholder="Search requests..."
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        onChange={(e) => {
+                          const searchTerm = e.target.value.toLowerCase();
+                          if (searchTerm) {
+                            const filteredData = requests.filter(item => {
+                              return (
+                                (item.REQUEST_NAME?.toLowerCase().includes(searchTerm)) ||
+                                (item.TRACKINGID?.toLowerCase().includes(searchTerm)) ||
+                                (item.STATUS?.toLowerCase().includes(searchTerm)) ||
+                                (item.requestorName?.toLowerCase().includes(searchTerm)) ||
+                                (item.assignedName?.toLowerCase().includes(searchTerm))
+                              );
+                            });
+                            setFilteredRequests(filteredData);
+                          } else {
+                            setFilteredRequests(requests);
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <DataTable
+                      columns={requestColumns}
+                      data={filteredRequests || requests}
+                      pagination
+                      paginationPerPage={10}
+                      paginationRowsPerPageOptions={[5, 10, 15, 20, 50]}
+                      paginationComponentOptions={{
+                        rowsPerPageText: 'Records per page:',
+                        rangeSeparatorText: 'of',
+                      }}
+                      selectableRows
+                      selectableRowsHighlight
+                      onSelectedRowsChange={(state) => {
+                        console.log('Selected Rows:', state.selectedRows);
+                        setSelectedRows(state.selectedRows);
+                      }}
+                      clearSelectedRows={toggleCleared}
+                      sortServer={false}
+                      defaultSortFieldId={1}
+                      defaultSortAsc={false}
+                      noDataComponent={
+                        <div className="p-4 text-center text-gray-500">No requests found</div>
+                      }
+                      customStyles={{
+                        rows: {
+                          style: {
+                            minHeight: '60px',
+                          },
+                        },
+                        headCells: {
+                          style: {
+                            paddingLeft: '8px',
+                            paddingRight: '8px',
+                            fontWeight: '600',
+                          },
+                        },
+                        cells: {
+                          style: {
+                            paddingLeft: '8px',
+                            paddingRight: '8px',
+                          },
+                        },
+                      }}
+                    />
+                    
+                    {selectedRows && selectedRows.length > 0 && (
+                      <div className="mt-4 p-3 bg-gray-100 rounded-md">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{selectedRows.length} request(s) selected</span>
+                          <button 
+                            className="px-3 py-1 bg-teal-500 text-white rounded-md hover:bg-teal-600"
+                            onClick={() => {
+                              setToggleCleared(!toggleCleared);
+                            }}
+                          >
+                            Clear Selection
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </section>
             </div>
           </div>
