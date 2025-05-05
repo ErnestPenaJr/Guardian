@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const StyleGuide: React.FC = () => {
+  const [formState, setFormState] = useState({
+    checkbox1: true,
+    checkbox2: false,
+    checkbox3: false,
+    radio: "option1",
+    toggle1: true,
+    toggle2: false
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, type, checked, value } = e.target;
+    setFormState(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -538,17 +555,35 @@ const StyleGuide: React.FC = () => {
                   
                   <div className="space-y-4">
                     <div className="flex items-center">
-                      <input type="checkbox" checked className="w-5 h-5 rounded text-primary focus:ring-primary" />
+                      <input 
+                        type="checkbox" 
+                        name="checkbox1"
+                        checked={formState.checkbox1} 
+                        onChange={handleChange}
+                        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+                      />
                       <label className="ml-2 text-body-sm">Checkbox</label>
                     </div>
                     
                     <div className="flex items-center">
-                      <input type="checkbox" className="w-5 h-5 rounded text-primary focus:ring-primary" />
+                      <input 
+                        type="checkbox" 
+                        name="checkbox2"
+                        checked={formState.checkbox2}
+                        onChange={handleChange}
+                        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+                      />
                       <label className="ml-2 text-body-sm">Checkbox</label>
                     </div>
                     
                     <div className="flex items-center">
-                      <input type="checkbox" className="w-5 h-5 rounded text-primary focus:ring-primary" />
+                      <input 
+                        type="checkbox" 
+                        name="checkbox3"
+                        checked={formState.checkbox3}
+                        onChange={handleChange}
+                        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+                      />
                       <label className="ml-2 text-body-sm">Checkbox</label>
                     </div>
                   </div>
@@ -559,17 +594,38 @@ const StyleGuide: React.FC = () => {
                   
                   <div className="space-y-4">
                     <div className="flex items-center">
-                      <input type="radio" checked name="radio-group" className="w-5 h-5 text-primary focus:ring-primary" />
+                      <input 
+                        type="radio" 
+                        name="radio"
+                        value="option1"
+                        checked={formState.radio === "option1"} 
+                        onChange={handleChange}
+                        className="w-5 h-5 text-primary focus:ring-primary" 
+                      />
                       <label className="ml-2 text-body-sm">Radio Button</label>
                     </div>
                     
                     <div className="flex items-center">
-                      <input type="radio" name="radio-group" className="w-5 h-5 text-primary focus:ring-primary" />
+                      <input 
+                        type="radio" 
+                        name="radio"
+                        value="option2"
+                        checked={formState.radio === "option2"}
+                        onChange={handleChange}
+                        className="w-5 h-5 text-primary focus:ring-primary" 
+                      />
                       <label className="ml-2 text-body-sm">Radio Button</label>
                     </div>
                     
                     <div className="flex items-center">
-                      <input type="radio" name="radio-group" className="w-5 h-5 text-primary focus:ring-primary" />
+                      <input 
+                        type="radio" 
+                        name="radio"
+                        value="option3"
+                        checked={formState.radio === "option3"}
+                        onChange={handleChange}
+                        className="w-5 h-5 text-primary focus:ring-primary" 
+                      />
                       <label className="ml-2 text-body-sm">Radio Button</label>
                     </div>
                   </div>
@@ -583,7 +639,14 @@ const StyleGuide: React.FC = () => {
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                        <input type="checkbox" checked name="toggle" id="toggle1" className="sr-only peer" />
+                        <input 
+                          type="checkbox" 
+                          name="toggle1"
+                          checked={formState.toggle1}
+                          onChange={handleChange}
+                          id="toggle1" 
+                          className="sr-only peer" 
+                        />
                         <div className="w-10 h-6 bg-gray-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-5 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                       </div>
                       <label htmlFor="toggle1" className="text-body-sm">Toggle ON</label>
@@ -591,7 +654,14 @@ const StyleGuide: React.FC = () => {
                     
                     <div className="flex items-center">
                       <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                        <input type="checkbox" name="toggle" id="toggle2" className="sr-only peer" />
+                        <input 
+                          type="checkbox" 
+                          name="toggle2"
+                          checked={formState.toggle2}
+                          onChange={handleChange}
+                          id="toggle2" 
+                          className="sr-only peer" 
+                        />
                         <div className="w-10 h-6 bg-gray-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-5 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                       </div>
                       <label htmlFor="toggle2" className="text-body-sm">Toggle OFF</label>

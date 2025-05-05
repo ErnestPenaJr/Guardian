@@ -1,10 +1,11 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
-import { FaUsers, FaClipboardList, FaCog } from 'react-icons/fa';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { FaUsers, FaClipboardList, FaCog, FaPalette } from 'react-icons/fa';
 
 const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onShowUserManagement }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   if (loading) {
     return <div>Loading...</div>; 
@@ -71,6 +72,23 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             <li>Configurations</li>
           </ul>
         </div>
+        {/* Style Guide Card */}
+        <a
+          href="#"
+          className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
+          onClick={e => {
+            e.preventDefault();
+            navigate('/style-guide');
+          }}
+        >
+          <FaPalette className="h-12 w-12 text-secondary mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Style Guide</h3>
+          <ul className="text-gray-600">
+            <li>Design system</li>
+            <li>UI components</li>
+            <li>Brand guidelines</li>
+          </ul>
+        </a>
       </div>
     </div>
   );

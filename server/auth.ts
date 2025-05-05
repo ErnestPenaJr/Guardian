@@ -36,6 +36,8 @@ interface AuthUser {
   lastName: string;
   roles: number[];
   COMPANY_ID: number | null; // Allow null for COMPANY_ID
+  username: string; // Add username property
+  role: string; // Add role property
 }
 
 // Test user for development purposes
@@ -101,6 +103,8 @@ passport.use(
               lastName: testUser.lastName,
               roles: testUser.roles,
               COMPANY_ID: 0, // Add COMPANY_ID to test user
+              username: testUser.email, // Use email as username
+              role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);
           } else {
@@ -159,7 +163,9 @@ passport.use(
             firstName: user.FIRST_NAME,
             lastName: user.LAST_NAME,
             roles: Array.isArray(roleIds) ? roleIds : [],
-            COMPANY_ID: user.COMPANY_ID // Pass COMPANY_ID to downstream handlers
+            COMPANY_ID: user.COMPANY_ID, // Pass COMPANY_ID to downstream handlers
+            username: user.EMAIL, // Use email as username
+            role: roleIds.includes(1) ? 'admin' : 'user', // Determine role based on roles array
           };
           return done(null, authenticatedUser);
         } catch (dbError) {
@@ -174,6 +180,8 @@ passport.use(
               lastName: (testUser as TestUser).lastName,
               roles: (testUser as TestUser).roles,
               COMPANY_ID: 0, // Add COMPANY_ID to test user
+              username: (testUser as TestUser).email, // Use email as username
+              role: (testUser as TestUser).roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);
           }
@@ -207,6 +215,8 @@ passport.use(
             lastName: testUser.lastName,
             roles: testUser.roles,
             COMPANY_ID: 0, // Add COMPANY_ID to test user
+            username: testUser.email, // Use email as username
+            role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
           };
           return done(null, authenticatedUser);
         }
@@ -241,7 +251,9 @@ passport.use(
             firstName: user.FIRST_NAME,
             lastName: user.LAST_NAME,
             roles: roleIds,
-            COMPANY_ID: user.COMPANY_ID // Pass COMPANY_ID to downstream handlers
+            COMPANY_ID: user.COMPANY_ID, // Pass COMPANY_ID to downstream handlers
+            username: user.EMAIL, // Use email as username
+            role: roleIds.includes(1) ? 'admin' : 'user', // Determine role based on roles array
           };
           return done(null, authenticatedUser);
         } catch (dbError) {
@@ -258,6 +270,8 @@ passport.use(
               lastName: fallbackUser.lastName,
               roles: fallbackUser.roles,
               COMPANY_ID: 0, // Add COMPANY_ID to test user
+              username: fallbackUser.email, // Use email as username
+              role: fallbackUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);
           }
@@ -279,7 +293,9 @@ export const generateToken = (user: AuthUser) => {
       firstName: user.firstName,
       lastName: user.lastName,
       roles: user.roles,
-      COMPANY_ID: user.COMPANY_ID // Add COMPANY_ID to JWT payload
+      COMPANY_ID: user.COMPANY_ID, // Add COMPANY_ID to JWT payload
+      username: user.username, // Add username to JWT payload
+      role: user.role, // Add role to JWT payload
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }

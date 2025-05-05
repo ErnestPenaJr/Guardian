@@ -112,48 +112,9 @@ const requestColumns = [
   },
   {
     name: 'Assigned To',
-    selector: (row: Request) => row.assignedName,
+    selector: (row: Request) => row.assignedName || 'Unassigned',
     sortable: true,
     width: '150px',
-  },
-  {
-    name: 'Actions',
-    cell: (row: Request) => (
-      <div className="flex items-center space-x-2">
-        <button 
-          className="p-1 text-blue-600 hover:text-blue-800"
-          onClick={() => console.log('View details', row.REQUEST_ID)}
-          title="View Details"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-        </button>
-        <button 
-          className="p-1 text-green-600 hover:text-green-800"
-          onClick={() => console.log('Edit', row.REQUEST_ID)}
-          title="Edit"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
-        <button 
-          className="p-1 text-red-600 hover:text-red-800"
-          onClick={() => console.log('Delete', row.REQUEST_ID)}
-          title="Delete"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
-    ),
-    width: '120px',
-    ignoreRowClick: true,
-    selector: (_: Request) => '',
-    sortable: false,
   }
 ];
 
@@ -677,11 +638,11 @@ function Home() {
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container">
-            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Main Dashboard</h1>
+            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">MAIN DASHBOARD</h1>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
               {/* Request Overview Card */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-3 md:p-4 w-full flex flex-col items-center justify-center`} data-component-name="Home">
-                <h2 className="text-sm md:text-base font-semibold mb-2 md:mb-3 text-center">Requests Overview</h2>
+                <h2 className="text-sm md:text-base font-semibold mb-2 md:mb-3 text-center">Request Overview</h2>
                 <div className="flex flex-col items-center justify-center">
                   <div className="w-28 h-28 md:w-40 md:h-40 flex items-center justify-center relative" data-component-name="Home">
                     {loading ? (
@@ -711,7 +672,7 @@ function Home() {
               </section>
               {/* Request Queue Card */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-3`} data-component-name="Home">
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 mt-4 md:mt-6">Request Queue</h2>
+                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Queue</h2>
                 
                 {error ? (
                   <div className="text-red-600 p-4 rounded bg-red-50">{error}</div>
@@ -725,7 +686,10 @@ function Home() {
                       <div className="flex items-center">
                         <button 
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
-                          onClick={() => console.log('Refresh')}
+                          onClick={() => {
+                            setToggleCleared(!toggleCleared);
+                            setSelectedRows([]);
+                          }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -763,10 +727,10 @@ function Home() {
                       columns={requestColumns}
                       data={filteredRequests || requests}
                       pagination
-                      paginationPerPage={5}
+                      paginationPerPage={10}
                       paginationRowsPerPageOptions={[5, 10, 15, 20, 50]}
                       paginationComponentOptions={{
-                        rowsPerPageText: 'Show:',
+                        rowsPerPageText: 'Records per page:',
                         rangeSeparatorText: 'of',
                       }}
                       selectableRows
@@ -800,18 +764,17 @@ function Home() {
                             padding: '0',
                           },
                         },
-                        head: {
-                          style: {
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            backgroundColor: '#f8fafc',
-                            borderBottom: '1px solid #e2e8f0',
-                          },
-                        },
                         headRow: {
                           style: {
-                            borderBottom: '1px solid #e2e8f0',
                             backgroundColor: '#f8fafc',
+                            borderBottomWidth: '1px',
+                            borderBottomStyle: 'solid',
+                            borderBottomColor: '#e2e8f0',
+                            color: '#475569',
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
                           },
                         },
                         headCells: {
@@ -820,17 +783,11 @@ function Home() {
                             paddingRight: '16px',
                             paddingTop: '12px',
                             paddingBottom: '12px',
-                            fontWeight: '600',
-                            color: '#334155',
                           },
                         },
                         rows: {
                           style: {
-                            fontSize: '0.875rem',
-                            fontWeight: '400',
-                            color: '#334155',
                             backgroundColor: '#ffffff',
-                            minHeight: '48px',
                             '&:not(:last-of-type)': {
                               borderBottomStyle: 'solid',
                               borderBottomWidth: '1px',
@@ -838,42 +795,41 @@ function Home() {
                             },
                             '&:hover': {
                               backgroundColor: '#f1f5f9',
+                              cursor: 'pointer',
                             },
+                          },
+                          highlightOnHoverStyle: {
+                            backgroundColor: '#f1f5f9',
                           },
                         },
                         cells: {
                           style: {
                             paddingLeft: '16px',
                             paddingRight: '16px',
+                            paddingTop: '12px',
+                            paddingBottom: '12px',
                           },
                         },
                         pagination: {
                           style: {
-                            borderTop: '1px solid #e2e8f0',
+                            borderTopStyle: 'solid',
+                            borderTopWidth: '1px',
+                            borderTopColor: '#e2e8f0',
                             backgroundColor: '#f8fafc',
                           },
                           pageButtonsStyle: {
-                            borderRadius: '4px',
-                            height: '32px',
-                            width: '32px',
-                            padding: '4px',
-                            margin: '0px 4px',
-                            cursor: 'pointer',
-                            transition: '0.4s',
-                            color: '#334155',
-                            fill: '#334155',
-                            backgroundColor: 'transparent',
+                            color: '#0284c7',
+                            fill: '#0284c7',
                             '&:disabled': {
-                              cursor: 'not-allowed',
                               color: '#cbd5e1',
                               fill: '#cbd5e1',
                             },
                             '&:hover:not(:disabled)': {
-                              backgroundColor: '#e2e8f0',
+                              backgroundColor: '#e0f2fe',
                             },
                             '&:focus': {
                               outline: 'none',
-                              backgroundColor: '#e2e8f0',
+                              backgroundColor: '#e0f2fe',
                             },
                           },
                         },

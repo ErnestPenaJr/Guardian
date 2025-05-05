@@ -1,0 +1,143 @@
+.form-builder {
+  width: 100%;
+}
+
+.form-builder .row {
+  margin: 0;
+}
+
+.form-builder .list-group {
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.form-builder .list-group-item.active {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+  font-weight: 500;
+}
+
+.form-builder .list-group-item {
+  border-left: 1px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
+  padding: 0.75rem 1.25rem;
+}
+
+.form-builder .card {
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.form-builder .card-header {
+  background-color: #007bff;
+  color: white;
+  padding: 0.75rem 1.25rem;
+}
+
+.form-fields-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-item {
+  position: relative;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+.form-field-item:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.form-field-item.editing {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #6c757d;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.form-field-preview {
+  opacity: 0.8;
+  border: 1px dashed #007bff;
+}
+
+/* Modal styles */
+.modal-content {
+  position: relative;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-xl {
+  max-width: 1400px;
+}
+
+.modal-lg {
+  max-width: 1200px;
+}
+
+/* Step buttons */
+.step-btn {
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.step-btn.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-builder .row {
+    flex-direction: column;
+  }
+  
+  .form-builder .col-md-4,
+  .form-builder .col-md-8 {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  .stepper {
+    flex-wrap: wrap;
+  }
+  
+  .step-btn {
+    flex: 1 0 40%;
+    margin-bottom: 5px;
+    font-size: 0.7rem;
+    padding: 6px 10px;
+  }
+}

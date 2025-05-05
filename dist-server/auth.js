@@ -69,6 +69,8 @@ passport.use(new LocalStrategy({
                     lastName: testUser.lastName,
                     roles: testUser.roles,
                     COMPANY_ID: 0, // Add COMPANY_ID to test user
+                    username: testUser.email, // Use email as username
+                    role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
                 };
                 return done(null, authenticatedUser);
             }
@@ -119,7 +121,9 @@ passport.use(new LocalStrategy({
                 firstName: user.FIRST_NAME,
                 lastName: user.LAST_NAME,
                 roles: Array.isArray(roleIds) ? roleIds : [],
-                COMPANY_ID: user.COMPANY_ID // Pass COMPANY_ID to downstream handlers
+                COMPANY_ID: user.COMPANY_ID, // Pass COMPANY_ID to downstream handlers
+                username: user.EMAIL, // Use email as username
+                role: roleIds.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);
         }
@@ -135,6 +139,8 @@ passport.use(new LocalStrategy({
                     lastName: testUser.lastName,
                     roles: testUser.roles,
                     COMPANY_ID: 0, // Add COMPANY_ID to test user
+                    username: testUser.email, // Use email as username
+                    role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
                 };
                 return done(null, authenticatedUser);
             }
@@ -162,6 +168,8 @@ passport.use(new JwtStrategy({
                 lastName: testUser.lastName,
                 roles: testUser.roles,
                 COMPANY_ID: 0, // Add COMPANY_ID to test user
+                username: testUser.email, // Use email as username
+                role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);
         }
@@ -190,7 +198,9 @@ passport.use(new JwtStrategy({
                 firstName: user.FIRST_NAME,
                 lastName: user.LAST_NAME,
                 roles: roleIds,
-                COMPANY_ID: user.COMPANY_ID // Pass COMPANY_ID to downstream handlers
+                COMPANY_ID: user.COMPANY_ID, // Pass COMPANY_ID to downstream handlers
+                username: user.EMAIL, // Use email as username
+                role: roleIds.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);
         }
@@ -207,6 +217,8 @@ passport.use(new JwtStrategy({
                     lastName: fallbackUser.lastName,
                     roles: fallbackUser.roles,
                     COMPANY_ID: 0, // Add COMPANY_ID to test user
+                    username: fallbackUser.email, // Use email as username
+                    role: fallbackUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
                 };
                 return done(null, authenticatedUser);
             }
@@ -225,7 +237,9 @@ export const generateToken = (user) => {
         firstName: user.firstName,
         lastName: user.lastName,
         roles: user.roles,
-        COMPANY_ID: user.COMPANY_ID // Add COMPANY_ID to JWT payload
+        COMPANY_ID: user.COMPANY_ID, // Add COMPANY_ID to JWT payload
+        username: user.username, // Add username to JWT payload
+        role: user.role, // Add role to JWT payload
     }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 // Middleware to require authentication

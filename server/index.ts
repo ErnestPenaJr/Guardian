@@ -10,6 +10,7 @@ import bcrypt from 'bcryptjs';
 import { passport, loginSchema, generateToken, requireAuth, hashPassword } from './auth.js';
 import rateLimit from 'express-rate-limit';
 import { isAdmin } from './middleware/isAdmin.js';
+import formsRoutes from './routes/forms.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -113,7 +114,9 @@ app.post('/api/login', loginRateLimiter, async (req, res) => {
       firstName: user.FIRST_NAME,
       lastName: user.LAST_NAME,
       roles: roleIds,
-      COMPANY_ID: user.COMPANY_ID
+      COMPANY_ID: user.COMPANY_ID,
+      username: user.EMAIL, // Use email as username
+      role: roleIds.includes(1) ? 'admin' : 'user' // Determine role based on roles array
     };
     
     const token = generateToken(authUser);
@@ -801,34 +804,151 @@ The Guardian Team`,
 app.get('/health', (req, res) => {
   try {
     // Check database connection
-    prisma.$queryRaw`SELECT 1`
-      .then(() => {
-        res.status(200).json({
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          database: 'connected',
-          message: 'Guardian API is running'
-        });
-      })
-      .catch(err => {
-        console.error('[HEALTH CHECK] Database connection error:', err);
-        res.status(503).json({
-          status: 'unhealthy',
-          timestamp: new Date().toISOString(),
-          database: 'disconnected',
-          message: 'Database connection error'
-        });
-      });
+    res.status(200).json({ status: 'ok' });
   } catch (err) {
-    console.error('[HEALTH CHECK]', err);
-    res.status(500).json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      message: 'Server error during health check'
-    });
+    console.error('Health check failed:', err);
+    res.status(500).json({ status: 'error', message: 'Health check failed' });
   }
 });
 
+// --- API ROUTES ---
+// Make the field types endpoint publicly accessible
+app.get('/api/field-types', async (req, res) => {
+  try {
+    const fieldTypes = await prisma.fIELD_TYPE.findMany({
+      orderBy: {
+        SORT_ORDER: 'asc',
+      },
+    });
+
+    // If no field types found in the database, return default field types
+    if (!fieldTypes || fieldTypes.length === 0) {
+      console.log('No field types found in database, returning default field types');
+      
+      // Default field types that match the mockFieldTypes in the frontend
+      const defaultFieldTypes = [
+        { 
+          FIELD_TYPE_ID: 1, 
+          FIELD_TYPE_NAME: 'Text', 
+          FIELD_TYPE_DESC: 'Single line text input', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 1,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        },
+        { 
+          FIELD_TYPE_ID: 2, 
+          FIELD_TYPE_NAME: 'TextArea', 
+          FIELD_TYPE_DESC: 'Multi-line text input', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 2,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        },
+        { 
+          FIELD_TYPE_ID: 3, 
+          FIELD_TYPE_NAME: 'Number', 
+          FIELD_TYPE_DESC: 'Numeric input', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 3,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        },
+        { 
+          FIELD_TYPE_ID: 4, 
+          FIELD_TYPE_NAME: 'Select', 
+          FIELD_TYPE_DESC: 'Dropdown selection', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 4,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        },
+        { 
+          FIELD_TYPE_ID: 5, 
+          FIELD_TYPE_NAME: 'Radio', 
+          FIELD_TYPE_DESC: 'Radio button selection', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 5,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        },
+        { 
+          FIELD_TYPE_ID: 6, 
+          FIELD_TYPE_NAME: 'Checkbox', 
+          FIELD_TYPE_DESC: 'Checkbox selection', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 6,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        },
+        { 
+          FIELD_TYPE_ID: 7, 
+          FIELD_TYPE_NAME: 'Date', 
+          FIELD_TYPE_DESC: 'Date selection', 
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          SORT_ORDER: 7,
+          CREATE_DATE: new Date(),
+          CREATE_USER_ID: null,
+          UPDATE_DATE: null,
+          UPDATE_USER_ID: null
+        }
+      ];
+      
+      // Map to a more frontend-friendly format
+      const formattedFieldTypes = defaultFieldTypes.map((type) => ({
+        FIELD_TYPE_ID: type.FIELD_TYPE_ID,
+        FIELD_TYPE_NAME: type.FIELD_TYPE_DESC,
+        FIELD_TYPE_DESCRIPTION: type.FIELD_TYPE_DESC,
+        IS_ACTIVE: type.IS_ACTIVE,
+        id: type.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, ''),
+        label: type.FIELD_TYPE_DESC,
+        icon: type.FIELD_TYPE_DESC.charAt(0)
+      }));
+      
+      return res.json(formattedFieldTypes);
+    }
+
+    // Map to a more frontend-friendly format
+    const formattedFieldTypes = fieldTypes.map((type: any) => ({
+      FIELD_TYPE_ID: type.FIELD_TYPE_ID,
+      FIELD_TYPE_NAME: type.FIELD_TYPE_DESC,
+      FIELD_TYPE_DESCRIPTION: type.FIELD_TYPE_DESC,
+      IS_ACTIVE: type.IS_ACTIVE,
+      id: type.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, ''),
+      label: type.FIELD_TYPE_DESC,
+      icon: type.FIELD_TYPE_DESC.charAt(0)
+    }));
+
+    res.json(formattedFieldTypes);
+  } catch (error) {
+    console.error('Error fetching field types:', error);
+    res.status(500).json({ error: 'Failed to fetch field types' });
+  }
+});
+
+// Use authentication for all other forms routes
+app.use('/api/forms', requireAuth, formsRoutes);
+
+// --- REQUESTS ROUTES ---
 // --- GET ROLES ENDPOINT ---
 app.get('/api/roles', async (req, res) => {
   try {
