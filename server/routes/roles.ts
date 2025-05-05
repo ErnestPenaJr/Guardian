@@ -41,7 +41,8 @@ router.get('/', async (req, res) => {
         name: role.NAME,
         displayName: role.DISPLAY_NAME,
         description: role.DESCRIPTION,
-        permissions: rolePermissions.map((p: any) => p.PERMISSION_ID),
+        // Using type assertion since rolePermissions is of type unknown
+        permissions: (rolePermissions as any[]).map((p: any) => p.PERMISSION_ID),
       };
     }));
 
@@ -83,7 +84,8 @@ router.get('/:id', async (req, res) => {
       name: role.NAME,
       displayName: role.DISPLAY_NAME,
       description: role.DESCRIPTION,
-      permissions: rolePermissions.map((p: any) => p.PERMISSION_ID),
+      // Using type assertion since rolePermissions is of type unknown
+      permissions: (rolePermissions as any[]).map((p: any) => p.PERMISSION_ID),
     });
   } catch (error) {
     console.error('Error fetching role:', error);

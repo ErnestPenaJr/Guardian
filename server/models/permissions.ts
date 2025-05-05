@@ -63,12 +63,14 @@ export const PERMISSIONS: Permission[] = [
   { id: 8, type: PermissionType.DELETE, resource: ResourceType.REQUEST, description: 'Delete requests' },
   { id: 9, type: PermissionType.APPROVE, resource: ResourceType.REQUEST, description: 'Approve requests' },
   { id: 10, type: PermissionType.ASSIGN, resource: ResourceType.REQUEST, description: 'Assign requests' },
+  { id: 47, type: PermissionType.MANAGE, resource: ResourceType.REQUEST, description: 'Manage all requests' },
   
   // Notice permissions
   { id: 11, type: PermissionType.VIEW, resource: ResourceType.NOTICE, description: 'View all notices' },
   { id: 12, type: PermissionType.CREATE, resource: ResourceType.NOTICE, description: 'Create notices' },
   { id: 13, type: PermissionType.EDIT, resource: ResourceType.NOTICE, description: 'Edit notices' },
   { id: 14, type: PermissionType.DELETE, resource: ResourceType.NOTICE, description: 'Delete notices' },
+  { id: 48, type: PermissionType.MANAGE, resource: ResourceType.NOTICE, description: 'Manage all notices' },
   
   // Task permissions
   { id: 15, type: PermissionType.VIEW, resource: ResourceType.TASK, description: 'View all tasks' },
@@ -100,6 +102,7 @@ export const PERMISSIONS: Permission[] = [
   { id: 33, type: PermissionType.CREATE, resource: ResourceType.ORGANIZATION, description: 'Create organizations' },
   { id: 34, type: PermissionType.EDIT, resource: ResourceType.ORGANIZATION, description: 'Edit organizations' },
   { id: 35, type: PermissionType.DELETE, resource: ResourceType.ORGANIZATION, description: 'Delete organizations' },
+  { id: 49, type: PermissionType.MANAGE, resource: ResourceType.ORGANIZATION, description: 'Manage all organizations' },
   
   // Company permissions
   { id: 36, type: PermissionType.VIEW, resource: ResourceType.COMPANY, description: 'View companies' },
@@ -119,9 +122,6 @@ export const PERMISSIONS: Permission[] = [
   
   // Management permissions
   { id: 46, type: PermissionType.MANAGE, resource: ResourceType.USER, description: 'Manage all users' },
-  { id: 47, type: PermissionType.MANAGE, resource: ResourceType.REQUEST, description: 'Manage all requests' },
-  { id: 48, type: PermissionType.MANAGE, resource: ResourceType.NOTICE, description: 'Manage all notices' },
-  { id: 49, type: PermissionType.MANAGE, resource: ResourceType.ORGANIZATION, description: 'Manage all organizations' },
 ];
 
 // Define predefined roles with their permissions
@@ -136,21 +136,122 @@ export const PREDEFINED_ROLES: Role[] = [
   {
     id: 2,
     name: 'user',
-    displayName: 'Regular User',
-    description: 'Basic user with limited permissions',
+    displayName: 'General User',
+    description: 'Submit and receive workflows within their group',
     permissions: [
-      1, 5, 6, 7, 11, 15, 16, 17, 20, 28 // Basic view and create permissions
+      // User management (view only their group)
+      1,
+      
+      // Request permissions (submit and view their own)
+      5, 6, 7, // View, create, edit requests
+      
+      // Notice permissions (view and respond)
+      11, 13, // View, edit notices (for responding)
+      
+      // Task permissions (complete assigned tasks)
+      15, 17, // View, edit tasks
+      
+      // Form permissions (view and complete)
+      20,
+      
+      // Report permissions (view only - personal)
+      28
     ],
   },
   {
     id: 3,
     name: 'manager',
     displayName: 'Manager',
-    description: 'Manager with team oversight permissions',
+    description: 'Manager with team oversight permissions for their group/organization',
     permissions: [
-      1, 3, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 28, 32, 36
+      // User management (view only)
+      1,
+      
+      // Request permissions (full management within group)
+      5, 6, 7, 9, 10, 47, // View, create, edit, approve, assign, manage all requests
+      
+      // Notice permissions (full management within group)
+      11, 12, 13, 14, 48, // View, create, edit, delete, manage all notices
+      
+      // Task permissions (full management within group)
+      15, 16, 17, 18, 19, // View, create, edit, delete, assign tasks
+      
+      // Form permissions (view only)
+      20,
+      
+      // Report permissions (view only)
+      28,
+      
+      // Organization/Company permissions (view only)
+      32, 36
     ],
   },
+  {
+    id: 4,
+    name: 'supervisor',
+    displayName: 'Supervisor',
+    description: 'Supervisor with limited management capabilities',
+    permissions: [
+      // User management (view only)
+      1,
+      
+      // Request permissions (limited management)
+      5, 6, 7, 9, // View, create, edit, approve requests
+      
+      // Notice permissions (limited management)
+      11, 12, 13, // View, create, edit notices
+      
+      // Task permissions (limited management)
+      15, 16, 17, 19, // View, create, edit, assign tasks
+      
+      // Form permissions (view only)
+      20,
+      
+      // Report permissions (view only)
+      28
+    ],
+  },
+  {
+    id: 5,
+    name: 'processor',
+    displayName: 'Processor',
+    description: 'Process workflows within their group/organization',
+    permissions: [
+      // User management (view only their group)
+      1,
+      
+      // Request permissions (processing capabilities)
+      5, 7, 9, // View, edit, approve requests
+      
+      // Notice permissions (view and respond)
+      11, 13, // View, edit notices (for responding)
+      
+      // Task permissions (processing capabilities)
+      15, 17, 19, // View, edit, assign tasks
+      
+      // Form permissions (view and complete)
+      20,
+      
+      // Report permissions (view only - group)
+      28
+    ],
+  },
+  {
+    id: 6,
+    name: 'external',
+    displayName: 'External User',
+    description: 'Limited access to submit/receive workflows as a guest to a group',
+    permissions: [
+      // Request permissions (very limited - only their own)
+      5, 6, // View, create requests (only specific external forms)
+      
+      // Notice permissions (very limited - only their own)
+      11, 13, // View, respond to notices (only their own)
+      
+      // Form permissions (limited to external forms)
+      20, // View forms (only external forms)
+    ],
+  }
 ];
 
 // Helper function to check if a user has a specific permission

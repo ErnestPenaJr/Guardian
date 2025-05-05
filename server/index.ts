@@ -11,6 +11,7 @@ import { passport, loginSchema, generateToken, requireAuth, hashPassword } from 
 import rateLimit from 'express-rate-limit';
 import { isAdmin } from './middleware/isAdmin.js';
 import formsRoutes from './routes/forms.js';
+import externalRoutes from './routes/external.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -1923,6 +1924,8 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
     }
   }
 });
+
+app.use('/api/external', externalRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

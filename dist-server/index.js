@@ -11,6 +11,7 @@ import { passport, loginSchema, generateToken, requireAuth } from './auth.js';
 import rateLimit from 'express-rate-limit';
 import { isAdmin } from './middleware/isAdmin.js';
 import formsRoutes from './routes/forms.js';
+import externalRoutes from './routes/external.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
@@ -1802,6 +1803,7 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
         }
     }
 });
+app.use('/api/external', externalRoutes);
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
