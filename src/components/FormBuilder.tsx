@@ -114,9 +114,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
     }
   };
 
-  const handleSave = () => {
-    onChange(fields, formName);
-  };
   
   const handleFormNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormName(e.target.value);
@@ -373,37 +370,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
         </div>
       )}
       
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        padding: '10px',
-        borderTop: '1px solid #ccc',
-        marginTop: 'auto'
-      }}>
-        <button 
-          style={{ 
-            padding: '8px 16px', 
-            backgroundColor: '#f0f0f0', 
-            border: '1px solid #ccc',
-            borderRadius: '5px'
-          }}
-          onClick={() => window.history.back()}
-        >
-          Back
-        </button>
-        <button 
-          style={{ 
-            padding: '8px 16px', 
-            backgroundColor: '#0d6efd', 
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px'
-          }}
-          onClick={handleSave}
-        >
-          Save
-        </button>
-      </div>
+
     </div>
   );
 };
