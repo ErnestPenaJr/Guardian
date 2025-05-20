@@ -11,6 +11,7 @@ interface FormBuilderProps {
 
 const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId }) => {
   const [fields, setFields] = useState<FormField[]>(formFields);
+  const [editingField, setEditingField] = useState<FormField | null>(null);
 
   useEffect(() => {
     // If formId is provided, fetch existing form data
@@ -45,12 +46,54 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
     };
     setFields([...fields, newField]);
     onChange([...fields, newField]);
+    setEditingField(newField); // Open settings for the new field
   };
 
   const removeField = (id: string) => {
     const updatedFields = fields.filter(field => field.id !== id);
     setFields(updatedFields);
     onChange(updatedFields);
+    
+    // If we're editing the field that was removed, clear the editing state
+    if (editingField && editingField.id === id) {
+      setEditingField(null);
+    }
+  };
+  
+  const updateField = (updatedField: FormField) => {
+    const updatedFields = fields.map(field => 
+      field.id === updatedField.id ? updatedField : field
+    );
+    setFields(updatedFields);
+    onChange(updatedFields);
+  };
+  
+  const generateIdFromLabel = (label: string): string => {
+    // Convert to lowercase, replace spaces with underscores, and remove special characters
+    return label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  };
+  
+  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingField) return;
+    
+    const newLabel = e.target.value;
+    const newId = generateIdFromLabel(newLabel);
+    
+    // Only update the ID if it hasn't been manually modified
+    const isDefaultId = editingField.id.startsWith('field-');
+    
+    if (isDefaultId && newId) {
+      setEditingField({
+        ...editingField,
+        fieldName: newLabel,
+        id: `field-${newId}`
+      });
+    } else {
+      setEditingField({
+        ...editingField,
+        fieldName: newLabel
+      });
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, fieldType: string) => {
@@ -150,16 +193,24 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
                   style={{ 
                     padding: '10px', 
                     marginBottom: '10px',
-                    border: '1px solid #ddd',
+                    border: editingField?.id === field.id ? '2px solid #0d6efd' : '1px solid #ddd',
                     borderRadius: '5px',
-                    backgroundColor: 'white',
-                    position: 'relative'
+                    backgroundColor: editingField?.id === field.id ? '#f0f7ff' : 'white',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    boxShadow: editingField?.id === field.id ? '0 0 8px rgba(13, 110, 253, 0.25)' : 'none',
+                    transition: 'all 0.2s ease'
                   }}
+                  onClick={() => setEditingField(field)}
                 >
                   <div style={{ fontWeight: 'bold' }}>{field.fieldName}</div>
                   <div style={{ color: '#666', fontSize: '12px' }}>{field.fieldType}</div>
+                  <div style={{ color: '#666', fontSize: '10px' }}>ID: {field.id.substring(0, 8)}...</div>
                   <button
-                    onClick={() => removeField(field.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeField(field.id);
+                    }}
                     style={{
                       position: 'absolute',
                       top: '5px',
@@ -179,6 +230,120 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
           )}
         </div>
       </div>
+      
+      {editingField && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '300px',
+          backgroundColor: 'white',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          border: '1px solid #0d6efd',
+          borderRadius: '5px',
+          padding: '15px',
+          zIndex: 1000
+        }}>
+          <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e9ecef', paddingBottom: '10px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: '#0d6efd', fontWeight: 'bold' }}>Field Settings</h3>
+            <button 
+              onClick={() => setEditingField(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ×
+            </button>
+          </div>
+          
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Field Label</label>
+            <input 
+              type="text" 
+              value={editingField.fieldName}
+              onChange={handleLabelChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+              placeholder="Enter field label"
+              autoFocus
+            />
+          </div>
+          
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Field ID</label>
+            <input 
+              type="text" 
+              value={editingField.id}
+              onChange={(e) => setEditingField({...editingField, id: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+          
+          {(editingField.fieldType === 'select' || editingField.fieldType === 'checkbox') && (
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Options (comma separated)</label>
+              <textarea 
+                value={editingField.options}
+                onChange={(e) => setEditingField({...editingField, options: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  minHeight: '60px'
+                }}
+              />
+            </div>
+          )}
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={editingField.required}
+                onChange={(e) => setEditingField({...editingField, required: e.target.checked})}
+                style={{ marginRight: '5px' }}
+              />
+              Required Field
+            </label>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button 
+              onClick={() => {
+                updateField(editingField);
+                setEditingField(null);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#0d6efd',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
       
       <div style={{ 
         display: 'flex', 
