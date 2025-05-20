@@ -321,34 +321,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
             />
           </div>
         </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          backgroundColor: '#f8f9fa',
-          padding: '8px 12px',
-          borderRadius: '4px',
-          border: '1px solid #e9ecef'
-        }}>
-          <div style={{ 
-            fontSize: '13px', 
-            color: '#495057',
-            fontWeight: '500',
-            marginRight: '8px'
-          }}>
-            Form ID:
-          </div>
-          <div style={{ 
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            backgroundColor: 'white',
-            padding: '4px 8px',
-            borderRadius: '3px',
-            border: '1px solid #dee2e6',
-            color: '#0d6efd'
-          }}>
-            {formId || 'New Form'}
-          </div>
-        </div>
+
       </div>
       
       <div style={{ display: 'flex', height: 'calc(100% - 150px)' }}>
