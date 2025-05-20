@@ -5,13 +5,15 @@ import formService from '../services/formService';
 
 interface FormBuilderProps {
   formFields: FormField[];
-  onChange: (fields: FormField[]) => void;
+  onChange: (fields: FormField[], formName?: string) => void;
   formId?: number; // Optional form ID for editing existing forms
+  initialFormName?: string; // Optional initial form name
 }
 
-const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId }) => {
+const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId, initialFormName = 'New Form' }) => {
   const [fields, setFields] = useState<FormField[]>(formFields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
+  const [formName, setFormName] = useState<string>(initialFormName);
 
   useEffect(() => {
     // If formId is provided, fetch existing form data
@@ -45,14 +47,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
       options: fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox' ? 'Option 1,Option 2,Option 3' : ''
     };
     setFields([...fields, newField]);
-    onChange([...fields, newField]);
+    onChange([...fields, newField], formName);
     setEditingField(newField); // Open settings for the new field
   };
 
   const removeField = (id: string) => {
     const updatedFields = fields.filter(field => field.id !== id);
     setFields(updatedFields);
-    onChange(updatedFields);
+    onChange(updatedFields, formName);
     
     // If we're editing the field that was removed, clear the editing state
     if (editingField && editingField.id === id) {
@@ -65,7 +67,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
       field.id === updatedField.id ? updatedField : field
     );
     setFields(updatedFields);
-    onChange(updatedFields);
+    onChange(updatedFields, formName);
   };
   
   const generateIdFromLabel = (label: string): string => {
@@ -113,7 +115,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
   };
 
   const handleSave = () => {
-    onChange(fields);
+    onChange(fields, formName);
+  };
+  
+  const handleFormNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormName(e.target.value);
   };
 
   // Field type options for the form builder
@@ -127,7 +133,29 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', height: 'calc(100% - 60px)' }}>
+      <div style={{ 
+        padding: '10px 15px', 
+        borderBottom: '1px solid #e9ecef',
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <label style={{ marginRight: '10px', fontWeight: 'bold', fontSize: '14px' }}>Form Name:</label>
+        <input 
+          type="text" 
+          value={formName}
+          onChange={handleFormNameChange}
+          style={{
+            padding: '6px 10px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            fontSize: '14px',
+            width: '300px'
+          }}
+          placeholder="Enter form name"
+        />
+      </div>
+      
+      <div style={{ display: 'flex', height: 'calc(100% - 100px)' }}>
         <div style={{ width: '140px', borderRight: '1px solid #ccc', padding: '10px' }}>
           <div style={{ 
             backgroundColor: '#0d6efd', 
