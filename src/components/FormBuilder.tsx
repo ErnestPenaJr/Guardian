@@ -270,14 +270,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ 
-        padding: '20px', 
+        padding: '12px 15px', 
         borderBottom: '1px solid #e9ecef',
         background: 'linear-gradient(to right, #f8f9fa, #ffffff)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderRadius: '8px 8px 0 0'
+        borderRadius: '4px 4px 0 0'
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{ 
@@ -326,19 +326,19 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
       
       <div style={{ display: 'flex', height: 'calc(100% - 150px)' }}>
         <div style={{ 
-          width: '180px', 
+          width: '170px', 
           borderRight: '1px solid #e9ecef', 
-          padding: '15px',
+          padding: '10px',
           backgroundColor: '#f8f9fa'
         }}>
           <div style={{ 
             backgroundColor: '#495057', 
             color: 'white', 
-            padding: '12px', 
+            padding: '8px', 
             textAlign: 'center',
             borderRadius: '4px',
-            marginBottom: '15px',
-            fontSize: '14px',
+            marginBottom: '10px',
+            fontSize: '13px',
             fontWeight: 'bold',
             boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
           }}>
@@ -353,16 +353,16 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                 style={{
                   border: '1px solid #dee2e6',
                   borderRadius: '4px',
-                  padding: '12px 10px',
+                  padding: '8px 10px',
                   cursor: 'grab',
                   backgroundColor: 'white',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   transition: 'all 0.2s ease',
                   position: 'relative',
                   overflow: 'hidden',
-                  marginBottom: '8px',
-                  height: '48px',
+                  marginBottom: '6px',
+                  height: '40px',
                   display: 'flex',
                   alignItems: 'center'
                 }}
@@ -426,7 +426,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
         <div 
           style={{ 
             flex: 1, 
-            padding: '20px',
+            padding: '10px',
             backgroundColor: '#ffffff',
             display: 'flex',
             flexDirection: 'column'
@@ -439,13 +439,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            marginBottom: '15px'
+            marginBottom: '8px'
           }}>
             <h3 style={{ 
               margin: 0, 
               fontSize: '16px', 
-              fontWeight: 'bold', 
-              color: '#495057' 
+              fontWeight: '600',
+              color: '#343a40'
             }}>
               Form Preview
             </h3>
@@ -720,13 +720,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
       </div>
       
       <div style={{ 
-        padding: '15px 20px',
+        padding: '8px 15px',
         borderTop: '1px solid #dee2e6',
         backgroundColor: '#f8f9fa',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        boxShadow: '0 -1px 3px rgba(0,0,0,0.05)',
+        boxShadow: '0 -1px 2px rgba(0,0,0,0.05)',
         marginTop: 'auto'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -736,13 +736,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               alert('Form preview functionality would be implemented here');
             }}
             style={{
-              padding: '10px 16px',
+              padding: '6px 12px',
               backgroundColor: 'white',
               color: '#495057',
               border: '1px solid #ced4da',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
@@ -767,13 +767,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               }
             }}
             style={{
-              padding: '10px 16px',
+              padding: '6px 12px',
               backgroundColor: 'white',
               color: '#dc3545',
               border: '1px solid #ced4da',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
@@ -797,13 +797,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
           <button 
             onClick={handleBack}
             style={{
-              padding: '10px 16px',
+              padding: '6px 12px',
               backgroundColor: '#6c757d',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
@@ -822,13 +822,13 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
           <button 
             onClick={handleSave}
             style={{
-              padding: '10px 16px',
+              padding: '6px 12px',
               backgroundColor: '#28a745',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
@@ -869,7 +869,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
             animation: 'fadeIn 0.2s ease-out'
           }}>
             <div style={{ 
-              padding: '15px 20px', 
+              padding: '10px 15px', 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center', 
@@ -878,12 +878,12 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
             }}>
               <h3 style={{ 
                 margin: 0, 
-                fontSize: '18px', 
+                fontSize: '16px', 
                 color: '#212529', 
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '6px'
               }}>
                 <span style={{ 
                   display: 'inline-flex', 
@@ -927,8 +927,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               </button>
             </div>
             
-            <div style={{ padding: '20px' }}>
-              <div style={{ marginBottom: '16px' }}>
+            <div style={{ padding: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{ 
                   display: 'block', 
                   marginBottom: '6px', 
@@ -959,7 +959,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                 </div>
               </div>
               
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{ 
                   display: 'block', 
                   marginBottom: '6px', 
@@ -989,7 +989,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                 </div>
               </div>
               
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{ 
                   display: 'block', 
                   marginBottom: '6px', 
@@ -1015,7 +1015,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               </div>
               
               {(editingField.fieldType === 'select' || editingField.fieldType === 'checkbox') && (
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '10px' }}>
                   <label style={{ 
                     display: 'block', 
                     marginBottom: '6px', 
@@ -1071,8 +1071,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               )}
               
               <div style={{ 
-                marginBottom: '20px', 
-                padding: '12px', 
+                marginBottom: '12px', 
+                padding: '8px', 
                 backgroundColor: '#f8f9fa',
                 border: '1px solid #dee2e6',
                 borderRadius: '4px'

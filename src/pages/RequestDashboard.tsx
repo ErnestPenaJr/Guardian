@@ -321,7 +321,7 @@ const RequestDashboard: React.FC = () => {
             maxHeight: '800px',
             margin: 'auto',
             overflow: 'auto',
-            padding: '20px'
+            padding: '5px'
           },
           overlay: {
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -337,7 +337,7 @@ const RequestDashboard: React.FC = () => {
             aria-label="Close"
           ></button>
         </div>
-        <div className="stepper mb-3 d-flex gap-2">
+        <div className="stepper mb-2 d-flex gap-2">
           <button 
             className={`step-btn${formStep === 0 ? ' active' : ''}`}
             onClick={() => setFormStep(0)}
@@ -364,9 +364,9 @@ const RequestDashboard: React.FC = () => {
           </button>
         </div>
         <div className="modal-body p-0" style={{ 
-          height: 'calc(100% - 150px)', 
+          height: 'calc(100% - 120px)', 
           overflowY: 'auto',
-          maxHeight: formStep === 3 ? '700px' : '600px'
+          maxHeight: formStep === 3 ? '680px' : '580px'
         }}>
           {formStep === 0 && (
             <div>
