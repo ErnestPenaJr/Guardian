@@ -100,19 +100,113 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
     }
   };
 
+  // Handlers for adding new fields via drag and drop
   const handleDragStart = (e: React.DragEvent, fieldType: string) => {
     e.dataTransfer.setData('fieldType', fieldType);
+    e.dataTransfer.setData('action', 'add');
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.add('drag-over');
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.remove('drag-over');
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const fieldType = e.dataTransfer.getData('fieldType');
-    if (fieldType) {
-      addField(fieldType);
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+    
+    const action = e.dataTransfer.getData('action');
+    
+    // Handle adding new fields
+    if (action === 'add') {
+      const fieldType = e.dataTransfer.getData('fieldType');
+      if (fieldType) {
+        addField(fieldType);
+      }
+    }
+  };
+  
+  // Handlers for reordering existing fields
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+  const [dragOverFieldId, setDragOverFieldId] = useState<string | null>(null);
+  
+  const handleFieldDragStart = (e: React.DragEvent, fieldId: string) => {
+    setDraggedFieldId(fieldId);
+    e.dataTransfer.setData('fieldId', fieldId);
+    e.dataTransfer.setData('action', 'reorder');
+    
+    // Set a ghost drag image
+    const element = e.currentTarget as HTMLElement;
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      e.dataTransfer.setDragImage(element, rect.width / 2, 20);
+      
+      // Add a class to style the dragged element
+      setTimeout(() => {
+        element.style.opacity = '0.4';
+      }, 0);
+    }
+  };
+  
+  const handleFieldDragEnd = (e: React.DragEvent) => {
+    setDraggedFieldId(null);
+    setDragOverFieldId(null);
+    
+    const element = e.currentTarget as HTMLElement;
+    if (element) {
+      element.style.opacity = '1';
+    }
+  };
+  
+  const handleFieldDragOver = (e: React.DragEvent, fieldId: string) => {
+    e.preventDefault();
+    if (draggedFieldId !== fieldId) {
+      setDragOverFieldId(fieldId);
+    }
+  };
+  
+  const handleFieldDragLeave = () => {
+    setDragOverFieldId(null);
+  };
+  
+  const handleFieldDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverFieldId(null);
+    
+    const action = e.dataTransfer.getData('action');
+    
+    // Handle reordering fields
+    if (action === 'reorder') {
+      const sourceFieldId = e.dataTransfer.getData('fieldId');
+      const targetFieldId = e.currentTarget.getAttribute('data-field-id');
+      
+      if (sourceFieldId && targetFieldId && sourceFieldId !== targetFieldId) {
+        const updatedFields = [...fields];
+        const sourceIndex = updatedFields.findIndex(field => field.id === sourceFieldId);
+        const targetIndex = updatedFields.findIndex(field => field.id === targetFieldId);
+        
+        if (sourceIndex !== -1 && targetIndex !== -1) {
+          // Remove the source field
+          const [movedField] = updatedFields.splice(sourceIndex, 1);
+          
+          // Insert it at the target position
+          updatedFields.splice(targetIndex, 0, movedField);
+          
+          // Update state
+          setFields(updatedFields);
+          onChange(updatedFields, formName);
+        }
+      }
     }
   };
 
@@ -325,6 +419,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
             flexDirection: 'column'
           }}
           onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
           <div style={{ 
@@ -342,13 +437,30 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               Form Preview
             </h3>
             <div style={{ 
-              fontSize: '13px', 
-              color: '#6c757d',
-              backgroundColor: '#e9ecef',
-              padding: '4px 8px',
-              borderRadius: '4px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
             }}>
-              {fields.length} {fields.length === 1 ? 'field' : 'fields'}
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#6c757d',
+                backgroundColor: '#e9ecef',
+                padding: '4px 8px',
+                borderRadius: '4px'
+              }}>
+                {fields.length} {fields.length === 1 ? 'field' : 'fields'}
+              </div>
+              {fields.length > 1 && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#6c757d',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span style={{ fontSize: '14px' }}>⠿</span> Drag fields to reorder
+                </div>
+              )}
             </div>
           </div>
           
@@ -382,26 +494,63 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               {fields.map((field, index) => (
                 <div 
                   key={field.id}
+                  data-field-id={field.id}
+                  draggable
+                  onDragStart={(e) => handleFieldDragStart(e, field.id)}
+                  onDragEnd={handleFieldDragEnd}
+                  onDragOver={(e) => handleFieldDragOver(e, field.id)}
+                  onDragLeave={handleFieldDragLeave}
+                  onDrop={handleFieldDrop}
                   style={{ 
                     padding: '12px', 
                     marginBottom: '10px',
-                    border: editingField?.id === field.id ? '2px solid #0d6efd' : '1px solid #e9ecef',
+                    border: editingField?.id === field.id ? '2px solid #0d6efd' : 
+                           dragOverFieldId === field.id ? '2px dashed #0d6efd' : 
+                           '1px solid #e9ecef',
                     borderRadius: '5px',
-                    backgroundColor: editingField?.id === field.id ? '#f0f7ff' : 'white',
+                    backgroundColor: editingField?.id === field.id ? '#f0f7ff' : 
+                                     draggedFieldId === field.id ? '#f8f9fa' : 'white',
                     position: 'relative',
-                    cursor: 'pointer',
-                    boxShadow: editingField?.id === field.id ? '0 0 8px rgba(13, 110, 253, 0.25)' : '0 1px 2px rgba(0,0,0,0.05)',
+                    cursor: draggedFieldId === field.id ? 'grabbing' : 'grab',
+                    boxShadow: editingField?.id === field.id ? '0 0 8px rgba(13, 110, 253, 0.25)' : 
+                              dragOverFieldId === field.id ? '0 0 5px rgba(13, 110, 253, 0.15)' : 
+                              '0 1px 2px rgba(0,0,0,0.05)',
                     transition: 'all 0.2s ease'
                   }}
                   onClick={() => setEditingField(field)}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
                     <div style={{ 
                       fontWeight: 'bold',
                       fontSize: '14px',
                       display: 'flex',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
+                      <div 
+                        style={{ 
+                          color: '#adb5bd', 
+                          fontSize: '16px',
+                          cursor: 'grab',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px 4px',
+                          borderRadius: '3px',
+                          backgroundColor: '#f8f9fa',
+                          border: '1px solid #e9ecef'
+                        }}
+                        title="Drag to reorder"
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.color = '#6c757d';
+                          e.currentTarget.style.backgroundColor = '#e9ecef';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.color = '#adb5bd';
+                          e.currentTarget.style.backgroundColor = '#f8f9fa';
+                        }}
+                      >
+                        ⠿
+                      </div>
                       {field.fieldName}
                       {field.required && (
                         <span style={{ 
