@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FormField } from '../types/formBuilder';
 import formService from '../services/formService';
+// Import React Icons
+import { 
+  FaGripLines, 
+  FaEye, 
+  FaTrashAlt, 
+  FaSave, 
+  FaArrowLeft, 
+  FaFont, 
+  FaHashtag, 
+  FaCalendarAlt, 
+  FaListUl, 
+  FaCheckSquare,
+  FaTimes,
+  FaAsterisk,
+  FaPen,
+  FaWpforms,
+  FaClipboardList
+} from 'react-icons/fa';
 
 interface FormBuilderProps {
   formFields: FormField[];
@@ -242,11 +260,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
 
   // Field type options for the form builder
   const availableFieldTypes = [
-    { id: 'text', label: 'Text' },
-    { id: 'number', label: 'Number' },
-    { id: 'select', label: 'DropDown' },
-    { id: 'date', label: 'Date' },
-    { id: 'checkbox', label: 'CheckBox' }
+    { id: 'text', label: 'Text', icon: <FaFont /> },
+    { id: 'number', label: 'Number', icon: <FaHashtag /> },
+    { id: 'select', label: 'DropDown', icon: <FaListUl /> },
+    { id: 'date', label: 'Date', icon: <FaCalendarAlt /> },
+    { id: 'checkbox', label: 'CheckBox', icon: <FaCheckSquare /> }
   ];
 
   return (
@@ -263,7 +281,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={{ 
-            backgroundColor: '#0d6efd', 
+            backgroundColor: '#495057', 
             color: 'white',
             width: '36px',
             height: '36px',
@@ -272,11 +290,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: '12px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
           }}>
-            F
+            <FaClipboardList size={18} />
           </div>
           <div>
             <label style={{ 
@@ -337,25 +353,25 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
       
       <div style={{ display: 'flex', height: 'calc(100% - 150px)' }}>
         <div style={{ 
-          width: '160px', 
+          width: '180px', 
           borderRight: '1px solid #e9ecef', 
           padding: '15px',
           backgroundColor: '#f8f9fa'
         }}>
           <div style={{ 
-            backgroundColor: '#0d6efd', 
+            backgroundColor: '#495057', 
             color: 'white', 
-            padding: '10px', 
+            padding: '12px', 
             textAlign: 'center',
             borderRadius: '4px',
             marginBottom: '15px',
             fontSize: '14px',
             fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
           }}>
             Form Elements
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {availableFieldTypes.map(type => (
               <div 
                 key={type.id}
@@ -364,16 +380,18 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                 style={{
                   border: '1px solid #dee2e6',
                   borderRadius: '4px',
-                  padding: '10px 5px',
-                  textAlign: 'center',
+                  padding: '12px 10px',
                   cursor: 'grab',
                   backgroundColor: 'white',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  fontSize: '13px',
-                  fontWeight: '500',
+                  fontSize: '14px',
                   transition: 'all 0.2s ease',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  marginBottom: '8px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -386,14 +404,36 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  gap: '12px',
+                  width: '100%'
+                }}>
+                  <div style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '24px',
+                    height: '24px',
+                    color: '#495057',
+                    fontSize: '16px'
+                  }}>
+                    {type.icon}
+                  </div>
+                  <span style={{ color: '#495057', fontWeight: '500' }}>{type.label}</span>
+                </div>
                 <div style={{ 
                   position: 'absolute', 
-                  top: '2px', 
-                  right: '2px', 
+                  top: '50%', 
+                  right: '10px',
+                  transform: 'translateY(-50%)',
                   fontSize: '10px',
-                  color: '#6c757d'
-                }}>⋮⋮</div>
-                {type.label}
+                  color: '#adb5bd'
+                }}>
+                  <FaGripLines size={10} />
+                </div>
               </div>
             ))}
           </div>
@@ -477,7 +517,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               padding: '40px',
               backgroundColor: '#f8f9fa'
             }}>
-              <div style={{ fontSize: '24px', marginBottom: '10px' }}>📝</div>
+              <div style={{ fontSize: '24px', marginBottom: '10px', color: '#495057', display: 'flex', justifyContent: 'center' }}>
+                <FaWpforms size={36} />
+              </div>
               <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>No fields added yet</div>
               <div style={{ textAlign: 'center', fontSize: '14px' }}>Drag form elements from the left panel to build your form</div>
             </div>
@@ -549,18 +591,52 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                           e.currentTarget.style.backgroundColor = '#f8f9fa';
                         }}
                       >
-                        ⠿
+                        <FaGripLines size={14} />
                       </div>
                       {field.fieldName}
                       {field.required && (
                         <span style={{ 
                           color: '#dc3545', 
                           marginLeft: '4px', 
-                          fontSize: '14px' 
-                        }}>*</span>
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}>
+                          <FaAsterisk size={10} />
+                        </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '5px' }}>
+                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingField(field);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#0d6efd',
+                          fontSize: '14px',
+                          padding: '0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          transition: 'all 0.2s ease'
+                        }}
+                        title="Edit field"
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor = '#e9ecef';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <FaPen size={12} />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -707,7 +783,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               e.currentTarget.style.backgroundColor = 'white';
             }}
           >
-            <span>👁️</span> Preview Form
+            <FaEye style={{ marginRight: '6px' }} /> Preview Form
           </button>
           <button
             onClick={() => {
@@ -740,7 +816,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               e.currentTarget.style.borderColor = '#ced4da';
             }}
           >
-            <span>🗑️</span> Clear All
+            <FaTrashAlt style={{ marginRight: '6px' }} /> Clear All
           </button>
         </div>
         
@@ -768,7 +844,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               e.currentTarget.style.backgroundColor = '#6c757d';
             }}
           >
-            <span>←</span> Back
+            <FaArrowLeft style={{ marginRight: '6px' }} /> Back
           </button>
           <button 
             onClick={handleSave}
@@ -793,7 +869,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
               e.currentTarget.style.backgroundColor = '#28a745';
             }}
           >
-            <span>💾</span> Save Form
+            <FaSave style={{ marginRight: '6px' }} /> Save Form
           </button>
         </div>
       </div>
@@ -874,7 +950,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                ×
+                <FaTimes />
               </button>
             </div>
             
