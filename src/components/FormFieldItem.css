@@ -1,0 +1,107 @@
+/* FormFieldItem.css */
+.form-field-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  background-color: white;
+}
+
+.form-field-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-field-item.editing {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #6c757d;
+  padding: 2px;
+  border-radius: 3px;
+}
+
+.drag-handle:hover {
+  background-color: #f8f9fa;
+}
+
+.form-field-item .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.form-field-item .card-body {
+  padding: 0.75rem;
+}
+
+.field-preview {
+  padding: 0.75rem;
+  border-top: 1px solid #f0f0f0;
+  background-color: #fcfcfc;
+}
+
+.field-type-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  background-color: #e9ecef;
+  color: #495057;
+  border-radius: 3px;
+}
+
+.required-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 3px;
+}
+
+.field-actions button {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.field-actions button:hover {
+  opacity: 1;
+}
+
+.options-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.option-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  background-color: #6c757d;
+  color: white;
+  border-radius: 3px;
+}
+
+/* Animation for newly added fields */
+@keyframes highlightNew {
+  0% {
+    background-color: rgba(13, 110, 253, 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.form-field-item.new-field {
+  animation: highlightNew 2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-field-item .card-header {
+    padding: 0.5rem;
+  }
+  
+  .form-field-item .card-body {
+    padding: 0.5rem;
+  }
+}

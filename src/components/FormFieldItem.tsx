@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '../types/formBuilder';
-import { FaGripVertical, FaTrash, FaCog, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaGripVertical, FaTrash, FaCog, FaTimes, FaCheck, FaEye, FaEyeSlash } from 'react-icons/fa';
+import './FormFieldItem.css';
 
 interface FormFieldItemProps {
   field: FormField;
@@ -12,6 +13,7 @@ interface FormFieldItemProps {
 
 const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   
   const {
     attributes,
@@ -114,25 +116,35 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
       style={style} 
       className={`card mb-2 form-field-item ${isEditing ? 'editing' : ''}`}
     >
-      <div className="card-header d-flex justify-content-between align-items-center py-1 px-2">
+      <div className="card-header d-flex justify-content-between align-items-center py-2 px-3">
         <div className="d-flex align-items-center">
-          <div {...attributes} {...listeners} className="drag-handle me-1">
+          <div {...attributes} {...listeners} className="drag-handle me-2" title="Drag to reorder">
             <FaGripVertical size={14} />
           </div>
-          <i className={`bi ${getFieldIcon()} me-1`}></i>
-          <span className="small">{field.fieldName || getFieldTypeLabel()}</span>
-          {field.required && <span className="badge bg-danger ms-1 small">Required</span>}
+          <i className={`bi ${getFieldIcon()} me-2`}></i>
+          <span className="fw-medium">{field.fieldName || getFieldTypeLabel()}</span>
+          <span className="field-type-badge ms-2">{getFieldTypeLabel()}</span>
+          {field.required && <span className="required-badge ms-2">Required</span>}
         </div>
-        <div>
+        <div className="field-actions">
           <button 
-            className="btn btn-sm btn-link p-0 me-1" 
+            className="btn btn-sm btn-link p-0 me-2" 
+            onClick={() => setShowPreview(!showPreview)}
+            title={showPreview ? "Hide preview" : "Show preview"}
+          >
+            {showPreview ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+          </button>
+          <button 
+            className="btn btn-sm btn-link p-0 me-2" 
             onClick={() => setIsEditing(!isEditing)}
+            title={isEditing ? "Cancel editing" : "Edit field"}
           >
             {isEditing ? <FaTimes size={14} /> : <FaCog size={14} />}
           </button>
           <button 
             className="btn btn-sm btn-link text-danger p-0" 
             onClick={() => onRemove(field.id)}
+            title="Remove field"
           >
             <FaTrash size={14} />
           </button>
@@ -140,22 +152,24 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
       </div>
       
       {isEditing ? (
-        <div className="card-body p-2">
-          <div className="mb-2">
-            <label className="form-label small mb-1">Field Name</label>
+        <div className="card-body">
+          <div className="mb-3">
+            <label className="form-label fw-medium mb-1">Field Name</label>
             <input 
               type="text" 
-              className="form-control form-control-sm" 
+              className="form-control" 
               value={field.fieldName} 
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate(field.id, { fieldName: e.target.value })}
               placeholder="Enter field name"
+              autoFocus
             />
+            <small className="text-muted">This will be shown to users filling out the form</small>
           </div>
           
-          <div className="mb-2">
-            <label className="form-label small mb-1">Field Type</label>
+          <div className="mb-3">
+            <label className="form-label fw-medium mb-1">Field Type</label>
             <select 
-              className="form-select form-select-sm"
+              className="form-select"
               value={field.fieldType}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onUpdate(field.id, { fieldType: e.target.value })}
             >
@@ -170,7 +184,7 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
             </select>
           </div>
           
-          <div className="form-check mb-2">
+          <div className="form-check form-switch mb-3">
             <input 
               type="checkbox" 
               className="form-check-input" 
@@ -178,35 +192,44 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
               checked={field.required}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate(field.id, { required: e.target.checked })}
             />
-            <label className="form-check-label small" htmlFor={`required-${field.id}`}>Required Field</label>
+            <label className="form-check-label" htmlFor={`required-${field.id}`}>Required Field</label>
           </div>
           
-          {(field.fieldType === 'select' || field.fieldType === 'radio') && (
-            <div className="mb-2">
-              <label className="form-label small mb-1">Options (comma separated)</label>
+          {(field.fieldType === 'select' || field.fieldType === 'radio' || field.fieldType === 'checkbox') && (
+            <div className="mb-3">
+              <label className="form-label fw-medium mb-1">Options</label>
               <input 
                 type="text" 
-                className="form-control form-control-sm" 
+                className="form-control" 
                 value={field.options}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdate(field.id, { options: e.target.value })}
                 placeholder="Option 1, Option 2, Option 3"
               />
-              <small className="text-muted" style={{ fontSize: '0.7rem' }}>Enter options separated by commas</small>
+              <small className="text-muted">Enter options separated by commas</small>
+              
+              <div className="options-preview">
+                {field.options.split(',').map((option, i) => (
+                  <span key={i} className="option-badge">{option.trim() || `Option ${i+1}`}</span>
+                ))}
+              </div>
             </div>
           )}
           
-          <button 
-            className="btn btn-primary btn-sm py-0 px-2" 
-            style={{ fontSize: '0.75rem' }}
-            onClick={() => setIsEditing(false)}
-          >
-            <FaCheck size={10} className="me-1" /> Done
-          </button>
+          <div className="d-flex justify-content-end">
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setIsEditing(false)}
+            >
+              <FaCheck size={12} className="me-1" /> Apply Changes
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="card-body py-1 px-2">
-          {renderFieldPreview()}
-        </div>
+        showPreview && (
+          <div className="field-preview">
+            {renderFieldPreview()}
+          </div>
+        )
       )}
     </div>
   );

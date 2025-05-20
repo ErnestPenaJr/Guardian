@@ -1,0 +1,136 @@
+/* FormBuilder.css */
+.form-builder {
+  font-family: 'Inter', 'Montserrat', Arial, sans-serif;
+}
+
+/* Field type buttons */
+.field-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.field-type-btn {
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  min-width: 80px;
+  min-height: 80px;
+}
+
+.field-type-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.field-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Form preview area */
+.form-preview {
+  min-height: 300px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.form-preview:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Form field items */
+.form-field-item {
+  margin-bottom: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.form-field-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-field-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.drag-handle {
+  cursor: grab;
+  margin-right: 10px;
+  color: #6c757d;
+}
+
+.field-name {
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.field-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.form-field-preview {
+  padding: 16px;
+  background-color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.form-field-preview:hover {
+  background-color: #f8f9fa;
+}
+
+/* Empty state */
+.empty-form-state {
+  text-align: center;
+  padding: 40px 20px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+/* Field property editor */
+.field-property-editor {
+  position: sticky;
+  top: 20px;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+  }
+}
+
+.highlight-drop-area {
+  animation: pulse 2s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .field-types {
+    justify-content: center;
+  }
+  
+  .field-type-btn {
+    min-width: 70px;
+    min-height: 70px;
+  }
+}
