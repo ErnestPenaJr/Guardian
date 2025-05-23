@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { FormField } from '../types/formBuilder';
+import { FormField, Subject, Template } from '../types/formBuilder';
 import formService from '../services/formService';
 // Import React Icons
 import { 
@@ -12,13 +12,13 @@ import {
   FaFont, 
   FaHashtag, 
   FaCalendarAlt, 
-  FaListUl, 
   FaCheckSquare,
   FaTimes,
   FaAsterisk,
-  FaPen,
   FaWpforms,
-  FaClipboardList
+  FaClipboardList,
+  FaGripVertical,
+  FaEdit
 } from 'react-icons/fa';
 
 interface FormBuilderProps {
@@ -28,12 +28,62 @@ interface FormBuilderProps {
   initialFormName?: string; // Optional initial form name
   onBack?: () => void; // Optional callback for back button
   onSave?: (fields: FormField[], formName: string) => void; // Optional callback for save button
+  initialSubjects?: Subject[]; // Optional initial subjects
+  initialTemplates?: Template[]; // Optional initial templates
+  formType?: string; // Optional form type ('request', 'self-service', or 'notice')
 }
 
-const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId, initialFormName = 'New Form', onBack, onSave }) => {
+const FormBuilder: React.FC<FormBuilderProps> = ({ 
+  formFields, 
+  onChange, 
+  formId, 
+  initialFormName = 'New Form', 
+  onBack, 
+  onSave,
+  initialSubjects = [],
+  initialTemplates = [],
+  formType = 'request'
+}) => {
   const [fields, setFields] = useState<FormField[]>(formFields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [formName, setFormName] = useState<string>(initialFormName);
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects.length > 0 ? initialSubjects : [
+    { id: `subject-${uuidv4()}`, title: 'Subject 1', fields: [] }
+  ]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(subjects[0]?.id || '');
+  const [templates, setTemplates] = useState<Template[]>(initialTemplates.length > 0 ? initialTemplates : [
+    { 
+      id: 'subject-template', 
+      name: 'SUBJECT', 
+      fields: [
+        { id: `field-${uuidv4()}`, fieldName: 'First Name', fieldType: 'first_name', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'Middle Name', fieldType: 'middle_name', required: false, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'Last Name', fieldType: 'last_name', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'DOB', fieldType: 'dob', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'SSN', fieldType: 'ssn', required: true, options: '' }
+      ]
+    },
+    { 
+      id: 'financial-template', 
+      name: 'FINANCIAL', 
+      fields: [
+        { id: `field-${uuidv4()}`, fieldName: 'Account #', fieldType: 'account_number', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'Bank Name', fieldType: 'bank_name', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'Routing #', fieldType: 'routing_number', required: true, options: '' }
+      ]
+    },
+    { 
+      id: 'address-template', 
+      name: 'ADDRESS', 
+      fields: [
+        { id: `field-${uuidv4()}`, fieldName: 'Address Line 1', fieldType: 'address_line_1', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'Address Line 2', fieldType: 'address_line_2', required: false, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'City', fieldType: 'city', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'State', fieldType: 'state', required: true, options: '' },
+        { id: `field-${uuidv4()}`, fieldName: 'ZIP Code', fieldType: 'zip_code', required: true, options: '' }
+      ]
+    }
+  ]);
 
   useEffect(() => {
     // If formId is provided, fetch existing form data
@@ -59,22 +109,88 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
   }, [formFields]);
 
   const addField = (fieldType: string) => {
+    // Get field name based on field type
+    let fieldName = `New ${fieldType} Field`;
+    
+    // Map field types to more user-friendly names
+    switch(fieldType) {
+      case 'first_name': fieldName = 'First Name'; break;
+      case 'middle_name': fieldName = 'Middle Name'; break;
+      case 'last_name': fieldName = 'Last Name'; break;
+      case 'dob': fieldName = 'DOB'; break;
+      case 'ssn': fieldName = 'SSN'; break;
+      case 'account_number': fieldName = 'Account #'; break;
+      case 'bank_name': fieldName = 'Bank Name'; break;
+      case 'routing_number': fieldName = 'Routing #'; break;
+      case 'address_line_1': fieldName = 'Address Line 1'; break;
+      case 'address_line_2': fieldName = 'Address Line 2'; break;
+      case 'city': fieldName = 'City'; break;
+      case 'state': fieldName = 'State'; break;
+      case 'zip_code': fieldName = 'ZIP Code'; break;
+      case 'phone': fieldName = 'Phone #'; break;
+    }
+    
     const newField: FormField = {
       id: `field-${uuidv4()}`,
-      fieldName: `New ${fieldType} Field`,
+      fieldName,
       fieldType,
       required: false,
-      options: fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox' ? 'Option 1,Option 2,Option 3' : ''
+      options: fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox' ? 'Option 1,Option 2,Option 3' : '',
+      canDelete: true
     };
-    setFields([...fields, newField]);
-    onChange([...fields, newField], formName);
+    
+    // Add field to the selected subject
+    if (selectedSubjectId) {
+      const updatedSubjects = subjects.map(subject => {
+        if (subject.id === selectedSubjectId) {
+          return {
+            ...subject,
+            fields: [...subject.fields, newField]
+          };
+        }
+        return subject;
+      });
+      
+      setSubjects(updatedSubjects);
+      
+      // Update all fields for form submission
+      const allFields = updatedSubjects.flatMap(subject => subject.fields);
+      setFields(allFields);
+      onChange(allFields, formName);
+    } else {
+      // Fallback to old behavior if no subject is selected
+      setFields([...fields, newField]);
+      onChange([...fields, newField], formName);
+    }
+    
     setEditingField(newField); // Open settings for the new field
   };
 
   const removeField = (id: string) => {
-    const updatedFields = fields.filter(field => field.id !== id);
-    setFields(updatedFields);
-    onChange(updatedFields, formName);
+    // Remove field from the selected subject
+    if (selectedSubjectId) {
+      const updatedSubjects = subjects.map(subject => {
+        if (subject.id === selectedSubjectId) {
+          return {
+            ...subject,
+            fields: subject.fields.filter(field => field.id !== id)
+          };
+        }
+        return subject;
+      });
+      
+      setSubjects(updatedSubjects);
+      
+      // Update all fields for form submission
+      const allFields = updatedSubjects.flatMap(subject => subject.fields);
+      setFields(allFields);
+      onChange(allFields, formName);
+    } else {
+      // Fallback to old behavior if no subject is selected
+      const updatedFields = fields.filter(field => field.id !== id);
+      setFields(updatedFields);
+      onChange(updatedFields, formName);
+    }
     
     // If we're editing the field that was removed, clear the editing state
     if (editingField && editingField.id === id) {
@@ -83,11 +199,34 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
   };
   
   const updateField = (updatedField: FormField) => {
-    const updatedFields = fields.map(field => 
-      field.id === updatedField.id ? updatedField : field
-    );
-    setFields(updatedFields);
-    onChange(updatedFields, formName);
+    // Update field in the selected subject
+    if (selectedSubjectId) {
+      const updatedSubjects = subjects.map(subject => {
+        if (subject.id === selectedSubjectId) {
+          return {
+            ...subject,
+            fields: subject.fields.map(field => 
+              field.id === updatedField.id ? updatedField : field
+            )
+          };
+        }
+        return subject;
+      });
+      
+      setSubjects(updatedSubjects);
+      
+      // Update all fields for form submission
+      const allFields = updatedSubjects.flatMap(subject => subject.fields);
+      setFields(allFields);
+      onChange(allFields, formName);
+    } else {
+      // Fallback to old behavior if no subject is selected
+      const updatedFields = fields.map(field => 
+        field.id === updatedField.id ? updatedField : field
+      );
+      setFields(updatedFields);
+      onChange(updatedFields, formName);
+    }
   };
   
   const generateIdFromLabel = (label: string): string => {
@@ -262,10 +401,85 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
   const availableFieldTypes = [
     { id: 'text', label: 'Text', icon: <FaFont /> },
     { id: 'number', label: 'Number', icon: <FaHashtag /> },
-    { id: 'select', label: 'DropDown', icon: <FaListUl /> },
     { id: 'date', label: 'Date', icon: <FaCalendarAlt /> },
     { id: 'checkbox', label: 'CheckBox', icon: <FaCheckSquare /> }
   ];
+  
+  // Render field preview based on field type
+  const renderFieldPreview = (field: FormField) => {
+    switch (field.fieldType) {
+      case 'text':
+      case 'first_name':
+      case 'middle_name':
+      case 'last_name':
+      case 'address_line_1':
+      case 'address_line_2':
+      case 'city':
+      case 'state':
+      case 'zip_code':
+      case 'bank_name':
+        return (
+          <input 
+            type="text" 
+            className="form-control" 
+            placeholder={field.placeholder || field.fieldName} 
+            disabled 
+          />
+        );
+      case 'number':
+      case 'account_number':
+      case 'routing_number':
+      case 'phone':
+        return (
+          <input 
+            type="number" 
+            className="form-control" 
+            placeholder={field.placeholder || field.fieldName} 
+            disabled 
+          />
+        );
+      case 'date':
+      case 'dob':
+        return (
+          <input 
+            type="date" 
+            className="form-control" 
+            disabled 
+          />
+        );
+      case 'checkbox':
+        return (
+          <div className="form-check">
+            <input 
+              type="checkbox" 
+              className="form-check-input" 
+              disabled 
+            />
+            <label className="form-check-label">
+              {field.placeholder || field.fieldName}
+            </label>
+          </div>
+        );
+      case 'ssn':
+        return (
+          <input 
+            type="password" 
+            className="form-control" 
+            placeholder="XXX-XX-XXXX" 
+            disabled 
+          />
+        );
+      default:
+        return (
+          <input 
+            type="text" 
+            className="form-control" 
+            placeholder={field.placeholder || field.fieldName} 
+            disabled 
+          />
+        );
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -564,7 +778,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                           e.currentTarget.style.backgroundColor = '#f8f9fa';
                         }}
                       >
-                        <FaGripLines size={14} />
+                        <FaGripVertical size={14} />
                       </div>
                       {field.fieldName}
                       {field.required && (
@@ -600,134 +814,236 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ formFields, onChange, formId,
                           borderRadius: '50%',
                           transition: 'all 0.2s ease'
                         }}
-                        title="Edit field"
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.backgroundColor = '#e9ecef';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
                       >
-                        <FaPen size={12} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeField(field.id);
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#dc3545',
-                          fontSize: '16px',
-                          padding: '0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f8d7da';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        ×
+                        <FaEdit />
                       </button>
                     </div>
-                  </div>
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-end'
-                  }}>
-                    <div>
-                      <div style={{ 
-                        color: '#6c757d', 
-                        fontSize: '12px',
-                        backgroundColor: '#e9ecef',
-                        display: 'inline-block',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        marginRight: '5px'
-                      }}>
-                        {field.fieldType}
-                      </div>
-                      
-                      {(field.fieldType === 'select' || field.fieldType === 'checkbox') && field.options && (
-                        <div style={{ 
-                          marginTop: '8px', 
-                          display: 'flex', 
-                          flexWrap: 'wrap', 
-                          gap: '4px' 
-                        }}>
-                          {field.options.split(',').map((option, i) => (
-                            <div key={i} style={{ 
-                              fontSize: '11px', 
-                              padding: '1px 5px', 
-                              backgroundColor: '#f8f9fa', 
-                              border: '1px solid #dee2e6',
-                              borderRadius: '3px',
-                              color: '#495057'
-                            }}>
-                              {option.trim() || `Option ${i+1}`}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div style={{ 
-                      color: '#adb5bd', 
-                      fontSize: '10px',
-                      fontFamily: 'monospace'
-                    }}>
-                      {field.id.substring(0, 8)}...
-                    </div>
-                  </div>
-                  
-                  {index < fields.length - 1 && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      bottom: '-10px', 
-                      left: '50%', 
-                      transform: 'translateX(-50%)',
-                      width: '20px',
-                      height: '10px',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      zIndex: 1
-                    }}>
-                      <div style={{ 
-                        width: '1px', 
-                        height: '10px', 
-                        backgroundColor: '#dee2e6' 
-                      }}></div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+              </div>
+              <div className="form-field-body">
+                <label>
+                  {field.fieldName}
+                  {field.required && <span className="required-indicator">*</span>}
+                </label>
+                {renderFieldPreview(field)}
+                {field.helpText && (
+                  <small className="form-text text-muted">{field.helpText}</small>
+                )}
         </div>
-      </div>
-      
-      <div style={{ 
-        padding: '8px 15px',
-        borderTop: '1px solid #dee2e6',
-        backgroundColor: '#f8f9fa',
+      ))}
+    </div>
+  )}
+</div>
+
+<div style={{ 
+  padding: '8px 15px',
+  borderTop: '1px solid #dee2e6',
+  backgroundColor: '#f8f9fa',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  boxShadow: '0 -1px 2px rgba(0,0,0,0.05)',
+  marginTop: 'auto'
+}}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <button
+      onClick={() => {
+        // Handle preview functionality
+        alert('Form preview functionality would be implemented here');
+      }}
+      style={{
+        padding: '6px 12px',
+        backgroundColor: 'white',
+        color: '#495057',
+        border: '1px solid #ced4da',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: '500',
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        boxShadow: '0 -1px 2px rgba(0,0,0,0.05)',
-        marginTop: 'auto'
+        gap: '6px',
+        transition: 'all 0.2s ease'
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.backgroundColor = '#f8f9fa';
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.backgroundColor = 'white';
+      }}
+    >
+      <FaEye style={{ marginRight: '6px' }} /> Preview Form
+    </button>
+    <button
+      onClick={() => {
+        // Clear all fields
+        if (window.confirm('Are you sure you want to clear all fields? This cannot be undone.')) {
+          setFields([]);
+          onChange([], formName);
+        }
+      }}
+      style={{
+        padding: '6px 12px',
+        backgroundColor: 'white',
+        color: '#dc3545',
+        border: '1px solid #ced4da',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: '500',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        transition: 'all 0.2s ease'
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.backgroundColor = '#f8d7da';
+        e.currentTarget.style.borderColor = '#dc3545';
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.backgroundColor = 'white';
+        e.currentTarget.style.borderColor = '#ced4da';
+      }}
+    >
+      <FaTrashAlt style={{ marginRight: '6px' }} /> Clear All
+    </button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <button
+        onClick={() => {
+          // Handle preview functionality
+          alert('Form preview functionality would be implemented here');
+        }}
+        style={{
+          padding: '6px 12px',
+          backgroundColor: 'white',
+          color: '#495057',
+          border: '1px solid #ced4da',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#f8f9fa';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = 'white';
+        }}
+      >
+        <FaEye style={{ marginRight: '6px' }} /> Preview Form
+      </button>
+      <button
+        onClick={() => {
+          // Clear all fields
+          if (window.confirm('Are you sure you want to clear all fields? This cannot be undone.')) {
+            setFields([]);
+            onChange([], formName);
+          }
+        }}
+        style={{
+          padding: '6px 12px',
+          backgroundColor: 'white',
+          color: '#dc3545',
+          border: '1px solid #ced4da',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#f8d7da';
+          e.currentTarget.style.borderColor = '#dc3545';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = 'white';
+          e.currentTarget.style.borderColor = '#ced4da';
+        }}
+      >
+        <FaTrashAlt style={{ marginRight: '6px' }} /> Clear All
+      </button>
+    </div>
+    
+    <div style={{ display: 'flex', gap: '10px' }}>
+      <button 
+        onClick={handleBack}
+        style={{
+          padding: '6px 12px',
+          backgroundColor: '#6c757d',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#5a6268';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = '#6c757d';
+        }}
+      >
+        <FaArrowLeft style={{ marginRight: '6px' }} /> Back
+      </button>
+      <button 
+        onClick={handleSave}
+        style={{
+          padding: '6px 12px',
+          backgroundColor: '#28a745',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#218838';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = '#28a745';
+        }}
+      >
+        <FaSave style={{ marginRight: '6px' }} /> Save Form
+      </button>
+    </div>
+  </div>
+  
+  {editingField && (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        width: '400px',
+        backgroundColor: 'white',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        animation: 'fadeIn 0.2s ease-out'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button

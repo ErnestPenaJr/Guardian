@@ -36,6 +36,7 @@ function App() {
           <Route path="/health" element={<Health />} />
           <Route path="/api-manager" element={<EndpointManagerPage />} />
           <Route path="/api-access-portal" element={<ApiAccessPortal />} />
+          <Route path="/api-explorer" element={<ApiAccessPortal />} />
         </Routes>
       </Router>
     </div>
