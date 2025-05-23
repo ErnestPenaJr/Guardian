@@ -9,7 +9,6 @@ import {
   FaCalendarAlt, 
   FaTrashAlt,
   FaEdit,
-  FaPlus,
   FaAsterisk
 } from 'react-icons/fa';
 
@@ -17,14 +16,12 @@ interface SimpleFormBuilderProps {
   formFields: FormField[];
   onChange: (fields: FormField[]) => void;
   formId?: number;
-  formType?: string;
 }
 
 const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   formFields,
   onChange,
-  formId,
-  formType = 'request'
+  formId
 }) => {
   const [fields, setFields] = useState<FormField[]>(formFields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
@@ -68,8 +65,11 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   
   // Update parent component when fields change
   useEffect(() => {
-    onChange(fields);
-  }, [fields, onChange]);
+    // Only call onChange if fields have actually changed from the initial formFields
+    if (JSON.stringify(fields) !== JSON.stringify(formFields)) {
+      onChange(fields);
+    }
+  }, [fields, formFields, onChange]);
   
   // Add a new field to the form
   const addField = (fieldType: string) => {

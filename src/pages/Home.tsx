@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaKey, FaCode } from 'react-icons/fa';
+import { FaCode } from 'react-icons/fa';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, 
   MessageCircle, CheckCircle, FileText, Monitor, CreditCard,
@@ -315,12 +315,6 @@ function Home() {
     },
     ...(user?.roles?.some((role: any) => role.id === 1) ? [
       {
-        icon: <FaCode className="w-6 h-6" />,
-        label: 'API Explorer',
-        onClick: () => navigate('/api-explorer'),
-        active: false,
-      },
-      {
         icon: <Sliders className="w-6 h-6" />,
         label: 'Settings',
         onClick: () => setSelectedSection('admin'),
@@ -544,15 +538,11 @@ function Home() {
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Update Profile */}}>
                 <User size={16} /> Update Profile
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-access-portal')}>
-                <FaKey size={16} /> API Access Portal
-              </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-explorer')}>
-                <FaCode size={16} /> API Explorer
-              </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-manager')}>
-                <Monitor size={16} /> API Manager
-              </button>
+              {user?.roles?.some((role: any) => role.id === 1) && (
+                <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-explorer')}>
+                  <FaCode size={16} /> API Explorer
+                </button>
+              )}
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Change Password */}}>
                 <KeyRound size={16} /> Change Password
               </button>
