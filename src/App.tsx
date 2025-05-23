@@ -12,6 +12,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUserManagement from './pages/AdminUserManagement';
 import RequestDashboard from './pages/RequestDashboard';
 import Health from './pages/Health';
+import EndpointManagerPage from './pages/EndpointManagerPage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/admin-user-management" element={<AdminUserManagement />} />
           <Route path="/requests-dashboard" element={<RequestDashboard />} />
           <Route path="/health" element={<Health />} />
+          <Route path="/api-manager" element={<EndpointManagerPage />} />
         </Routes>
       </Router>
     </div>

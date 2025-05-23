@@ -12,6 +12,7 @@ import rateLimit from 'express-rate-limit';
 import { isAdmin } from './middleware/isAdmin.js';
 import formsRoutes from './routes/forms.js';
 import externalRoutes from './routes/external.js';
+import endpointViewerRoutes from './routes/endpoint-viewer.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -802,13 +803,50 @@ The Guardian Team`,
 }
 
 // --- HEALTH CHECK ENDPOINT ---
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   try {
     // Check database connection
-    res.status(200).json({ status: 'ok' });
+    const dbStatus = await prisma.$queryRaw`SELECT 1 as result`
+      .then(() => ({ connected: true }))
+      .catch(err => ({ connected: false, error: err.message }));
+    
+    // Get server uptime
+    const uptime = process.uptime();
+    const uptimeFormatted = {
+      seconds: Math.floor(uptime % 60),
+      minutes: Math.floor((uptime / 60) % 60),
+      hours: Math.floor((uptime / 3600) % 24),
+      days: Math.floor(uptime / 86400)
+    };
+    
+    // Check SendGrid API key status
+    const sendgridStatus = {
+      configured: !!SENDGRID_API_KEY,
+      fromEmail: SENDGRID_FROM_EMAIL
+    };
+    
+    // Return comprehensive health information
+    res.status(200).json({
+      status: dbStatus.connected ? 'ok' : 'error',
+      timestamp: new Date().toISOString(),
+      server: {
+        uptime: uptimeFormatted,
+        nodeVersion: process.version,
+        environment: process.env.NODE_ENV || 'development'
+      },
+      database: dbStatus,
+      services: {
+        sendgrid: sendgridStatus
+      }
+    });
   } catch (err) {
     console.error('Health check failed:', err);
-    res.status(500).json({ status: 'error', message: 'Health check failed' });
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Health check failed', 
+      error: err instanceof Error ? err.message : String(err),
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -948,6 +986,9 @@ app.get('/api/field-types', async (req, res) => {
 
 // Use authentication for all other forms routes
 app.use('/api/forms', requireAuth, formsRoutes);
+
+// Register endpoint viewer routes
+app.use('/api/endpoint-viewer', endpointViewerRoutes);
 
 // --- REQUESTS ROUTES ---
 // --- GET ROLES ENDPOINT ---
