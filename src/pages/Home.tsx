@@ -320,18 +320,7 @@ function Home() {
         onClick: () => setSelectedSection('admin'),
         active: selectedSection === 'admin',
       },
-      {
-        icon: <Monitor className="w-6 h-6" />,
-        label: 'API Manager',
-        onClick: () => navigate('/api-manager'),
-        active: false,
-      },
-      {
-        icon: <FaKey className="w-6 h-6" />,
-        label: 'API Access Portal',
-        onClick: () => navigate('/api-access-portal'),
-        active: false,
-      },
+
       {
         icon: <Send className="w-6 h-6" />,
         label: 'Invites',
@@ -548,6 +537,12 @@ function Home() {
               </button>
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Update Profile */}}>
                 <User size={16} /> Update Profile
+              </button>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-access-portal')}>
+                <FaKey size={16} /> API Access Portal
+              </button>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-manager')}>
+                <Monitor size={16} /> API Manager
               </button>
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Change Password */}}>
                 <KeyRound size={16} /> Change Password
