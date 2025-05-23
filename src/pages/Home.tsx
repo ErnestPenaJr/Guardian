@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { FaKey } from 'react-icons/fa';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, 
   MessageCircle, CheckCircle, FileText, Monitor, CreditCard,
@@ -323,6 +324,12 @@ function Home() {
         icon: <Monitor className="w-6 h-6" />,
         label: 'API Manager',
         onClick: () => navigate('/api-manager'),
+        active: false,
+      },
+      {
+        icon: <FaKey className="w-6 h-6" />,
+        label: 'API Access Portal',
+        onClick: () => navigate('/api-access-portal'),
         active: false,
       },
       {
