@@ -174,8 +174,43 @@ app.post('/api/register', async (req, res) => {
         const firstName = email.split('@')[0].split('.')[0];
         // get last name from email
         const lastName = email.split('@')[0].split('.')[1] || '';
-        // Always use 'Default Company' since company name field has been removed from registration
-        const companyNameToUse = 'Default Company';
+        // Extract domain from email and use it as company name
+        let companyNameToUse = 'Default Company';
+        try {
+            if (email && email.includes('@')) {
+                const emailDomain = email.split('@')[1];
+                if (emailDomain) {
+                    // Capitalize the domain for better readability
+                    const domainParts = emailDomain.split('.');
+                    if (domainParts.length > 0 && domainParts[0].length > 0) {
+                        // Use the main domain part (before the TLD) as company name
+                        companyNameToUse = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+                        // Handle common domains with special formatting
+                        if (emailDomain.includes('gmail.com')) {
+                            companyNameToUse = 'Gmail';
+                        }
+                        else if (emailDomain.includes('outlook.com') || emailDomain.includes('hotmail.com')) {
+                            companyNameToUse = 'Microsoft';
+                        }
+                        else if (emailDomain.includes('yahoo.com')) {
+                            companyNameToUse = 'Yahoo';
+                        }
+                        else if (emailDomain.includes('icloud.com') || emailDomain.includes('me.com') || emailDomain.includes('mac.com')) {
+                            companyNameToUse = 'Apple';
+                        }
+                    }
+                }
+            }
+        }
+        catch (error) {
+            console.error('Error extracting domain from email:', error);
+            // Fallback to Default Company if any error occurs
+            companyNameToUse = 'Default Company';
+        }
+        console.log('%c Company Name from Email Domain', 'background: #009688; color: #fff', {
+            email,
+            extractedCompany: companyNameToUse
+        });
         console.log('%c Company Name', 'background: #009688; color: #fff', companyNameToUse);
         // IMPORTANT: Completely bypass the Prisma ORM for company creation
         // Use a direct SQL query with explicit parameters
