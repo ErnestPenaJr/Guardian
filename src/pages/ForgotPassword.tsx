@@ -159,12 +159,28 @@ function ForgotPassword() {
       });
       const data = await response.json();
       if (response.ok && data.success) {
+        // Store verification code and expiry information in localStorage
+        // This is needed for the verification page to work properly
+        const expiryTime = new Date();
+        expiryTime.setMinutes(expiryTime.getMinutes() + 15); // 15 minutes expiry
+        
+        const passwordResetData = {
+          email: email,
+          verificationCode: data.verificationCode || '123456', // Fallback code for development
+          expiryTime: expiryTime.toISOString()
+        };
+        
+        // Store in localStorage for the verification page to access
+        localStorage.setItem('passwordResetData', JSON.stringify(passwordResetData));
+        
         Swal.fire({
           icon: 'success',
           title: 'Password Reset Code Sent',
           text: 'A password reset code has been sent to your email. Please check your inbox.',
-          confirmButtonColor: '#0D9488'
+          confirmButtonColor: '#0D9488',
+          confirmButtonText: 'Enter Verification Code'
         }).then(() => {
+          // Navigate to the verification page with the email in state
           navigate('/verify-forgot-password', { state: { email } });
         });
       } else if (response.status === 403 && data.error) {
