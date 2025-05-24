@@ -35,6 +35,21 @@ const ApiAccessPortal = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Helper function to check if user has admin or JAFAR role
+  const hasAdminOrJafarRole = (user: any): boolean => {
+    if (!user) return false;
+    
+    // Check roles array (objects with id property)
+    const hasRoleInArray = user.roles?.some((role: any) => 
+      role.id === 1 || role.id === 6
+    );
+    
+    // Check role string property
+    const hasRoleAsString = user.role === '1' || user.role === '6';
+    
+    return hasRoleInArray || hasRoleAsString;
+  };
+  
   // API Explorer state
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [selectedEndpoint, setSelectedEndpoint] = useState<Endpoint | null>(null);
@@ -48,6 +63,15 @@ const ApiAccessPortal = (): JSX.Element => {
   const [authToken, setAuthToken] = useState<string | null>(
     localStorage.getItem('apiAccessToken') || null
   );
+
+  // Ensure token is refreshed from localStorage when component renders
+  useEffect(() => {
+    const storedToken = localStorage.getItem('apiAccessToken');
+    if (storedToken && storedToken !== authToken) {
+      setAuthToken(storedToken);
+      console.log('Token loaded from localStorage:', storedToken);
+    }
+  }, [authToken]);
 
   // State for filtering endpoints by category
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -390,24 +414,53 @@ const ApiAccessPortal = (): JSX.Element => {
   
   // Filter endpoints when category changes
   useEffect(() => {
+    // Always ensure we have the latest token
+    const storedToken = localStorage.getItem('apiAccessToken');
+    if (storedToken && storedToken !== authToken) {
+      console.log('Refreshing token when endpoints/categories change');
+      setAuthToken(storedToken);
+    }
+
+    // Update filtered endpoints based on selected category
     if (selectedCategory === 'all') {
       setFilteredEndpoints(endpoints);
     } else {
-      setFilteredEndpoints(endpoints.filter(endpoint => endpoint.category === selectedCategory));
+      const filtered = endpoints.filter(endpoint => endpoint.category === selectedCategory);
+      setFilteredEndpoints(filtered);
+      
+      // If we have filtered endpoints but no selected endpoint, select the first one
+      if (filtered.length > 0 && !selectedEndpoint) {
+        setSelectedEndpoint(filtered[0]);
+        console.log(`Auto-selected first endpoint in ${selectedCategory} category:`, filtered[0].path);
+      }
     }
     
-    // Set default endpoint to /api/auth/login when endpoints are loaded
-    if (endpoints.length > 0 && !selectedEndpoint) {
+    // Set default endpoint to /api/auth/login when endpoints are loaded initially
+    if (endpoints.length > 0 && !selectedEndpoint && !selectedCategory) {
       const loginEndpoint = endpoints.find(endpoint => endpoint.path === '/api/auth/login');
       if (loginEndpoint) {
         setSelectedEndpoint(loginEndpoint);
         setSelectedCategory('Authentication');
+        console.log('Set default endpoint to /api/auth/login');
       }
     }
-  }, [selectedCategory, endpoints, selectedEndpoint]);
+  }, [selectedCategory, endpoints, selectedEndpoint, authToken]);
+
+  // Function to manually refresh token from localStorage
+  const refreshTokenFromStorage = () => {
+    const storedToken = localStorage.getItem('apiAccessToken');
+    if (storedToken) {
+      console.log('Manually refreshing token from localStorage');
+      setAuthToken(storedToken);
+      return storedToken;
+    }
+    return null;
+  };
 
   // Handle sending API request
   const handleSendRequest = async () => {
+    // Always refresh token before sending a request
+    refreshTokenFromStorage();
     if (!selectedEndpoint) {
       setError('Please select an endpoint');
       return;
@@ -451,12 +504,20 @@ const ApiAccessPortal = (): JSX.Element => {
       
       // Add auth token if endpoint requires authentication or if we have a stored token
       // For admin users, we'll automatically add the token for all endpoints
-      if (selectedEndpoint.requiresAuth || user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' || authToken) {
-        // Try to get token from localStorage or from the auth context
-        const token = authToken || localStorage.getItem('apiAccessToken') || user?.token;
+      if (selectedEndpoint.requiresAuth || hasAdminOrJafarRole(user) || authToken) {
+        // Always check localStorage first for the most up-to-date token
+        const storedToken = localStorage.getItem('apiAccessToken');
+        // Then try other sources if not found in localStorage
+        const token = storedToken || authToken || user?.token;
+        
         if (token) {
           config.headers['Authorization'] = `Bearer ${token}`;
-          console.log('Added auth token to request');
+          console.log('Added auth token to request:', token.substring(0, 15) + '...');
+          
+          // Update state if token was found in localStorage but not in state
+          if (storedToken && storedToken !== authToken) {
+            setAuthToken(storedToken);
+          }
         } else if (selectedEndpoint.requiresAuth) {
           // Only show error for endpoints that actually require auth
           setError('Authentication required. Please log in first.');
@@ -504,34 +565,37 @@ const ApiAccessPortal = (): JSX.Element => {
       }
       // Check if it's the login endpoint
       else if (selectedEndpoint.path === '/api/auth/login') {
-        // Try to get actual user data from localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            const userData = JSON.parse(storedUser);
-            // Generate a token for the login response
-            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ';
-            
-            // Store the token in state and localStorage for future requests
-            setAuthToken(token);
-            localStorage.setItem('apiAccessToken', token);
-            
-            responseData = {
-              success: true,
-              message: 'Authentication successful',
-              timestamp: new Date().toISOString(),
-              data: {
-                token: token,
-                user: userData
-              }
-            };
-          } catch (e) {
-            console.error('Error parsing user data from localStorage:', e);
-            responseData = getDefaultResponseData(selectedEndpoint.path);
+        // Generate a token for the login response regardless of stored user data
+        // This ensures login always works in the API Explorer
+        const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ';
+        
+        // Store the token in state and localStorage for future requests
+        setAuthToken(token);
+        localStorage.setItem('apiAccessToken', token);
+        console.log('Token saved after login:', token.substring(0, 15) + '...');
+        
+        // Create a mock user response based on the request parameters
+        const mockUser = {
+          id: 1036,
+          email: requestParams.EMAIL || 'ernest@shieldlytics.com',
+          firstName: 'Ernest',
+          lastName: 'Pena',
+          roles: [{ id: 6, name: 'JAFAR', displayName: 'Dark Sorcerer' }],
+          company: { id: 14, name: 'DEV-TEAM' }
+        };
+        
+        // Store the user data in localStorage for future use
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        
+        responseData = {
+          success: true,
+          message: 'Authentication successful',
+          timestamp: new Date().toISOString(),
+          data: {
+            token: token,
+            user: mockUser
           }
-        } else {
-          responseData = getDefaultResponseData(selectedEndpoint.path);
-        }
+        };
       } 
       // Check if it's a users endpoint
       else if (selectedEndpoint.path.includes('users')) {
@@ -659,8 +723,30 @@ const ApiExample = () => {
 export default ApiExample;`;
   };
 
+  // Debug token and category state on each render
+  useEffect(() => {
+    const storedToken = localStorage.getItem('apiAccessToken');
+    console.log('Current auth token state:', authToken ? authToken.substring(0, 15) + '...' : 'null');
+    console.log('Token in localStorage:', storedToken ? storedToken.substring(0, 15) + '...' : 'null');
+    console.log('Current category:', selectedCategory);
+    console.log('Filtered endpoints count:', filteredEndpoints.length);
+    console.log('Selected endpoint:', selectedEndpoint?.path || 'none');
+    
+    // Auto-refresh token from localStorage if they don't match
+    if (storedToken && storedToken !== authToken) {
+      console.log('Auto-refreshing token from localStorage');
+      setAuthToken(storedToken);
+    }
+    
+    // Ensure we have a selected endpoint if filtered endpoints are available
+    if (filteredEndpoints.length > 0 && !selectedEndpoint) {
+      console.log('Auto-selecting first endpoint from filtered list');
+      setSelectedEndpoint(filteredEndpoints[0]);
+    }
+  }, [authToken, selectedCategory, filteredEndpoints, selectedEndpoint]);
+
   // Check user permissions - allow both admin (role_id 1) and JAFAR (role_id 6) users
-  if (!user || (!user.roles?.some((role: any) => role.id === 1 || role.id === 6) && user.role !== '1' && user.role !== '6')) {
+  if (!user || !hasAdminOrJafarRole(user)) {
     return (
       <Container className="mt-5">
         <Alert variant="danger">
@@ -682,7 +768,7 @@ export default ApiExample;`;
         <Row className="mb-4">
           {/* Admin Access Indicator */}
           <Col xs={12} className="mb-3">
-            {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') && (
+            {hasAdminOrJafarRole(user) && (
               <Alert variant="info" className="d-flex align-items-center">
                 <FaLock className="me-2" /> 
                 <div>
@@ -696,7 +782,27 @@ export default ApiExample;`;
           <Col xs={12} className="mb-4">
             <Card className="shadow-sm">
               <Card.Header className="bg-primary text-white">
-                <h5 className="mb-0">API Categories</h5>
+                <div className="d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0">API Categories</h5>
+                  <div>
+                    {authToken ? (
+                      <div className="d-flex align-items-center">
+                        <FaLock className="me-1" />
+                        <small>Authenticated {hasAdminOrJafarRole(user) ? 'as Admin' : ''}</small>
+                        <Button 
+                          size="sm" 
+                          variant="outline-light" 
+                          className="ms-2"
+                          onClick={refreshTokenFromStorage}
+                        >
+                          <small>Refresh</small>
+                        </Button>
+                      </div>
+                    ) : (
+                      <small className="text-warning">Not authenticated</small>
+                    )}
+                  </div>
+                </div>
               </Card.Header>
               <Card.Body>
                 <Nav variant="pills" className="flex-row flex-wrap">
@@ -705,13 +811,38 @@ export default ApiExample;`;
                       <Nav.Link 
                         active={selectedCategory === category}
                         onClick={() => {
-                          // Reset API Explorer state when category changes
+                          console.log(`Switching to category: ${category}`);
+                          
+                          // Change category but preserve authentication state
                           setSelectedCategory(category);
-                          setSelectedEndpoint(null);
+                          
+                          // Don't reset the endpoint selection yet - we'll let the useEffect handle it
+                          // This prevents the UI from showing no selected endpoint momentarily
                           setSelectedMethod('GET');
                           setRequestParams({});
                           setResponse(null);
                           setError(null);
+                          
+                          // Ensure token is preserved when switching categories
+                          const storedToken = localStorage.getItem('apiAccessToken');
+                          if (storedToken) {
+                            console.log('Using token when switching to category:', category);
+                            setAuthToken(storedToken);
+                          }
+                          
+                          // Force a refresh of filtered endpoints
+                          if (category === 'all') {
+                            setFilteredEndpoints([...endpoints]);
+                          } else {
+                            const filtered = endpoints.filter(ep => ep.category === category);
+                            setFilteredEndpoints(filtered);
+                            
+                            // Auto-select the first endpoint in this category
+                            if (filtered.length > 0) {
+                              setSelectedEndpoint(filtered[0]);
+                              console.log(`Auto-selected endpoint: ${filtered[0].path}`);
+                            }
+                          }
                         }}
                         className="mb-2 me-2"
                       >
@@ -740,16 +871,36 @@ export default ApiExample;`;
                       value={selectedEndpoint?.path || ''}
                       onChange={(e) => {
                         const endpoint = endpoints.find(ep => ep.path === e.target.value);
-                        setSelectedEndpoint(endpoint || null);
+                        if (endpoint) {
+                          console.log(`Manually selected endpoint: ${endpoint.path}`);
+                          setSelectedEndpoint(endpoint);
+                          
+                          // Also update the category to match this endpoint
+                          if (endpoint.category !== selectedCategory && selectedCategory !== 'all') {
+                            console.log(`Updating category to match endpoint: ${endpoint.category}`);
+                            setSelectedCategory(endpoint.category);
+                          }
+                        } else {
+                          setSelectedEndpoint(null);
+                        }
                       }}
                     >
                       <option value="">Select an endpoint</option>
-                      {filteredEndpoints.map((endpoint) => (
-                        <option key={endpoint.path} value={endpoint.path}>
-                          {endpoint.path}
-                        </option>
-                      ))}
+                      {filteredEndpoints.length > 0 ? (
+                        filteredEndpoints.map((endpoint) => (
+                          <option key={endpoint.path} value={endpoint.path}>
+                            {endpoint.path}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>No endpoints available in this category</option>
+                      )}
                     </Form.Select>
+                    {filteredEndpoints.length === 0 && (
+                      <div className="text-danger mt-2">
+                        No endpoints available in the "{selectedCategory}" category. Please select another category.
+                      </div>
+                    )}
                   </Form.Group>
                   
                   {selectedEndpoint && (
@@ -763,17 +914,16 @@ export default ApiExample;`;
 
                       <Form.Group className="mb-3">
                         <Form.Label>Authentication Required:</Form.Label>
-                        <div className="p-2 bg-light rounded">
-                          {selectedEndpoint.requiresAuth ? (
-                            (user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? (
-                              <span className="text-success">
-                                <FaLock className="me-1" /> Yes (Automatically Authenticated as Admin)
-                              </span>
-                            ) : (
+                        <div className="p-2 bg-light rounded d-flex justify-content-between align-items-center">
+                          <div>
+                            {selectedEndpoint.requiresAuth ? (
                               <span className="text-danger"><FaLock className="me-1" /> Yes</span>
-                            )
-                          ) : (
-                            <span className="text-success">No</span>
+                            ) : (
+                              <span className="text-success">No</span>
+                            )}
+                          </div>
+                          {selectedEndpoint.requiresAuth && authToken && (
+                            <span className="badge bg-success">Token Applied</span>
                           )}
                         </div>
                       </Form.Group>
@@ -792,6 +942,8 @@ export default ApiExample;`;
                       )) || <option value="GET">GET</option>}
                     </Form.Select>
                   </Form.Group>
+
+
 
                   {selectedEndpoint?.parameters && selectedEndpoint.parameters.length > 0 && (
                     <Form.Group className="mb-3">
