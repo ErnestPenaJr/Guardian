@@ -451,7 +451,7 @@ const ApiAccessPortal = (): JSX.Element => {
       
       // Add auth token if endpoint requires authentication or if we have a stored token
       // For admin users, we'll automatically add the token for all endpoints
-      if (selectedEndpoint.requiresAuth || user?.roles?.some((role: any) => role.id === 1) || authToken) {
+      if (selectedEndpoint.requiresAuth || user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' || authToken) {
         // Try to get token from localStorage or from the auth context
         const token = authToken || localStorage.getItem('apiAccessToken') || user?.token;
         if (token) {
@@ -659,8 +659,8 @@ const ApiExample = () => {
 export default ApiExample;`;
   };
 
-  // Check user permissions
-  if (!user || !user.roles?.some((role: any) => role.id === 1)) {
+  // Check user permissions - allow both admin (role_id 1) and JAFAR (role_id 6) users
+  if (!user || (!user.roles?.some((role: any) => role.id === 1 || role.id === 6) && user.role !== '1' && user.role !== '6')) {
     return (
       <Container className="mt-5">
         <Alert variant="danger">
@@ -682,7 +682,7 @@ export default ApiExample;`;
         <Row className="mb-4">
           {/* Admin Access Indicator */}
           <Col xs={12} className="mb-3">
-            {user?.roles?.some((role: any) => role.id === 1) && (
+            {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') && (
               <Alert variant="info" className="d-flex align-items-center">
                 <FaLock className="me-2" /> 
                 <div>
@@ -765,7 +765,7 @@ export default ApiExample;`;
                         <Form.Label>Authentication Required:</Form.Label>
                         <div className="p-2 bg-light rounded">
                           {selectedEndpoint.requiresAuth ? (
-                            user?.roles?.some((role: any) => role.id === 1) ? (
+                            (user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? (
                               <span className="text-success">
                                 <FaLock className="me-1" /> Yes (Automatically Authenticated as Admin)
                               </span>
