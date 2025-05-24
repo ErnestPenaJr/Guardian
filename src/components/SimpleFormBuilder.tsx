@@ -9,7 +9,10 @@ import {
   FaCalendarAlt, 
   FaTrashAlt,
   FaEdit,
-  FaAsterisk
+  FaAsterisk,
+  FaUser,
+  FaMoneyBill,
+  FaHome
 } from 'react-icons/fa';
 
 interface SimpleFormBuilderProps {
@@ -26,6 +29,31 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const [fields, setFields] = useState<FormField[]>(formFields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  
+  // Template definitions
+  const templates = [
+    {
+      id: 'subject',
+      name: 'SUBJECT',
+      description: 'First Name, Middle Name, Last Name, DOB, SSN',
+      icon: <FaUser />,
+      fields: ['first_name', 'middle_name', 'last_name', 'dob', 'ssn']
+    },
+    {
+      id: 'financial',
+      name: 'FINANCIAL',
+      description: 'Bank Name, Account #, Routing #',
+      icon: <FaMoneyBill />,
+      fields: ['bank_name', 'account_number', 'routing_number']
+    },
+    {
+      id: 'address',
+      name: 'ADDRESS',
+      description: 'Address Line 1, Address Line 2, City, State, ZIP Code',
+      icon: <FaHome />,
+      fields: ['address_line_1', 'address_line_2', 'city', 'state', 'zip_code']
+    }
+  ];
   
   // Field type definitions with icons
   const fieldTypes = [
@@ -70,6 +98,48 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       onChange(fields);
     }
   }, [fields, formFields, onChange]);
+  
+  // Apply a template to add multiple fields at once
+  const applyTemplate = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    const newFields: FormField[] = [];
+    
+    template.fields.forEach(fieldType => {
+      let fieldName = fieldType.replace(/_/g, ' ');
+      fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+      
+      // Map field types to more user-friendly names
+      switch(fieldType) {
+        case 'first_name': fieldName = 'First Name'; break;
+        case 'middle_name': fieldName = 'Middle Name'; break;
+        case 'last_name': fieldName = 'Last Name'; break;
+        case 'dob': fieldName = 'DOB'; break;
+        case 'ssn': fieldName = 'SSN'; break;
+        case 'account_number': fieldName = 'Account #'; break;
+        case 'bank_name': fieldName = 'Bank Name'; break;
+        case 'routing_number': fieldName = 'Routing #'; break;
+        case 'address_line_1': fieldName = 'Address Line 1'; break;
+        case 'address_line_2': fieldName = 'Address Line 2'; break;
+        case 'city': fieldName = 'City'; break;
+        case 'state': fieldName = 'State'; break;
+        case 'zip_code': fieldName = 'ZIP Code'; break;
+        case 'phone': fieldName = 'Phone #'; break;
+      }
+      
+      newFields.push({
+        id: `field-${uuidv4()}`,
+        fieldName,
+        fieldType,
+        required: false,
+        options: fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox' ? 'Option 1,Option 2,Option 3' : '',
+        canDelete: true
+      });
+    });
+    
+    setFields([...fields, ...newFields]);
+  };
   
   // Add a new field to the form
   const addField = (fieldType: string) => {
@@ -319,6 +389,27 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
                   {fieldType.icon}
                 </div>
                 <div className="field-label">{fieldType.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="templates-section">
+          <h6>Templates</h6>
+          <div className="template-list">
+            {templates.map((template) => (
+              <div 
+                key={template.id}
+                className="template-item"
+                onClick={() => applyTemplate(template.id)}
+              >
+                <div className="template-icon">
+                  {template.icon}
+                </div>
+                <div className="template-details">
+                  <div className="template-name">{template.name}</div>
+                  <div className="template-description">{template.description}</div>
+                </div>
               </div>
             ))}
           </div>
