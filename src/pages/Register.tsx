@@ -11,7 +11,6 @@ function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
-  const [companyName, setCompanyName] = useState('');
 
   // Handle email validation
   const validateEmailWithSendGrid = async (email: string) => {
@@ -77,11 +76,6 @@ function Register() {
       return;
     }
     
-    if (!companyName.trim()) {
-      showToast.error('Please enter your company name');
-      return;
-    }
-    
     // Validate email with SendGrid
     const isValid = await validateEmailWithSendGrid(email);
     if (!isValid) {
@@ -92,17 +86,13 @@ function Register() {
     setError('');
     
     try {
-      // Debug log: Show company name state just before API call
-      console.log('%c Company name being sent (frontend):', 'background: #FFEB3B; color: #000', companyName);
-      // Call backend registration endpoint with company name
+      // Call backend registration endpoint without company name
       console.log('%c Registration Submission', 'background: #4CAF50; color: #fff', {
         email,
-        companyName,
         timestamp: new Date().toISOString()
       });
       const response = await axios.post('/api/register', { 
-        email, 
-        companyName 
+        email
       });
       
       console.log('%c Registration API Response', 'background: #2196F3; color: #fff', response.data);
@@ -111,7 +101,7 @@ function Register() {
       showToast.success(`Verification code sent to ${email}`);
       // Persist registration data for verification page
       const expiryTime = new Date(Date.now() + 1000 * 60 * 30).toISOString();
-      localStorage.setItem('registrationData', JSON.stringify({ email, companyName, expiryTime }));
+      localStorage.setItem('registrationData', JSON.stringify({ email, expiryTime }));
       navigate('/verify-email', { state: { email } });
     } catch (error: any) {
       if (error.response && error.response.data && error.response.data.error) {
@@ -166,21 +156,7 @@ function Register() {
             )}
           </div>
           
-          <div className="mb-6">
-            <label htmlFor="companyName" className="block text-body-sm font-medium text-gray-1 mb-2">
-              Company Name
-            </label>
-            <input
-              type="text"
-              id="companyName"
-              name="companyName"
-              placeholder="Your Company Name"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-              disabled={isLoading}
-            />
-          </div>
+
           
           <p className="text-center text-body-sm mb-6">
             By proceeding you agree to the <Link to="/terms" className="text-secondary">Terms of Service</Link> and <Link to="/privacy" className="text-secondary">Privacy Policy</Link>

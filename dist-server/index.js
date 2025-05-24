@@ -174,9 +174,8 @@ app.post('/api/register', async (req, res) => {
         const firstName = email.split('@')[0].split('.')[0];
         // get last name from email
         const lastName = email.split('@')[0].split('.')[1] || '';
-        // Ensure companyNameToUse is 'Default Company' if trimmed companyName is empty
-        const trimmedCompanyName = companyName?.trim() || '';
-        const companyNameToUse = trimmedCompanyName.length === 0 ? 'Default Company' : trimmedCompanyName;
+        // Always use 'Default Company' since company name field has been removed from registration
+        const companyNameToUse = 'Default Company';
         console.log('%c Company Name', 'background: #009688; color: #fff', companyNameToUse);
         // IMPORTANT: Completely bypass the Prisma ORM for company creation
         // Use a direct SQL query with explicit parameters
@@ -214,10 +213,8 @@ app.post('/api/register', async (req, res) => {
             if (!companyId) {
                 throw new Error('No valid company ID available');
             }
-            // Log every insert to COMPANY table
-            if (companyNameToUse === 'Default Company' || trimmedCompanyName.length > 0) {
-                console.warn('%c [COMPANY INSERT] Attempting to insert company:', 'background: #E57373; color: #fff', companyNameToUse, new Date().toISOString());
-            }
+            // Log company assignment
+            console.warn('%c [COMPANY ASSIGNMENT] Using company:', 'background: #E57373; color: #fff', companyNameToUse, new Date().toISOString());
             // Save user with company association
             const user = await prisma.uSERS.create({
                 data: {
