@@ -313,7 +313,7 @@ function Home() {
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
     },
-    ...(user?.roles?.some((role: any) => role.id === 1) ? [
+    ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
       {
         icon: <Sliders className="w-6 h-6" />,
         label: 'Settings',
@@ -501,7 +501,7 @@ function Home() {
               <span className="font-bold text-lg leading-tight text-gray-900">
                 {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.fullName || user?.name || 'User'}
               </span><br></br>
-              {user && user.roles && user.roles.some((role: any) => role.id === 1) && (
+              {user && ((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') && (
                 <span className="text-sm text-gray-500 font-medium text-end">{getUserRole()}</span>
               )}
             </span>
@@ -538,7 +538,7 @@ function Home() {
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Update Profile */}}>
                 <User size={16} /> Update Profile
               </button>
-              {user?.roles?.some((role: any) => role.id === 1) && (
+              {(user?.roles?.some((role: any) => role.id === 6) || user?.role === '6') && (
                 <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-explorer')}>
                   <FaCode size={16} /> API Explorer
                 </button>
@@ -645,7 +645,7 @@ function Home() {
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container">
-            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">MAIN DASHBOARD</h1>
+            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">HOME</h1>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
               {/* Request Overview Card */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-3 md:p-4 w-full flex flex-col items-center justify-center`} data-component-name="Home">
@@ -899,7 +899,7 @@ function Home() {
             <div className="mt-4 md:mt-6">
               <RequestDashboard />
             </div>
-          ) : selectedSection === 'admin' && user && user.roles && user.roles.some((role: any) => role.id === 1) ? (
+          ) : selectedSection === 'admin' && user && ((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') ? (
             <div className="mt-4 md:mt-6">
               <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
             </div>

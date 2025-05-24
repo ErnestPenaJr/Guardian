@@ -215,7 +215,7 @@ const RequestDashboard: React.FC = () => {
           style={{ minWidth: 140 }} 
           onClick={() => setShowModal(true)}
         >
-          + New Request
+          + Create Request
         </button>
         
         <button 

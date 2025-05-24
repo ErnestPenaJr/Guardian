@@ -11,8 +11,10 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
     return <div>Loading...</div>; 
   }
 
-  // Only allow users with admin role_id (1)
-  if (!user || !user.roles || !user.roles.some((role: any) => role.id === 1)) {
+  // Allow users with admin role_id (1) or JAFAR role_id (6)
+  if (!user || 
+      ((!user.roles || !user.roles.some((role: any) => role.id === 1 || role.id === 6)) && 
+       (user.role !== '1' && user.role !== '6'))) {
     return <Navigate to="/login" replace />;
   }
 
@@ -20,23 +22,25 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
     <div className="container">
       <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Users Card - triggers callback to show user management */}
-        <a
-          href="#"
-          className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
-          onClick={e => {
-            e.preventDefault();
-            onShowUserManagement && onShowUserManagement();
-          }}
-        >
-          <FaUsers className="h-12 w-12 text-secondary mb-4" />
-          <h3 className="text-lg font-semibold mb-2">User Management</h3>
-          <ul className="text-gray-600">
-            <li>View users & invites</li>
-            <li>Add, edit, delete users</li>
-            <li>Manage invitations</li>
-          </ul>
-        </a>
+        {/* Users Card - triggers callback to show user management - only visible to JAFAR (role 6) */}
+        {((user.roles && user.roles.some((role: any) => role.id === 6)) || user.role === '6') && (
+          <a
+            href="#"
+            className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
+            onClick={e => {
+              e.preventDefault();
+              onShowUserManagement && onShowUserManagement();
+            }}
+          >
+            <FaUsers className="h-12 w-12 text-secondary mb-4" />
+            <h3 className="text-lg font-semibold mb-2">User Management</h3>
+            <ul className="text-gray-600">
+              <li>View users & invites</li>
+              <li>Add, edit, delete users</li>
+              <li>Manage invitations</li>
+            </ul>
+          </a>
+        )}
         {/* Requests Dashboard Card */}
         {/*
         <a

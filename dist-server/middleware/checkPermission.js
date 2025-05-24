@@ -8,9 +8,9 @@ export function checkPermission(permissionType, resourceType) {
             return res.status(401).json({ message: 'Unauthorized: Authentication required' });
         }
         // If user has roles but no permissions, we need to fetch them
-        // For now, we'll just check if they're an admin (role_id 1)
-        if (user.roles.includes(1)) {
-            // Admin has all permissions
+        // Check if user is an admin (role_id 1) or has JAFAR developer role (role_id 6)
+        if (user.roles.includes(1) || user.roles.includes(6)) {
+            // Admin and JAFAR developer have all permissions
             return next();
         }
         // If user has explicit permissions, check them

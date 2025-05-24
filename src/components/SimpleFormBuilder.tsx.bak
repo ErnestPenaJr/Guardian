@@ -2,32 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FormField } from '../types/formBuilder';
 import formService from '../services/formService';
-import fieldTypeService, { UiFieldType } from '../services/fieldTypeService';
-import fieldsService, { UiField } from '../services/fieldsService';
 import '../styles/SimpleFormBuilder.css';
 import { 
   FaFont, 
-  FaParagraph,
   FaHashtag, 
-  FaListUl,
-  FaDotCircle,
-  FaCheckSquare,
   FaCalendarAlt, 
   FaTrashAlt,
   FaEdit,
   FaAsterisk,
   FaUser,
   FaMoneyBill,
-  FaHome,
-  FaArrowUp,
-  FaArrowDown,
-  FaCopy,
-  FaIdCard,
-  FaAddressCard,
-  FaMoneyCheckAlt,
-  FaIdBadge
+  FaHome
 } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 
 interface SimpleFormBuilderProps {
   formFields: FormField[];
@@ -43,36 +29,6 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const [fields, setFields] = useState<FormField[]>(formFields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [fieldTypes, setFieldTypes] = useState<UiFieldType[]>([]);
-  const [dbFields, setDbFields] = useState<UiField[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // We use isLoading in the useEffect for API calls, even though it's not directly
-  // referenced elsewhere in the component at this time
-  
-  // Load field types from the database
-  useEffect(() => {
-    // Fetch field types and fields from the database
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch field types
-        const types = await fieldTypeService.getUiFieldTypes();
-        setFieldTypes(types);
-        
-        // Fetch fields
-        const fieldsData = await fieldsService.getUiFields();
-        setDbFields(fieldsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load field data from database');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
   
   // Template definitions
   const templates = [
@@ -99,159 +55,189 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     }
   ];
   
-  // Get icon component for a field type
-  const getIconComponent = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'text':
-        return <div className="icon-wrapper text"><FaFont /></div>;
-      case 'paragraph':
-        return <div className="icon-wrapper text"><FaFont /></div>;
-      case 'number':
-      case 'account_number':
-      case 'routing_number':
-        return <div className="icon-wrapper hashtag"><FaHashtag /></div>;
-      case 'dropdown':
-        return <div className="icon-wrapper dropdown"><FaListUl /></div>;
-      case 'radio':
-        return <div className="icon-wrapper radio"><FaDotCircle /></div>;
-      case 'checkbox':
-        return <div className="icon-wrapper checkbox"><FaCheckSquare /></div>;
-      case 'date':
-      case 'dob':
-        return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
-      case 'ssn':
-        return <div className="icon-wrapper ssn"><FaIdCard /></div>;
-      case 'first_name':
-      case 'middle_name':
-      case 'last_name':
-        return <div className="icon-wrapper name"><FaIdBadge /></div>;
-      case 'address_line_1':
-      case 'address_line_2':
-      case 'city':
-      case 'state':
-      case 'zip_code':
-        return <div className="icon-wrapper address"><FaAddressCard /></div>;
-      case 'bank_name':
-        return <div className="icon-wrapper bank"><FaMoneyCheckAlt /></div>;
-      default:
-        return <div className="icon-wrapper text"><FaFont /></div>;
+  // Field type definitions with icons
+  const fieldTypes = [
+    { type: 'account_number', label: 'Account #', icon: <FaHashtag /> },
+    { type: 'address_line_1', label: 'Address Line 1', icon: <FaFont /> },
+    { type: 'address_line_2', label: 'Address Line 2', icon: <FaFont /> },
+    { type: 'bank_name', label: 'Bank Name', icon: <FaFont /> },
+    { type: 'city', label: 'City', icon: <FaFont /> },
+    { type: 'phone', label: 'Phone #', icon: <FaHashtag /> },
+    { type: 'routing_number', label: 'Routing #', icon: <FaHashtag /> },
+    { type: 'state', label: 'State', icon: <FaFont /> },
+    { type: 'zip_code', label: 'ZIP Code', icon: <FaFont /> },
+    { type: 'first_name', label: 'First Name', icon: <FaFont /> },
+    { type: 'middle_name', label: 'Middle Name', icon: <FaFont /> },
+    { type: 'last_name', label: 'Last Name', icon: <FaFont /> },
+    { type: 'dob', label: 'DOB', icon: <FaCalendarAlt /> },
+    { type: 'ssn', label: 'SSN', icon: <FaHashtag /> }
+  ];
+  
+  useEffect(() => {
+    // If formId is provided, fetch existing form data
+    if (formId) {
+      const fetchFormData = async () => {
+        try {
+          const { fields: dbFields } = await formService.getFormById(formId);
+          // Convert database fields to UI form fields
+          const uiFields = formService.convertDbFieldsToFormFields(dbFields);
+          setFields(uiFields);
+          onChange(uiFields);
+        } catch (error) {
+          console.error(`Error fetching form with ID ${formId}:`, error);
+        }
+      };
+      fetchFormData();
     }
-  };
+  }, [formId, onChange]);
   
-  // Add a new field to the form
-  const addField = (type: string, customName?: string) => {
-    const newField: FormField = {
-      id: uuidv4(),
-      fieldName: customName || `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-      fieldType: type,
-      required: false,
-      canDelete: true
-    };
-    
-    const updatedFields = [...fields, newField];
-    setFields(updatedFields);
-    onChange(updatedFields);
-  };
+  // Update parent component when fields change
+  useEffect(() => {
+    // Only call onChange if fields have actually changed from the initial formFields
+    if (JSON.stringify(fields) !== JSON.stringify(formFields)) {
+      onChange(fields);
+    }
+  }, [fields, formFields, onChange]);
   
-  // Remove a field from the form
-  const removeField = (id: string) => {
-    const updatedFields = fields.filter(field => field.id !== id);
-    setFields(updatedFields);
-    onChange(updatedFields);
-  };
-  
-  // Update a field in the form
-  const updateField = (updatedField: FormField) => {
-    const updatedFields = fields.map(field => 
-      field.id === updatedField.id ? updatedField : field
-    );
-    setFields(updatedFields);
-    onChange(updatedFields);
-    setEditingField(null);
-  };
-  
-  // Apply a template to the form
+  // Apply a template to add multiple fields at once
   const applyTemplate = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
     if (!template) return;
     
-    // Create fields based on the template
-    const templateFields = template.fields.map(fieldType => ({
-      id: uuidv4(),
-      fieldName: fieldType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+    const newFields: FormField[] = [];
+    
+    template.fields.forEach(fieldType => {
+      let fieldName = fieldType.replace(/_/g, ' ');
+      fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+      
+      // Map field types to more user-friendly names
+      switch(fieldType) {
+        case 'first_name': fieldName = 'First Name'; break;
+        case 'middle_name': fieldName = 'Middle Name'; break;
+        case 'last_name': fieldName = 'Last Name'; break;
+        case 'dob': fieldName = 'DOB'; break;
+        case 'ssn': fieldName = 'SSN'; break;
+        case 'account_number': fieldName = 'Account #'; break;
+        case 'bank_name': fieldName = 'Bank Name'; break;
+        case 'routing_number': fieldName = 'Routing #'; break;
+        case 'address_line_1': fieldName = 'Address Line 1'; break;
+        case 'address_line_2': fieldName = 'Address Line 2'; break;
+        case 'city': fieldName = 'City'; break;
+        case 'state': fieldName = 'State'; break;
+        case 'zip_code': fieldName = 'ZIP Code'; break;
+        case 'phone': fieldName = 'Phone #'; break;
+      }
+      
+      newFields.push({
+        id: `field-${uuidv4()}`,
+        fieldName,
+        fieldType,
+        required: false,
+        options: fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox' ? 'Option 1,Option 2,Option 3' : '',
+        canDelete: true
+      });
+    });
+    
+    setFields([...fields, ...newFields]);
+  };
+  
+  // Add a new field to the form
+  const addField = (fieldType: string) => {
+    let fieldName = fieldType.replace(/_/g, ' ');
+    fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+    
+    // Map field types to more user-friendly names
+    switch(fieldType) {
+      case 'first_name': fieldName = 'First Name'; break;
+      case 'middle_name': fieldName = 'Middle Name'; break;
+      case 'last_name': fieldName = 'Last Name'; break;
+      case 'dob': fieldName = 'DOB'; break;
+      case 'ssn': fieldName = 'SSN'; break;
+      case 'account_number': fieldName = 'Account #'; break;
+      case 'bank_name': fieldName = 'Bank Name'; break;
+      case 'routing_number': fieldName = 'Routing #'; break;
+      case 'address_line_1': fieldName = 'Address Line 1'; break;
+      case 'address_line_2': fieldName = 'Address Line 2'; break;
+      case 'city': fieldName = 'City'; break;
+      case 'state': fieldName = 'State'; break;
+      case 'zip_code': fieldName = 'ZIP Code'; break;
+      case 'phone': fieldName = 'Phone #'; break;
+    }
+    
+    const newField: FormField = {
+      id: `field-${uuidv4()}`,
+      fieldName,
       fieldType,
       required: false,
+      options: fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox' ? 'Option 1,Option 2,Option 3' : '',
       canDelete: true
-    }));
+    };
     
-    const updatedFields = [...fields, ...templateFields];
-    setFields(updatedFields);
-    onChange(updatedFields);
-    
-    toast.success(`${template.name} template applied`);
+    setFields([...fields, newField]);
   };
   
-  // Handle drag start event
-  const handleDragStart = (e: React.DragEvent, type: string) => {
-    e.dataTransfer.setData('fieldType', type);
+  // Remove a field from the form
+  const removeField = (fieldId: string) => {
+    setFields(fields.filter(field => field.id !== fieldId));
   };
   
-  // Handle drag over event
+  // Handle drag start for field types
+  const handleDragStart = (e: React.DragEvent, fieldType: string) => {
+    e.dataTransfer.setData('fieldType', fieldType);
+  };
+  
+  // Handle drag over for the form preview area
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
   };
   
-  // Handle drag leave event
+  // Handle drag leave for the form preview area
   const handleDragLeave = () => {
     setDragOver(false);
   };
   
-  // Handle drop event
+  // Handle drop for the form preview area
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    
     const fieldType = e.dataTransfer.getData('fieldType');
-    const fieldName = e.dataTransfer.getData('fieldName');
-    
     if (fieldType) {
-      addField(fieldType, fieldName || undefined);
+      addField(fieldType);
     }
   };
   
-  // Close the field editor
+  // Update a field's properties
+  const updateField = (updatedField: FormField) => {
+    setFields(fields.map(field => 
+      field.id === updatedField.id ? updatedField : field
+    ));
+    setEditingField(null);
+  };
+  
+  // Close the field editor modal
   const closeFieldEditor = () => {
     setEditingField(null);
   };
   
-  // Render a preview of the field
+  // Render field preview based on field type
   const renderFieldPreview = (field: FormField) => {
-    switch (field.fieldType.toLowerCase()) {
+    switch (field.fieldType) {
       case 'text':
       case 'first_name':
       case 'middle_name':
       case 'last_name':
-      case 'bank_name':
       case 'address_line_1':
       case 'address_line_2':
       case 'city':
       case 'state':
       case 'zip_code':
+      case 'bank_name':
         return (
           <input 
             type="text" 
             className="form-control" 
             placeholder={field.fieldName} 
-            disabled 
-          />
-        );
-      case 'paragraph':
-        return (
-          <textarea 
-            className="form-control" 
-            placeholder={field.fieldName} 
-            rows={3} 
             disabled 
           />
         );
@@ -388,7 +374,26 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     <div className="form-builder-container">
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
-        {/* Templates Section - Moved to the top */}
+        <div className="fields-section">
+          <h6>Fields</h6>
+          <div className="field-grid">
+            {fieldTypes.map((fieldType) => (
+              <div 
+                key={fieldType.type}
+                className="field-item" 
+                draggable
+                onDragStart={(e) => handleDragStart(e, fieldType.type)}
+                onClick={() => addField(fieldType.type)}
+              >
+                <div className="field-icon">
+                  {fieldType.icon}
+                </div>
+                <div className="field-label">{fieldType.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
         <div className="templates-section">
           <h6>Templates</h6>
           <div className="template-list">
@@ -405,27 +410,6 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
                   <div className="template-name">{template.name}</div>
                   <div className="template-description">{template.description}</div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Fields Section - Moved below templates */}
-        <div className="fields-section">
-          <h6>Fields</h6>
-          <div className="field-grid">
-            {fieldTypes.map((fieldType) => (
-              <div 
-                key={fieldType.type}
-                className="field-item" 
-                draggable
-                onDragStart={(e) => handleDragStart(e, fieldType.type)}
-                onClick={() => addField(fieldType.type)}
-              >
-                <div className="field-icon">
-                  {fieldType.icon}
-                </div>
-                <div className="field-label">{fieldType.label}</div>
               </div>
             ))}
           </div>

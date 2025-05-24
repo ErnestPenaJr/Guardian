@@ -40,8 +40,6 @@ model USERS {
   EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
   PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
   COMPANY_INFO                  COMPANY_INFO[]
-  requestedRequests REQUESTS[] @relation("Requestor")
-  assignedRequests  REQUESTS[] @relation("Assigned")
 }
 
 model ATTACHMENTS {
@@ -116,7 +114,7 @@ model FIELDS {
   ORGANIZATIONS                ORGANIZATIONS?             @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FIELDS__ORGANIZA__0539C240")
   FIELD_TYPE                   FIELD_TYPE                 @relation(fields: [FIELD_TYPE_ID], references: [FIELD_TYPE_ID], onUpdate: NoAction, map: "FK__FIELDS__UPDATE_D__5B438874")
   FIELDS_LOOKUP                FIELDS_LOOKUP[]
-  FORMS_FIELDS                 FORMS_FIELDS[] @ignore
+  FORMS_FIELDS                 FORMS_FIELDS[]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -173,8 +171,8 @@ model FORMS {
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
-  FORMS_FIELDS     FORMS_FIELDS[] @ignore
-  FORMS_INSTANCE   FORMS_INSTANCE[] @ignore
+  FORMS_FIELDS     FORMS_FIELDS[]
+  FORMS_INSTANCE   FORMS_INSTANCE[]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -300,9 +298,8 @@ model REQUESTS {
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
   TRACKINGID     String?   @db.NVarChar(4000)
-
-  requestor      USERS?     @relation("Requestor", fields: [REQUESTOR_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction)
-  assigned       USERS?     @relation("Assigned", fields: [ASSIGNED_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction)
+  ABBREVIATION   String?   @db.VarChar(5)
+  COMPANY_ID     Decimal?  @db.Decimal(38, 0)
 }
 
 model ROLES {
@@ -342,7 +339,6 @@ model INVITES {
   INVITE_ID  Int       @id(map: "PK__INVITES__F55A91112E684DE5") @default(autoincrement())
   EMAIL      String    @db.VarChar(100)
   ROLE_ID    Int
-  
   COMPANY_ID Int
   TOKEN      String    @unique(map: "UQ__INVITES__05BE64EDCB9633D7") @db.VarChar(255)
   STATUS     String    @db.Char(1)

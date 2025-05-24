@@ -13,6 +13,7 @@ import { isAdmin } from './middleware/isAdmin.js';
 import formsRoutes from './routes/forms.js';
 import externalRoutes from './routes/external.js';
 import endpointViewerRoutes from './routes/endpoint-viewer.js';
+import fieldsRoutes from './routes/fields.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
@@ -820,117 +821,17 @@ app.get('/api/field-types', async (req, res) => {
                 SORT_ORDER: 'asc',
             },
         });
-        // If no field types found in the database, return default field types
+        // If no field types found in the database, return empty array
         if (!fieldTypes || fieldTypes.length === 0) {
-            console.log('No field types found in database, returning default field types');
-            // Default field types that match the mockFieldTypes in the frontend
-            const defaultFieldTypes = [
-                {
-                    FIELD_TYPE_ID: 1,
-                    FIELD_TYPE_NAME: 'Text',
-                    FIELD_TYPE_DESC: 'Single line text input',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 1,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                },
-                {
-                    FIELD_TYPE_ID: 2,
-                    FIELD_TYPE_NAME: 'TextArea',
-                    FIELD_TYPE_DESC: 'Multi-line text input',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 2,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                },
-                {
-                    FIELD_TYPE_ID: 3,
-                    FIELD_TYPE_NAME: 'Number',
-                    FIELD_TYPE_DESC: 'Numeric input',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 3,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                },
-                {
-                    FIELD_TYPE_ID: 4,
-                    FIELD_TYPE_NAME: 'Select',
-                    FIELD_TYPE_DESC: 'Dropdown selection',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 4,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                },
-                {
-                    FIELD_TYPE_ID: 5,
-                    FIELD_TYPE_NAME: 'Radio',
-                    FIELD_TYPE_DESC: 'Radio button selection',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 5,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                },
-                {
-                    FIELD_TYPE_ID: 6,
-                    FIELD_TYPE_NAME: 'Checkbox',
-                    FIELD_TYPE_DESC: 'Checkbox selection',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 6,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                },
-                {
-                    FIELD_TYPE_ID: 7,
-                    FIELD_TYPE_NAME: 'Date',
-                    FIELD_TYPE_DESC: 'Date selection',
-                    IS_ACTIVE: true,
-                    IS_DELETED: false,
-                    SORT_ORDER: 7,
-                    CREATE_DATE: new Date(),
-                    CREATE_USER_ID: null,
-                    UPDATE_DATE: null,
-                    UPDATE_USER_ID: null
-                }
-            ];
-            // Map to a more frontend-friendly format
-            const formattedFieldTypes = defaultFieldTypes.map((type) => ({
-                FIELD_TYPE_ID: type.FIELD_TYPE_ID,
-                FIELD_TYPE_NAME: type.FIELD_TYPE_DESC,
-                FIELD_TYPE_DESCRIPTION: type.FIELD_TYPE_DESC,
-                IS_ACTIVE: type.IS_ACTIVE,
-                id: type.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, ''),
-                label: type.FIELD_TYPE_DESC,
-                icon: type.FIELD_TYPE_DESC.charAt(0)
-            }));
-            return res.json(formattedFieldTypes);
+            console.log('No field types found in database');
+            return res.json([]);
         }
         // Map to a more frontend-friendly format
         const formattedFieldTypes = fieldTypes.map((type) => ({
             FIELD_TYPE_ID: type.FIELD_TYPE_ID,
-            FIELD_TYPE_NAME: type.FIELD_TYPE_DESC,
-            FIELD_TYPE_DESCRIPTION: type.FIELD_TYPE_DESC,
-            IS_ACTIVE: type.IS_ACTIVE,
-            id: type.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, ''),
-            label: type.FIELD_TYPE_DESC,
-            icon: type.FIELD_TYPE_DESC.charAt(0)
+            FIELD_TYPE_NAME: type.FIELD_TYPE_DESC, // Use FIELD_TYPE_DESC as the name since that's what we have in the database
+            FIELD_TYPE_DESC: type.FIELD_TYPE_DESC,
+            SORT_ORDER: type.SORT_ORDER
         }));
         res.json(formattedFieldTypes);
     }
@@ -943,6 +844,8 @@ app.get('/api/field-types', async (req, res) => {
 app.use('/api/forms', requireAuth, formsRoutes);
 // Register endpoint viewer routes
 app.use('/api/endpoint-viewer', endpointViewerRoutes);
+// Register fields routes
+app.use('/api/fields', fieldsRoutes);
 // --- REQUESTS ROUTES ---
 // --- GET ROLES ENDPOINT ---
 app.get('/api/roles', async (req, res) => {

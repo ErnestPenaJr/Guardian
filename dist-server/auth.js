@@ -70,7 +70,7 @@ passport.use(new LocalStrategy({
                     roles: testUser.roles,
                     COMPANY_ID: 0, // Add COMPANY_ID to test user
                     username: testUser.email, // Use email as username
-                    role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
+                    role: testUser.roles.includes(1) ? '1' : testUser.roles.includes(6) ? '6' : testUser.roles.includes(5) ? '5' : testUser.roles[0]?.toString() || 'user', // Set role as string ID
                 };
                 return done(null, authenticatedUser);
             }
@@ -140,7 +140,7 @@ passport.use(new LocalStrategy({
                     roles: testUser.roles,
                     COMPANY_ID: 0, // Add COMPANY_ID to test user
                     username: testUser.email, // Use email as username
-                    role: testUser.roles.includes(1) ? 'admin' : 'user', // Determine role based on roles array
+                    role: testUser.roles.includes(1) ? '1' : testUser.roles.includes(6) ? '6' : testUser.roles.includes(5) ? '5' : testUser.roles[0]?.toString() || 'user', // Set role as string ID
                 };
                 return done(null, authenticatedUser);
             }

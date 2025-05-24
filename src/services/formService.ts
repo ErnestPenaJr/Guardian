@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { FormField } from '../types/formBuilder';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 // Define types for database interactions
 export interface FieldType {
   FIELD_TYPE_ID: number;
@@ -122,19 +124,59 @@ const mockFieldTypes: FieldType[] = [
   }
 ];
 
+// Helper function to get icon name for field type
+export function getIconForFieldType(fieldTypeName: string): string {
+  const typeToIconMap: Record<string, string> = {
+    'Text': 'text',
+    'Textarea': 'textarea',
+    'Number': 'number',
+    'Select': 'select',
+    'Date': 'date',
+    'Account Number': 'account_number',
+    'Address': 'address',
+    'SSN': 'ssn',
+    'DOB': 'dob'
+  };
+  
+  return typeToIconMap[fieldTypeName] || 'text';
+}
+
 // Form service for handling form-related API calls
 const formService = {
-  // Get all field types
+  // Get all field types from the database
   getFieldTypes: async (): Promise<FieldType[]> => {
     try {
-      // Always use the API, do not fallback to mock data
-      const response = await axios.get('http://localhost:3001/api/field-types', {
-        timeout: 10000
-      });
+      const response = await axios.get(`${API_BASE_URL}/api/field-types`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching field types from API:', error);
-      throw error;
+      console.error('Error fetching field types:', error);
+      // Fall back to mock data if API call fails
+      return mockFieldTypes;
+    }
+  },
+  
+  // Get field types in the format expected by SimpleFormBuilder
+  getFormBuilderFieldTypes: async () => {
+    try {
+      const fieldTypes = await formService.getFieldTypes();
+      
+      // Map database field types to the format expected by SimpleFormBuilder
+      return fieldTypes.map((fieldType: any) => ({
+        type: fieldType.FIELD_TYPE_NAME.toLowerCase().replace(/\s+/g, '_'),
+        label: fieldType.FIELD_TYPE_NAME,
+        dbFieldTypeId: fieldType.FIELD_TYPE_ID,
+        icon: getIconForFieldType(fieldType.FIELD_TYPE_NAME)
+      }));
+    } catch (error) {
+      console.error('Error mapping field types for form builder:', error);
+      // Return default field types if there's an error
+      return [
+        { type: 'text', label: 'Text', icon: 'text' },
+        { type: 'textarea', label: 'Text Area', icon: 'textarea' },
+        { type: 'number', label: 'Number', icon: 'number' },
+        { type: 'select', label: 'Dropdown', icon: 'select' },
+        { type: 'date', label: 'Date', icon: 'date' }
+      ];
     }
   },
 
@@ -230,7 +272,7 @@ const formService = {
 };
 
 // Helper function to get field type ID by name
-function getFieldTypeIdByName(fieldTypeName: string): number {
+export function getFieldTypeIdByName(fieldTypeName: string): number {
   const fieldTypeMap: Record<string, number> = {
     'text': 1,
     'textarea': 2,
@@ -262,5 +304,7 @@ function getFieldTypeNameById(fieldTypeId: number): string {
   
   return fieldTypeMap[fieldTypeId] || 'text'; // Default to text if not found
 }
+
+// This function is now defined above, so we don't need to redefine it here
 
 export default formService;
