@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { FaUsers, FaClipboardList, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icons/fa';
 import Modal from 'react-modal';
 import SimpleFormBuilder from '../components/SimpleFormBuilder';
+import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
@@ -12,13 +13,20 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
-  // State for the form builder modal
+  // State for the form builder modals
   const [formBuilderModalOpen, setFormBuilderModalOpen] = useState(false);
+  const [enhancedFormBuilderModalOpen, setEnhancedFormBuilderModalOpen] = useState(false);
   const [formFields, setFormFields] = useState<any[]>([]);
+  const [enhancedFormFields, setEnhancedFormFields] = useState<any[]>([]);
   
   // Handle form field changes
   const handleFormFieldsChange = (updatedFields: any) => {
     setFormFields(updatedFields);
+  };
+
+  // Handle enhanced form field changes
+  const handleEnhancedFormFieldsChange = (updatedFields: any) => {
+    setEnhancedFormFields(updatedFields);
   };
 
   if (loading) {
@@ -59,7 +67,16 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             >
               Workflow templates
             </li>
-            <li>Automation rules</li>
+            <li 
+              data-component-name="AdminDashboard"
+              className="cursor-pointer hover:text-secondary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEnhancedFormBuilderModalOpen(true);
+              }}
+            >
+              Manage Field Types
+            </li>
           </ul>
         </a>
 
@@ -122,7 +139,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         </a>
       </div>
 
-      {/* Form Builder Modal */}
+      {/* Simple Form Builder Modal */}
       <Modal
         isOpen={formBuilderModalOpen}
         onRequestClose={() => setFormBuilderModalOpen(false)}
@@ -168,6 +185,57 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           <SimpleFormBuilder
             formFields={formFields}
             onChange={handleFormFieldsChange}
+          />
+        </div>
+      </Modal>
+
+      {/* Enhanced Form Builder Modal */}
+      <Modal
+        isOpen={enhancedFormBuilderModalOpen}
+        onRequestClose={() => setEnhancedFormBuilderModalOpen(false)}
+        contentLabel="Field Type Manager"
+        className="modal-content xl-modal"
+        overlayClassName="modal-overlay"
+        style={{
+          content: {
+            width: '90%',
+            maxWidth: '1400px',
+            height: '90%',
+            margin: 'auto',
+            padding: '20px',
+            borderRadius: '8px',
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            overflow: 'auto',
+            position: 'relative' as 'relative'
+          },
+          overlay: {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            position: 'fixed' as 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }
+        }}
+      >
+        <div className="relative">
+          <button
+            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 bg-transparent border-none p-2 rounded-full hover:bg-gray-100 transition"
+            onClick={() => setEnhancedFormBuilderModalOpen(false)}
+          >
+            <FaTimes size={20} />
+          </button>
+          <h2 className="text-2xl font-bold mb-4">Field Type Manager</h2>
+          <EnhancedFormBuilder
+            formFields={enhancedFormFields}
+            onChange={handleEnhancedFormFieldsChange}
+            formType="fieldTypes"
           />
         </div>
       </Modal>
