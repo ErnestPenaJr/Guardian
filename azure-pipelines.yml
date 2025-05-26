@@ -49,9 +49,11 @@ steps:
 
 # Copy server.js to deployment root
 - script: |
-    echo "Copying server.js to deployment root"
-    cp server.js deployment/
+    echo "Copying simplified server to deployment root"
+    cp simple-server.js deployment/server.js
+    echo "Verifying server.js in deployment directory:"
     ls -la deployment/
+    cat deployment/server.js | head -10
   displayName: 'Copy server.js to deployment'
 
 # Update package.json for deployment to use CommonJS
