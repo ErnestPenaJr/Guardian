@@ -20,6 +20,7 @@ steps:
 - script: |
     cd server
     npm install
+    npm install typescript -g
   displayName: 'Install backend dependencies'
 
 # Clean old frontend build from backend
@@ -31,6 +32,12 @@ steps:
 - script: |
     cp -r dist server/dist
   displayName: 'Copy frontend build to backend'
+
+# Compile TypeScript to JavaScript
+- script: |
+    cd server
+    tsc --skipLibCheck index.ts --outDir dist --esModuleInterop true --module es2020 --moduleResolution node --target es2020
+  displayName: 'Compile TypeScript to JavaScript'
 # Create web.config for Azure deployment
 - script: |
     echo '<?xml version="1.0" encoding="utf-8"?>
