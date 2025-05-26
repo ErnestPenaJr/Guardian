@@ -61,9 +61,9 @@ const fieldTypeService = {
       }
       
       return dbFieldTypes.map(fieldType => ({
-        type: fieldType.FIELD_TYPE_NAME.toLowerCase().replace(/\s+/g, '_'),
-        label: fieldType.FIELD_TYPE_NAME,
-        icon: getIconForFieldType(fieldType.FIELD_TYPE_NAME),
+        type: fieldType.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, '_'),
+        label: fieldType.FIELD_TYPE_DESC,
+        icon: getIconForFieldType(fieldType.FIELD_TYPE_DESC),
         dbFieldTypeId: fieldType.FIELD_TYPE_ID
       }));
     } catch (error) {

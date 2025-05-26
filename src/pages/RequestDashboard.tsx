@@ -5,6 +5,7 @@ import '../styles/RequestDashboard.css';
 import '../styles/FormCreationFlow.css';
 import { toast } from 'react-toastify';
 import NewRequestModal from './NewRequestModal';
+import SelectFormModal from '../components/SelectFormModal';
 import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
 
@@ -50,7 +51,8 @@ const RequestDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [quickFilter, setQuickFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [toggleCleared, setToggleCleared] = useState(false);
+  const [showSelectFormModal, setShowSelectFormModal] = useState(false);
+  const [formData, setFormData] = useState<any>(null);
 
   // Fetch requests on component mount
   useEffect(() => {
@@ -180,24 +182,65 @@ const RequestDashboard: React.FC = () => {
     }
   ];
 
+  // Load form template and open modal
+  const loadFormAndOpenModal = async (formId: number) => {
+    try {
+      setLoading(true);
+      // Fetch the form template
+      const formTemplate = await formService.getFormById(formId);
+      
+      if (formTemplate && formTemplate.form) {
+        // Convert DB fields to form fields
+        const formFields = formService.convertDbFieldsToFormFields(formTemplate.fields);
+        
+        // Set form data
+        setFormData({
+          name: formTemplate.form.FORM_NAME,
+          description: formTemplate.form.FORM_DESCRIPTION || '',
+          formType: 'request', // Default to request type
+          formFields: formFields
+        });
+        
+        // Open the form modal
+        setShowModal(true);
+      } else {
+        toast.error('Failed to load form template');
+      }
+    } catch (error) {
+      console.error('Error loading form template:', error);
+      toast.error('Failed to load form template');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Handle form save
   const handleSaveForm = async (formData: FormData) => {
     try {
-      // Create the form in the database
-      const formResponse = await formService.createForm({
-        name: formData.name,
-        description: formData.description,
-        isPublic: true,
-        isActive: true,
-        type: formData.formType.toLowerCase()
-      });
-
-      // Add the form fields to the form
-      if (formResponse.data?.FORM_ID) {
-        await formService.addFormFields(formResponse.data.FORM_ID, formData.formFields);
-        toast.success('Form created successfully');
-        fetchRequests(); // Refresh the requests list
-      }
+      // Create the form using the formService
+      const formToSave: any = {
+        FORM_NAME: formData.name,
+        FORM_DESCRIPTION: formData.description,
+        IS_PUBLIC: true,
+        IS_ACTIVE: true,
+        IS_DELETED: false,
+        FORM_TYPE: formData.formType.toLowerCase()
+      };
+      
+      // Convert form fields to DB fields format if needed
+      const fieldsToSave = formData.formFields.map((field: any, index: number) => ({
+        FIELD_NAME: field.fieldName,
+        FIELD_TYPE_ID: field.dbFieldTypeId || 1, // Default to text if not specified
+        IS_REQUIRED: field.required || false,
+        OPTIONS: field.options || null,
+        SEQUENCE: index + 1,
+        IS_ACTIVE: true,
+        IS_DELETED: false
+      }));
+      
+      await formService.createForm(formToSave, fieldsToSave);
+      toast.success('Form created successfully');
+      fetchRequests(); // Refresh the requests list
     } catch (error: any) {
       console.error('Error saving form:', error);
       toast.error(error.response?.data?.error || error.message || 'Failed to save form');
@@ -213,7 +256,7 @@ const RequestDashboard: React.FC = () => {
         <button 
           className="btn btn-primary ms-3" 
           style={{ minWidth: 140 }} 
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowSelectFormModal(true)}
         >
           + Create Request
         </button>
@@ -256,6 +299,18 @@ const RequestDashboard: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleSaveForm}
+        initialFormData={formData}
+      />
+      
+      {/* Select Form Modal */}
+      <SelectFormModal
+        isOpen={showSelectFormModal}
+        onClose={() => setShowSelectFormModal(false)}
+        onSelectForm={(formId) => {
+          setShowSelectFormModal(false);
+          // Load the selected form and open the form submission modal
+          loadFormAndOpenModal(formId);
+        }}
       />
       
       {/* Requests Table */}
@@ -277,7 +332,6 @@ const RequestDashboard: React.FC = () => {
         striped
         defaultSortFieldId={1}
         defaultSortAsc={false}
-        clearSelectedRows={toggleCleared}
       />
     </div>
   );

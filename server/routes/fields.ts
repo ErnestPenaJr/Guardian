@@ -9,10 +9,6 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const fields = await prisma.fIELDS.findMany({
-      where: {
-        IS_DELETED: false,
-        IS_ACTIVE: true
-      },
       include: {
         FIELD_TYPE: true,
         FIELD_LOOKUP_DISPLAY_TYPE: true

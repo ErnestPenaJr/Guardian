@@ -14,6 +14,14 @@
   color: white;
 }
 
+.form-builder-sidebar h4 {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
 .form-builder-main {
   flex: 1;
   padding: 15px;
@@ -63,15 +71,12 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+  margin-bottom: 15px;
 }
 
 .field-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
+  background-color: #1a5b87;
+  border-radius: 5px;
   border-radius: 4px;
   padding: 10px;
   cursor: pointer;
@@ -95,26 +100,18 @@
 }
 
 .icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  border-radius: 4px;
-  background-color: #2980b9;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  background-color: transparent !important;
 }
 
-.icon-wrapper.text {
-  background-color: #2980b9;
-}
-
-.icon-wrapper.hashtag {
-  background-color: #27ae60;
-}
-
-.icon-wrapper.calendar {
-  background-color: #8e44ad;
-}
+/* All icon wrappers have transparent background */
 
 .field-label {
   font-size: 12px;

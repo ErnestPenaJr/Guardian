@@ -8,12 +8,18 @@ interface NewRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (formData: any) => Promise<void>;
+  initialFormData?: {
+    name: string;
+    description: string;
+    formType: string;
+    formFields: FormField[];
+  };
 }
 
-const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave }) => {
-  const [step, setStep] = useState(0);
+const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialFormData }) => {
+  const [step, setStep] = useState(initialFormData ? 2 : 0); // Skip to form builder if initialFormData is provided
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(initialFormData || {
     formType: '',
     name: '',
     description: '',
@@ -22,8 +28,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
 
   // Reset form when modal closes
   const handleClose = () => {
-    setStep(0);
-    setFormData({
+    setStep(initialFormData ? 2 : 0);
+    setFormData(initialFormData || {
       formType: '',
       name: '',
       description: '',
@@ -211,7 +217,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
             <SimpleFormBuilder 
               formFields={formData.formFields} 
               onChange={handleFormFieldsChange} 
-              formType={formData.formType.toLowerCase()}
+              formId={undefined}
             />
           </div>
         </div>

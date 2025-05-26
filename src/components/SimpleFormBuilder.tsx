@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FormField } from '../types/formBuilder';
-import formService from '../services/formService';
 import fieldTypeService, { UiFieldType } from '../services/fieldTypeService';
 import fieldsService, { UiField } from '../services/fieldsService';
 import '../styles/SimpleFormBuilder.css';
@@ -19,9 +18,6 @@ import {
   FaUser,
   FaMoneyBill,
   FaHome,
-  FaArrowUp,
-  FaArrowDown,
-  FaCopy,
   FaIdCard,
   FaAddressCard,
   FaMoneyCheckAlt,
@@ -50,19 +46,19 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   // We use isLoading in the useEffect for API calls, even though it's not directly
   // referenced elsewhere in the component at this time
   
-  // Load field types from the database
+  // Load fields from the database
   useEffect(() => {
-    // Fetch field types and fields from the database
+    // Fetch fields from the database
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch field types
-        const types = await fieldTypeService.getUiFieldTypes();
-        setFieldTypes(types);
-        
         // Fetch fields
         const fieldsData = await fieldsService.getUiFields();
         setDbFields(fieldsData);
+        
+        // Also fetch field types as backup
+        const types = await fieldTypeService.getUiFieldTypes();
+        setFieldTypes(types);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load field data from database');
@@ -70,7 +66,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         setIsLoading(false);
       }
     };
-
+    
     fetchData();
   }, []);
   
@@ -100,41 +96,54 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   ];
   
   // Get icon component for a field type
-  const getIconComponent = (type: string) => {
-    switch (type.toLowerCase()) {
+  const getIconComponent = (fieldName: string, fieldType: string) => {
+    // Determine icon based on field name patterns
+    const fieldNameLower = fieldName.toLowerCase();
+    
+    // Number fields
+    if (fieldNameLower.includes('account #') || 
+        fieldNameLower.includes('phone #') || 
+        fieldNameLower.includes('routing #') || 
+        fieldNameLower.includes('ssn')) {
+      return <div className="icon-wrapper hashtag">#</div>;
+    }
+    
+    // Date fields
+    if (fieldNameLower.includes('dob')) {
+      return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
+    }
+    
+    // Address-related fields
+    if (fieldNameLower.includes('address') || 
+        fieldNameLower.includes('city') || 
+        fieldNameLower.includes('state') || 
+        fieldNameLower.includes('zip')) {
+      return <div className="icon-wrapper address">A</div>;
+    }
+    
+    // Name fields
+    if (fieldNameLower.includes('name')) {
+      return <div className="icon-wrapper name">A</div>;
+    }
+    
+    // Default to showing letter based on type
+    switch (fieldType.toLowerCase()) {
       case 'text':
-        return <div className="icon-wrapper text"><FaFont /></div>;
       case 'paragraph':
-        return <div className="icon-wrapper text"><FaFont /></div>;
+        return <div className="icon-wrapper text">A</div>;
       case 'number':
-      case 'account_number':
-      case 'routing_number':
-        return <div className="icon-wrapper hashtag"><FaHashtag /></div>;
+        return <div className="icon-wrapper hashtag">#</div>;
+      case 'date':
+        return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
       case 'dropdown':
+      case 'select':
         return <div className="icon-wrapper dropdown"><FaListUl /></div>;
       case 'radio':
         return <div className="icon-wrapper radio"><FaDotCircle /></div>;
       case 'checkbox':
         return <div className="icon-wrapper checkbox"><FaCheckSquare /></div>;
-      case 'date':
-      case 'dob':
-        return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
-      case 'ssn':
-        return <div className="icon-wrapper ssn"><FaIdCard /></div>;
-      case 'first_name':
-      case 'middle_name':
-      case 'last_name':
-        return <div className="icon-wrapper name"><FaIdBadge /></div>;
-      case 'address_line_1':
-      case 'address_line_2':
-      case 'city':
-      case 'state':
-      case 'zip_code':
-        return <div className="icon-wrapper address"><FaAddressCard /></div>;
-      case 'bank_name':
-        return <div className="icon-wrapper bank"><FaMoneyCheckAlt /></div>;
       default:
-        return <div className="icon-wrapper text"><FaFont /></div>;
+        return <div className="icon-wrapper text">A</div>;
     }
   };
   
@@ -145,6 +154,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       fieldName: customName || `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
       fieldType: type,
       required: false,
+      options: '',
       canDelete: true
     };
     
@@ -181,6 +191,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       fieldName: fieldType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
       fieldType,
       required: false,
+      options: '',
       canDelete: true
     }));
     
@@ -192,8 +203,9 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   };
   
   // Handle drag start event
-  const handleDragStart = (e: React.DragEvent, type: string) => {
+  const handleDragStart = (e: React.DragEvent, type: string, fieldName?: string) => {
     e.dataTransfer.setData('fieldType', type);
+    e.dataTransfer.setData('fieldName', fieldName || '');
   };
   
   // Handle drag over event
@@ -388,47 +400,38 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     <div className="form-builder-container">
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
-        {/* Templates Section - Moved to the top */}
-        <div className="templates-section">
-          <h6>Templates</h6>
-          <div className="template-list">
-            {templates.map((template) => (
-              <div 
-                key={template.id}
-                className="template-item"
-                onClick={() => applyTemplate(template.id)}
-              >
-                <div className="template-icon">
-                  {template.icon}
-                </div>
-                <div className="template-details">
-                  <div className="template-name">{template.name}</div>
-                  <div className="template-description">{template.description}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <h4 className="mb-3">FIELDS</h4>
+        <div className="field-grid">
+          {dbFields.map((field) => (
+            <div
+              key={field.id}
+              className="field-item"
+              draggable
+              onDragStart={(e) => handleDragStart(e, field.type, field.name)}
+            >
+              {getIconComponent(field.name, field.type)}
+              <div className="field-label">{field.name}</div>
+            </div>
+          ))}
         </div>
         
-        {/* Fields Section - Moved below templates */}
-        <div className="fields-section">
-          <h6>Fields</h6>
-          <div className="field-grid">
-            {fieldTypes.map((fieldType) => (
-              <div 
-                key={fieldType.type}
-                className="field-item" 
-                draggable
-                onDragStart={(e) => handleDragStart(e, fieldType.type)}
-                onClick={() => addField(fieldType.type)}
-              >
-                <div className="field-icon">
-                  {fieldType.icon}
-                </div>
-                <div className="field-label">{fieldType.label}</div>
+        <h4 className="mb-3 mt-4">TEMPLATES</h4>
+        <div className="template-list">
+          {templates.map((template) => (
+            <div 
+              key={template.id}
+              className="template-item"
+              onClick={() => applyTemplate(template.id)}
+            >
+              <div className="template-icon">
+                {template.icon}
               </div>
-            ))}
-          </div>
+              <div className="template-details">
+                <div className="template-name">{template.name}</div>
+                <div className="template-description">{template.description}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       

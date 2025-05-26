@@ -1,32 +1,59 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { FaUsers, FaClipboardList, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icons/fa';
+import { Navigate } from 'react-router-dom';
+import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icons/fa';
 import Modal from 'react-modal';
-import SimpleFormBuilder from '../components/SimpleFormBuilder';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
+import NewRequestModal from '../pages/NewRequestModal';
+import formService from '../services/formService';
+import { toast } from 'react-toastify';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
 
 const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onShowUserManagement }) => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
   
-  // State for the form builder modals
-  const [formBuilderModalOpen, setFormBuilderModalOpen] = useState(false);
+  // State for modals
   const [enhancedFormBuilderModalOpen, setEnhancedFormBuilderModalOpen] = useState(false);
-  const [formFields, setFormFields] = useState<any[]>([]);
   const [enhancedFormFields, setEnhancedFormFields] = useState<any[]>([]);
+  const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   
-  // Handle form field changes
-  const handleFormFieldsChange = (updatedFields: any) => {
-    setFormFields(updatedFields);
-  };
-
   // Handle enhanced form field changes
   const handleEnhancedFormFieldsChange = (updatedFields: any) => {
     setEnhancedFormFields(updatedFields);
+  };
+  
+  // Handle form save
+  const handleSaveForm = async (formData: any) => {
+    try {
+      // Create the form using the formService
+      const formToSave: any = {
+        FORM_NAME: formData.name,
+        FORM_DESCRIPTION: formData.description,
+        IS_PUBLIC: true,
+        IS_ACTIVE: true,
+        IS_DELETED: false,
+        FORM_TYPE: formData.formType.toLowerCase()
+      };
+      
+      // Convert form fields to DB fields format if needed
+      const fieldsToSave = formData.formFields.map((field: any, index: number) => ({
+        FIELD_NAME: field.fieldName,
+        FIELD_TYPE_ID: field.dbFieldTypeId || 1, // Default to text if not specified
+        IS_REQUIRED: field.required || false,
+        OPTIONS: field.options || null,
+        SEQUENCE: index + 1,
+        IS_ACTIVE: true,
+        IS_DELETED: false
+      }));
+      
+      await formService.createForm(formToSave, fieldsToSave);
+      toast.success('Form created successfully');
+    } catch (error: any) {
+      console.error('Error saving form:', error);
+      toast.error(error.response?.data?.error || error.message || 'Failed to save form');
+    }
   };
 
   if (loading) {
@@ -62,7 +89,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                setFormBuilderModalOpen(true);
+                setNewRequestModalOpen(true);
               }}
             >
               Workflow templates
@@ -139,56 +166,6 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         </a>
       </div>
 
-      {/* Simple Form Builder Modal */}
-      <Modal
-        isOpen={formBuilderModalOpen}
-        onRequestClose={() => setFormBuilderModalOpen(false)}
-        contentLabel="Form Builder"
-        className="modal-content xl-modal"
-        overlayClassName="modal-overlay"
-        style={{
-          content: {
-            width: '90%',
-            maxWidth: '1400px',
-            height: '90%',
-            margin: 'auto',
-            padding: '20px',
-            borderRadius: '8px',
-            backgroundColor: '#fff',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            border: 'none',
-            overflow: 'auto',
-            position: 'relative' as 'relative'
-          },
-          overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            position: 'fixed' as 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0
-          }
-        }}
-      >
-        <div className="relative">
-          <button
-            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 bg-transparent border-none p-2 rounded-full hover:bg-gray-100 transition"
-            onClick={() => setFormBuilderModalOpen(false)}
-          >
-            <FaTimes size={20} />
-          </button>
-          <h2 className="text-2xl font-bold mb-4">Workflow Template Builder</h2>
-          <SimpleFormBuilder
-            formFields={formFields}
-            onChange={handleFormFieldsChange}
-          />
-        </div>
-      </Modal>
-
       {/* Enhanced Form Builder Modal */}
       <Modal
         isOpen={enhancedFormBuilderModalOpen}
@@ -239,6 +216,12 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           />
         </div>
       </Modal>
+      {/* New Request Modal */}
+      <NewRequestModal
+        isOpen={newRequestModalOpen}
+        onClose={() => setNewRequestModalOpen(false)}
+        onSave={handleSaveForm}
+      />
     </div>
   );
 };
