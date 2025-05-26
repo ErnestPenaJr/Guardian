@@ -17,6 +17,8 @@ interface NewRequestModalProps {
 }
 
 const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialFormData }) => {
+  // If initialFormData is from a template, we want to show the form to fill out, not the form builder
+  const isTemplateForm = !!initialFormData;
   const [step, setStep] = useState(initialFormData ? 2 : 0); // Skip to form builder if initialFormData is provided
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(() => {
@@ -122,27 +124,35 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     >
       <div className="modal-header d-flex justify-content-between align-items-center mb-4">
         <h3 className="modal-title m-0">
-          {step === 0 && 'Configure your first form!'}
-          {step === 1 && `Set up your: ${formData.formType} Form`}
-          {step === 2 && 'Design your form'}
+          {isTemplateForm ? `Fill out ${formData.name}` : (
+            <>
+              {step === 0 && 'Configure your first form!'}
+              {step === 1 && `Set up your: ${formData.formType} Form`}
+              {step === 2 && 'Design your form'}
+            </>
+          )}
         </h3>
         <button type="button" className="btn-close" onClick={handleClose}></button>
       </div>
       
-      {/* Step indicator */}
-      <div className="step-indicator mb-4">
-        <div className={`step-circle ${step >= 0 ? 'active' : ''}`}>1</div>
-        <div className="step-line"></div>
-        <div className={`step-circle ${step >= 1 ? 'active' : ''}`}>2</div>
-        <div className="step-line"></div>
-        <div className={`step-circle ${step >= 2 ? 'active' : ''}`}>3</div>
-      </div>
-      
-      <div className="step-labels mb-4">
-        <div className="step-label">Select form type</div>
-        <div className="step-label">Create a title</div>
-        <div className="step-label">Design your form</div>
-      </div>
+      {/* Only show step indicator if not a template form */}
+      {!isTemplateForm && (
+        <>
+          <div className="step-indicator mb-4">
+            <div className={`step-circle ${step >= 0 ? 'active' : ''}`}>1</div>
+            <div className="step-line"></div>
+            <div className={`step-circle ${step >= 1 ? 'active' : ''}`}>2</div>
+            <div className="step-line"></div>
+            <div className={`step-circle ${step >= 2 ? 'active' : ''}`}>3</div>
+          </div>
+          
+          <div className="step-labels mb-4">
+            <div className="step-label">Select form type</div>
+            <div className="step-label">Create a title</div>
+            <div className="step-label">Design your form</div>
+          </div>
+        </>
+      )}
       
       {/* Step 1: Form Type Selection */}
       {step === 0 && (
@@ -224,22 +234,169 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
             />
           </div>
         </div>
-      )}
-      
-      {/* Step 3: Form Builder */}
-      {step === 2 && (
+    )}
+    
+      {/* Step 1: Form Type Selection */}
+      {step === 0 && (
         <div>
-          <div className="form-builder-container">
+          <h2 className="mb-4">Choose One</h2>
+          <div className="form-type-selection">
+          <div className="form-check form-check-inline form-type-option">
+            <input
+              type="radio"
+              className="form-check-input"
+              id="formTypeRequests"
+              name="formType"
+              value="Request"
+              checked={formData.formType === 'Request'}
+              onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
+            />
+            <label className="form-check-label" htmlFor="formTypeRequests">
+              Requests
+            </label>
+          </div>
+          <div className="form-check form-check-inline form-type-option">
+            <input
+              type="radio"
+              className="form-check-input"
+              id="formTypeSelfService"
+              name="formType"
+              value="Self-Service"
+              checked={formData.formType === 'Self-Service'}
+              onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
+              disabled
+            />
+            <label className="form-check-label" htmlFor="formTypeSelfService">
+              Self-Service
+            </label>
+          </div>
+          <div className="form-check form-check-inline form-type-option">
+            <input
+              type="radio"
+              className="form-check-input"
+              id="formTypeNotice"
+              name="formType"
+              value="Notice"
+              checked={formData.formType === 'Notice'}
+              onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
+              disabled
+            />
+            <label className="form-check-label" htmlFor="formTypeNotice">
+              Notice
+            </label>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Step 2: Form Title and Description */}
+    {step === 1 && (
+      <div>
+        <div className="form-group mb-3">
+          <label htmlFor="formName">Title</label>
+          <input
+            type="text"
+            className="form-control"
+            id="formName"
+            value={formData.name}
+            onChange={(e) => setFormData(f => ({ ...f, name: e.target.value }))}
+            placeholder="Enter form title"
+            required
+          />
+        </div>
+        <div className="form-group mb-3">
+          <label htmlFor="formDescription">Description</label>
+          <textarea
+            className="form-control"
+            id="formDescription"
+            value={formData.description}
+            onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
+            placeholder="Enter form description"
+            rows={3}
+          />
+        </div>
+      </div>
+    )}
+    
+    {/* Step 3: Form Builder or Form Fill */}
+    {step === 2 && (
+      <div>
+        {isTemplateForm ? (
+          <div className="form-fill-container">
+            <h4 className="form-preview-title mb-4">Form Preview</h4>
+            <form className="form-fill">
+              {formData.formFields.map((field, index) => (
+                <div key={field.id || index} className="mb-4 form-field-container">
+                  <label className="form-label">
+                    {field.fieldName} {field.required && <span className="text-danger">*</span>}
+                  </label>
+                  {field.fieldType === 'text' && (
+                    <input type="text" className="form-control" placeholder={`Enter ${field.fieldName}`} />
+                  )}
+                  {field.fieldType === 'textarea' && (
+                    <textarea className="form-control" placeholder={`Enter ${field.fieldName}`}></textarea>
+                  )}
+                  {field.fieldType === 'number' && (
+                    <input type="number" className="form-control" placeholder={`Enter ${field.fieldName}`} />
+                  )}
+                  {field.fieldType === 'date' && (
+                    <input type="date" className="form-control" />
+                  )}
+                  {field.fieldType === 'select' && field.options && (
+                    <select className="form-select">
+                      <option value="">Select {field.fieldName}</option>
+                      {field.options.split(',').map((option, i) => (
+                        <option key={i} value={option.trim()}>{option.trim()}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              ))}
+              <div className="d-flex justify-content-between mt-4">
+                <button type="button" className="btn btn-outline-primary" onClick={handleClose}>
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <>
             <SimpleFormBuilder 
               formFields={formData.formFields} 
               onChange={handleFormFieldsChange} 
               formId={undefined}
             />
-          </div>
-        </div>
-      )}
-      
-      {/* Navigation Buttons */}
+            <div className="d-flex justify-content-between mt-4">
+              <button 
+                className="btn btn-outline-primary" 
+                onClick={prevStep}
+                disabled={saving}
+              >
+                Back
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    )}
+    
+    {/* Navigation Buttons - Only show if not in template form mode and not on step 2 */}
+    {(!isTemplateForm && step !== 2) && (
       <div className="modal-footer d-flex justify-content-between mt-3">
         <button 
           className="btn btn-secondary" 
@@ -250,16 +407,15 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         </button>
         <button 
           className="btn btn-primary" 
-          onClick={step === 2 ? handleSave : nextStep}
+          onClick={nextStep}
           disabled={saving}
         >
-          {step === 0 && 'Next'}
-          {step === 1 && 'Next'}
-          {step === 2 && (saving ? 'Saving...' : 'Save Form')}
+          Next
         </button>
       </div>
-    </Modal>
-  );
+    )}
+  </Modal>
+);
 };
 
 export default NewRequestModal;
