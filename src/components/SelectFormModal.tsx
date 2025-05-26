@@ -50,6 +50,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
   
   // Handle selection of a standard template
   const handleSelectTemplate = (templateId: string) => {
+    console.log(`SelectFormModal: Processing template selection for ID: ${templateId}`);
     // Create a form based on the selected template
     switch(templateId) {
       case 'subject':
@@ -60,7 +61,8 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           FORM_DESCRIPTION: 'First Name, Middle Name, Last Name, DOB, SSN',
           IS_PUBLIC: true,
           IS_ACTIVE: true,
-          IS_DELETED: false
+          IS_DELETED: false,
+          TEMPLATE_TYPE: 'subject' // Add explicit template type
         };
         
         // Fields for SUBJECT template
@@ -74,7 +76,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         
         // Close this modal and open the form for the user to fill out
         onClose();
-        onSelectForm(0, { form: subjectForm, fields: subjectFields });
+        onSelectForm(0, { form: subjectForm, fields: subjectFields, templateType: 'subject' });
         break;
         
       case 'financial':
@@ -85,7 +87,8 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           FORM_DESCRIPTION: 'Bank Name, Account #, Routing #',
           IS_PUBLIC: true,
           IS_ACTIVE: true,
-          IS_DELETED: false
+          IS_DELETED: false,
+          TEMPLATE_TYPE: 'financial' // Add explicit template type
         };
         
         // Fields for FINANCIAL template
@@ -97,7 +100,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         
         // Close this modal and open the form for the user to fill out
         onClose();
-        onSelectForm(0, { form: financialForm, fields: financialFields });
+        onSelectForm(0, { form: financialForm, fields: financialFields, templateType: 'financial' });
         break;
         
       case 'address':
@@ -108,7 +111,8 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           FORM_DESCRIPTION: 'Address Line 1, Address Line 2, City, State, ZIP Code',
           IS_PUBLIC: true,
           IS_ACTIVE: true,
-          IS_DELETED: false
+          IS_DELETED: false,
+          TEMPLATE_TYPE: 'address' // Add explicit template type
         };
         
         // Fields for ADDRESS template
@@ -122,7 +126,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         
         // Close this modal and open the form for the user to fill out
         onClose();
-        onSelectForm(0, { form: addressForm, fields: addressFields });
+        onSelectForm(0, { form: addressForm, fields: addressFields, templateType: 'address' });
         break;
         
       default:
@@ -146,11 +150,27 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         content: {
           width: '800px',
           maxWidth: '90%',
-          margin: 'auto',
+          margin: '0',
           borderRadius: '8px',
           padding: '20px',
           maxHeight: '90vh',
-          overflow: 'auto'
+          overflow: 'auto',
+          inset: '50% auto auto 50%',
+          transform: 'translate(-50%, -50%)',
+          border: '1px solid #ccc',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+        },
+        overlay: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
         }
       }}
       ariaHideApp={false}
@@ -182,8 +202,21 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
             <h4 className="text-center mb-4">Standard Templates</h4>
             <StandardTemplates 
               onSelectTemplate={(templateId) => {
+                // Clear any previously rendered forms
+                if (forms.length > 0) {
+                  console.log('Clearing previously rendered forms');
+                  // We're not modifying the forms array directly, just ensuring a clean state for the new selection
+                }
+                
                 // Create a new form based on the selected template
-                handleSelectTemplate(templateId);
+                console.log(`SelectFormModal received template ID: ${templateId}`);
+                // Ensure we're passing the correct template ID
+                if (templateId === 'subject' || templateId === 'financial' || templateId === 'address') {
+                  handleSelectTemplate(templateId);
+                } else {
+                  console.error(`Invalid template ID received: ${templateId}`);
+                  toast.error('Error selecting template. Please try again.');
+                }
               }}
             />
           </div>

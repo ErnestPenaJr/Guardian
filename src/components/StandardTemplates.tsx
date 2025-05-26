@@ -7,52 +7,81 @@ interface StandardTemplateProps {
 }
 
 const StandardTemplates: React.FC<StandardTemplateProps> = ({ onSelectTemplate }) => {
-  const templates = [
-    {
-      id: 'subject',
-      name: 'SUBJECT',
-      description: 'First Name, Middle Name, Last Name, DOB, SSN',
-      icon: <FaUser size={24} />,
-      color: '#1a5b87'
-    },
-    {
-      id: 'financial',
-      name: 'FINANCIAL',
-      description: 'Bank Name, Account #, Routing #',
-      icon: <FaMoneyBill size={24} />,
-      color: '#1a5b87'
-    },
-    {
-      id: 'address',
-      name: 'ADDRESS',
-      description: 'Address Line 1, Address Line 2, City, State, ZIP Code',
-      icon: <FaHome size={24} />,
-      color: '#1a5b87'
-    }
-  ];
+  // Template definitions moved directly into the JSX for clarity
+
+  // Handle template selection with explicit ID
+  const handleTemplateClick = (templateId: string) => {
+    console.log(`Explicitly selecting template: ${templateId}`);
+    // Force a small delay to ensure event propagation is complete
+    setTimeout(() => {
+      onSelectTemplate(templateId);
+    }, 10);
+  };
 
   return (
     <div className="standard-templates-container">
-      {templates.map(template => (
-        <div 
-          key={template.id}
-          className="template-card"
-          onClick={() => onSelectTemplate(template.id)}
-          title="Click to create and fill out this form"
-        >
-          <div className="template-header">
-            <h3 className="template-title">{template.name}</h3>
+      {/* Subject Template Card - Direct handler */}
+      <div 
+        className="template-card"
+        onClick={() => handleTemplateClick('subject')}
+        title="Click to create and fill out this form"
+        data-template-id="subject"
+        id="subject-template-card"
+      >
+        <div className="template-header">
+          <h3 className="template-title">SUBJECT</h3>
+        </div>
+        <div className="template-body">
+          <div className="template-icon">
+            <FaUser size={24} />
           </div>
-          <div className="template-body">
-            <div className="template-icon">
-              {template.icon}
-            </div>
-            <div className="template-description">
-              {template.description}
-            </div>
+          <div className="template-description">
+            First Name, Middle Name, Last Name, DOB, SSN
           </div>
         </div>
-      ))}
+      </div>
+
+      {/* Financial Template Card - Direct handler */}
+      <div 
+        className="template-card"
+        onClick={() => handleTemplateClick('financial')}
+        title="Click to create and fill out this form"
+        data-template-id="financial"
+        id="financial-template-card"
+      >
+        <div className="template-header">
+          <h3 className="template-title">FINANCIAL</h3>
+        </div>
+        <div className="template-body">
+          <div className="template-icon">
+            <FaMoneyBill size={24} />
+          </div>
+          <div className="template-description">
+            Bank Name, Account #, Routing #
+          </div>
+        </div>
+      </div>
+
+      {/* Address Template Card - Direct handler */}
+      <div 
+        className="template-card"
+        onClick={() => handleTemplateClick('address')}
+        title="Click to create and fill out this form"
+        data-template-id="address"
+        id="address-template-card"
+      >
+        <div className="template-header">
+          <h3 className="template-title">ADDRESS</h3>
+        </div>
+        <div className="template-body">
+          <div className="template-icon">
+            <FaHome size={24} />
+          </div>
+          <div className="template-description">
+            Address Line 1, Address Line 2, City, State, ZIP Code
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
