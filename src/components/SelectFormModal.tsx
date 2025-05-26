@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import formService from '../services/formService';
 import { FaSpinner } from 'react-icons/fa';
 import StandardTemplates from './StandardTemplates';
+import { useAuth } from '../hooks/useAuth';
 
 // Use the DbForm type from formService
 import { DbForm } from '../services/formService';
@@ -19,6 +20,23 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
   const [loading, setLoading] = useState(false);
   // Removed selectedFormId state since we're not using custom templates anymore
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuth();
+  
+  // Helper function to check if user has manager, admin, or jfar role
+  const hasRequiredRole = () => {
+    if (!user) return false;
+    
+    // Check roles array (objects with id property)
+    // Admin (1), JFAR (6), Manager (3)
+    const hasRoleInArray = user.roles?.some((role: any) => 
+      role.id === 1 || role.id === 6 || role.id === 3
+    );
+    
+    // Check role string property
+    const hasRoleAsString = user.role === '1' || user.role === '6' || user.role === '3';
+    
+    return hasRoleInArray || hasRoleAsString;
+  };
 
   // Fetch forms when modal opens
   useEffect(() => {
@@ -211,16 +229,18 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
             />
           </div>
           
-          {/* Admin Dashboard Link */}
-          <div className="text-center mt-4">
-            <p className="text-muted">Need more options? Create custom templates in the Admin Dashboard</p>
-            <button 
-              className="btn btn-outline-primary mt-2"
-              onClick={() => window.location.href = '/admin'}
-            >
-              Go to Admin Dashboard
-            </button>
-          </div>
+          {/* Admin Dashboard Link - only visible to manager, admin, and jfar roles */}
+          {hasRequiredRole() && (
+            <div className="text-center mt-4">
+              <p className="text-muted">Need more options? Create custom templates in the Admin Dashboard</p>
+              <button 
+                className="btn btn-outline-primary mt-2"
+                onClick={() => window.location.href = '/admin'}
+              >
+                Go to Admin Dashboard
+              </button>
+            </div>
+          )}
         </>
       )}
       
