@@ -1,0 +1,969 @@
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+// AG Grid imports - using latest version 33.3.0
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef, GridReadyEvent, GridApi} from 'ag-grid-community';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+// Import styles
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import '../styles/ag-grid-custom.css';
+
+ModuleRegistry.registerModules([ AllCommunityModule ]);
+
+const AdminFields: React.FC = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  // State for fields and loading indicator
+  const [fields, setFields] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dynamicFieldTypes, setDynamicFieldTypes] = useState<any[]>([]);
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentField, setCurrentField] = useState<any>(null);
+  
+  // State for field lookups
+  const [fieldLookups, setFieldLookups] = useState<any[]>([]);
+  const [isLoadingLookups, setIsLoadingLookups] = useState(false);
+  const [showLookupGrid, setShowLookupGrid] = useState(false);
+  const [formData, setFormData] = useState({
+    FIELD_NAME: '',
+    FIELD_TYPE_ID: '',
+    REQUIRED: false,
+    IS_ACTIVE: true,
+    HAS_LOOKUP: false,
+    DISPLAY_FORMAT: '',
+    IS_PUBLIC: false,
+    IS_SENSITIVE: false,
+    CAN_SELECT_MULIPLE: false,
+    FIELD_LOOKUP_DISPLAY_TYPE_ID: null,
+    ORGANIZATION_ID: null
+  });
+  
+  // Reference to the AG Grid API
+  const gridRef = useRef<AgGridReact>(null);
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
+  
+  // Custom cell renderer for Required column
+  const RequiredCellRenderer = (props: any) => {
+    return props.value ? (
+      <div className="flex justify-center">
+        <FaCheck className="text-green-500" />
+      </div>
+    ) : (
+      <div className="flex justify-center">
+        <FaTimes className="text-red-500" />
+      </div>
+    );
+  };
+  
+  // Custom cell renderer for Actions column
+  const ActionsCellRenderer = (props: any) => {
+    return (
+      <div className="flex justify-center space-x-3">
+        <button 
+          className="text-blue-600 hover:text-blue-800"
+          onClick={() => handleEdit(props.data)}
+        >
+          <FaEdit />
+        </button>
+        <button 
+          className="text-red-600 hover:text-red-800"
+          onClick={() => handleDelete(props.data)}
+        >
+          <FaTrash />
+        </button>
+      </div>
+    );
+  };
+  
+  // AG Grid Column Definitions with custom cell renderers
+  const columnDefs = useMemo<ColDef[]>(() => [
+    { 
+      field: 'FIELD_ID', 
+      headerName: 'ID', 
+      sortable: true, 
+      filter: true,
+      width: 100,
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      }
+    },
+    { 
+      field: 'FIELD_NAME', 
+      headerName: 'Field Name', 
+      sortable: true, 
+      filter: true, 
+      flex: 1,
+      headerClass: 'ag-header-cell-left',
+      cellClass: 'ag-cell-left',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      },
+      cellStyle: { fontWeight: 500 }
+    },
+    { 
+      field: 'FIELD_TYPE_ID', 
+      headerName: 'Type', 
+      sortable: true, 
+      filter: true,
+      width: 150,
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      },
+      valueGetter: (params: any) => {
+        // Handle both object and primitive field type values
+        if (params.data.FIELD_TYPE && typeof params.data.FIELD_TYPE === 'object') {
+          return params.data.FIELD_TYPE.FIELD_TYPE_ID;
+        }
+        return params.data.FIELD_TYPE_ID;
+      },
+      cellRenderer: (params: any) => {
+        // Define color classes for different field types
+        const typeClasses: {[key: string]: string} = {
+          'Text': 'bg-blue-100 text-blue-800',
+          'Email': 'bg-purple-100 text-purple-800',
+          'Phone': 'bg-green-100 text-green-800',
+          'Date': 'bg-yellow-100 text-yellow-800',
+          'TextArea': 'bg-pink-100 text-pink-800'
+        };
+        
+        let fieldTypeId = params.value;
+        let displayName = params.value;
+        
+        // Check if we have the field type object directly in the data
+        if (params.data.FIELD_TYPE && typeof params.data.FIELD_TYPE === 'object') {
+          displayName = params.data.FIELD_TYPE.FIELD_TYPE_DESC;
+          fieldTypeId = params.data.FIELD_TYPE.FIELD_TYPE_ID;
+        } else {
+          // Try to find the field type in the dynamic types by ID
+          const fieldType = dynamicFieldTypes.find(type => 
+            type.FIELD_TYPE_ID.toString() === fieldTypeId.toString()
+          );
+          
+          if (fieldType) {
+            displayName = fieldType.FIELD_TYPE_DESC;
+          }
+        }
+        
+        // Get class based on the display name or default to gray
+        const className = typeClasses[displayName] || 'bg-gray-100 text-gray-800';
+        
+        return (
+          <div className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>
+            {displayName}
+          </div>
+        );
+      }
+    },
+    { 
+      field: 'REQUIRED', 
+      headerName: 'Required', 
+      sortable: true, 
+      filter: true,
+      width: 120,
+      cellRenderer: RequiredCellRenderer,
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      }
+    },
+    { 
+      field: 'IS_ACTIVE', 
+      headerName: 'Active', 
+      sortable: true, 
+      filter: true,
+      width: 120,
+      cellRenderer: (params: any) => {
+        return (
+          <div className="flex justify-center items-center h-full">
+            {params.value ? 
+              <FaCheck className="text-green-500" /> : 
+              <FaTimes className="text-red-500" />
+            }
+          </div>
+        );
+      },
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      }
+    },
+    { 
+      field: 'HAS_LOOKUP', 
+      headerName: 'Has Lookup', 
+      sortable: true, 
+      filter: true,
+      width: 120,
+      cellRenderer: (params: any) => {
+        return (
+          <div className="flex justify-center items-center h-full">
+            {params.value ? 
+              <FaCheck className="text-green-500" /> : 
+              <FaTimes className="text-red-500" />
+            }
+          </div>
+        );
+      },
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      }
+    },
+    { 
+      headerName: 'Actions',
+      cellRenderer: ActionsCellRenderer,
+      sortable: false, 
+      filter: false,
+      width: 120,
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered'
+    }
+  ], []);
+  
+  // Default column definitions
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true
+  }), []);
+  
+  // Open modal for adding a new field
+  const openAddModal = useCallback(() => {
+    setCurrentField(null);
+    // Set default field type to the first available type from API or empty if none available
+    const defaultFieldType = dynamicFieldTypes.length > 0 ? dynamicFieldTypes[0].FIELD_TYPE_ID : '';
+    setFormData({
+      FIELD_NAME: '',
+      FIELD_TYPE_ID: defaultFieldType,
+      REQUIRED: false,
+      IS_ACTIVE: true,
+      HAS_LOOKUP: false,
+      DISPLAY_FORMAT: '',
+      IS_PUBLIC: false,
+      IS_SENSITIVE: false,
+      CAN_SELECT_MULIPLE: false,
+      FIELD_LOOKUP_DISPLAY_TYPE_ID: null,
+      ORGANIZATION_ID: null
+    });
+    // Reset lookup-related state
+    setShowLookupGrid(false);
+    setFieldLookups([]);
+    setIsModalOpen(true);
+  }, [dynamicFieldTypes]);
+
+  // Handle edit action
+  const handleEdit = useCallback((field: any) => {
+    console.log('Editing field:', field);
+    setCurrentField(field);
+    
+    // Ensure FIELD_TYPE_ID is properly handled
+    // It could be a number or an object with FIELD_TYPE_ID property
+    const fieldTypeId = typeof field.FIELD_TYPE_ID === 'object' && field.FIELD_TYPE_ID !== null
+      ? field.FIELD_TYPE_ID.FIELD_TYPE_ID
+      : field.FIELD_TYPE_ID;
+      
+    const hasLookup = field.HAS_LOOKUP || false;
+    
+    setFormData({
+      FIELD_NAME: field.FIELD_NAME,
+      FIELD_TYPE_ID: fieldTypeId,
+      REQUIRED: field.REQUIRED || field.IS_REQUIRED || false,
+      IS_ACTIVE: field.IS_ACTIVE !== undefined ? field.IS_ACTIVE : true,
+      HAS_LOOKUP: hasLookup,
+      DISPLAY_FORMAT: field.DISPLAY_FORMAT || '',
+      IS_PUBLIC: field.IS_PUBLIC || false,
+      IS_SENSITIVE: field.IS_SENSITIVE || false,
+      CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE || false,
+      FIELD_LOOKUP_DISPLAY_TYPE_ID: field.FIELD_LOOKUP_DISPLAY_TYPE_ID || null,
+      ORGANIZATION_ID: field.ORGANIZATION_ID || null
+    });
+    
+    console.log('Form data set to:', {
+      FIELD_NAME: field.FIELD_NAME,
+      FIELD_TYPE_ID: fieldTypeId,
+      REQUIRED: field.REQUIRED || field.IS_REQUIRED || false,
+      IS_ACTIVE: field.IS_ACTIVE !== undefined ? field.IS_ACTIVE : true,
+      HAS_LOOKUP: hasLookup,
+      DISPLAY_FORMAT: field.DISPLAY_FORMAT || '',
+      IS_PUBLIC: field.IS_PUBLIC || false,
+      IS_SENSITIVE: field.IS_SENSITIVE || false,
+      CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE || false,
+      FIELD_LOOKUP_DISPLAY_TYPE_ID: field.FIELD_LOOKUP_DISPLAY_TYPE_ID || null,
+      ORGANIZATION_ID: field.ORGANIZATION_ID || null
+    });
+    
+    // If field has lookups, fetch them
+    if (hasLookup && field.FIELD_ID) {
+      setShowLookupGrid(true);
+      fetchFieldLookups(field.FIELD_ID);
+    } else {
+      setShowLookupGrid(false);
+      setFieldLookups([]);
+    }
+    
+    setIsModalOpen(true);
+  }, []);
+  
+  // Handle delete action
+  const handleDelete = useCallback(async (field: any) => {
+    if (window.confirm(`Are you sure you want to delete the field: ${field.FIELD_NAME}?`)) {
+      try {
+        setIsLoading(true);
+        
+        // Get the auth token from localStorage
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          console.error('No authentication token found');
+          toast.error('Authentication required. Please log in again.');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Make API call to delete the field
+        await axios.delete(`/api/fields/${field.FIELD_ID}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        // Update local state
+        setFields(prevFields => prevFields.filter(f => f.FIELD_ID !== field.FIELD_ID));
+        toast.success(`Field ${field.FIELD_NAME} deleted successfully`);
+        
+        // Refresh the fields to ensure we have the latest data
+        fetchFields();
+      } catch (error: any) {
+        console.error('Error deleting field:', error);
+        
+        if (error.response && error.response.status === 401) {
+          toast.error('Your session has expired. Please log in again.');
+        } else {
+          toast.error('Failed to delete field. Please try again.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+  
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    const isChecked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : false;
+    
+    // Create updated form data
+    const updatedFormData = {
+      ...formData,
+      [name]: type === 'checkbox' ? isChecked : value
+    };
+    
+    // Special handling for HAS_LOOKUP
+    if (name === 'HAS_LOOKUP') {
+      // If HAS_LOOKUP is unchecked, also uncheck CAN_SELECT_MULIPLE
+      if (!isChecked) {
+        updatedFormData.CAN_SELECT_MULIPLE = false;
+        setShowLookupGrid(false);
+      } else {
+        // If HAS_LOOKUP is checked and we have a current field, fetch lookups
+        setShowLookupGrid(true);
+        if (currentField?.FIELD_ID) {
+          fetchFieldLookups(currentField.FIELD_ID);
+        }
+      }
+    }
+    
+    setFormData(updatedFormData);
+  };
+  
+  // Fetch lookups for a specific field
+  const fetchFieldLookups = async (fieldId: number) => {
+    if (!fieldId) return;
+    
+    setIsLoadingLookups(true);
+    try {
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        toast.error('Authentication required. Please log in again.');
+        return;
+      }
+      
+      const response = await axios.get(`/api/fields/${fieldId}/lookups`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Field Lookups:', response.data);
+      setFieldLookups(response.data || []);
+    } catch (error) {
+      console.error(`Error fetching lookups for field ${fieldId}:`, error);
+      toast.error('Failed to load field lookups');
+      setFieldLookups([]);
+    } finally {
+      setIsLoadingLookups(false);
+    }
+  };
+  
+  // Save lookups for a field
+  const saveFieldLookups = async (fieldId: number, lookups: any[]) => {
+    if (!fieldId) return;
+    
+    setIsLoadingLookups(true);
+    try {
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        toast.error('Authentication required. Please log in again.');
+        return;
+      }
+      
+      const response = await axios.post(`/api/fields/${fieldId}/lookups`, 
+        { lookups }, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      console.log('Saved Lookups:', response.data);
+      setFieldLookups(response.data || []);
+      toast.success('Field lookups saved successfully');
+    } catch (error) {
+      console.error(`Error saving lookups for field ${fieldId}:`, error);
+      toast.error('Failed to save field lookups');
+    } finally {
+      setIsLoadingLookups(false);
+    }
+  };
+  
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.FIELD_NAME.trim()) {
+      toast.error('Field name is required');
+      return;
+    }
+    
+    if (!formData.FIELD_TYPE_ID) {
+      toast.error('Field type is required');
+      return;
+    }
+    
+    // Show loading indicator
+    setIsLoading(true);
+    
+    try {
+      // Ensure FIELD_TYPE_ID is a number
+      const processedFormData = {
+        ...formData,
+        FIELD_TYPE_ID: parseInt(formData.FIELD_TYPE_ID.toString())
+      };
+      
+      console.log('Processed form data:', processedFormData);
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        toast.error('Authentication required. Please log in again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+      
+      if (currentField) {
+        // Update existing field
+        const updatedField = {
+          ...currentField,
+          ...processedFormData
+        };
+        
+        // Make API call to update field
+        await axios.put(`/api/fields/${currentField.FIELD_ID}`, updatedField, { headers });
+        
+        // Update local state
+        setFields(prevFields => 
+          prevFields.map(field => 
+            field.FIELD_ID === currentField.FIELD_ID 
+              ? updatedField
+              : field
+          )
+        );
+        toast.success(`Field ${formData.FIELD_NAME} updated successfully`);
+      } else {
+        // Add new field
+        const newField = {
+          FIELD_ID: Math.max(0, ...fields.map(f => f.FIELD_ID)) + 1,
+          ...processedFormData
+        };
+        
+        // Make API call to create field
+        const response = await axios.post('/api/fields', newField, { headers });
+        const createdField = response.data;
+        
+        // Update local state with the returned field (which should have an ID)
+        setFields(prevFields => [...prevFields, createdField]);
+        toast.success(`Field ${formData.FIELD_NAME} added successfully`);
+      }
+      
+      // Close modal and reset form
+      setIsModalOpen(false);
+      
+      // Refresh the fields from the server to ensure we have the latest data
+      fetchFields();
+    } catch (error: any) {
+      console.error('Error saving field:', error);
+      
+      if (error.response && error.response.status === 401) {
+        toast.error('Your session has expired. Please log in again.');
+      } else {
+        toast.error('Failed to save field. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Close modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+  
+  // Handle grid ready event
+  const onGridReady = useCallback((params: GridReadyEvent) => {
+    setGridApi(params.api);
+    params.api.sizeColumnsToFit();
+  }, []);
+
+
+  useEffect(() => {
+    // Fetch fields and field types when component mounts
+    fetchFields();
+    fetchFieldTypes();
+  }, []);
+  
+  // Fetch field types from API
+  const fetchFieldTypes = async () => {
+    try {
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
+      const response = await axios.get('/api/field-types', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data && response.data.length > 0) {
+        setDynamicFieldTypes(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching field types:', error);
+    }
+  };
+
+  const fetchFields = async () => {
+    setIsLoading(true);
+    // Try to fetch from API
+    try {
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No authentication token found');
+        toast.error('Authentication required. Please log in again.');
+        return;
+      }
+      
+      const response = await axios.get('/api/fields', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('API Response:', response.data);
+      if (response.data && response.data.length > 0) {
+        // Log the structure of the first field to understand the data format
+        console.log('Field structure example:', response.data[0]);
+        
+        // Process fields to ensure FIELD_TYPE_ID is properly formatted
+        const processedFields = response.data.map((field: any) => {
+          // Check if FIELD_TYPE_ID is an object with FIELD_TYPE_ID property
+          if (field.FIELD_TYPE && typeof field.FIELD_TYPE === 'object') {
+            console.log('Field type is an object:', field.FIELD_TYPE);
+            return {
+              ...field,
+              FIELD_TYPE_ID: field.FIELD_TYPE.FIELD_TYPE_ID
+            };
+          }
+          return field;
+        });
+        
+        console.log('Processed fields:', processedFields);
+        setFields(processedFields);
+      } else {
+        // If API returns empty array, set empty fields
+        setFields([]);
+      }
+    } catch (apiError: any) {
+      console.error('API Error:', apiError);
+      
+      if (apiError.response && apiError.response.status === 401) {
+        toast.error('Your session has expired. Please log in again.');
+        // Optionally redirect to login page
+        // navigate('/login');
+      } else {
+        toast.error('Failed to load fields. Please try again later.');
+        // Initialize with empty array if API fails
+        setFields([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Redirect if user is not authenticated or doesn't have admin role
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  
+  if (!user) return <Navigate to="/login" />;
+  
+  const isAdmin = user.roles?.some((role: any) => role.id === 1 || role.id === 6) || 
+                  user.role === '1' || user.role === '6';
+  
+  if (!isAdmin) return <Navigate to="/home" />;
+
+  // Fallback field types for dropdown if API fails
+  const fieldTypes = [
+    { id: 'Text', name: 'Text' },
+    { id: 'Email', name: 'Email' },
+    { id: 'Phone', name: 'Phone' },
+    { id: 'Date', name: 'Date' },
+    { id: 'TextArea', name: 'Text Area' },
+    { id: 'Number', name: 'Number' },
+    { id: 'Select', name: 'Select' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 pt-16 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex justify-between items-center py-6">
+          <div className="flex items-center">
+            <button 
+              onClick={() => navigate('/admin')}
+              className="mr-4 p-2 rounded-full hover:bg-gray-200 transition"
+            >
+              <FaArrowLeft className="text-gray-600" />
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">Field Management</h1>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="bg-white shadow rounded-lg p-6">
+          {/* Grid header with Add button */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-gray-800">Field Definitions</h2>
+            <button 
+              className="inline-flex items-center px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200"
+              onClick={openAddModal}
+            >
+              <FaPlus className="mr-2" /> Add New Field
+            </button>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : fields.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No fields found. Add your first field to get started.</p>
+            </div>
+          ) : (
+            <div>
+              {/* Enhanced AG Grid implementation */}
+              <div 
+                className="ag-theme-alpine overflow-hidden shadow-sm border border-gray-200" 
+                style={{ height: 500, width: '100%' }}
+              >
+                <AgGridReact
+                  ref={gridRef}
+                  rowData={fields}
+                  columnDefs={columnDefs}
+                  defaultColDef={defaultColDef}
+                  animateRows={true}
+                  rowSelection="single"
+                  pagination={true}
+                  quick
+                  paginationPageSize={10}
+                  paginationPageSizeSelector={[10, 25, 50, 100]}
+                  onGridReady={onGridReady}
+                      <input
+                        type="checkbox"
+                        id="isPublic"
+                        name="IS_PUBLIC"
+                        checked={formData.IS_PUBLIC}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Public Field</span>
+                    </label>
+                    
+                    <label htmlFor="isSensitive" className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="isSensitive"
+                        name="IS_SENSITIVE"
+                        checked={formData.IS_SENSITIVE}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Sensitive Data</span>
+                    </label>
+
+                    <label htmlFor="hasLookup" className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="hasLookup"
+                        name="HAS_LOOKUP"
+                        checked={formData.HAS_LOOKUP}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Has Lookup Values</span>
+                    </label>
+                    
+                    {formData.HAS_LOOKUP && (
+                      <label 
+                        htmlFor="canSelectMultiple" 
+                        className={`flex items-center ${formData.HAS_LOOKUP ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          id="canSelectMultiple"
+                          name="CAN_SELECT_MULIPLE"
+                          checked={formData.CAN_SELECT_MULIPLE}
+                          onChange={handleInputChange}
+                          disabled={!formData.HAS_LOOKUP}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Allow Multiple Selection</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Right column - Lookup Values (only shown when HAS_LOOKUP is checked) */}
+                <div className="md:w-1/2 mt-6 md:mt-0">
+                  {formData.HAS_LOOKUP && (
+                    <div>
+                      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-3">Lookup Values</h3>
+                      <p className="text-sm text-gray-500 mb-3">
+                        Define the lookup values that will be available for selection in this field.
+                      </p>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Define the lookup values that will be available for selection in this field.
+                        </p>
+                        
+                        {/* Add New Lookup Form */}
+                        <div className="bg-gray-50 p-4 rounded-md mb-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Add New Lookup Value</h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <label htmlFor="lookupCode" className="block text-xs font-medium text-gray-700 mb-1">Code</label>
+                              <input
+                                type="text"
+                                id="lookupCode"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="e.g., 001"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="lookupDescription" className="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                              <input
+                                type="text"
+                                id="lookupDescription"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="e.g., Option One"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="lookupSortOrder" className="block text-xs font-medium text-gray-700 mb-1">Sort Order</label>
+                              <input
+                                type="number"
+                                id="lookupSortOrder"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="e.g., 1"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-3 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                // Get values from the form
+                                const codeInput = document.getElementById('lookupCode') as HTMLInputElement;
+                                const descInput = document.getElementById('lookupDescription') as HTMLInputElement;
+                                const sortInput = document.getElementById('lookupSortOrder') as HTMLInputElement;
+                                
+                                if (!descInput.value.trim()) {
+                                  toast.error('Description is required');
+                                  return;
+                                }
+                                
+                                // Add new lookup
+                                const newLookup = {
+                                  LOOKUP_CODE: codeInput.value.trim() || `${fieldLookups.length + 1}`,
+                                  LOOKUP_DESCRIPTION: descInput.value.trim(),
+                                  SORT_ORDER: sortInput.value ? parseInt(sortInput.value) : fieldLookups.length
+                                };
+                                
+                                setFieldLookups([...fieldLookups, newLookup]);
+                                
+                                // Clear inputs
+                                codeInput.value = '';
+                                descInput.value = '';
+                                sortInput.value = '';
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                            >
+                              Add Lookup
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Save Lookups Button */}
+                        {currentField?.FIELD_ID && fieldLookups.length > 0 && (
+                          <div className="flex justify-end mb-4">
+                            <button
+                              type="button"
+                              onClick={() => saveFieldLookups(currentField.FIELD_ID, fieldLookups)}
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                              disabled={isLoadingLookups}
+                            >
+                              {isLoadingLookups ? 'Saving...' : 'Save Lookup Values'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Right column - Lookup Values Grid */}
+                      <div className="md:w-1/2">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Current Lookup Values</h4>
+                        {isLoadingLookups ? (
+                          <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                          </div>
+                        ) : (
+                          <div className="border rounded-md overflow-hidden">
+                            <div className="max-h-[200px] overflow-y-auto">
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50 sticky top-0">
+                                  <tr>
+                                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sort</th>
+                                    <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                  {fieldLookups.length > 0 ? (
+                                    fieldLookups.map((lookup, index) => (
+                                      <tr key={lookup.FIELD_LOOKUP_ID || index}>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{lookup.LOOKUP_CODE}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{lookup.LOOKUP_DESCRIPTION}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{lookup.SORT_ORDER}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                          <button 
+                                            type="button"
+                                            onClick={() => {
+                                              // Remove this lookup
+                                              const updatedLookups = fieldLookups.filter((_, i) => i !== index);
+                                              setFieldLookups(updatedLookups);
+                                            }}
+                                            className="text-red-600 hover:text-red-900"
+                                          >
+                                            Remove
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={4} className="px-4 py-2 text-center text-sm text-gray-500">
+                                        No lookup values defined yet.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    {currentField ? 'Update Field' : 'Add Field'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AdminFields;
