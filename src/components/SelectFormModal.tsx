@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import formService from '../services/formService';
-import { FaSpinner, FaCheck, FaFileAlt } from 'react-icons/fa';
+import { FaSpinner } from 'react-icons/fa';
 import StandardTemplates from './StandardTemplates';
+import { useAuth } from '../hooks/useAuth';
 
 // Use the DbForm type from formService
 import { DbForm } from '../services/formService';
@@ -17,8 +18,25 @@ interface SelectFormModalProps {
 const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSelectForm }) => {
   const [forms, setForms] = useState<DbForm[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+  // Removed selectedFormId state since we're not using custom templates anymore
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuth();
+  
+  // Helper function to check if user has manager, admin, or jfar role
+  const hasRequiredRole = () => {
+    if (!user) return false;
+    
+    // Check roles array (objects with id property)
+    // Admin (1), JFAR (6), Manager (3)
+    const hasRoleInArray = user.roles?.some((role: any) => 
+      role.id === 1 || role.id === 6 || role.id === 3
+    );
+    
+    // Check role string property
+    const hasRoleAsString = user.role === '1' || user.role === '6' || user.role === '3';
+    
+    return hasRoleInArray || hasRoleAsString;
+  };
 
   // Fetch forms when modal opens
   useEffect(() => {
@@ -40,16 +58,11 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
     }
   };
 
-  const handleSelectForm = () => {
-    if (selectedFormId) {
-      onSelectForm(selectedFormId);
-    } else {
-      toast.warning('Please select a form template');
-    }
-  };
+  // No longer need handleSelectForm since we're only using standard templates now
   
   // Handle selection of a standard template
   const handleSelectTemplate = (templateId: string) => {
+    console.log(`SelectFormModal: Processing template selection for ID: ${templateId}`);
     // Create a form based on the selected template
     switch(templateId) {
       case 'subject':
@@ -60,7 +73,8 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           FORM_DESCRIPTION: 'First Name, Middle Name, Last Name, DOB, SSN',
           IS_PUBLIC: true,
           IS_ACTIVE: true,
-          IS_DELETED: false
+          IS_DELETED: false,
+          TEMPLATE_TYPE: 'subject' // Add explicit template type
         };
         
         // Fields for SUBJECT template
@@ -74,7 +88,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         
         // Close this modal and open the form for the user to fill out
         onClose();
-        onSelectForm(0, { form: subjectForm, fields: subjectFields });
+        onSelectForm(0, { form: subjectForm, fields: subjectFields, templateType: 'subject' });
         break;
         
       case 'financial':
@@ -85,7 +99,8 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           FORM_DESCRIPTION: 'Bank Name, Account #, Routing #',
           IS_PUBLIC: true,
           IS_ACTIVE: true,
-          IS_DELETED: false
+          IS_DELETED: false,
+          TEMPLATE_TYPE: 'financial' // Add explicit template type
         };
         
         // Fields for FINANCIAL template
@@ -97,7 +112,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         
         // Close this modal and open the form for the user to fill out
         onClose();
-        onSelectForm(0, { form: financialForm, fields: financialFields });
+        onSelectForm(0, { form: financialForm, fields: financialFields, templateType: 'financial' });
         break;
         
       case 'address':
@@ -108,7 +123,8 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           FORM_DESCRIPTION: 'Address Line 1, Address Line 2, City, State, ZIP Code',
           IS_PUBLIC: true,
           IS_ACTIVE: true,
-          IS_DELETED: false
+          IS_DELETED: false,
+          TEMPLATE_TYPE: 'address' // Add explicit template type
         };
         
         // Fields for ADDRESS template
@@ -122,7 +138,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         
         // Close this modal and open the form for the user to fill out
         onClose();
-        onSelectForm(0, { form: addressForm, fields: addressFields });
+        onSelectForm(0, { form: addressForm, fields: addressFields, templateType: 'address' });
         break;
         
       default:
@@ -130,11 +146,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
     }
   };
 
-  // Filter forms based on search term
-  const filteredForms = forms.filter(form => 
-    form.FORM_NAME.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (form.FORM_DESCRIPTION || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // No longer need to filter forms since we're not displaying custom templates
 
   return (
     <Modal
@@ -146,11 +158,27 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         content: {
           width: '800px',
           maxWidth: '90%',
-          margin: 'auto',
+          margin: '0',
           borderRadius: '8px',
           padding: '20px',
           maxHeight: '90vh',
-          overflow: 'auto'
+          overflow: 'auto',
+          inset: '50% auto auto 50%',
+          transform: 'translate(-50%, -50%)',
+          border: '1px solid #ccc',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+        },
+        overlay: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
         }
       }}
       ariaHideApp={false}
@@ -182,16 +210,29 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
             <h4 className="text-center mb-4">Standard Templates</h4>
             <StandardTemplates 
               onSelectTemplate={(templateId) => {
+                // Clear any previously rendered forms
+                if (forms.length > 0) {
+                  console.log('Clearing previously rendered forms');
+                  // We're not modifying the forms array directly, just ensuring a clean state for the new selection
+                }
+                
                 // Create a new form based on the selected template
-                handleSelectTemplate(templateId);
+                console.log(`SelectFormModal received template ID: ${templateId}`);
+                // Ensure we're passing the correct template ID
+                if (templateId === 'subject' || templateId === 'financial' || templateId === 'address') {
+                  handleSelectTemplate(templateId);
+                } else {
+                  console.error(`Invalid template ID received: ${templateId}`);
+                  toast.error('Error selecting template. Please try again.');
+                }
               }}
             />
           </div>
           
-          {/* Custom Templates Section */}
-          {forms.length === 0 ? (
+          {/* Admin Dashboard Link - only visible to manager, admin, and jfar roles */}
+          {hasRequiredRole() && (
             <div className="text-center mt-4">
-              <p className="text-muted">Or create custom templates in the Admin Dashboard</p>
+              <p className="text-muted">Need more options? Create custom templates in the Admin Dashboard</p>
               <button 
                 className="btn btn-outline-primary mt-2"
                 onClick={() => window.location.href = '/admin'}
@@ -199,55 +240,16 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
                 Go to Admin Dashboard
               </button>
             </div>
-          ) : (
-            <div className="mt-4">
-              <h4 className="text-center mb-4">Custom Templates</h4>
-              <div className="form-templates-list">
-                {filteredForms.map(form => (
-                  <div 
-                    key={form.FORM_ID}
-                    className={`form-template-item p-3 mb-3 border rounded ${selectedFormId === form.FORM_ID ? 'border-primary bg-light' : ''}`}
-                    onClick={() => setSelectedFormId(form.FORM_ID || 0)}
-                  >
-                    <div className="d-flex align-items-center">
-                      <div className="form-template-icon me-3">
-                        <FaFileAlt size={24} className="text-secondary" />
-                      </div>
-                      <div className="form-template-details flex-grow-1">
-                        <h5 className="mb-1">{form.FORM_NAME}</h5>
-                        <p className="text-muted mb-1">{form.FORM_DESCRIPTION || 'No description'}</p>
-                        <div className="d-flex align-items-center">
-                          <span className="badge bg-info me-2">Form</span>
-                          <small className="text-muted">Form Template</small>
-                        </div>
-                      </div>
-                      {selectedFormId === form.FORM_ID && (
-                        <div className="form-template-selected">
-                          <FaCheck className="text-success" size={20} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
         </>
       )}
       
-      <div className="modal-footer d-flex justify-content-between mt-3">
+      <div className="modal-footer d-flex justify-content-end mt-3">
         <button 
           className="btn btn-secondary" 
           onClick={onClose}
         >
           Cancel
-        </button>
-        <button 
-          className="btn btn-primary" 
-          onClick={handleSelectForm}
-          disabled={!selectedFormId || loading}
-        >
-          Use Selected Template
         </button>
       </div>
     </Modal>

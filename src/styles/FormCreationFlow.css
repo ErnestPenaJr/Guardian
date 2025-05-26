@@ -1,5 +1,32 @@
 /* Form Creation Flow Styles */
 
+/* Modal Centering Styles */
+.ReactModal__Content {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.ReactModal__Overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+}
+
 /* Step indicator styles */
 .step-indicator {
   display: flex;
@@ -59,6 +86,12 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+.form-type-option .form-check-input {
+  position: relative;
+  margin-left: 15px;
 }
 
 .form-type-option:hover {
@@ -66,7 +99,7 @@
   background-color: #f8f9fa;
 }
 
-.form-check-input:checked + .form-check-label {
+.form-check-input:checked+.form-check-label {
   font-weight: bold;
   color: #17a2b8;
 }

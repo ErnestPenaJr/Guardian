@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardian Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            padding: 40px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #healthResult {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            text-align: left;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Guardian Test Page</h1>
+        <p>This is a test page to verify that static file serving is working correctly in the Azure App Service deployment.</p>
+        <div class="status">
+            ✅ If you can see this page, static file serving is working!
+        </div>
+        <button id="checkHealth">Check API Health</button>
+        <div id="healthResult"></div>
+    </div>
+
+    <script>
+        document.getElementById('checkHealth').addEventListener('click', async () => {
+            const healthResult = document.getElementById('healthResult');
+            healthResult.textContent = 'Checking API health...';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                healthResult.textContent = 'Health Check Successful!\n\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                healthResult.textContent = 'Health Check Failed: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

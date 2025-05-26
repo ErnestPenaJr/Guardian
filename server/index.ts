@@ -5,7 +5,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import bcrypt from 'bcryptjs';
 import { passport, loginSchema, generateToken, requireAuth, hashPassword } from './auth.js';
 import rateLimit from 'express-rate-limit';
@@ -47,13 +47,10 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// Register API routes
-app.use('/api/forms', formsRoutes);
-app.use('/api/external', externalRoutes);
-app.use('/api/endpoint-viewer', endpointViewerRoutes);
-app.use('/api/fields', fieldsRoutes);
-app.use('/api/field-lookups', fieldLookupsRoutes);
-app.use('/api/field-types', fieldTypesRoutes);
+// Serve static files from the dist directory
+const distPath = join(__dirname, 'dist');
+console.log(`[STATIC FILES] Serving static files from: ${distPath}`);
+app.use(express.static(distPath));
 
 // Create a rate limiter for login attempts
 // 5 failed attempts per 15 minutes per IP
@@ -1944,6 +1941,13 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
 
 app.use('/api/external', externalRoutes);
 
+// For all other routes, serve the index.html file (for SPA routing)
+app.get('*', (req, res) => {
+  res.sendFile(join(distPath, 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Access the application at: http://localhost:${PORT}`);
 });

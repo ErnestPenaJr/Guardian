@@ -284,7 +284,11 @@ const RequestDashboard: React.FC = () => {
           <button 
             className="btn btn-primary ms-3" 
             style={{ minWidth: 140 }} 
-            onClick={() => setShowSelectFormModal(true)}
+            onClick={() => {
+              // Clear any existing form data before opening the select form modal
+              setFormData(null);
+              setShowSelectFormModal(true);
+            }}
           >
             + Create Request
           </button>
@@ -339,6 +343,9 @@ const RequestDashboard: React.FC = () => {
           setShowSelectFormModal(false);
           
           if (formData) {
+            console.log('RequestDashboard: Received form data from template:', formData);
+            console.log('RequestDashboard: Template type:', formData.templateType);
+            
             // If we have form data from a template, use it directly
             const formFields = formData.fields.map((field: any, index: number) => ({
               id: index + 1,
@@ -350,10 +357,26 @@ const RequestDashboard: React.FC = () => {
               sequence: field.SEQUENCE || index + 1
             }));
             
+            // Use the explicit templateType if provided, otherwise extract from form name
+            let formType = formData.templateType || 'Request';
+            
+            // If templateType is not provided, try to detect from form name
+            if (!formData.templateType) {
+              if (formData.form.FORM_NAME.includes('SUBJECT')) {
+                formType = 'subject';
+              } else if (formData.form.FORM_NAME.includes('FINANCIAL')) {
+                formType = 'financial';
+              } else if (formData.form.FORM_NAME.includes('ADDRESS')) {
+                formType = 'address';
+              }
+            }
+            
+            console.log(`Setting form type to: ${formType} for form: ${formData.form.FORM_NAME}`);
+            
             setFormData({
               name: formData.form.FORM_NAME,
               description: formData.form.FORM_DESCRIPTION || '',
-              formType: 'Request', // Default to request type
+              formType: formType, // Use the explicit template type
               formFields: formFields
             });
             
