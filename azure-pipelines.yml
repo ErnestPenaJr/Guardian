@@ -37,7 +37,7 @@ steps:
     <configuration>
       <system.webServer>
         <handlers>
-          <add name="iisnode" path="index.js" verb="*" modules="iisnode" />
+          <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
         </handlers>
         <rewrite>
           <rules>
@@ -48,7 +48,7 @@ steps:
               <conditions>
                 <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
               </conditions>
-              <action type="Rewrite" url="index.js"/>
+              <action type="Rewrite" url="server.js"/>
             </rule>
           </rules>
         </rewrite>
@@ -56,6 +56,27 @@ steps:
       </system.webServer>
     </configuration>' > server/web.config
   displayName: 'Create web.config for Azure deployment'
+
+# Create package.json in server folder if it doesn't have one
+- script: |
+    if [ ! -f server/package.json ]; then
+      echo '{
+        "name": "guardian-server",
+        "version": "1.0.0",
+        "type": "module",
+        "scripts": {
+          "start": "node server.js"
+        },
+        "engines": {
+          "node": ">=20.0.0"
+        }
+      }' > server/package.json
+    else
+      # Update existing package.json to add start script
+      jq '.scripts.start = "node server.js"' server/package.json > server/package.json.tmp
+      mv server/package.json.tmp server/package.json
+    fi
+  displayName: 'Ensure proper package.json configuration'
 
 # Zip backend for deployment
 - script: |
@@ -69,4 +90,5 @@ steps:
     appType: 'webAppLinux'
     appName: 'GUARDIAN-DEV'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
+    startUpCommand: 'npm start'
     runtimeStack: 'NODE|20-lts'
