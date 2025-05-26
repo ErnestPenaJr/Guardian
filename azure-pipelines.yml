@@ -16,28 +16,53 @@ steps:
     npm run build
   displayName: 'Install and build frontend'
 
-# Install backend dependencies
+# Install backend dependencies and copy to root for deployment
 - script: |
     cd server
     npm install
     npm install typescript -g
+    cp -r node_modules ../node_modules
   displayName: 'Install backend dependencies'
 
-# Clean old frontend build from backend
+# Clean old frontend build from deployment directory
 - script: |
-    rm -rf server/dist
-  displayName: 'Clean old frontend build from backend'
+    mkdir -p deployment
+    rm -rf deployment/dist
+  displayName: 'Prepare deployment directory'
 
-# Copy frontend build to backend (adjust if your backend serves static files from a specific folder)
+# Copy frontend build to deployment directory
 - script: |
-    cp -r dist server/dist
-  displayName: 'Copy frontend build to backend'
+    cp -r dist deployment/
+  displayName: 'Copy frontend build to deployment'
 
-# Compile TypeScript to JavaScript
+# Copy server.js to deployment root
 - script: |
-    cd server
-    tsc --skipLibCheck index.ts --outDir dist --esModuleInterop true --module es2020 --moduleResolution node --target es2020
-  displayName: 'Compile TypeScript to JavaScript'
+    cp server.js deployment/
+  displayName: 'Copy server.js to deployment'
+
+# Create package.json for deployment
+- script: |
+    echo '{
+      "name": "guardian-server",
+      "version": "1.0.0",
+      "scripts": {
+        "start": "node server.js"
+      },
+      "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5"
+      },
+      "engines": {
+        "node": ">=20.0.0"
+      }
+    }' > deployment/package.json
+  displayName: 'Create package.json for deployment'
+
+# Copy dependencies to deployment
+- script: |
+    cp -r node_modules deployment/
+  displayName: 'Copy dependencies to deployment'
+
 # Create web.config for Azure deployment
 - script: |
     echo '<?xml version="1.0" encoding="utf-8"?>
@@ -61,35 +86,14 @@ steps:
         </rewrite>
         <iisnode watchedFiles="web.config;*.js" nodeProcessCommandLine="node.exe" debuggingEnabled="false" />
       </system.webServer>
-    </configuration>' > server/web.config
+    </configuration>' > deployment/web.config
   displayName: 'Create web.config for Azure deployment'
 
-# Create package.json in server folder if it doesn't have one
+# Zip deployment package
 - script: |
-    if [ ! -f server/package.json ]; then
-      echo '{
-        "name": "guardian-server",
-        "version": "1.0.0",
-        "type": "module",
-        "scripts": {
-          "start": "node server.js"
-        },
-        "engines": {
-          "node": ">=20.0.0"
-        }
-      }' > server/package.json
-    else
-      # Update existing package.json to add start script
-      jq '.scripts.start = "node server.js"' server/package.json > server/package.json.tmp
-      mv server/package.json.tmp server/package.json
-    fi
-  displayName: 'Ensure proper package.json configuration'
-
-# Zip backend for deployment
-- script: |
-    cd server
+    cd deployment
     zip -r ../app.zip .
-  displayName: 'Zip backend and frontend build'
+  displayName: 'Create deployment package'
 
 - task: AzureWebApp@1
   inputs:
