@@ -14,54 +14,52 @@ steps:
 - script: |
     npm install
     npm run build
+    echo "Frontend build completed. Listing dist directory contents:"
+    ls -la dist
   displayName: 'Install and build frontend'
 
-# Install backend dependencies and copy to root for deployment
+# Install backend dependencies
 - script: |
     cd server
     npm install
     npm install typescript -g
-    cp -r node_modules ../node_modules
   displayName: 'Install backend dependencies'
 
-# Clean old frontend build from deployment directory
+# Prepare deployment directory
 - script: |
     mkdir -p deployment
     rm -rf deployment/dist
+    echo "Creating deployment directory structure"
   displayName: 'Prepare deployment directory'
+
+# Install express and cors in deployment directory
+- script: |
+    cd deployment
+    npm init -y
+    npm install express cors --save
+    echo "Installed express and cors in deployment directory"
+  displayName: 'Install express and cors in deployment directory'
 
 # Copy frontend build to deployment directory
 - script: |
+    echo "Copying frontend build to deployment/dist"
     cp -r dist deployment/
+    ls -la deployment/dist
   displayName: 'Copy frontend build to deployment'
 
 # Copy server.js to deployment root
 - script: |
+    echo "Copying server.js to deployment root"
     cp server.js deployment/
+    ls -la deployment/
   displayName: 'Copy server.js to deployment'
 
-# Create package.json for deployment
+# Update package.json for deployment
 - script: |
-    echo '{
-      "name": "guardian-server",
-      "version": "1.0.0",
-      "scripts": {
-        "start": "node server.js"
-      },
-      "dependencies": {
-        "express": "^4.18.2",
-        "cors": "^2.8.5"
-      },
-      "engines": {
-        "node": ">=20.0.0"
-      }
-    }' > deployment/package.json
-  displayName: 'Create package.json for deployment'
-
-# Copy dependencies to deployment
-- script: |
-    cp -r node_modules deployment/
-  displayName: 'Copy dependencies to deployment'
+    cd deployment
+    node -e "const pkg = require('./package.json'); pkg.name = 'guardian-server'; pkg.version = '1.0.0'; pkg.scripts = pkg.scripts || {}; pkg.scripts.start = 'node server.js'; pkg.engines = { node: '>=20.0.0' }; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
+    cat package.json
+  displayName: 'Update package.json for deployment'
 
 # Create web.config for Azure deployment
 - script: |
@@ -89,10 +87,29 @@ steps:
     </configuration>' > deployment/web.config
   displayName: 'Create web.config for Azure deployment'
 
+# Create a test HTML file to verify static file serving
+- script: |
+    echo '<html><head><title>Guardian Test Page</title></head><body><h1>Guardian Test Page</h1><p>If you can see this, static file serving is working.</p></body></html>' > deployment/dist/test.html
+    echo "Created test.html in deployment/dist"
+  displayName: 'Create test HTML file'
+
+# Verify deployment package structure
+- script: |
+    echo "\n===== DEPLOYMENT PACKAGE STRUCTURE ====="
+    ls -la deployment
+    echo "\n===== DEPLOYMENT DIST DIRECTORY ====="
+    ls -la deployment/dist
+    echo "\n===== DEPLOYMENT NODE_MODULES ====="
+    ls -la deployment/node_modules | head -n 10
+  displayName: 'Verify deployment package structure'
+
 # Zip deployment package
 - script: |
     cd deployment
     zip -r ../app.zip .
+    echo "Created deployment package: app.zip"
+    cd ..
+    du -h app.zip
   displayName: 'Create deployment package'
 
 - task: AzureWebApp@1
