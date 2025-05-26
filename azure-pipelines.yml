@@ -47,10 +47,10 @@ steps:
     ls -la deployment/dist
   displayName: 'Copy frontend build to deployment'
 
-# Copy server.js to deployment root
+# Copy server.cjs to deployment root
 - script: |
-    echo "Copying simplified server to deployment root"
-    cp simple-server.js deployment/server.js
+    echo "Copying CommonJS server to deployment root"
+    cp server.cjs deployment/server.js
     echo "Verifying server.js in deployment directory:"
     ls -la deployment/
     cat deployment/server.js | head -10
@@ -59,9 +59,9 @@ steps:
 # Update package.json for deployment to use CommonJS
 - script: |
     cd deployment
-    node -e "const pkg = require('./package.json'); pkg.name = 'guardian-server'; pkg.version = '1.0.0'; pkg.scripts = pkg.scripts || {}; pkg.scripts.start = 'node server.js'; pkg.engines = { node: '>=20.0.0' }; delete pkg.type; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
+    node -e "const pkg = require('./package.json'); pkg.name = 'guardian-server'; pkg.version = '1.0.0'; pkg.scripts = pkg.scripts || {}; pkg.scripts.start = 'node server.js'; pkg.engines = { node: '>=20.0.0' }; pkg.type = 'commonjs'; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
     cat package.json
-    echo "\nEnsuring package.json does NOT have type: module"
+    echo "\nEnsuring package.json has type: commonjs"
   displayName: 'Update package.json for deployment'
 
 # Create web.config for Azure deployment
