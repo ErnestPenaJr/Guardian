@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import formService from '../services/formService';
-import { FaSpinner, FaCheck, FaFileAlt } from 'react-icons/fa';
+import { FaSpinner } from 'react-icons/fa';
 import StandardTemplates from './StandardTemplates';
 
 // Use the DbForm type from formService
@@ -17,7 +17,7 @@ interface SelectFormModalProps {
 const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSelectForm }) => {
   const [forms, setForms] = useState<DbForm[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+  // Removed selectedFormId state since we're not using custom templates anymore
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch forms when modal opens
@@ -40,13 +40,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
     }
   };
 
-  const handleSelectForm = () => {
-    if (selectedFormId) {
-      onSelectForm(selectedFormId);
-    } else {
-      toast.warning('Please select a form template');
-    }
-  };
+  // No longer need handleSelectForm since we're only using standard templates now
   
   // Handle selection of a standard template
   const handleSelectTemplate = (templateId: string) => {
@@ -134,11 +128,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
     }
   };
 
-  // Filter forms based on search term
-  const filteredForms = forms.filter(form => 
-    form.FORM_NAME.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (form.FORM_DESCRIPTION || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // No longer need to filter forms since we're not displaying custom templates
 
   return (
     <Modal
@@ -221,66 +211,25 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
             />
           </div>
           
-          {/* Custom Templates Section */}
-          {forms.length === 0 ? (
-            <div className="text-center mt-4">
-              <p className="text-muted">Or create custom templates in the Admin Dashboard</p>
-              <button 
-                className="btn btn-outline-primary mt-2"
-                onClick={() => window.location.href = '/admin'}
-              >
-                Go to Admin Dashboard
-              </button>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <h4 className="text-center mb-4">Custom Templates</h4>
-              <div className="form-templates-list">
-                {filteredForms.map(form => (
-                  <div 
-                    key={form.FORM_ID}
-                    className={`form-template-item p-3 mb-3 border rounded ${selectedFormId === form.FORM_ID ? 'border-primary bg-light' : ''}`}
-                    onClick={() => setSelectedFormId(form.FORM_ID || 0)}
-                  >
-                    <div className="d-flex align-items-center">
-                      <div className="form-template-icon me-3">
-                        <FaFileAlt size={24} className="text-secondary" />
-                      </div>
-                      <div className="form-template-details flex-grow-1">
-                        <h5 className="mb-1">{form.FORM_NAME}</h5>
-                        <p className="text-muted mb-1">{form.FORM_DESCRIPTION || 'No description'}</p>
-                        <div className="d-flex align-items-center">
-                          <span className="badge bg-info me-2">Form</span>
-                          <small className="text-muted">Form Template</small>
-                        </div>
-                      </div>
-                      {selectedFormId === form.FORM_ID && (
-                        <div className="form-template-selected">
-                          <FaCheck className="text-success" size={20} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Admin Dashboard Link */}
+          <div className="text-center mt-4">
+            <p className="text-muted">Need more options? Create custom templates in the Admin Dashboard</p>
+            <button 
+              className="btn btn-outline-primary mt-2"
+              onClick={() => window.location.href = '/admin'}
+            >
+              Go to Admin Dashboard
+            </button>
+          </div>
         </>
       )}
       
-      <div className="modal-footer d-flex justify-content-between mt-3">
+      <div className="modal-footer d-flex justify-content-end mt-3">
         <button 
           className="btn btn-secondary" 
           onClick={onClose}
         >
           Cancel
-        </button>
-        <button 
-          className="btn btn-primary" 
-          onClick={handleSelectForm}
-          disabled={!selectedFormId || loading}
-        >
-          Use Selected Template
         </button>
       </div>
     </Modal>
