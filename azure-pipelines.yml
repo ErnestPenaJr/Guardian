@@ -54,11 +54,12 @@ steps:
     ls -la deployment/
   displayName: 'Copy server.js to deployment'
 
-# Update package.json for deployment
+# Update package.json for deployment to use CommonJS
 - script: |
     cd deployment
-    node -e "const pkg = require('./package.json'); pkg.name = 'guardian-server'; pkg.version = '1.0.0'; pkg.scripts = pkg.scripts || {}; pkg.scripts.start = 'node server.js'; pkg.engines = { node: '>=20.0.0' }; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
+    node -e "const pkg = require('./package.json'); pkg.name = 'guardian-server'; pkg.version = '1.0.0'; pkg.scripts = pkg.scripts || {}; pkg.scripts.start = 'node server.js'; pkg.engines = { node: '>=20.0.0' }; delete pkg.type; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));"
     cat package.json
+    echo "\nEnsuring package.json does NOT have type: module"
   displayName: 'Update package.json for deployment'
 
 # Create web.config for Azure deployment
