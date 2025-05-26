@@ -6,7 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { email, verified } = location.state || {};
+  const { email, verified, verificationCode } = location.state || {};
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -127,13 +127,43 @@ const ResetPassword = () => {
         return;
       }
       const data = JSON.parse(passwordResetData);
+      
+      // Use the verification code from the navigation state if available
+      const codeToUse = verificationCode || data.verificationCode;
+      
+      // Log the data being sent to the server for debugging
+      console.log('Reset password data:', {
+        email: data.email,
+        code: codeToUse,
+        newPassword: formData.password
+      });
+      
+      // Ensure all required fields are present
+      if (!data.email || !codeToUse || !formData.password) {
+        console.error('Missing required fields for password reset:', {
+          email: !!data.email,
+          code: !!codeToUse,
+          newPassword: !!formData.password
+        });
+        
+        setError('Missing required fields for password reset');
+        Swal.fire({
+          icon: 'error',
+          title: 'Missing Information',
+          text: 'Some required information is missing. Please try requesting a new password reset.',
+          confirmButtonColor: '#0D9488'
+        });
+        setIsLoading(false);
+        return;
+      }
+      
       // Call backend to reset password
-      const response = await fetch('/api/reset-password', {
+      const response = await fetch('http://localhost:3001/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: data.email,
-          code: data.verificationCode,
+          code: codeToUse,
           newPassword: formData.password
         })
       });

@@ -415,7 +415,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
           ))}
         </div>
         
-        <h4 className="mb-3 mt-4">TEMPLATES</h4>
+        {/* Templates section hidden as requested */}
+        {/* <h4 className="mb-3 mt-4">TEMPLATES</h4>
         <div className="template-list">
           {templates.map((template) => (
             <div 
@@ -432,7 +433,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
               </div>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
       
       {/* Main content area */}

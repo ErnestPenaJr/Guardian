@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { showToast } from '../utils/toast';
-import { devConsole } from '../utils/devConsole';
 import sendgrid from '../utils/sendgrid';
 import Swal from 'sweetalert2';
 
@@ -152,7 +150,7 @@ function ForgotPassword() {
     
     try {
       // Call backend to request password reset
-      const response = await fetch('/api/request-password-reset', {
+      const response = await fetch('http://localhost:3001/api/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -166,7 +164,7 @@ function ForgotPassword() {
         
         const passwordResetData = {
           email: email,
-          verificationCode: data.verificationCode || '123456', // Fallback code for development
+          verificationCode: data.verificationCode, // Use the code from the server response
           expiryTime: expiryTime.toISOString()
         };
         

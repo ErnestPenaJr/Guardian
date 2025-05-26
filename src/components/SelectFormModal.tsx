@@ -72,6 +72,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           { FIELD_NAME: 'SSN', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 5, IS_ACTIVE: true, IS_DELETED: false }
         ];
         
+        // Close this modal and open the form for the user to fill out
         onClose();
         onSelectForm(0, { form: subjectForm, fields: subjectFields });
         break;
@@ -94,6 +95,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           { FIELD_NAME: 'Routing #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 3, IS_ACTIVE: true, IS_DELETED: false }
         ];
         
+        // Close this modal and open the form for the user to fill out
         onClose();
         onSelectForm(0, { form: financialForm, fields: financialFields });
         break;
@@ -118,6 +120,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           { FIELD_NAME: 'ZIP Code', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 5, IS_ACTIVE: true, IS_DELETED: false }
         ];
         
+        // Close this modal and open the form for the user to fill out
         onClose();
         onSelectForm(0, { form: addressForm, fields: addressFields });
         break;

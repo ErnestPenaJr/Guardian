@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import sendgrid from '../utils/sendgrid';
-import { showToast } from '../utils/toast';
 import Swal from 'sweetalert2';
 
 // Helper function to validate email format
@@ -141,13 +140,26 @@ const VerifyForgotPassword = () => {
         setIsLoading(false);
         return;
       }
-      const storedCode = data.verificationCode;
-      if (verificationCode !== storedCode) {
+      // Get the stored email for verification
+      
+      // Verify the code with the server instead of just comparing locally
+      const response = await fetch('http://localhost:3001/api/verify-reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: data.email, 
+          code: verificationCode 
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
         setError('Invalid verification code. Please check your email and try again.');
         Swal.fire({
           icon: 'error',
           title: 'Invalid Code',
-          text: 'Invalid verification code. Please check your email and try again.',
+          text: result.error || 'Invalid verification code. Please check your email and try again.',
           confirmButtonColor: '#0D9488'
         });
         setIsLoading(false);
@@ -160,7 +172,14 @@ const VerifyForgotPassword = () => {
         text: 'Your code has been verified. Please choose a new password.',
         confirmButtonColor: '#0D9488'
       }).then(() => {
-        navigate('/reset-password', { state: { email, verified: true } });
+        // Pass the verification code along with email and verified flag
+        navigate('/reset-password', { 
+          state: { 
+            email, 
+            verified: true,
+            verificationCode: verificationCode 
+          } 
+        });
       });
     } catch (error) {
       console.error('Verification error:', error);

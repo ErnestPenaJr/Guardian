@@ -8,6 +8,7 @@ import NewRequestModal from './NewRequestModal';
 import SelectFormModal from '../components/SelectFormModal';
 import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
+import { useAuth } from '../hooks/useAuth';
 
 interface Request {
   REQUEST_ID: number;
@@ -46,9 +47,35 @@ interface FormData {
 }
 
 const RequestDashboard: React.FC = () => {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Check if user has one of the allowed roles
+  const hasCreateRequestAccess = useMemo(() => {
+    if (!user) return false;
+    
+    // Define allowed role IDs: Admin(1), User(2), Manager(3), Processor(4), Jafar(6)
+    const allowedRoles = [1, 2, 3, 4, 6];
+    
+    // Check if user has any of the allowed roles
+    if (user.roles && Array.isArray(user.roles)) {
+      // Check roles array for objects with id property
+      return user.roles.some((role: any) => 
+        typeof role === 'object' && role !== null && 
+        allowedRoles.includes(role.id || role.role_id)
+      );
+    }
+    
+    // Check role as string (from JWT token)
+    if (user.role) {
+      const roleId = parseInt(user.role, 10);
+      return allowedRoles.includes(roleId);
+    }
+    
+    return false;
+  }, [user]);
   const [quickFilter, setQuickFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showSelectFormModal, setShowSelectFormModal] = useState(false);
@@ -253,13 +280,15 @@ const RequestDashboard: React.FC = () => {
       <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Request Dashboard</h1>
       
       <div className="request-dashboard-header mb-3 d-flex align-items-center gap-2">
-        <button 
-          className="btn btn-primary ms-3" 
-          style={{ minWidth: 140 }} 
-          onClick={() => setShowSelectFormModal(true)}
-        >
-          + Create Request
-        </button>
+        {hasCreateRequestAccess && (
+          <button 
+            className="btn btn-primary ms-3" 
+            style={{ minWidth: 140 }} 
+            onClick={() => setShowSelectFormModal(true)}
+          >
+            + Create Request
+          </button>
+        )}
         
         <button 
           className="btn btn-outline-secondary ms-2" 

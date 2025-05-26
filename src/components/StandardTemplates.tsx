@@ -38,6 +38,7 @@ const StandardTemplates: React.FC<StandardTemplateProps> = ({ onSelectTemplate }
           key={template.id}
           className="template-card"
           onClick={() => onSelectTemplate(template.id)}
+          title="Click to create and fill out this form"
         >
           <div className="template-header">
             <h3 className="template-title">{template.name}</h3>

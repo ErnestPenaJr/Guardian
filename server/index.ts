@@ -714,18 +714,64 @@ app.post('/api/request-password-reset', async (req, res) => {
     });
     // Send password reset email (customized text)
     await sendPasswordResetEmail(email, resetCode);
-    return res.json({ success: true });
+    
+    // Always include the verification code in the response for now
+    // In production, this would be handled differently for security
+    return res.json({ 
+      success: true,
+      verificationCode: resetCode 
+    });
   } catch (err) {
     console.error('[REQUEST PASSWORD RESET]', err);
     return res.status(500).json({ error: 'Server error requesting password reset' });
   }
 });
 
+// --- Verify Reset Code ---
+app.post('/api/verify-reset-code', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email and verification code are required' });
+    }
+    
+    const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'No user found for this email.' });
+    }
+    
+    if (!user.EMAIL_VALIDATED) {
+      return res.status(403).json({ error: 'Your email is not verified. Please verify your email before resetting your password.' });
+    }
+    
+    // Check if the user has a reset token
+    if (!user.PASSWORD_RESET_TOKEN) {
+      return res.status(400).json({ error: 'No password reset request found. Please request a new code.' });
+    }
+    
+    // Check code
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+    
+    if (hashedCode !== user.PASSWORD_RESET_TOKEN) {
+      return res.status(400).json({ error: 'Invalid reset code.' });
+    }
+    
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[VERIFY RESET CODE]', err);
+    return res.status(500).json({ error: 'Server error verifying reset code' });
+  }
+});
+
 // --- Reset Password ---
 app.post('/api/reset-password', async (req, res) => {
   try {
+    console.log('[RESET PASSWORD] Request body:', req.body);
     const { email, code, newPassword } = req.body;
     if (!email || !code || !newPassword) {
+      console.log('[RESET PASSWORD] Missing fields:', { email: !!email, code: !!code, newPassword: !!newPassword });
       return res.status(400).json({ error: 'Missing required fields' });
     }
     const user = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
