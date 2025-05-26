@@ -4,12 +4,10 @@ pr:
   branches:
     include:
       - main
-      - dist
 trigger:
   branches:
     include:
       - main
-      - dist
 
 jobs:
 - job: build_and_deploy_job
