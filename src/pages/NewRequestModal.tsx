@@ -97,13 +97,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
   // Move to next step
   const nextStep = () => {
     // Validate current step before proceeding
-    if (step === 0 && !formData.formType) {
-      alert('Please select a form type');
-      return;
-    }
-    
-    if (step === 1 && !formData.name.trim()) {
-      alert('Please enter a form title');
+    if (!validateForm()) {
       return;
     }
     
@@ -125,24 +119,10 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     try {
       setSaving(true);
       
-      // Validate required fields for template forms
-      if (isTemplateForm) {
-        // Check for empty required fields
-        const missingFields = formData.formFields
-          .filter(field => field.required && !getFieldValue(field.id))
-          .map(field => field.fieldName);
-          
-        if (missingFields.length > 0) {
-          Swal.fire({
-            title: 'Required Fields Missing',
-            text: `Please fill out the following required fields: ${missingFields.join(', ')}`,
-            icon: 'warning',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#1a5b87'
-          });
-          setSaving(false);
-          return;
-        }
+      // Validate all form fields before submission
+      if (!validateForm()) {
+        setSaving(false);
+        return;
       }
       
       // Prepare request data based on REQUEST table structure
@@ -255,6 +235,66 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
   const getFieldValue = (fieldId: string): string => {
     const field = fieldValues.find(fv => fv.id === fieldId);
     return field ? field.value : '';
+  };
+  
+  // Validate form fields
+  const validateForm = () => {
+    // Validate form type selection in step 0
+    if (step === 0 && !formData.formType) {
+      Swal.fire({
+        title: 'Form Type Required',
+        text: 'Please select a form type to continue.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1a5b87'
+      });
+      return false;
+    }
+    
+    // Validate form title and description in step 1
+    if (step === 1) {
+      if (!formData.name.trim()) {
+        Swal.fire({
+          title: 'Form Title Required',
+          text: 'Please enter a title for your form.',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#1a5b87'
+        });
+        return false;
+      }
+      
+      if (!formData.description.trim()) {
+        Swal.fire({
+          title: 'Form Description Required',
+          text: 'Please enter a description for your form.',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#1a5b87'
+        });
+        return false;
+      }
+    }
+    
+    // Validate template form fields in step 2
+    if (step === 2 && isTemplateForm) {
+      const missingFields = formData.formFields
+        .filter(field => field.required && !getFieldValue(field.id))
+        .map(field => field.fieldName);
+        
+      if (missingFields.length > 0) {
+        Swal.fire({
+          title: 'Required Fields Missing',
+          text: `Please fill out the following required fields: ${missingFields.join(', ')}`,
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#1a5b87'
+        });
+        return false;
+      }
+    }
+    
+    return true;
   };
   
   // Generate a unique tracking ID
