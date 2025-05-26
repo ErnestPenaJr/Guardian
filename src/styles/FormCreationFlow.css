@@ -86,6 +86,12 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+.form-type-option .form-check-input {
+  position: relative;
+  margin-left: 15px;
 }
 
 .form-type-option:hover {
@@ -93,7 +99,7 @@
   background-color: #f8f9fa;
 }
 
-.form-check-input:checked + .form-check-label {
+.form-check-input:checked+.form-check-label {
   font-weight: bold;
   color: #17a2b8;
 }

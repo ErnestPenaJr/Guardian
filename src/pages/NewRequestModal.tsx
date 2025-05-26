@@ -3,6 +3,7 @@ import Modal from 'react-modal';
 import { FormField } from '../types/formBuilder';
 import SimpleFormBuilder from '../components/SimpleFormBuilder';
 import '../styles/FormCreationFlow.css';
+import Swal from 'sweetalert2';
 
 // Template descriptions for user guidance
 const TEMPLATE_DESCRIPTIONS = {
@@ -132,7 +133,13 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
           .map(field => field.fieldName);
           
         if (missingFields.length > 0) {
-          alert(`Please fill out the following required fields: ${missingFields.join(', ')}`);
+          Swal.fire({
+            title: 'Required Fields Missing',
+            text: `Please fill out the following required fields: ${missingFields.join(', ')}`,
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#1a5b87'
+          });
           setSaving(false);
           return;
         }
@@ -175,7 +182,13 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       });
       
       // Show success message with request ID
-      alert(`Request submitted successfully! Your request ID is: ${requestData.TRACKINGID}`);
+      Swal.fire({
+        title: 'Success!',
+        text: `Request submitted successfully! Your request ID is: ${requestData.TRACKINGID}`,
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1a5b87'
+      });
       
       // Record milestone for the submission
       const milestone = {
@@ -189,7 +202,13 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       handleClose();
     } catch (error) {
       console.error('Error submitting request:', error);
-      alert('Failed to submit request. Please try again.');
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to submit request. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1a5b87'
+      });
     } finally {
       setSaving(false);
     }
@@ -318,134 +337,65 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
           <h2 className="mb-4">Choose One</h2>
           <div className="form-type-selection">
             <div className="form-check form-check-inline form-type-option">
-              <input
-                type="radio"
-                className="form-check-input"
-                id="formTypeRequests"
-                name="formType"
-                value="Request"
-                checked={formData.formType === 'Request'}
-                onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-              />
-              <label className="form-check-label" htmlFor="formTypeRequests">
-                Requests
-              </label>
+              <div style={{ textAlign: 'center', paddingLeft: '15px' }}>
+                <input
+                  type="radio"
+                  className="form-check-input"
+                  id="formTypeRequests"
+                  name="formType"
+                  value="Request"
+                  checked={formData.formType === 'Request'}
+                  onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
+                  style={{ marginRight: '10px' }}
+                />
+                <label className="form-check-label" htmlFor="formTypeRequests">
+                  Requests
+                </label>
+              </div>
             </div>
             <div className="form-check form-check-inline form-type-option">
-              <input
-                type="radio"
-                className="form-check-input"
-                id="formTypeSelfService"
-                name="formType"
-                value="Self-Service"
-                checked={formData.formType === 'Self-Service'}
-                onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-                disabled
-              />
-              <label className="form-check-label" htmlFor="formTypeSelfService">
-                Self-Service
-              </label>
+              <div style={{ textAlign: 'center', paddingLeft: '15px' }}>
+                <input
+                  type="radio"
+                  className="form-check-input"
+                  id="formTypeSelfService"
+                  name="formType"
+                  value="Self-Service"
+                  checked={formData.formType === 'Self-Service'}
+                  onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
+                  disabled
+                  style={{ marginRight: '10px' }}
+                />
+                <label className="form-check-label" htmlFor="formTypeSelfService">
+                  Self-Service
+                </label>
+              </div>
             </div>
             <div className="form-check form-check-inline form-type-option">
-              <input
-                type="radio"
-                className="form-check-input"
-                id="formTypeNotice"
-                name="formType"
-                value="Notice"
-                checked={formData.formType === 'Notice'}
-                onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-                disabled
-              />
-              <label className="form-check-label" htmlFor="formTypeNotice">
-                Notice
-              </label>
+              <div style={{ textAlign: 'center', paddingLeft: '15px' }}>
+                <input
+                  type="radio"
+                  className="form-check-input"
+                  id="formTypeNotice"
+                  name="formType"
+                  value="Notice"
+                  checked={formData.formType === 'Notice'}
+                  onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
+                  disabled
+                  style={{ marginRight: '10px' }}
+                />
+                <label className="form-check-label" htmlFor="formTypeNotice">
+                  Notice
+                </label>
+              </div>
             </div>
           </div>
         </div>
       )}
       
-      {/* Step 2: Form Title and Description */}
-      {step === 1 && (
-        <div>
-          <div className="form-group mb-3">
-            <label htmlFor="formName">Title</label>
-            <input
-              type="text"
-              className="form-control"
-              id="formName"
-              value={formData.name}
-              onChange={(e) => setFormData(f => ({ ...f, name: e.target.value }))}
-              placeholder="Enter form title"
-              required
-            />
-          </div>
-          <div className="form-group mb-3">
-            <label htmlFor="formDescription">Description</label>
-            <textarea
-              className="form-control"
-              id="formDescription"
-              value={formData.description}
-              onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
-              placeholder="Enter form description"
-              rows={3}
-            />
-          </div>
-        </div>
-    )}
+      {/* First form title section removed to fix duplicate issue */}
     
-      {/* Step 1: Form Type Selection */}
-      {step === 0 && (
-        <div>
-          <h2 className="mb-4">Choose One</h2>
-          <div className="form-type-selection">
-          <div className="form-check form-check-inline form-type-option">
-            <input
-              type="radio"
-              className="form-check-input"
-              id="formTypeRequests"
-              name="formType"
-              value="Request"
-              checked={formData.formType === 'Request'}
-              onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-            />
-            <label className="form-check-label" htmlFor="formTypeRequests">
-              Requests
-            </label>
-          </div>
-          <div className="form-check form-check-inline form-type-option">
-            <input
-              type="radio"
-              className="form-check-input"
-              id="formTypeSelfService"
-              name="formType"
-              value="Self-Service"
-              checked={formData.formType === 'Self-Service'}
-              onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-              disabled
-            />
-            <label className="form-check-label" htmlFor="formTypeSelfService">
-              Self-Service
-            </label>
-          </div>
-          <div className="form-check form-check-inline form-type-option">
-            <input
-              type="radio"
-              className="form-check-input"
-              id="formTypeNotice"
-              name="formType"
-              value="Notice"
-              checked={formData.formType === 'Notice'}
-              onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-              disabled
-            />
-            <label className="form-check-label" htmlFor="formTypeNotice">
-              Notice
-            </label>
-          </div>
-        </div>
-      </div>
-    )}
+      {/* Second form type selection removed to fix duplicate issue */}
     
     {/* Step 2: Form Title and Description */}
     {step === 1 && (
