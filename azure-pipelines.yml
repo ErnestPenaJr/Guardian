@@ -56,7 +56,7 @@ steps:
       </system.webServer>
     </configuration>' > server/web.config
   displayName: 'Create web.config for Azure deployment'
-  
+
 # Zip backend for deployment
 - script: |
     cd server
