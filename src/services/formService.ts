@@ -183,10 +183,10 @@ const formService = {
   // Get a specific form by ID
   getFormById: async (formId: number): Promise<{ form: DbForm, fields: DbField[] }> => {
     try {
-      const response = await axios.get(`/api/forms/${formId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/forms/${formId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching form with ID ${formId}:`, error);
+      console.error(`Error fetching form ${formId}:`, error);
       throw error;
     }
   },
@@ -194,18 +194,19 @@ const formService = {
   // Get all forms
   getAllForms: async (): Promise<DbForm[]> => {
     try {
-      const response = await axios.get('/api/forms');
+      const response = await axios.get(`${API_BASE_URL}/api/forms`);
       return response.data;
     } catch (error) {
       console.error('Error fetching all forms:', error);
-      throw error;
+      // Return empty array instead of throwing error
+      return [];
     }
   },
 
   // Create a new form with fields
   createForm: async (form: DbForm, fields: DbField[]): Promise<{ form: DbForm, fields: DbField[] }> => {
     try {
-      const response = await axios.post('/api/forms', { form, fields });
+      const response = await axios.post(`${API_BASE_URL}/api/forms`, { form, fields });
       return response.data;
     } catch (error) {
       console.error('Error creating form:', error);

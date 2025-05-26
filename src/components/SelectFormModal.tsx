@@ -3,15 +3,16 @@ import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import formService from '../services/formService';
 import { FaSpinner, FaCheck, FaFileAlt } from 'react-icons/fa';
+import StandardTemplates from './StandardTemplates';
+
+// Use the DbForm type from formService
+import { DbForm } from '../services/formService';
 
 interface SelectFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectForm: (formId: number) => void;
+  onSelectForm: (formId: number, formData?: any) => void;
 }
-
-// Use the DbForm type from formService
-import { DbForm } from '../services/formService';
 
 const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSelectForm }) => {
   const [forms, setForms] = useState<DbForm[]>([]);
@@ -46,6 +47,85 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
       toast.warning('Please select a form template');
     }
   };
+  
+  // Handle selection of a standard template
+  const handleSelectTemplate = (templateId: string) => {
+    // Create a form based on the selected template
+    switch(templateId) {
+      case 'subject':
+        // Create a SUBJECT template form
+        const subjectForm = {
+          FORM_ID: 0, // Will be assigned by the backend
+          FORM_NAME: 'SUBJECT Template',
+          FORM_DESCRIPTION: 'First Name, Middle Name, Last Name, DOB, SSN',
+          IS_PUBLIC: true,
+          IS_ACTIVE: true,
+          IS_DELETED: false
+        };
+        
+        // Fields for SUBJECT template
+        const subjectFields = [
+          { FIELD_NAME: 'First Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 1, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'Middle Name', FIELD_TYPE_ID: 1, IS_REQUIRED: false, OPTIONS: null, SEQUENCE: 2, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'Last Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 3, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'DOB', FIELD_TYPE_ID: 3, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 4, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'SSN', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 5, IS_ACTIVE: true, IS_DELETED: false }
+        ];
+        
+        onClose();
+        onSelectForm(0, { form: subjectForm, fields: subjectFields });
+        break;
+        
+      case 'financial':
+        // Create a FINANCIAL template form
+        const financialForm = {
+          FORM_ID: 0,
+          FORM_NAME: 'FINANCIAL Template',
+          FORM_DESCRIPTION: 'Bank Name, Account #, Routing #',
+          IS_PUBLIC: true,
+          IS_ACTIVE: true,
+          IS_DELETED: false
+        };
+        
+        // Fields for FINANCIAL template
+        const financialFields = [
+          { FIELD_NAME: 'Bank Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 1, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'Account #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 2, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'Routing #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 3, IS_ACTIVE: true, IS_DELETED: false }
+        ];
+        
+        onClose();
+        onSelectForm(0, { form: financialForm, fields: financialFields });
+        break;
+        
+      case 'address':
+        // Create an ADDRESS template form
+        const addressForm = {
+          FORM_ID: 0,
+          FORM_NAME: 'ADDRESS Template',
+          FORM_DESCRIPTION: 'Address Line 1, Address Line 2, City, State, ZIP Code',
+          IS_PUBLIC: true,
+          IS_ACTIVE: true,
+          IS_DELETED: false
+        };
+        
+        // Fields for ADDRESS template
+        const addressFields = [
+          { FIELD_NAME: 'Address Line 1', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 1, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'Address Line 2', FIELD_TYPE_ID: 1, IS_REQUIRED: false, OPTIONS: null, SEQUENCE: 2, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'City', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 3, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'State', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 4, IS_ACTIVE: true, IS_DELETED: false },
+          { FIELD_NAME: 'ZIP Code', FIELD_TYPE_ID: 1, IS_REQUIRED: true, OPTIONS: null, SEQUENCE: 5, IS_ACTIVE: true, IS_DELETED: false }
+        ];
+        
+        onClose();
+        onSelectForm(0, { form: addressForm, fields: addressFields });
+        break;
+        
+      default:
+        toast.error('Unknown template type');
+    }
+  };
 
   // Filter forms based on search term
   const filteredForms = forms.filter(form => 
@@ -59,7 +139,6 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
       onRequestClose={onClose}
       contentLabel="Select Form Template"
       className="modal-content"
-      overlayClassName="modal-overlay"
       style={{
         content: {
           width: '800px',
@@ -69,12 +148,6 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           padding: '20px',
           maxHeight: '90vh',
           overflow: 'auto'
-        },
-        overlay: {
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
         }
       }}
       ariaHideApp={false}
@@ -99,39 +172,64 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           <FaSpinner className="fa-spin" size={30} />
           <p className="mt-2">Loading form templates...</p>
         </div>
-      ) : forms.length === 0 ? (
-        <div className="text-center py-5">
-          <p>No form templates found. Please create templates in the Admin Dashboard.</p>
-        </div>
       ) : (
-        <div className="form-templates-list">
-          {filteredForms.map(form => (
-            <div 
-              key={form.FORM_ID}
-              className={`form-template-item p-3 mb-3 border rounded ${selectedFormId === form.FORM_ID ? 'border-primary bg-light' : ''}`}
-              onClick={() => setSelectedFormId(form.FORM_ID || 0)}
-            >
-              <div className="d-flex align-items-center">
-                <div className="form-template-icon me-3">
-                  <FaFileAlt size={24} className="text-secondary" />
-                </div>
-                <div className="form-template-details flex-grow-1">
-                  <h5 className="mb-1">{form.FORM_NAME}</h5>
-                  <p className="text-muted mb-1">{form.FORM_DESCRIPTION || 'No description'}</p>
-                  <div className="d-flex align-items-center">
-                    <span className="badge bg-info me-2">Form</span>
-                    <small className="text-muted">Form Template</small>
+        <>
+          {/* Standard Templates Section */}
+          <div className="py-4 mb-4">
+            <h4 className="text-center mb-4">Standard Templates</h4>
+            <StandardTemplates 
+              onSelectTemplate={(templateId) => {
+                // Create a new form based on the selected template
+                handleSelectTemplate(templateId);
+              }}
+            />
+          </div>
+          
+          {/* Custom Templates Section */}
+          {forms.length === 0 ? (
+            <div className="text-center mt-4">
+              <p className="text-muted">Or create custom templates in the Admin Dashboard</p>
+              <button 
+                className="btn btn-outline-primary mt-2"
+                onClick={() => window.location.href = '/admin'}
+              >
+                Go to Admin Dashboard
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <h4 className="text-center mb-4">Custom Templates</h4>
+              <div className="form-templates-list">
+                {filteredForms.map(form => (
+                  <div 
+                    key={form.FORM_ID}
+                    className={`form-template-item p-3 mb-3 border rounded ${selectedFormId === form.FORM_ID ? 'border-primary bg-light' : ''}`}
+                    onClick={() => setSelectedFormId(form.FORM_ID || 0)}
+                  >
+                    <div className="d-flex align-items-center">
+                      <div className="form-template-icon me-3">
+                        <FaFileAlt size={24} className="text-secondary" />
+                      </div>
+                      <div className="form-template-details flex-grow-1">
+                        <h5 className="mb-1">{form.FORM_NAME}</h5>
+                        <p className="text-muted mb-1">{form.FORM_DESCRIPTION || 'No description'}</p>
+                        <div className="d-flex align-items-center">
+                          <span className="badge bg-info me-2">Form</span>
+                          <small className="text-muted">Form Template</small>
+                        </div>
+                      </div>
+                      {selectedFormId === form.FORM_ID && (
+                        <div className="form-template-selected">
+                          <FaCheck className="text-success" size={20} />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {selectedFormId === form.FORM_ID && (
-                  <div className="form-template-selected">
-                    <FaCheck className="text-success" size={20} />
-                  </div>
-                )}
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
       
       <div className="modal-footer d-flex justify-content-between mt-3">

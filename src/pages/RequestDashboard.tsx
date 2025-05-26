@@ -306,10 +306,36 @@ const RequestDashboard: React.FC = () => {
       <SelectFormModal
         isOpen={showSelectFormModal}
         onClose={() => setShowSelectFormModal(false)}
-        onSelectForm={(formId) => {
+        onSelectForm={(formId, formData) => {
           setShowSelectFormModal(false);
-          // Load the selected form and open the form submission modal
-          loadFormAndOpenModal(formId);
+          
+          if (formData) {
+            // If we have form data from a template, use it directly
+            const formFields = formData.fields.map((field: any, index: number) => ({
+              id: index + 1,
+              fieldName: field.FIELD_NAME,
+              fieldType: 'text', // Default to text
+              required: field.IS_REQUIRED,
+              options: field.OPTIONS,
+              dbFieldTypeId: field.FIELD_TYPE_ID,
+              sequence: field.SEQUENCE || index + 1
+            }));
+            
+            setFormData({
+              name: formData.form.FORM_NAME,
+              description: formData.form.FORM_DESCRIPTION || '',
+              formType: 'Request', // Default to request type
+              formFields: formFields
+            });
+            
+            // Open the form modal
+            setShowModal(true);
+          } else if (formId > 0) {
+            // Load the selected form and open the form submission modal
+            loadFormAndOpenModal(formId);
+          } else {
+            toast.error('Invalid form selection');
+          }
         }}
       />
       

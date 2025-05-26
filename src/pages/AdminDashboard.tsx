@@ -84,7 +84,6 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           <FaProjectDiagram className="h-12 w-12 text-secondary mb-4" />
           <h3 className="text-lg font-semibold mb-2">Workflow</h3>
           <ul className="text-gray-600">
-            <li>Process management</li>
             <li 
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {

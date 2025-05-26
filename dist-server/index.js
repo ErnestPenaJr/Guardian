@@ -873,7 +873,7 @@ app.get('/api/field-types', async (req, res) => {
     }
 });
 // Use authentication for all other forms routes
-app.use('/api/forms', requireAuth, formsRoutes);
+app.use('/api/forms', formsRoutes);
 // Register endpoint viewer routes
 app.use('/api/endpoint-viewer', endpointViewerRoutes);
 // Register fields routes

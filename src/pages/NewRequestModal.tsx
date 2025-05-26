@@ -19,21 +19,37 @@ interface NewRequestModalProps {
 const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialFormData }) => {
   const [step, setStep] = useState(initialFormData ? 2 : 0); // Skip to form builder if initialFormData is provided
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState(initialFormData || {
-    formType: '',
-    name: '',
-    description: '',
-    formFields: [] as FormField[]
+  const [formData, setFormData] = useState(() => {
+    if (initialFormData) {
+      // If we have initialFormData from a template, use it
+      return initialFormData;
+    } else {
+      // Otherwise use default empty form
+      return {
+        formType: '',
+        name: '',
+        description: '',
+        formFields: [] as FormField[]
+      };
+    }
   });
 
   // Reset form when modal closes
   const handleClose = () => {
     setStep(initialFormData ? 2 : 0);
-    setFormData(initialFormData || {
-      formType: '',
-      name: '',
-      description: '',
-      formFields: []
+    setFormData(() => {
+      if (initialFormData) {
+        // If we have initialFormData from a template, use it
+        return initialFormData;
+      } else {
+        // Otherwise use default empty form
+        return {
+          formType: '',
+          name: '',
+          description: '',
+          formFields: []
+        };
+      }
     });
     onClose();
   };
