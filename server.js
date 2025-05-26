@@ -1,4 +1,4 @@
-// Simple entry point for Azure Web App - ES Module format
+// Simple entry point for Azure Web App - CommonJS format
 // This file should be in the root directory for Azure deployment
 
 // Log startup information
@@ -8,17 +8,18 @@ console.log(`Current directory: ${process.cwd()}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
 // Import required modules
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import fs from 'fs';
-import cors from 'cors';
-
-// Get __dirname equivalent in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-console.log('Successfully imported all required modules');
+let express, path, fs, cors;
+try {
+  express = require('express');
+  path = require('path');
+  fs = require('fs');
+  cors = require('cors');
+  console.log('Successfully imported all required modules');
+} catch (err) {
+  console.error('ERROR IMPORTING MODULES:', err.message);
+  console.error('Module resolution paths:', module.paths);
+  process.exit(1);
+}
 
 // Create Express app
 const app = express();
@@ -43,7 +44,7 @@ const listDirectoryContents = (dirPath) => {
       console.log(`Contents of ${dirPath}:`);
       const items = fs.readdirSync(dirPath);
       items.forEach(item => {
-        const itemPath = join(dirPath, item);
+        const itemPath = path.join(dirPath, item);
         const stats = fs.statSync(itemPath);
         console.log(`  - ${item} (${stats.isDirectory() ? 'directory' : 'file'})`);
       });
@@ -60,19 +61,14 @@ console.log('\n===== DEPLOYMENT DIRECTORY STRUCTURE =====');
 listDirectoryContents(__dirname);
 
 // Check if node_modules exists
-const nodeModulesPath = join(__dirname, 'node_modules');
+const nodeModulesPath = path.join(__dirname, 'node_modules');
 if (fs.existsSync(nodeModulesPath)) {
   console.log(`node_modules found at ${nodeModulesPath}`);
   // List some key packages to verify installation
   try {
-    // In ESM, we can't use require.resolve, so we'll check differently
-    const expressPackagePath = join(nodeModulesPath, 'express', 'package.json');
-    if (fs.existsSync(expressPackagePath)) {
-      const expressPackageJson = JSON.parse(fs.readFileSync(expressPackagePath, 'utf8'));
-      console.log(`Express version: ${expressPackageJson.version}`);
-    } else {
-      console.error('Express package.json not found');
-    }
+    const expressPackageJson = require.resolve('express/package.json');
+    const expressVersion = require(expressPackageJson).version;
+    console.log(`Express version: ${expressVersion}`);
   } catch (err) {
     console.error('Error checking express version:', err.message);
   }
@@ -82,7 +78,7 @@ if (fs.existsSync(nodeModulesPath)) {
 }
 
 // Serve static files from the dist directory
-const distPath = join(__dirname, 'dist');
+const distPath = path.join(__dirname, 'dist');
 console.log('\n===== STATIC FILES =====');
 if (fs.existsSync(distPath)) {
   console.log(`Serving static files from: ${distPath}`);
@@ -94,7 +90,7 @@ if (fs.existsSync(distPath)) {
 }
 
 // Check for index.html
-const indexPath = join(distPath, 'index.html');
+const indexPath = path.join(distPath, 'index.html');
 if (fs.existsSync(indexPath)) {
   console.log(`index.html found at ${indexPath}`);
 } else {
