@@ -1,26 +1,46 @@
-// Entry point for Azure Web App
-// This file handles starting the server
-
-// In Azure, we should always treat it as production
-const isProduction = true; // Force production mode in Azure
+// Simple entry point for Azure Web App - no TypeScript dependencies
 
 // Log startup information
-console.log(`Starting server in production mode`);
+console.log('Starting server in production mode');
 console.log(`Node version: ${process.version}`);
 console.log(`Current directory: ${process.cwd()}`);
 
-// Try to load the compiled JavaScript
-console.log('Loading JavaScript bundle');
+// Import required modules
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
 
-// First try to load from ./dist/index.js (if TypeScript was compiled)
-import('./dist/index.js').catch(err1 => {
-  console.log('Could not load from ./dist/index.js, trying ./index.js');
-  
-  // If that fails, try to load from ./index.js directly
-  import('./index.js').catch(err2 => {
-    console.error('Failed to load from ./dist/index.js:', err1.message);
-    console.error('Failed to load from ./index.js:', err2.message);
-    console.error('Server startup failed - please check deployment package contents');
-    process.exit(1);
-  });
+// Create Express app
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Check if dist directory exists
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  console.log(`Serving static files from: ${distPath}`);
+  app.use(express.static(distPath));
+} else {
+  console.warn(`Warning: ${distPath} directory not found`);
+}
+
+// API routes would normally be here
+// For now, just add a simple health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// For all other routes, serve index.html if it exists
+app.get('*', (req, res) => {
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Application not properly deployed. Missing index.html');
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Access the application at: http://localhost:${PORT}`);
 });
