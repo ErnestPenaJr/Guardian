@@ -61,7 +61,4 @@ ls -la node_modules | head -n 10
 echo "Dist directory:"
 ls -la dist | head -n 10
 
-echo "This script is only for direct Azure App Service deployments"
-echo "For Azure Pipelines, the pipeline YAML file is used instead"
-
-exit 0
+echo "Deployment script completed successfully!"
