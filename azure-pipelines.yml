@@ -32,13 +32,14 @@ steps:
     echo "Creating deployment directory structure"
   displayName: 'Prepare deployment directory'
 
-# Install express and cors in deployment directory
+# Install server dependencies in deployment directory
 - script: |
     cd deployment
     npm init -y
-    npm install express cors --save
-    echo "Installed express and cors in deployment directory"
-  displayName: 'Install express and cors in deployment directory'
+    npm install express cors body-parser bcryptjs jsonwebtoken passport passport-jwt passport-local @prisma/client @sendgrid/mail multer zod --save
+    echo "Installed server dependencies in deployment directory"
+    ls -la node_modules
+  displayName: 'Install server dependencies in deployment directory'
 
 # Copy frontend build to deployment directory
 - script: |
@@ -85,9 +86,16 @@ steps:
             </rule>
           </rules>
         </rewrite>
-        <iisnode watchedFiles="web.config;*.js" nodeProcessCommandLine="node.exe" debuggingEnabled="false" />
+        <iisnode watchedFiles="web.config;*.js" nodeProcessCommandLine="node" debuggingEnabled="false" />
+        <httpErrors existingResponse="PassThrough" />
+        <httpProtocol>
+          <customHeaders>
+            <add name="X-Content-Type-Options" value="nosniff" />
+          </customHeaders>
+        </httpProtocol>
       </system.webServer>
     </configuration>' > deployment/web.config
+    echo "Created web.config with proper Node.js configuration"
   displayName: 'Create web.config for Azure deployment'
 
 # Create a test HTML file to verify static file serving
@@ -104,6 +112,23 @@ steps:
     ls -la deployment/dist
     echo "\n===== DEPLOYMENT NODE_MODULES ====="
     ls -la deployment/node_modules | head -n 10
+    
+    # Verify express module exists
+    if [ -d "deployment/node_modules/express" ]; then
+      echo "✓ Express module found in deployment/node_modules"
+    else
+      echo "✗ ERROR: Express module NOT found in deployment/node_modules"
+      exit 1
+    fi
+    
+    # Check server.js file
+    if [ -f "deployment/server.js" ]; then
+      echo "✓ server.js found in deployment directory"
+      head -20 deployment/server.js
+    else
+      echo "✗ ERROR: server.js NOT found in deployment directory"
+      exit 1
+    fi
   displayName: 'Verify deployment package structure'
 
 # Zip deployment package
