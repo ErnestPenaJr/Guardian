@@ -7,10 +7,41 @@ console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 // Import required modules
 try {
   console.log('Importing required modules...');
-  const express = require('express');
-  const path = require('path');
-  const fs = require('fs');
-  const cors = require('cors');
+  let express, path, fs, cors;
+  
+  try {
+    express = require('express');
+    console.log('✓ Express module loaded successfully');
+  } catch (err) {
+    console.error('✗ Failed to load Express module:', err.message);
+    console.error('Module paths:', module.paths);
+    throw new Error('Express module not found. Make sure it is installed.');
+  }
+  
+  try {
+    path = require('path');
+    console.log('✓ Path module loaded successfully');
+  } catch (err) {
+    console.error('✗ Failed to load Path module:', err.message);
+    throw new Error('Path module not found.');
+  }
+  
+  try {
+    fs = require('fs');
+    console.log('✓ FS module loaded successfully');
+  } catch (err) {
+    console.error('✗ Failed to load FS module:', err.message);
+    throw new Error('FS module not found.');
+  }
+  
+  try {
+    cors = require('cors');
+    console.log('✓ CORS module loaded successfully');
+  } catch (err) {
+    console.error('✗ Failed to load CORS module:', err.message);
+    console.error('Will continue without CORS support');
+    cors = () => (req, res, next) => next(); // Dummy middleware
+  }
   
   console.log('Successfully imported all required modules');
 
