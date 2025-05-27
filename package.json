@@ -11,7 +11,7 @@
     "build-server": "tsc -p tsconfig.server.json",
     "start-server": "node ./dist-server/index.js",
     "backend": "npm run build-server && PORT=3001 npm run start-server",
-    "start": "vite preview"
+    "start": "node server.js"
   },
   "dependencies": {
     "@ag-grid-community/client-side-row-model": "^32.2.4",
