@@ -168,6 +168,71 @@ app.get('/api/admin/secret', passport.authenticate('jwt', { session: false }), i
   res.json({ secret: 'This is admin-only data.' });
 });
 
+// --- CURRENT USER ENDPOINT ---
+app.get('/api/me', passport.authenticate('jwt', { session: false }), async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Fetch user details
+    const user = await prisma.uSERS.findUnique({
+      where: { USER_ID: userId }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Fetch user roles
+    const userRoles = await prisma.uSER_ROLES.findMany({
+      where: { USER_ID: userId }
+    });
+    
+    // Fetch role details
+    const roleIds = userRoles.map(ur => ur.ROLE_ID);
+    const roles = await prisma.rOLES.findMany({
+      where: {
+        ROLE_ID: { in: roleIds }
+      }
+    });
+    
+    // Format roles for response
+    const formattedRoles = roles.map(role => ({
+      id: role.ROLE_ID,
+      name: role.NAME,
+      displayName: role.DISPLAY_NAME
+    }));
+    
+    // Get company information if available
+    let company = null;
+    if (user.COMPANY_ID) {
+      const companyData = await prisma.cOMPANY.findUnique({
+        where: { COMPANY_ID: user.COMPANY_ID }
+      });
+      if (companyData) {
+        company = {
+          id: companyData.COMPANY_ID,
+          name: companyData.NAME
+        };
+      }
+    }
+    
+    // Return user information
+    res.json({
+      id: user.USER_ID,
+      email: user.EMAIL,
+      firstName: user.FIRST_NAME,
+      lastName: user.LAST_NAME,
+      roles: formattedRoles,
+      company,
+      createdAt: user.CREATE_DATE,
+      status: user.STATUS
+    });
+  } catch (err) {
+    console.error('[GET CURRENT USER]', err);
+    res.status(500).json({ error: 'Server error while fetching user data' });
+  }
+});
+
 // Zod schema for registration
 const registerSchema = z.object({
   email: z.string().email(),

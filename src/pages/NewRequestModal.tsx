@@ -4,6 +4,7 @@ import { FormField } from '../types/formBuilder';
 import SimpleFormBuilder from '../components/SimpleFormBuilder';
 import '../styles/FormCreationFlow.css';
 import Swal from 'sweetalert2';
+import userService, { User } from '../services/userService';
 
 // Template descriptions for user guidance
 const TEMPLATE_DESCRIPTIONS = {
@@ -36,6 +37,12 @@ interface Attachment {
   lastModified: number;
 }
 
+interface RequestMetadata {
+  requestName: string;
+  requestDescription: string;
+  assignedUserId: number | null;
+}
+
 const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialFormData }) => {
   // If initialFormData is from a template, we want to show the form to fill out, not the form builder
   const isTemplateForm = !!initialFormData;
@@ -43,6 +50,12 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
   const [saving, setSaving] = useState(false);
   const [fieldValues, setFieldValues] = useState<FieldValue[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [requestMetadata, setRequestMetadata] = useState<RequestMetadata>({
+    requestName: '',
+    requestDescription: '',
+    assignedUserId: null
+  });
   
   // Clear form values when a new form is opened
   useEffect(() => {
@@ -51,14 +64,53 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       console.log('Initial form data:', initialFormData);
       setFieldValues([]);
       setAttachments([]);
+      setRequestMetadata({
+        requestName: '',
+        requestDescription: '',
+        assignedUserId: null
+      });
       
       // Reset form data to ensure it's using the latest initialFormData
       if (initialFormData) {
         console.log(`Setting form data with type: ${initialFormData.formType}`);
         setFormData(initialFormData);
       }
+      
+      // Fetch users for the assignment dropdown
+      fetchUsers();
     }
   }, [isOpen, initialFormData]);
+  
+  // Fetch users for the assignment dropdown
+  const fetchUsers = async () => {
+    try {
+      // Try to get the current user first as a fallback
+      const currentUser = await userService.getCurrentUser();
+      
+      // Then try to get all users (requires admin/JAFAR permissions)
+      const usersList = await userService.getUsers();
+      
+      if (usersList && usersList.length > 0) {
+        setUsers(usersList);
+      } else if (currentUser) {
+        // If we couldn't get all users but have the current user, use that as fallback
+        setUsers([currentUser]);
+        
+        // Auto-select the current user
+        setRequestMetadata(prev => ({
+          ...prev,
+          assignedUserId: currentUser.id
+        }));
+      } else {
+        // If we couldn't get any users, show a warning
+        console.warn('Could not fetch users for assignment');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      // Don't show an error toast as this might confuse users
+      // Just log the error and continue with empty users list
+    }
+  };
   const [formData, setFormData] = useState(() => {
     if (initialFormData) {
       // If we have initialFormData from a template, use it
@@ -128,11 +180,12 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       // Prepare request data based on REQUEST table structure
       const requestData = {
         REQUEST_ID: null, // Will be assigned by the database
-        REQUEST_NAME: formData.name,
+        REQUEST_NAME: requestMetadata.requestName || formData.name,
+        REQUEST_DESCRIPTION: requestMetadata.requestDescription,
         EXTERNAL_USER: null, // Will be set by the server based on current user
         SUBMITTED_DATE: new Date().toISOString(),
         REQUESTOR_ID: null, // Will be set by the server based on current user
-        ASSIGNED_ID: null, // Will be assigned later in the workflow
+        ASSIGNED_ID: requestMetadata.assignedUserId, // User assigned to process this request
         STATUS: 'N', // New request
         CREATE_DATE: new Date().toISOString(),
         UPDATE_DATE: new Date().toISOString(),
@@ -278,6 +331,43 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     
     // Validate template form fields in step 2
     if (step === 2 && isTemplateForm) {
+      // Validate request name
+      if (!requestMetadata.requestName.trim()) {
+        Swal.fire({
+          title: 'Request Name Required',
+          text: 'Please enter a name for this request.',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#1a5b87'
+        });
+        return false;
+      }
+      
+      // Validate request description
+      if (!requestMetadata.requestDescription.trim()) {
+        Swal.fire({
+          title: 'Request Description Required',
+          text: 'Please enter a description for this request.',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#1a5b87'
+        });
+        return false;
+      }
+      
+      // Validate assigned user if we have users to assign to
+      if (users.length > 0 && !requestMetadata.assignedUserId) {
+        Swal.fire({
+          title: 'User Assignment Required',
+          text: 'Please assign this request to a user for processing.',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#1a5b87'
+        });
+        return false;
+      }
+      
+      // Validate required form fields
       const missingFields = formData.formFields
         .filter(field => field.required && !getFieldValue(field.id))
         .map(field => field.fieldName);
@@ -472,11 +562,67 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         {isTemplateForm ? (
           <div className="form-fill-container">
             <h4 className="form-preview-title mb-4">Form Preview</h4>
-            {/* Display template description */}
-            <div className="alert alert-info mb-4">
-              {formData.formType && TEMPLATE_DESCRIPTIONS[formData.formType as keyof typeof TEMPLATE_DESCRIPTIONS]}
-            </div>
+            {/* Template description removed */}
             <form className="form-fill">
+              {/* Request metadata fields */}
+              <div className="mb-4 form-field-container">
+                <label className="form-label">
+                  Request Name <span className="text-danger">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="Enter Request Name"
+                  value={requestMetadata.requestName}
+                  onChange={(e) => setRequestMetadata({...requestMetadata, requestName: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div className="mb-4 form-field-container">
+                <label className="form-label">
+                  Request Description <span className="text-danger">*</span>
+                </label>
+                <textarea 
+                  className="form-control" 
+                  placeholder="Enter Request Description"
+                  value={requestMetadata.requestDescription}
+                  onChange={(e) => setRequestMetadata({...requestMetadata, requestDescription: e.target.value})}
+                  required
+                  rows={3}
+                ></textarea>
+              </div>
+              
+              {users.length > 0 && (
+                <div className="mb-4 form-field-container">
+                  <label className="form-label">
+                    Assign To <span className="text-danger">*</span>
+                  </label>
+                  <select 
+                    className="form-select"
+                    value={requestMetadata.assignedUserId || ''}
+                    onChange={(e) => setRequestMetadata({...requestMetadata, assignedUserId: e.target.value ? Number(e.target.value) : null})}
+                    required
+                  >
+                    <option value="">Select User</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                  <small className="form-text text-muted">This user will be responsible for processing this request</small>
+                </div>
+              )}
+              {users.length === 0 && (
+                <div className="alert alert-warning mb-4">
+                  <strong>Note:</strong> User assignment is not available. The request will be assigned to the system administrator.
+                </div>
+              )}
+              
+              <hr className="my-4" />
+              <h5 className="mb-3">Form Fields</h5>
+              
               {formData.formFields.map((field, index) => (
                 <div key={field.id || index} className="mb-4 form-field-container">
                   <label className="form-label">
