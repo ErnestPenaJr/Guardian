@@ -1,0 +1,112 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
+
+# Install and build frontend
+- script: |
+    npm install
+    npm run build
+    echo "Frontend build completed. Listing dist directory contents:"
+    ls -la dist
+  displayName: 'Install and build frontend'
+
+# Prepare deployment directory
+- script: |
+    mkdir -p deployment
+    echo "Creating deployment directory structure"
+  displayName: 'Prepare deployment directory'
+
+# Copy frontend build to deployment directory
+- script: |
+    echo "Copying frontend build to deployment/dist"
+    cp -r dist deployment/
+    ls -la deployment/dist
+  displayName: 'Copy frontend build to deployment'
+
+# Copy server.js to deployment root
+- script: |
+    echo "Copying server.js to deployment root"
+    cp server.js deployment/
+  displayName: 'Copy server.js to deployment'
+
+# Copy package.json for deployment
+- script: |
+    echo "Copying deployment-package.json to deployment/package.json"
+    cp deployment-package.json deployment/package.json
+    cat deployment/package.json
+  displayName: 'Copy package.json for deployment'
+
+# Install server dependencies in deployment directory
+- script: |
+    cd deployment
+    npm install
+    echo "Installed server dependencies in deployment directory"
+    ls -la node_modules
+  displayName: 'Install server dependencies in deployment directory'
+
+# Create web.config for Azure
+- script: |
+    cd deployment
+    echo '<?xml version="1.0" encoding="utf-8"?>
+    <configuration>
+      <system.webServer>
+        <handlers>
+          <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+        </handlers>
+        <rewrite>
+          <rules>
+            <rule name="DynamicContent">
+              <match url="/*" />
+              <action type="Rewrite" url="server.js" />
+            </rule>
+          </rules>
+        </rewrite>
+        <iisnode watchedFiles="web.config;*.js" />
+      </system.webServer>
+    </configuration>' > web.config
+    cat web.config
+  displayName: 'Create web.config for Azure'
+
+# Create .deployment file
+- script: |
+    cd deployment
+    echo '[config]
+    SCM_DO_BUILD_DURING_DEPLOYMENT=true' > .deployment
+    cat .deployment
+  displayName: 'Create .deployment file'
+
+# Zip the deployment package
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)/deployment'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
+    replaceExistingArchive: true
+  displayName: 'Create deployment package'
+
+# Publish the deployment package
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
+    ArtifactName: 'guardian-app'
+    publishLocation: 'Container'
+  displayName: 'Publish deployment package'
+
+# Deploy to Azure Web App
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
+    appType: 'webAppLinux'
+    appName: 'GUARDIAN-DEV'
+    package: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
+    startUpCommand: 'npm start'
+  displayName: 'Deploy to Azure Web App'
