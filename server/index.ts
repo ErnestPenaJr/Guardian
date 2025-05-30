@@ -15,6 +15,7 @@ import externalRoutes from './routes/external.js';
 import endpointViewerRoutes from './routes/endpoint-viewer.js';
 import fieldsRoutes from './routes/fields.js';
 import fieldTypesRoutes from './routes/field-types.js';
+import requestsRoutes from './routes/requests.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -2018,6 +2019,9 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
 });
 
 app.use('/api/external', externalRoutes);
+
+// Register requests routes
+requestsRoutes(app);
 
 // For all other routes, serve the index.html file (for SPA routing)
 app.get('*', (req, res) => {

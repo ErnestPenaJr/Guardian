@@ -14,6 +14,7 @@ import formsRoutes from './routes/forms.js';
 import externalRoutes from './routes/external.js';
 import endpointViewerRoutes from './routes/endpoint-viewer.js';
 import fieldsRoutes from './routes/fields.js';
+import requestsRoutes from './routes/requests.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
@@ -1875,6 +1876,8 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
     }
 });
 app.use('/api/external', externalRoutes);
+// Register requests routes
+requestsRoutes(app);
 // For all other routes, serve the index.html file (for SPA routing)
 app.get('*', (req, res) => {
     res.sendFile(join(distPath, 'index.html'));

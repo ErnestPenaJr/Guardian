@@ -320,18 +320,7 @@ const RequestDashboard: React.FC = () => {
           </button>
         )}
 
-        {hasCreateRequestAccess && (
-          <button
-            className="btn btn-primary ms-3"
-            style={{ minWidth: 140 }}
-            onClick={() => {
-              setFormData(null);
-              setShowSelectFormModal(true);
-            }}
-          >
-            + Create Request
-          </button>
-        )}
+        {/* Create Request button removed as requested */}
 
         <input
           type="text"
@@ -443,13 +432,45 @@ const RequestDashboard: React.FC = () => {
         onClose={() => setShowAddRequestModal(false)}
         onSubmit={async (requestData) => {
           try {
-            // Submit the request to the API
-            const response = await api.post('/requests', requestData);
+            console.log('Submitting request data:', requestData);
             
-            // Refresh the requests list
-            fetchRequests();
-            
-            return response.data;
+            // Use the simple-request endpoint which has the most reliable implementation
+            try {
+              console.log('Using simple-request endpoint...');
+              const simpleResponse = await api.post('/simple-request', requestData);
+              console.log('simple-request endpoint success:', simpleResponse.data);
+              
+              // Refresh the requests list
+              fetchRequests();
+              
+              return simpleResponse.data;
+            } catch (simpleError) {
+              console.error('simple-request endpoint failed:', simpleError);
+              
+              // Fall back to the SQL endpoint
+              try {
+                console.log('Falling back to SQL endpoint...');
+                const sqlResponse = await api.post('/sql-request', requestData);
+                console.log('SQL endpoint success:', sqlResponse.data);
+                
+                // Refresh the requests list
+                fetchRequests();
+                
+                return sqlResponse.data;
+              } catch (sqlError) {
+                console.error('SQL endpoint failed:', sqlError);
+                
+                // Last resort: try the standard endpoint
+                console.log('Falling back to standard endpoint...');
+                const response = await api.post('/requests', requestData);
+                console.log('Standard endpoint success:', response.data);
+                
+                // Refresh the requests list
+                fetchRequests();
+                
+                return response.data;
+              }
+            }
           } catch (error: any) {
             console.error('Error submitting request:', error);
             toast.error(error.response?.data?.error || error.message || 'Failed to submit request');
