@@ -121,10 +121,14 @@ const RequestDashboard: React.FC = () => {
   // Define table columns
   const columns: TableColumn<Request>[] = [
     { 
-      name: 'Request ID', 
-      selector: row => row.REQUEST_ID,
+      name: 'Tracking ID', 
+      selector: row => row.TRACKINGID || `REQ-${row.REQUEST_ID}`,
       sortable: true,
-      width: '120px'
+      width: '200px',
+      cell: row => {
+        const trackingId = row.TRACKINGID || `REQ-${row.REQUEST_ID}`;
+        return <div style={{ overflow: 'visible', whiteSpace: 'normal' }}>{trackingId}</div>;
+      }
     },
     { 
       name: 'Request Name', 
@@ -197,7 +201,9 @@ const RequestDashboard: React.FC = () => {
             className="btn btn-sm btn-outline-primary"
             onClick={() => {
               // View request details
-              window.location.href = `/request/${row.REQUEST_ID}`;
+              // Use TRACKINGID in URL when available, otherwise use REQUEST_ID
+              const requestIdentifier = row.TRACKINGID || row.REQUEST_ID;
+              window.location.href = `/request/${requestIdentifier}`;
             }}
           >
             View
