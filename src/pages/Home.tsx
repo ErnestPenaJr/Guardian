@@ -60,7 +60,16 @@ const requestColumns = [
     name: 'Request ID',
     selector: (row: Request) => row.TRACKINGID || 'N/A',
     sortable: true,
-    width: '120px',
+    width: '300px',
+    wrap: true, // Enable text wrapping
+    cell: (row: Request) => {
+      const trackingId = row.TRACKINGID || 'N/A';
+      return (
+        <div className="tracking-id-cell">
+          {trackingId}
+        </div>
+      );
+    }
   },
   {
     name: 'Type',
@@ -759,8 +768,18 @@ function Home() {
                             borderRadius: '8px',
                             overflow: 'hidden',
                             border: '1px solid #e2e8f0',
+                            width: '100%',
                           },
                         },
+                        cells: {
+                          style: {
+                            paddingLeft: '8px',
+                            paddingRight: '8px',
+                            overflow: 'visible',
+                            whiteSpace: 'normal',
+                          },
+                        },
+
                         header: {
                           style: {
                             padding: '0',
@@ -790,6 +809,7 @@ function Home() {
                             paddingRight: '16px',
                             paddingTop: '12px',
                             paddingBottom: '12px',
+                            fontWeight: 'bold',
                           },
                         },
                         rows: {
@@ -805,9 +825,7 @@ function Home() {
                               cursor: 'pointer',
                             },
                           },
-                          highlightOnHoverStyle: {
-                            backgroundColor: '#f1f5f9',
-                          },
+                          // Removed duplicate highlightOnHoverStyle
                         },
                         cells: {
                           style: {
@@ -815,6 +833,8 @@ function Home() {
                             paddingRight: '16px',
                             paddingTop: '12px',
                             paddingBottom: '12px',
+                            overflow: 'visible',
+                            whiteSpace: 'normal',
                           },
                         },
                         pagination: {

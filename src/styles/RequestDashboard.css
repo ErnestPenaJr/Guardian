@@ -143,6 +143,19 @@
   background: #e5e7eb;
 }
 
+/* Tracking ID cell styles */
+.tracking-id-cell {
+  overflow: visible !important;
+  white-space: normal !important;
+  font-weight: bold;
+  padding: 4px 0;
+  font-size: 0.95rem;
+  word-break: break-all;
+  width: 100%;
+  max-width: 350px;
+  text-overflow: clip !important;
+}
+
 /* Modal overlay and content styles for react-modal */
 .modal-overlay {
   position: fixed !important;

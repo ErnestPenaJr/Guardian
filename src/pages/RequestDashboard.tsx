@@ -124,10 +124,15 @@ const RequestDashboard: React.FC = () => {
       name: 'Tracking ID', 
       selector: row => row.TRACKINGID || `REQ-${row.REQUEST_ID}`,
       sortable: true,
-      width: '200px',
+      width: '300px', // Use width instead of minWidth/maxWidth
+      wrap: true, // Enable text wrapping
       cell: row => {
         const trackingId = row.TRACKINGID || `REQ-${row.REQUEST_ID}`;
-        return <div style={{ overflow: 'visible', whiteSpace: 'normal' }}>{trackingId}</div>;
+        return (
+          <div className="tracking-id-cell">
+            {trackingId}
+          </div>
+        );
       }
     },
     { 
@@ -365,6 +370,7 @@ const RequestDashboard: React.FC = () => {
         </div>
       )}
       
+      {/* Custom styles for DataTable */}
       <DataTable
         columns={columns}
         data={filteredRequests}
@@ -377,6 +383,28 @@ const RequestDashboard: React.FC = () => {
         striped
         defaultSortFieldId={1}
         defaultSortAsc={false}
+        customStyles={{
+          table: {
+            style: {
+              width: '100%',
+            },
+          },
+          cells: {
+            style: {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              overflow: 'visible',
+              whiteSpace: 'normal',
+            },
+          },
+          headCells: {
+            style: {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              fontWeight: 'bold',
+            },
+          },
+        }}
         noDataComponent={
           <div className="p-4 text-center">
             {error ? (
