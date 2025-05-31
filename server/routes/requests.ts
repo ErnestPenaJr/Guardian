@@ -872,7 +872,7 @@ router.get('/', async (req: Request, res: Response) => {
     try {
       // Use raw SQL query to get all active requests
       const requests = await prisma.$queryRaw`
-        SELECT * FROM ${DB_SCHEMA}.REQUESTS 
+        SELECT * FROM GUARDIAN.REQUESTS 
         WHERE STATUS <> 'D' 
         ORDER BY CREATE_DATE DESC
       `;
@@ -891,7 +891,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     try {
       // Use raw SQL query to get a specific request
       const requests = await prisma.$queryRaw`
-        SELECT * FROM ${DB_SCHEMA}.REQUESTS 
+        SELECT * FROM GUARDIAN.REQUESTS 
         WHERE REQUEST_ID = ${requestId} 
         AND STATUS <> 'D'
       `;

@@ -28,6 +28,7 @@
 - Converted requests routes to use Express Router pattern to fix 'app.post is not a function' error
 - Resolved merge conflicts in server/index.ts, prisma/schema.prisma, dist-server/index.js, and dist/index.html
 - Fixed route registration for requestsRoutes in server/index.ts
+- Fixed SQL syntax error in requests.ts GET endpoints by hardcoding schema name instead of using string interpolation
 
 ## [0.1.0] - 2025-05-23
 
