@@ -142,20 +142,40 @@ const RequestDashboard: React.FC = () => {
       sortable: true, 
       cell: row => {
         let statusClass = '';
-        switch(row.STATUS?.toLowerCase()) {
+        let statusText = '';
+        
+        // Determine badge color and text based on status code
+        switch(row.STATUS) {
+          case 'A':
+            statusClass = 'bg-success'; // Green for Approved
+            statusText = 'Approved';
+            break;
+          case 'P':
+            statusClass = 'bg-warning'; // Yellow for Pending
+            statusText = 'Pending';
+            break;
+          case 'I':
+            statusClass = 'bg-primary'; // Blue for In Progress
+            statusText = 'In Progress';
+            break;
           case 'pending':
             statusClass = 'bg-warning';
+            statusText = 'Pending';
             break;
           case 'approved':
             statusClass = 'bg-success';
+            statusText = 'Approved';
             break;
           case 'rejected':
             statusClass = 'bg-danger';
+            statusText = 'Rejected';
             break;
           default:
             statusClass = 'bg-secondary';
+            statusText = row.STATUS;
         }
-        return <span className={`badge ${statusClass}`}>{row.STATUS}</span>;
+        
+        return <span className={`badge ${statusClass}`}>{statusText}</span>;
       },
       width: '130px'
     },
