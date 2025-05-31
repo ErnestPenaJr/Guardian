@@ -646,9 +646,9 @@ function Home() {
           // Dashboard Overview
           <div className="container">
             <h1 className="text-2xl font-bold uppercase fs-2 mb-8">HOME</h1>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 gap-y-10 md:gap-y-14 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 gap-y-10 md:gap-y-14">
               {/* Request Overview Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-3 md:p-4 w-full flex flex-col items-center justify-center`} data-component-name="Home">
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-3 md:p-4 flex flex-col items-center justify-center`} data-component-name="Home">
                 <h2 className="text-sm md:text-base font-semibold mb-2 md:mb-3 text-center">Request Overview</h2>
                 <div className="flex flex-col items-center justify-center">
                   <div className="w-28 h-28 md:w-40 md:h-40 flex items-center justify-center relative" data-component-name="Home">

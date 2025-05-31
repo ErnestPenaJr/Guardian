@@ -17,15 +17,25 @@ import '../styles/ag-grid-custom.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const AdminFormsGroups: React.FC = () => {
+interface AdminFormsGroupsProps {
+  isInModal?: boolean;
+  onModalClose?: () => void;
+}
+
+const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, onModalClose }) => {
+  // Use onModalClose when needed (for example, when closing the form after successful operations)
+  const handleSuccessOperation = () => {
+    if (isInModal && onModalClose) {
+      onModalClose();
+    }
+  };
+  
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   // State for groups and loading indicator
   const [groups, setGroups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [authToken, setAuthToken] = useState<string | null>(null);
   const [authHeaders, setAuthHeaders] = useState<{[key: string]: string}>({});
   
   // State for search/filter functionality
@@ -49,7 +59,6 @@ const AdminFormsGroups: React.FC = () => {
 
   // Reference to the AG Grid API
   const gridRef = useRef<AgGridReact>(null);
-  const [gridApi, setGridApi] = useState<GridApi | null>(null);
 
   // Custom cell renderer for boolean values
   const BooleanCellRenderer = (props: any) => {
@@ -136,7 +145,7 @@ const AdminFormsGroups: React.FC = () => {
       }
     },
     {
-      field: 'ORGANIZATION_ID',
+      field: 'ORGANIZATION_NAME',
       headerName: 'Organization',
       sortable: true,
       filter: true,
@@ -146,12 +155,6 @@ const AdminFormsGroups: React.FC = () => {
       filterParams: {
         buttons: ['reset', 'apply'],
         closeOnApply: true
-      },
-      valueGetter: (params: any) => {
-        if (params.data.ORGANIZATIONS && typeof params.data.ORGANIZATIONS === 'object') {
-          return params.data.ORGANIZATIONS.COMPANY_NAME;
-        }
-        return params.data.ORGANIZATION_ID;
       }
     },
     {
@@ -160,9 +163,9 @@ const AdminFormsGroups: React.FC = () => {
       sortable: true,
       filter: true,
       width: 120,
-      cellRenderer: BooleanCellRenderer,
       headerClass: 'ag-header-cell-centered',
       cellClass: 'ag-cell-centered',
+      cellRenderer: BooleanCellRenderer,
       filterParams: {
         buttons: ['reset', 'apply'],
         closeOnApply: true
@@ -183,40 +186,20 @@ const AdminFormsGroups: React.FC = () => {
     },
     {
       headerName: 'Actions',
-      width: 120,
+      width: 150,
       cellRenderer: ActionsCellRenderer,
       headerClass: 'ag-header-cell-centered',
       cellClass: 'ag-cell-centered',
       sortable: false,
       filter: false
     }
-  ], []);
+  ], [navigate]);
 
-  // Fetch groups from API
-  const fetchGroups = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get('/api/forms-groups', { headers: authHeaders });
-      setGroups(response.data);
-      setFilteredGroups(response.data);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-      toast.error('Failed to load groups. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [authHeaders]);
-
-  // Fetch organizations from API
-  const fetchOrganizations = useCallback(async () => {
-    try {
-      const response = await axios.get('/api/organizations', { headers: authHeaders });
-      setOrganizations(response.data);
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
-      toast.error('Failed to load organizations. Please try again.');
-    }
-  }, [authHeaders]);
+  // Default column definitions
+  const defaultColDef = useMemo(() => ({
+    resizable: true,
+    suppressMovable: true
+  }), []);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,68 +208,134 @@ const AdminFormsGroups: React.FC = () => {
 
   // Filter groups based on search term
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      // If search term is empty, show all groups
+    if (searchTerm.trim() === '') {
       setFilteredGroups(groups);
     } else {
-      // Filter groups based on search term (case-insensitive)
+      const lowercaseSearch = searchTerm.toLowerCase();
       const filtered = groups.filter(group => 
-        group.GROUP_NAME?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        group.GROUP_DESCRIPTION?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (group.ORGANIZATIONS?.COMPANY_NAME || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (group.GROUP_NAME && group.GROUP_NAME.toLowerCase().includes(lowercaseSearch)) ||
+        (group.GROUP_DESCRIPTION && group.GROUP_DESCRIPTION.toLowerCase().includes(lowercaseSearch)) ||
+        (group.ORGANIZATION_NAME && group.ORGANIZATION_NAME.toLowerCase().includes(lowercaseSearch))
       );
       setFilteredGroups(filtered);
     }
-  }, [groups, searchTerm]);
+  }, [searchTerm, groups]);
 
-  // Handle form input changes
+  // Handle form input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as HTMLInputElement;
+    const { name, value, type } = e.target;
     
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (name === 'ORGANIZATION_ID') {
-      setFormData(prev => ({ ...prev, [name]: value === '' ? null : value }));
-    } else if (name === 'SORT_ORDER') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
+  // Handle checkbox change
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  // Close modal and reset form
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setCurrentGroup(null);
+    setFormData({
+      GROUP_NAME: '',
+      GROUP_DESCRIPTION: '',
+      SORT_ORDER: 0,
+      IS_PUBLIC: false,
+      ORGANIZATION_ID: null
+    });
+  };
+
+  // Fetch groups from API
+  const fetchGroups = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get('/api/forms-groups', { headers: authHeaders });
+      console.log('Fetched groups:', response.data);
+      setGroups(response.data);
+      setFilteredGroups(response.data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      toast.error('Failed to load groups. Please try again.');
+      setIsLoading(false);
+    }
+  }, [authHeaders]);
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted', { formData });
     
-    if (!formData.GROUP_NAME.trim()) {
-      toast.error('Group name is required');
-      return;
-    }
-
     try {
-      console.log('Attempting to save group', currentGroup ? 'update' : 'create');
       if (currentGroup) {
         // Update existing group
         console.log('Updating group with ID:', currentGroup.GROUP_ID);
         const response = await axios.put(`/api/forms-groups/${currentGroup.GROUP_ID}`, formData, { headers: authHeaders });
         console.log('Update response:', response.data);
-        toast.success('Group updated successfully');
+        handleUpdateSuccess(response.data);
       } else {
         // Create new group
         console.log('Creating new group with data:', formData);
         const response = await axios.post('/api/forms-groups', formData, { headers: authHeaders });
         console.log('Create response:', response.data);
-        toast.success('Group created successfully');
+        handleCreateSuccess(response.data);
       }
-      
-      // Close modal and refresh data
-      closeModal();
-      fetchGroups();
     } catch (error) {
       console.error('Error saving group:', error);
       toast.error('Failed to save group. Please try again.');
+    }
+  };
+
+  // Handle successful group update
+  const handleUpdateSuccess = (updatedGroup: any) => {
+    setGroups(prevGroups => prevGroups.map(group => 
+      group.GROUP_ID === updatedGroup.GROUP_ID ? updatedGroup : group
+    ));
+    setIsModalOpen(false);
+    setCurrentGroup(null);
+    toast.success('Group updated successfully!');
+    
+    // Use the onModalClose prop if we're in a modal and operation was successful
+    if (isInModal && onModalClose) {
+      handleSuccessOperation();
+    }
+  };
+
+  // Handle successful group creation
+  const handleCreateSuccess = (newGroup: any) => {
+    setGroups(prevGroups => [...prevGroups, newGroup]);
+    setIsModalOpen(false);
+    setFormData({
+      GROUP_NAME: '',
+      GROUP_DESCRIPTION: '',
+      SORT_ORDER: 0,
+      IS_PUBLIC: false,
+      ORGANIZATION_ID: null
+    });
+    toast.success('Group created successfully!');
+    
+    // Use the onModalClose prop if we're in a modal and operation was successful
+    if (isInModal && onModalClose) {
+      handleSuccessOperation();
+    }
+  };
+
+  // Handle successful group deletion
+  const handleDeleteSuccess = () => {
+    setGroups(prevGroups => prevGroups.filter(group => group.GROUP_ID !== groupToDelete?.GROUP_ID));
+    setIsConfirmModalOpen(false);
+    setGroupToDelete(null);
+    toast.success('Group deleted successfully!');
+    
+    // Use the onModalClose prop if we're in a modal and operation was successful
+    if (isInModal && onModalClose) {
+      handleSuccessOperation();
     }
   };
 
@@ -310,7 +359,7 @@ const AdminFormsGroups: React.FC = () => {
       GROUP_NAME: group.GROUP_NAME || '',
       GROUP_DESCRIPTION: group.GROUP_DESCRIPTION || '',
       SORT_ORDER: group.SORT_ORDER || 0,
-      IS_PUBLIC: group.IS_PUBLIC || false,
+      IS_PUBLIC: group.IS_PUBLIC === 1,
       ORGANIZATION_ID: group.ORGANIZATION_ID || null
     });
     setIsModalOpen(true);
@@ -328,54 +377,33 @@ const AdminFormsGroups: React.FC = () => {
       console.error('No group selected for deletion');
       return;
     }
-    
-    console.log('Attempting to delete group:', groupToDelete);
-    console.log('Using auth headers:', authHeaders);
-    
+
     try {
       const response = await axios.delete(`/api/forms-groups/${groupToDelete.GROUP_ID}`, { headers: authHeaders });
       console.log('Delete response:', response.data);
-      toast.success('Group deleted successfully');
-      setIsConfirmModalOpen(false);
-      fetchGroups();
+      handleDeleteSuccess();
     } catch (error) {
       console.error('Error deleting group:', error);
       toast.error('Failed to delete group. Please try again.');
     }
   };
 
-  // Close modal
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
-
-  // Handle grid ready event
-  const onGridReady = useCallback((params: GridReadyEvent) => {
-    setGridApi(params.api);
-    params.api.sizeColumnsToFit();
-  }, []);
-
-  // Initialize auth token once when component mounts
+  // Set up authentication headers when component mounts
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      setAuthToken(token);
       setAuthHeaders({
         'Authorization': `Bearer ${token}`
       });
-    } else {
-      console.error('No authentication token found');
-      toast.error('Authentication required. Please log in again.');
     }
   }, []);
 
-  // Fetch groups and organizations when auth headers are set
+  // Fetch data when component mounts or auth headers change
   useEffect(() => {
     if (Object.keys(authHeaders).length > 0) {
       fetchGroups();
-      fetchOrganizations();
     }
-  }, [authHeaders, fetchGroups, fetchOrganizations]);
+  }, [authHeaders, fetchGroups]);
 
   // Redirect if not authenticated or not admin
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -388,199 +416,169 @@ const AdminFormsGroups: React.FC = () => {
   if (!isAdmin) return <Navigate to="/home" />;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex justify-between items-center py-6">
-          <div className="flex items-center">
+    <div className="container mx-auto px-4 py-2">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center">
+          {!isInModal && (
             <button
+              className="mr-4 text-blue-600 hover:text-blue-800 transition-colors"
               onClick={() => navigate('/admin')}
-              className="mr-4 p-2 rounded-full hover:bg-gray-200 transition"
             >
-              <FaArrowLeft className="text-gray-600" />
+              <FaArrowLeft size={20} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Form Groups Management</h1>
-          </div>
+          )}
+          <h1 className="text-2xl font-bold">Form Groups Management</h1>
         </div>
-
-        {/* Content */}
-        <div className="bg-white shadow rounded-lg p-6">
-          {/* Grid header with search filter and Add button */}
-          <div className="flex items-center mb-6 gap-4">
-            {/* Left side: Header */}
-            <h2 className="text-lg font-semibold text-gray-800 whitespace-nowrap">Form Group Definitions</h2>
-            
-            {/* Middle: Search filter */}
-            <div className="flex-grow relative flex justify-center items-center">
-              <input
-                type="text"
-                placeholder="Filter..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-w-[300px]"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-            
-            {/* Right side: Add button */}
-            <button
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary whitespace-nowrap"
-              style={{ backgroundColor: '#2EBCBC' }}
-              onClick={handleAddNew}
-            >
-              <FaPlus className="mr-2" /> Add New Group
-            </button>
+      </div>
+      
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center mb-6 gap-4">
+          {/* Left side: Header */}
+          <h2 className="text-lg font-semibold text-gray-800 whitespace-nowrap">Form Group Definitions</h2>
+          
+          {/* Middle: Search filter */}
+          <div className="flex-grow relative flex justify-center items-center">
+            <input
+              type="text"
+              placeholder="Filter..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-w-[300px]"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            )}
           </div>
           
-          {/* Show search result count when filtering */}
-          {searchTerm && (
-            <div className="mb-2 text-sm text-gray-600">
-              Found {filteredGroups.length} {filteredGroups.length === 1 ? 'result' : 'results'}
-              {filteredGroups.length === 0 && searchTerm && (
-                <span> for "{searchTerm}". <button onClick={() => setSearchTerm('')} className="text-primary hover:underline">Clear search</button></span>
-              )}
-            </div>
-          )}
-
-          {/* AG Grid */}
+          {/* Right side: Add button */}
+          <button
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary whitespace-nowrap"
+            style={{ backgroundColor: '#2EBCBC' }}
+            onClick={handleAddNew}
+          >
+            <FaPlus className="mr-2" /> Add New Group
+          </button>
+        </div>
+        
+        {/* Show search result count when filtering */}
+        {searchTerm && (
+          <div className="mb-4 text-sm text-gray-600">
+            Found {filteredGroups.length} {filteredGroups.length === 1 ? 'result' : 'results'} for "{searchTerm}"
+          </div>
+        )}
+        
+        {/* AG Grid for displaying groups */}
+        <div 
+          className="ag-theme-alpine w-full" 
+          style={{ height: '500px' }}
+        >
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-            </div>
-          ) : filteredGroups.length === 0 && !searchTerm ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No form groups found. Add your first group to get started.</p>
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <div className="ag-theme-alpine w-full" style={{ height: '600px' }}>
-              <AgGridReact
-                ref={gridRef}
-                pagination={true}
-                paginationPageSize={10}
-                paginationAutoPageSize={false}
-                paginationPageSizeSelector={[10, 25, 50, 100]}
-                headerHeight={48}
-                rowHeight={40}
-                rowData={filteredGroups}
-                columnDefs={columnDefs}
-                defaultColDef={{
-                  flex: 1,
-                  minWidth: 100,
-                  filter: true,
-                  sortable: true,
-                  resizable: true
-                }}
-                onGridReady={onGridReady}
-              />
-            </div>
+            <AgGridReact
+              ref={gridRef}
+              rowData={filteredGroups}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              animateRows={true}
+              rowSelection="single"
+              pagination={true}
+              paginationPageSize={10}
+              suppressCellFocus={true}
+              suppressRowClickSelection={true}
+              overlayNoRowsTemplate="No groups found"
+            />
           )}
         </div>
       </div>
 
-      {/* Modal for Add/Edit */}
+      {/* Modal for Add/Edit Group */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`bg-white rounded-lg shadow-xl ${currentGroup ? 'max-w-6xl' : 'max-w-md'} w-full`}>
-            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                {currentGroup ? 'Edit Form Group' : 'Add New Form Group'}
-              </h3>
+        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-semibold">
+                {currentGroup ? 'Edit Group' : 'Add New Group'}
+              </h2>
+              <button
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700 bg-transparent border-none p-2 rounded-full hover:bg-gray-100 transition"
+              >
+                <FaTimes size={20} />
+              </button>
             </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className={`${currentGroup ? 'flex flex-col md:flex-row gap-6' : ''}`}>
-                <form onSubmit={handleSubmit} className={`${currentGroup ? 'md:w-1/3' : 'w-full'}`}>
-                  <div className="space-y-4">
-                  {/* Group Name */}
+            
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Form on the left side */}
+                <form onSubmit={handleSubmit} className="md:w-1/2 space-y-4">
                   <div>
-                    <label htmlFor="groupName" className="block text-sm font-medium text-gray-700 mb-1">Group Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Group Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      id="groupName"
                       name="GROUP_NAME"
                       value={formData.GROUP_NAME}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Enter group name"
                       required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
-
-                  {/* Description */}
+                  
                   <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
                     <textarea
-                      id="description"
                       name="GROUP_DESCRIPTION"
                       value={formData.GROUP_DESCRIPTION || ''}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Enter description"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
-
-                  {/* Organization */}
-                  {/* <div>
-                    <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
-                    <select
-                      id="organization"
-                      name="ORGANIZATION_ID"
-                      value={formData.ORGANIZATION_ID || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">Select an organization</option>
-                      {organizations.map(org => (
-                        <option key={org.ORGANIZATION_ID} value={org.ORGANIZATION_ID}>
-                          {org.COMPANY_NAME}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
-
-                  {/* Sort Order */}
+                  
                   <div>
-                    <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Sort Order
+                    </label>
                     <input
                       type="number"
-                      id="sortOrder"
                       name="SORT_ORDER"
                       value={formData.SORT_ORDER}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Enter sort order"
-                      min="0"
+                      min={0}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
-
-                  {/* Is Public */}
+                  
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      id="isPublic"
+                      id="IS_PUBLIC"
                       name="IS_PUBLIC"
                       checked={formData.IS_PUBLIC}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      onChange={handleCheckboxChange}
+                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                     />
-                    <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-900">
-                      Is Public
+                    <label htmlFor="IS_PUBLIC" className="ml-2 block text-sm text-gray-700">
+                      Public
                     </label>
                   </div>
                   
-                  {/* Modal Footer */}
-                  <div className="mt-5 sm:mt-6 flex justify-end space-x-3">
+                  <div className="pt-4 flex justify-end space-x-3">
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     >
                       Cancel
                     </button>
@@ -588,15 +586,14 @@ const AdminFormsGroups: React.FC = () => {
                       type="submit"
                       className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     >
-                      {currentGroup ? 'Update Group' : 'Add Group'}
+                      {currentGroup ? 'Update' : 'Create'}
                     </button>
-                  </div>
                   </div>
                 </form>
                 
                 {/* Show AdminFormGroupFields component on the right side when editing a group */}
                 {currentGroup && (
-                  <div className="md:w-2/3 border-l border-gray-200 pl-6">
+                  <div className="md:w-1/2 border-l border-gray-200 pl-6">
                     <AdminFormGroupFields groupId={currentGroup.GROUP_ID} />
                   </div>
                 )}

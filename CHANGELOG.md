@@ -29,6 +29,9 @@
 - Resolved merge conflicts in server/index.ts, prisma/schema.prisma, dist-server/index.js, and dist/index.html
 - Fixed route registration for requestsRoutes in server/index.ts
 - Fixed SQL syntax error in requests.ts GET endpoints by hardcoding schema name instead of using string interpolation
+- Fixed Prisma model usage in `server/routes/forms-groups.ts` by replacing non-existent model references with raw SQL queries
+- Added proper TypeScript interfaces and type assertions for raw SQL query results in forms-groups routes
+- Updated all CRUD operations in forms-groups routes to use Prisma's $queryRaw for consistent database access
 
 ## [0.1.0] - 2025-05-23
 

@@ -5,6 +5,7 @@ import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icon
 import Modal from 'react-modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
 import NewRequestModal from '../pages/NewRequestModal';
+import AdminFormsGroupsModal from '../components/AdminFormsGroupsModal';
 import formService from '../services/formService';
 import { toast } from 'react-toastify';
 
@@ -18,6 +19,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   const [enhancedFormBuilderModalOpen, setEnhancedFormBuilderModalOpen] = useState(false);
   const [enhancedFormFields, setEnhancedFormFields] = useState<any[]>([]);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
+  const [formsGroupsModalOpen, setFormsGroupsModalOpen] = useState(false);
   
   // Handle enhanced form field changes
   const handleEnhancedFormFieldsChange = (updatedFields: any) => {
@@ -108,7 +110,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = '/admin-forms-groups';
+                setFormsGroupsModalOpen(true);
               }}
             >
               Manage Field Groups
@@ -229,6 +231,12 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         isOpen={newRequestModalOpen}
         onClose={() => setNewRequestModalOpen(false)}
         onSave={handleSaveForm}
+      />
+      
+      {/* Forms Groups Modal */}
+      <AdminFormsGroupsModal
+        isOpen={formsGroupsModalOpen}
+        onClose={() => setFormsGroupsModalOpen(false)}
       />
     </div>
   );
