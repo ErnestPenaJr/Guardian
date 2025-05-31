@@ -36,23 +36,14 @@ router.get('/workflow/items', isProcessor, filterToProcessorGroup, async (req, r
     const workflowItems = await prisma.rEQUESTS.findMany({
       where: whereClause,
       orderBy: { SUBMITTED_DATE: 'desc' },
-      include: {
-        requestor: {
-          select: {
-            USER_ID: true,
-            FIRST_NAME: true,
-            LAST_NAME: true,
-            EMAIL: true
-          }
-        },
-        assigned: {
-          select: {
-            USER_ID: true,
-            FIRST_NAME: true,
-            LAST_NAME: true,
-            EMAIL: true
-          }
-        }
+      select: {
+        REQUEST_ID: true,
+        REQUEST_NAME: true,
+        SUBMITTED_DATE: true,
+        STATUS: true,
+        REQUESTOR_ID: true,
+        ASSIGNED_ID: true,
+        TRACKINGID: true
       }
     });
     
@@ -64,8 +55,8 @@ router.get('/workflow/items', isProcessor, filterToProcessorGroup, async (req, r
       STATUS: item.STATUS,
       REQUESTOR_ID: item.REQUESTOR_ID,
       ASSIGNED_ID: item.ASSIGNED_ID,
-      REQUESTOR_NAME: item.requestor ? `${item.requestor.FIRST_NAME} ${item.requestor.LAST_NAME}` : null,
-      ASSIGNED_NAME: item.assigned ? `${item.assigned.FIRST_NAME} ${item.assigned.LAST_NAME}` : null,
+      REQUESTOR_NAME: item.REQUESTOR_ID ? `User ID: ${item.REQUESTOR_ID}` : null,
+      ASSIGNED_NAME: item.ASSIGNED_ID ? `User ID: ${item.ASSIGNED_ID}` : null,
       TRACKINGID: item.TRACKINGID
     }));
     

@@ -243,4 +243,44 @@ router.post('/:id/lookups', requireAuth, async (req, res) => {
   }
 });
 
+// Delete a field (requires authentication)
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fieldId = parseInt(id);
+    
+    // Check if field exists
+    const field = await prisma.fIELDS.findUnique({
+      where: {
+        FIELD_ID: fieldId
+      }
+    });
+    
+    if (!field) {
+      return res.status(404).json({ error: 'Field not found' });
+    }
+
+    // First delete any lookup values associated with this field
+    if (field.HAS_LOOKUP) {
+      await prisma.fIELDS_LOOKUP.deleteMany({
+        where: {
+          FIELD_ID: fieldId
+        }
+      });
+    }
+    
+    // Then delete the field
+    await prisma.fIELDS.delete({
+      where: {
+        FIELD_ID: fieldId
+      }
+    });
+    
+    res.json({ message: 'Field deleted successfully' });
+  } catch (error) {
+    console.error(`Error deleting field ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Failed to delete field' });
+  }
+});
+
 export default router;

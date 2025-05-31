@@ -98,10 +98,20 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                setEnhancedFormBuilderModalOpen(true);
+                window.location.href = '/admin-fields';
               }}
             >
-              Manage Field Types
+              Manage Fields
+            </li>
+            <li 
+              data-component-name="AdminDashboard"
+              className="cursor-pointer hover:text-secondary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = '/admin-forms-groups';
+              }}
+            >
+              Manage Field Groups
             </li>
           </ul>
         </a>
@@ -128,12 +138,11 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
 
         {/* Style Guide Card */}
         <a
-          href="#"
+          href="/style-guide"
           className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
           onClick={e => {
             e.preventDefault();
-            // Navigate to style guide
-            // navigate('/style-guide');
+            window.location.href = '/style-guide';
           }}
         >
           <FaPalette className="h-12 w-12 text-secondary mb-4" />

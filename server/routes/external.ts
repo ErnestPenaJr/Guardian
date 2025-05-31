@@ -173,23 +173,14 @@ router.get('/requests/:id', isExternalUser, async (req: Request, res: Response) 
         REQUESTOR_ID: userId,
         EXTERNAL_USER: 'Y'
       },
-      include: {
-        requestor: {
-          select: {
-            USER_ID: true,
-            FIRST_NAME: true,
-            LAST_NAME: true,
-            EMAIL: true
-          }
-        },
-        assigned: {
-          select: {
-            USER_ID: true,
-            FIRST_NAME: true,
-            LAST_NAME: true,
-            EMAIL: true
-          }
-        }
+      select: {
+        REQUEST_ID: true,
+        REQUEST_NAME: true,
+        SUBMITTED_DATE: true,
+        STATUS: true,
+        REQUESTOR_ID: true,
+        ASSIGNED_ID: true,
+        EXTERNAL_USER: true
       }
     });
     
@@ -223,16 +214,8 @@ router.get('/requests/:id', isExternalUser, async (req: Request, res: Response) 
       REQUEST_NAME: request.REQUEST_NAME,
       SUBMITTED_DATE: request.SUBMITTED_DATE,
       STATUS: request.STATUS,
-      REQUESTOR: request.requestor ? {
-        USER_ID: request.requestor.USER_ID,
-        NAME: `${request.requestor.FIRST_NAME} ${request.requestor.LAST_NAME}`,
-        EMAIL: request.requestor.EMAIL
-      } : null,
-      ASSIGNED: request.assigned ? {
-        USER_ID: request.assigned.USER_ID,
-        NAME: `${request.assigned.FIRST_NAME} ${request.assigned.LAST_NAME}`,
-        EMAIL: request.assigned.EMAIL
-      } : null,
+      REQUESTOR_ID: request.REQUESTOR_ID,
+      ASSIGNED_ID: request.ASSIGNED_ID,
       FORM_VALUES: formValues,
       ATTACHMENTS: attachments
     };

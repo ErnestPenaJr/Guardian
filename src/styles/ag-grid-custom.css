@@ -1,0 +1,399 @@
+.ag-theme-alpine {
+  /* Base colors and fonts using StyleGuide colors */
+  --ag-header-background-color: #032424; /* Primary color */
+  --ag-header-foreground-color: #ffffff; /* White text for contrast */
+  --ag-odd-row-background-color: #ffffff;
+  --ag-even-row-background-color: #f9fafb;
+  --ag-row-hover-color: #D9D9D9;
+  --ag-selected-row-background-color: rgba(46, 188, 188, 0.15); /* Secondary color with transparency */
+  --ag-font-size: 14px; /* Small Text Regular from StyleGuide */
+  --ag-font-family: 'Inter', sans-serif; /* Inter from StyleGuide */
+  --ag-line-height: 19.6px; /* 1.4x font size as per StyleGuide */
+  
+  /* Border styling */
+  --ag-border-color: #e5e7eb;
+  --ag-borders: none;
+  --ag-borders-critical: solid 1px;
+  --ag-border-radius: 8px;
+  
+  /* Cell padding for better spacing */
+  --ag-cell-horizontal-padding: 16px;
+  --ag-cell-vertical-padding: 12px;
+  
+  /* Row height adjustments */
+  --ag-row-height: 48px;
+  --ag-header-height: 52px;
+  
+  /* Focus outline */
+  --ag-range-selection-border-color: rgba(79, 70, 229, 0.5);
+  --ag-range-selection-background-color: rgba(79, 70, 229, 0.1);
+  
+  /* Transitions for smoother interactions */
+  --ag-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  /* Checkbox styling */
+  --ag-checkbox-checked-color: #2EBCBC; /* Secondary color */
+  --ag-checkbox-unchecked-color: #9ca3af;
+  --ag-checkbox-background-color: white;
+  
+  /* Filter control styling */
+  --ag-control-panel-background-color: #ffffff;
+  --ag-popup-background-color: #ffffff;
+  --ag-background-color: #ffffff;
+  --ag-modal-overlay-background-color: rgba(0, 0, 0, 0.5);
+  --ag-input-focus-border-color: #2EBCBC; /* Secondary color */
+}
+
+.ag-header-cell-centered {
+  text-align: center;
+}
+
+.ag-header-cell-left {
+  text-align: left;
+}
+
+.ag-cell-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ag-header-cell-tall {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.ag-cell-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Enhanced header styling */
+.ag-theme-alpine .ag-header-cell {
+  font-weight: 700; /* Bold as per StyleGuide */
+  color: #1f2937;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 14px; /* Small Text Bold from StyleGuide */
+  line-height: 19.6px; /* 1.4x font size as per StyleGuide */
+  transition: background-color 0.2s;
+}
+
+.ag-theme-alpine .ag-header-cell:hover {
+  background-color: #043434; /* Slightly lighter than primary for hover */
+}
+
+/* Row styling */
+.ag-theme-alpine .ag-row {
+  border-bottom-color: #f3f4f6;
+  transition: all 0.2s ease;
+}
+
+.ag-theme-alpine .ag-row-selected {
+  border-color: #e5e7eb;
+  box-shadow: inset 3px 0 0 #4f46e5;
+}
+
+.ag-theme-alpine .ag-row-hover {
+  background-color: #eef2ff;
+}
+
+/* Cell styling */
+.ag-theme-alpine .ag-cell {
+  line-height: 19.6px; /* 1.4x font size as per StyleGuide */
+  font-size: 14px; /* Small Text Regular from StyleGuide */
+  font-family: 'Inter', sans-serif;
+  outline: none !important;
+}
+
+/* Pagination controls */
+.ag-theme-alpine .ag-paging-panel {
+  color: #4b5563;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; /* Small Text Regular from StyleGuide */
+  line-height: 19.6px; /* 1.4x font size as per StyleGuide */
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Style for page buttons to match AdminUserManagement */
+.ag-theme-alpine .ag-paging-button {
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  font-weight: 500;
+  margin: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 15px;
+}
+
+.ag-theme-alpine .ag-paging-button:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.ag-theme-alpine .ag-paging-button.ag-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Style for active page */
+.ag-theme-alpine .ag-paging-button.ag-paging-active,
+.ag-theme-alpine .ag-paging-button:focus {
+  background-color: #032424; /* Primary color */
+  border-color: #032424; /* Primary color */
+  color: white;
+  box-shadow: 0 0 0 2px rgba(46, 188, 188, 0.25); /* Secondary color with transparency */
+  outline: none;
+}
+
+/* Style for page description text */
+.ag-theme-alpine .ag-paging-description {
+  display: flex;
+  align-items: center;
+  margin: 0 10px;
+  font-size: 15px;
+}
+
+.ag-theme-alpine .ag-paging-number {
+  font-weight: 600;
+  padding: 0 5px;
+  font-size: 15px;
+}
+
+/* Style for page size selector */
+.ag-theme-alpine .ag-paging-page-size-selector {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  margin-right: 16px;
+  font-weight: 500;
+  height: 42px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: #374151;
+  font-size: 15px;
+}
+
+/* Style for page summary panel */
+.ag-theme-alpine .ag-paging-page-summary-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Style for pagination icons */
+/* Pagination panel styling */
+.ag-theme-alpine .ag-paging-panel {
+  height: 32px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  background-color: #2EBCBC !important;
+}
+
+.ag-theme-alpine .ag-paging-button .ag-icon {
+  font-size: 16px;
+  color: #4b5563;
+}
+
+/* Make page size selector more compact */
+.ag-theme-alpine .ag-paging-page-size {
+  margin-right: 8px;
+}
+
+.ag-theme-alpine .ag-paging-page-size .ag-picker-field {
+  display: flex;
+  align-items: center;
+}
+
+.ag-theme-alpine .ag-paging-page-size .ag-label {
+  margin-right: 4px;
+  font-size: 12px;
+}
+
+.ag-theme-alpine .ag-paging-page-size .ag-wrapper {
+  min-width: 50px;
+  height: 24px;
+}
+
+/* Make row summary more compact */
+.ag-theme-alpine .ag-paging-row-summary-panel {
+  font-size: 12px;
+  margin: 0 8px;
+}
+
+/* Make page summary more compact */
+.ag-theme-alpine .ag-paging-page-summary-panel {
+  display: flex;
+  align-items: center;
+}
+
+.ag-theme-alpine .ag-paging-button {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  margin: 0 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ag-theme-alpine .ag-paging-button:hover .ag-icon,
+.ag-theme-alpine .ag-paging-button:focus .ag-icon {
+  color: #032424; /* Primary color */
+}
+
+.ag-theme-alpine .ag-paging-button.ag-disabled .ag-icon {
+  color: #9ca3af;
+}
+
+/* Overall pagination panel layout */
+.ag-theme-alpine .ag-paging-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px;
+  min-height: 72px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Row summary panel styling */
+.ag-theme-alpine .ag-paging-row-summary-panel {
+  font-size: 15px;
+  font-weight: 500;
+  color: #4b5563;
+  margin: 0 16px;
+}
+
+.ag-theme-alpine .ag-paging-row-summary-panel-number {
+  font-weight: 600;
+  color: #000000;
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.5);
+  background-color: #FFFFFF;
+  padding: 4px 4px;
+}
+
+/* Custom styling for current page number to make it stand out */
+.ag-theme-alpine .ag-paging-number[data-ref="lbCurrent"] {
+  color: #2EBCBC; /* Secondary color */
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Make sure buttons have consistent size */
+.ag-theme-alpine .ag-paging-button[data-ref="btFirst"],
+.ag-theme-alpine .ag-paging-button[data-ref="btPrevious"],
+.ag-theme-alpine .ag-paging-button[data-ref="btNext"],
+.ag-theme-alpine .ag-paging-button[data-ref="btLast"] {
+  width: 42px;
+  padding: 0;
+}
+
+/* Add a subtle background to the entire pagination area */
+.ag-theme-alpine .ag-paging-panel {
+  background-color: #f0f7f7; /* Very light tint of secondary color */
+}
+
+/* Filter and column menu styling */
+.ag-theme-alpine .ag-menu,
+.ag-theme-alpine .ag-filter-toolpanel,
+.ag-theme-alpine .ag-filter-panel,
+.ag-theme-alpine .ag-filter,
+.ag-theme-alpine .ag-filter-wrapper,
+.ag-theme-alpine .ag-filter-body-wrapper,
+.ag-theme-alpine .ag-filter-condition,
+.ag-theme-alpine .ag-filter-condition-wrapper,
+.ag-theme-alpine .ag-filter-condition-input-wrapper,
+.ag-theme-alpine .ag-filter-apply-panel {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.ag-theme-alpine .ag-menu {
+  padding: 8px 0;
+}
+
+.ag-theme-alpine .ag-filter-toolpanel-header,
+.ag-theme-alpine .ag-filter-toolpanel-search,
+.ag-theme-alpine .ag-filter-toolpanel-group-wrapper,
+.ag-theme-alpine .ag-filter-toolpanel-group-title-bar,
+.ag-theme-alpine .ag-filter-toolpanel-group-container,
+.ag-theme-alpine .ag-filter-toolpanel-instance,
+.ag-theme-alpine .ag-filter-toolpanel-instance-header,
+.ag-theme-alpine .ag-filter-toolpanel-instance-filter {
+  background-color: #ffffff;
+}
+
+.ag-theme-alpine .ag-filter-toolpanel-group-level-0 {
+  background-color: #ffffff;
+}
+
+/* Style for filter inputs */
+.ag-theme-alpine .ag-filter-filter,
+.ag-theme-alpine input[class^="ag-"]:not([type]),
+.ag-theme-alpine input[class^="ag-"][type="text"],
+.ag-theme-alpine input[class^="ag-"][type="number"],
+.ag-theme-alpine input[class^="ag-"][type="tel"],
+.ag-theme-alpine input[class^="ag-"][type="date"],
+.ag-theme-alpine input[class^="ag-"][type="datetime-local"],
+.ag-theme-alpine textarea[class^="ag-"] {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+}
+
+/* Specific fix for the filter search input to prevent placeholder overlapping icon */
+.ag-theme-alpine .ag-filter-filter input
+ {
+  padding-left: 20px !important;
+  text-indent: 10px;
+}
+
+/* Adjust the position of the search icon */
+.ag-theme-alpine .ag-filter-toolpanel-search-icon,
+.ag-theme-alpine .ag-filter-search-icon {
+  left: 8px;
+}
+
+/* Icon styling */
+.ag-theme-alpine .ag-icon {
+  color: #6b7280;
+}
+
+/* Checkbox styling */
+.ag-theme-alpine .ag-checkbox-input-wrapper {
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+}
+
+/* Loading overlay */
+.ag-theme-alpine .ag-overlay-loading-wrapper {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* No rows overlay */
+.ag-theme-alpine .ag-overlay-no-rows-wrapper {
+  padding: 32px;
+  color: #6b7280;
+}

@@ -18,23 +18,14 @@ router.get('/requests/group', isManager, filterToManagerGroup, async (req, res) 
         const requests = await prisma.rEQUESTS.findMany({
             where: whereClause,
             orderBy: { SUBMITTED_DATE: 'desc' },
-            include: {
-                requestor: {
-                    select: {
-                        USER_ID: true,
-                        FIRST_NAME: true,
-                        LAST_NAME: true,
-                        EMAIL: true
-                    }
-                },
-                assigned: {
-                    select: {
-                        USER_ID: true,
-                        FIRST_NAME: true,
-                        LAST_NAME: true,
-                        EMAIL: true
-                    }
-                }
+            select: {
+                REQUEST_ID: true,
+                REQUEST_NAME: true,
+                SUBMITTED_DATE: true,
+                STATUS: true,
+                REQUESTOR_ID: true,
+                ASSIGNED_ID: true,
+                TRACKINGID: true
             }
         });
         // Format the response
@@ -45,8 +36,8 @@ router.get('/requests/group', isManager, filterToManagerGroup, async (req, res) 
             STATUS: request.STATUS,
             REQUESTOR_ID: request.REQUESTOR_ID,
             ASSIGNED_ID: request.ASSIGNED_ID,
-            REQUESTOR_NAME: request.requestor ? `${request.requestor.FIRST_NAME} ${request.requestor.LAST_NAME}` : null,
-            ASSIGNED_NAME: request.assigned ? `${request.assigned.FIRST_NAME} ${request.assigned.LAST_NAME}` : null,
+            REQUESTOR_NAME: request.REQUESTOR_ID ? `User ID: ${request.REQUESTOR_ID}` : null,
+            ASSIGNED_NAME: request.ASSIGNED_ID ? `User ID: ${request.ASSIGNED_ID}` : null,
             TRACKINGID: request.TRACKINGID
         }));
         res.json(formattedRequests);

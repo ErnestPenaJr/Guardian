@@ -16,6 +16,8 @@ import endpointViewerRoutes from './routes/endpoint-viewer.js';
 import fieldsRoutes from './routes/fields.js';
 import fieldTypesRoutes from './routes/field-types.js';
 import requestsRoutes from './routes/requests.js';
+import fieldLookupsRoutes from './routes/field-lookups.js';
+import groupsRoutes from './routes/forms-groups.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -51,6 +53,16 @@ app.use(passport.initialize());
 const distPath = join(__dirname, 'dist');
 console.log(`[STATIC FILES] Serving static files from: ${distPath}`);
 app.use(express.static(distPath));
+
+// Register API routes
+app.use('/api/forms', formsRoutes);
+app.use('/api/external', externalRoutes);
+app.use('/api/endpoint-viewer', endpointViewerRoutes);
+app.use('/api/fields', fieldsRoutes);
+app.use('/api/field-types', fieldTypesRoutes);
+app.use('/api/field-lookups', fieldLookupsRoutes);
+app.use('/api/forms-groups', groupsRoutes); // Renamed endpoint from /api/groups to /api/forms-groups
+app.use('/api/requests', requestsRoutes);
 
 // Create a rate limiter for login attempts
 // 5 failed attempts per 15 minutes per IP
@@ -1092,35 +1104,21 @@ app.get('/api/requests', passport.authenticate('jwt', { session: false }), async
         UPDATE_DATE: true,
         CREATE_USER_ID: true,
         UPDATE_USER_ID: true,
-        TRACKINGID: true,
-        requestor: {
-          select: {
-            FIRST_NAME: true,
-            LAST_NAME: true,
-            EMAIL: true
-          }
-        },
-        assigned: {
-          select: {
-            FIRST_NAME: true,
-            LAST_NAME: true,
-            EMAIL: true
-          }
-        }
+        TRACKINGID: true
       },
       orderBy: {
         CREATE_DATE: 'desc'
       }
     });
 
-    // Format the response to include user names
+    // Format the response to include user IDs
     const formattedRequests = requests.map(request => ({
       ...request,
-      requestorName: request.requestor 
-        ? `${request.requestor.FIRST_NAME} ${request.requestor.LAST_NAME}`
+      requestorName: request.REQUESTOR_ID 
+        ? `User ID: ${request.REQUESTOR_ID}`
         : 'N/A',
-      assignedName: request.assigned
-        ? `${request.assigned.FIRST_NAME} ${request.assigned.LAST_NAME}`
+      assignedName: request.ASSIGNED_ID
+        ? `User ID: ${request.ASSIGNED_ID}`
         : 'Unassigned'
     }));
 

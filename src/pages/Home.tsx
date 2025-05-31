@@ -641,7 +641,7 @@ function Home() {
         <Tooltip id="sidebar-tooltip" place="right" />
       </nav>
       {/* Main Content: Switchable Dashboard */}
-      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto w-full ${isNavExpanded ? 'ml-24' : 'ml-8'} transition-all duration-300 ease-in-out bg-gray-50`}>
+      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'ml-24' : 'ml-8'} transition-all duration-300 ease-in-out bg-gray-50`}>
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container">
