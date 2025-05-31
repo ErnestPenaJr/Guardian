@@ -16,6 +16,7 @@ import endpointViewerRoutes from './routes/endpoint-viewer.js';
 import fieldsRoutes from './routes/fields.js';
 import fieldTypesRoutes from './routes/field-types.js';
 import fieldLookupsRoutes from './routes/field-lookups.js';
+import groupsRoutes from './routes/forms-groups.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -51,6 +52,15 @@ app.use(passport.initialize());
 const distPath = join(__dirname, 'dist');
 console.log(`[STATIC FILES] Serving static files from: ${distPath}`);
 app.use(express.static(distPath));
+
+// Register API routes
+app.use('/api/forms', formsRoutes);
+app.use('/api/external', externalRoutes);
+app.use('/api/endpoint-viewer', endpointViewerRoutes);
+app.use('/api/fields', fieldsRoutes);
+app.use('/api/field-types', fieldTypesRoutes);
+app.use('/api/field-lookups', fieldLookupsRoutes);
+app.use('/api/forms-groups', groupsRoutes); // Renamed endpoint from /api/groups to /api/forms-groups
 
 // Create a rate limiter for login attempts
 // 5 failed attempts per 15 minutes per IP

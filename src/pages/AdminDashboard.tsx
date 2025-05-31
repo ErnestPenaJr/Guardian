@@ -103,6 +103,16 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             >
               Manage Fields
             </li>
+            <li 
+              data-component-name="AdminDashboard"
+              className="cursor-pointer hover:text-secondary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = '/admin-forms-groups';
+              }}
+            >
+              Manage Field Groups
+            </li>
           </ul>
         </a>
 

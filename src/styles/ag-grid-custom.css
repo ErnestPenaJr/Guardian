@@ -35,6 +35,13 @@
   --ag-checkbox-checked-color: #2EBCBC; /* Secondary color */
   --ag-checkbox-unchecked-color: #9ca3af;
   --ag-checkbox-background-color: white;
+  
+  /* Filter control styling */
+  --ag-control-panel-background-color: #ffffff;
+  --ag-popup-background-color: #ffffff;
+  --ag-background-color: #ffffff;
+  --ag-modal-overlay-background-color: rgba(0, 0, 0, 0.5);
+  --ag-input-focus-border-color: #2EBCBC; /* Secondary color */
 }
 
 .ag-header-cell-centered {
@@ -195,7 +202,7 @@
   padding: 0 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  background-color: #2EBCBC !important;
 }
 
 .ag-theme-alpine .ag-paging-button .ag-icon {
@@ -277,8 +284,10 @@
 
 .ag-theme-alpine .ag-paging-row-summary-panel-number {
   font-weight: 600;
-  color: #1f2937;
-  padding: 0 4px;
+  color: #000000;
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.5);
+  background-color: #FFFFFF;
+  padding: 4px 4px;
 }
 
 /* Custom styling for current page number to make it stand out */
@@ -303,11 +312,67 @@
 }
 
 /* Filter and column menu styling */
-.ag-theme-alpine .ag-menu {
+.ag-theme-alpine .ag-menu,
+.ag-theme-alpine .ag-filter-toolpanel,
+.ag-theme-alpine .ag-filter-panel,
+.ag-theme-alpine .ag-filter,
+.ag-theme-alpine .ag-filter-wrapper,
+.ag-theme-alpine .ag-filter-body-wrapper,
+.ag-theme-alpine .ag-filter-condition,
+.ag-theme-alpine .ag-filter-condition-wrapper,
+.ag-theme-alpine .ag-filter-condition-input-wrapper,
+.ag-theme-alpine .ag-filter-apply-panel {
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
+}
+
+.ag-theme-alpine .ag-menu {
   padding: 8px 0;
+}
+
+.ag-theme-alpine .ag-filter-toolpanel-header,
+.ag-theme-alpine .ag-filter-toolpanel-search,
+.ag-theme-alpine .ag-filter-toolpanel-group-wrapper,
+.ag-theme-alpine .ag-filter-toolpanel-group-title-bar,
+.ag-theme-alpine .ag-filter-toolpanel-group-container,
+.ag-theme-alpine .ag-filter-toolpanel-instance,
+.ag-theme-alpine .ag-filter-toolpanel-instance-header,
+.ag-theme-alpine .ag-filter-toolpanel-instance-filter {
+  background-color: #ffffff;
+}
+
+.ag-theme-alpine .ag-filter-toolpanel-group-level-0 {
+  background-color: #ffffff;
+}
+
+/* Style for filter inputs */
+.ag-theme-alpine .ag-filter-filter,
+.ag-theme-alpine input[class^="ag-"]:not([type]),
+.ag-theme-alpine input[class^="ag-"][type="text"],
+.ag-theme-alpine input[class^="ag-"][type="number"],
+.ag-theme-alpine input[class^="ag-"][type="tel"],
+.ag-theme-alpine input[class^="ag-"][type="date"],
+.ag-theme-alpine input[class^="ag-"][type="datetime-local"],
+.ag-theme-alpine textarea[class^="ag-"] {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+}
+
+/* Specific fix for the filter search input to prevent placeholder overlapping icon */
+.ag-theme-alpine .ag-filter-filter input
+ {
+  padding-left: 20px !important;
+  text-indent: 10px;
+}
+
+/* Adjust the position of the search icon */
+.ag-theme-alpine .ag-filter-toolpanel-search-icon,
+.ag-theme-alpine .ag-filter-search-icon {
+  left: 8px;
 }
 
 /* Icon styling */

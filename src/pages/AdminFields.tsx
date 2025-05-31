@@ -3,7 +3,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
-import AdminFieldsLookup from '../components/AdminFieldsLookup';
+import AdminFieldsLookup from './AdminFieldLookups';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 // AG Grid imports - using latest version 33.3.0
@@ -25,6 +25,12 @@ const AdminFields: React.FC = () => {
   const [fields, setFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dynamicFieldTypes, setDynamicFieldTypes] = useState<any[]>([]);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [authHeaders, setAuthHeaders] = useState<{[key: string]: string}>({});
+  
+  // State for search/filter functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredFields, setFilteredFields] = useState<any[]>([]);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -243,12 +249,14 @@ const AdminFields: React.FC = () => {
     }
   ], []);
 
-  // Default column definitions
-  const defaultColDef = useMemo(() => ({
-    sortable: true,
+  // Default column definitions used in the AgGridReact component
+  const defaultColDef = {
+    flex: 1,
+    minWidth: 100,
     filter: true,
+    sortable: true,
     resizable: true
-  }), []);
+  };
 
   // Open modal for adding a new field
   const openAddModal = useCallback(() => {
@@ -330,10 +338,7 @@ const AdminFields: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('token');
-
-      if (!token) {
+      if (!authToken) {
         console.error('No authentication token found');
         toast.error('Authentication required. Please log in again.');
         setIsLoading(false);
@@ -342,18 +347,17 @@ const AdminFields: React.FC = () => {
 
       // Make API call to delete the field
       try {
-        await axios.delete(`/api/fields/${fieldToDelete.FIELD_ID}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        // Update local state
-        setFields(prevFields => prevFields.filter(f => f.FIELD_ID !== fieldToDelete.FIELD_ID));
+        await axios.delete(`/api/fields/${fieldToDelete.FIELD_ID}`, { headers: authHeaders });
+        
+        // Close the confirmation modal
+        setIsConfirmModalOpen(false);
+        
+        // Show success message
         toast.success(`Field ${fieldToDelete.FIELD_NAME} deleted successfully`);
-
+        
         // Refresh the fields to ensure we have the latest data
-        fetchFields();
+        // Don't update local state manually, just fetch fresh data
+        await fetchFields();
       } catch (error: any) {
         console.error('Error deleting field:', error);
 
@@ -370,7 +374,7 @@ const AdminFields: React.FC = () => {
       toast.error('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
-  }, []);
+  }, [fieldToDelete, authToken, authHeaders]);
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -421,19 +425,13 @@ const AdminFields: React.FC = () => {
       };
 
       console.log('Processed form data:', processedFormData);
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('token');
-
-      if (!token) {
+      
+      if (!authToken) {
         console.error('No authentication token found');
         toast.error('Authentication required. Please log in again.');
         setIsLoading(false);
         return;
       }
-
-      const headers = {
-        'Authorization': `Bearer ${token}`
-      };
 
       if (currentField) {
         // Update existing field
@@ -443,7 +441,7 @@ const AdminFields: React.FC = () => {
         };
 
         // Make API call to update field
-        await axios.put(`/api/fields/${currentField.FIELD_ID}`, updatedField, { headers });
+        await axios.put(`/api/fields/${currentField.FIELD_ID}`, updatedField, { headers: authHeaders });
 
         // Update local state
         setFields(prevFields =>
@@ -462,7 +460,7 @@ const AdminFields: React.FC = () => {
         };
 
         // Make API call to create field
-        const response = await axios.post('/api/fields', newField, { headers });
+        const response = await axios.post('/api/fields', newField, { headers: authHeaders });
         const createdField = response.data;
 
         // Update local state with the returned field (which should have an ID)
@@ -499,29 +497,50 @@ const AdminFields: React.FC = () => {
     params.api.sizeColumnsToFit();
   }, []);
 
-
+  // Initialize auth token once when component mounts
   useEffect(() => {
-    // Fetch fields and field types when component mounts
-    fetchFields();
-    fetchFieldTypes();
+    const token = localStorage.getItem('token');
+    if (token) {
+      setAuthToken(token);
+      setAuthHeaders({ 'Authorization': `Bearer ${token}` });
+    } else {
+      console.error('No authentication token found');
+      toast.error('Authentication required. Please log in again.');
+    }
   }, []);
+
+  // Fetch data when auth token is available
+  useEffect(() => {
+    if (authToken) {
+      fetchFields();
+      fetchFieldTypes();
+    }
+  }, [authToken]);
+
+  // Filter fields based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      // If search term is empty, show all fields
+      setFilteredFields(fields);
+    } else {
+      // Filter fields based on search term (case-insensitive)
+      const filtered = fields.filter(field => 
+        field.FIELD_NAME?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (field.FIELD_TYPE?.FIELD_TYPE_DESC || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredFields(filtered);
+    }
+  }, [fields, searchTerm]);
 
   // Fetch field types from API
   const fetchFieldTypes = async () => {
     try {
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('token');
-
-      if (!token) {
+      if (!authToken) {
         console.error('No authentication token found');
         return;
       }
 
-      const response = await axios.get('/api/field-types', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await axios.get('/api/field-types', { headers: authHeaders });
 
       if (response.data && response.data.length > 0) {
         setDynamicFieldTypes(response.data);
@@ -535,20 +554,13 @@ const AdminFields: React.FC = () => {
     setIsLoading(true);
     // Try to fetch from API
     try {
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('token');
-
-      if (!token) {
+      if (!authToken) {
         console.error('No authentication token found');
         toast.error('Authentication required. Please log in again.');
         return;
       }
 
-      const response = await axios.get('/api/fields', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await axios.get('/api/fields', { headers: authHeaders });
 
       console.log('API Response:', response.data);
       if (response.data && response.data.length > 0) {
@@ -630,46 +642,79 @@ const AdminFields: React.FC = () => {
 
         {/* Content */}
         <div className="bg-white shadow rounded-lg p-6">
-          {/* Grid header with Add button */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-800">Field Definitions</h2>
+          {/* Grid header with search filter and Add button */}
+          <div className="flex items-center mb-6 gap-4">
+            {/* Left side: Header */}
+            <h2 className="text-lg font-semibold text-gray-800 whitespace-nowrap">Field Definitions</h2>
+            
+            {/* Middle: Search filter */}
+            <div className="flex-grow relative flex justify-center items-center">
+              <input
+                type="text"
+                placeholder="Filter..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-w-[300px]"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            {/* Right side: Add button */}
             <button
-              className="inline-flex items-center px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary whitespace-nowrap"
+              style={{ backgroundColor: '#2EBCBC' }}
               onClick={openAddModal}
             >
               <FaPlus className="mr-2" /> Add New Field
             </button>
           </div>
+          
+          {/* Show search result count when filtering */}
+          {searchTerm && (
+            <div className="mb-2 text-sm text-gray-600">
+              Found {filteredFields.length} {filteredFields.length === 1 ? 'result' : 'results'}
+              {filteredFields.length === 0 && searchTerm && (
+                <span> for "{searchTerm}". <button onClick={() => setSearchTerm('')} className="text-primary hover:underline">Clear search</button></span>
+              )}
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
             </div>
-          ) : fields.length === 0 ? (
+          ) : filteredFields.length === 0 && !searchTerm ? (
             <div className="text-center py-8 text-gray-500">
               <p>No fields found. Add your first field to get started.</p>
             </div>
           ) : (
-            <div>
-              {/* Enhanced AG Grid implementation */}
-              <div
-                className="ag-theme-alpine overflow-hidden shadow-sm border border-gray-200"
-                style={{ height: 500, width: '100%' }}
-              >
-                <AgGridReact
-                  rowData={fields}
-                  columnDefs={columnDefs}
-                  defaultColDef={defaultColDef}
-                  animateRows={true}
-                  rowSelection="single"
-                  pagination={true}
-                  headerHeight={48}
-                  rowHeight={40}
-                  paginationPageSize={10}
-                  paginationPageSizeSelector={[10, 25, 50, 100]}
-                  onGridReady={onGridReady}
-                />
-              </div>
+            <div className="ag-theme-alpine w-full" style={{ height: '600px' }}>
+              <AgGridReact
+                ref={gridRef}
+                pagination={true}
+                paginationPageSize={10}
+                paginationAutoPageSize={false}
+                paginationPageSizeSelector={[10, 25, 50, 100]}
+                headerHeight={48}
+                rowHeight={40}
+                rowData={filteredFields.length > 0 || searchTerm ? filteredFields : fields}
+                columnDefs={columnDefs}
+                defaultColDef={{
+                  flex: 1,
+                  minWidth: 100,
+                  filter: true,
+                  sortable: true,
+                  resizable: true
+                }}
+                onGridReady={onGridReady}
+              />
             </div>
           )}
         </div>

@@ -12,6 +12,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUserManagement from './pages/AdminUserManagement';
 import AdminFields from './pages/AdminFields.tsx';
 import AdminFieldsLookupPage from './pages/AdminFieldsLookupPage';
+import AdminFormsGroups from './pages/AdminFormsGroups';
+import AdminFormGroupFieldsPage from './pages/AdminFormGroupFieldsPage';
 import RequestDashboard from './pages/RequestDashboard';
 import Health from './pages/Health';
 import EndpointManagerPage from './pages/EndpointManagerPage';
@@ -36,6 +38,8 @@ function App() {
           <Route path="/admin-user-management" element={<AdminUserManagement />} />
           <Route path="/admin-fields" element={<AdminFields />} />
           <Route path="/admin-fields/lookups/:fieldId" element={<AdminFieldsLookupPage />} />
+          <Route path="/admin-forms-groups" element={<AdminFormsGroups />} />
+          <Route path="/admin-forms-groups/fields/:groupId" element={<AdminFormGroupFieldsPage />} />
           <Route path="/requests-dashboard" element={<RequestDashboard />} />
           <Route path="/health" element={<Health />} />
           <Route path="/api-manager" element={<EndpointManagerPage />} />

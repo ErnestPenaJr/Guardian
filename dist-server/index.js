@@ -5,7 +5,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import bcrypt from 'bcryptjs';
 import { passport, loginSchema, generateToken, requireAuth } from './auth.js';
 import rateLimit from 'express-rate-limit';
@@ -16,6 +16,7 @@ import endpointViewerRoutes from './routes/endpoint-viewer.js';
 import fieldsRoutes from './routes/fields.js';
 import fieldTypesRoutes from './routes/field-types.js';
 import fieldLookupsRoutes from './routes/field-lookups.js';
+import groupsRoutes from './routes/forms-groups.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // Load environment variables
@@ -37,13 +38,18 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+// Serve static files from the dist directory
+const distPath = join(__dirname, 'dist');
+console.log(`[STATIC FILES] Serving static files from: ${distPath}`);
+app.use(express.static(distPath));
 // Register API routes
 app.use('/api/forms', formsRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/endpoint-viewer', endpointViewerRoutes);
 app.use('/api/fields', fieldsRoutes);
-app.use('/api/field-lookups', fieldLookupsRoutes);
 app.use('/api/field-types', fieldTypesRoutes);
+app.use('/api/field-lookups', fieldLookupsRoutes);
+app.use('/api/forms-groups', groupsRoutes); // Renamed endpoint from /api/groups to /api/forms-groups
 // Create a rate limiter for login attempts
 // 5 failed attempts per 15 minutes per IP
 const loginRateLimiter = rateLimit({
@@ -1808,6 +1814,12 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
     }
 });
 app.use('/api/external', externalRoutes);
+// For all other routes, serve the index.html file (for SPA routing)
+app.get('*', (req, res) => {
+    res.sendFile(join(distPath, 'index.html'));
+});
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Access the application at: http://localhost:${PORT}`);
 });
