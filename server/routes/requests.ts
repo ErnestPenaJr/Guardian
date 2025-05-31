@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
+const router = express.Router();
 
 // Database schema name - this is the only fixed constant
 const DB_SCHEMA = 'GUARDIAN';
@@ -126,9 +127,8 @@ const getUserInfoFromRequest = (req: Request) => {
   }
 }
 
-export default function(app: any) {
-  // Pure SQL endpoint for request creation - no Prisma models
-  app.post('/api/sql-request', async (req: Request, res: Response) => {
+// Pure SQL endpoint for request creation - no Prisma models
+router.post('/sql-request', async (req: Request, res: Response) => {
     try {
       console.log('=== SQL REQUEST START ===');
       console.log('Received request body:', req.body);
@@ -284,8 +284,8 @@ export default function(app: any) {
       });
     }
   });
-  // Simple endpoint to create a request using raw SQL queries
-  app.post('/api/simple-request', async (req: Request, res: Response) => {
+// Simple endpoint to create a request using raw SQL queries
+router.post('/simple-request', async (req: Request, res: Response) => {
     try {
       console.log('=== SIMPLE REQUEST START ===');
       console.log('Received request body:', JSON.stringify(req.body, null, 2));
@@ -429,8 +429,8 @@ export default function(app: any) {
       });
     }
   });
-  // Diagnostic endpoint to check database schema
-  app.get('/api/debug/schema', async (req: Request, res: Response) => {
+// Diagnostic endpoint to check database schema
+router.get('/debug/schema', async (req: Request, res: Response) => {
     try {
       // Get a list of all tables in the database
       const tables = await prisma.$queryRaw`
@@ -472,7 +472,7 @@ export default function(app: any) {
     }
   });
   // Debug endpoint for request creation - simpler version for testing
-  app.post('/api/debug/requests', async (req: Request, res: Response) => {
+router.post('/debug/requests', async (req: Request, res: Response) => {
     console.log('=== DEBUG REQUEST START ===');
     console.log('Received request body:', JSON.stringify(req.body, null, 2));
     
@@ -661,8 +661,8 @@ export default function(app: any) {
       });
     }
   });
-  // Create a new request and form instance - temporarily allow without authentication for testing
-  app.post('/api/requests', async (req: Request, res: Response) => {
+// Create a new request and form instance - temporarily allow without authentication for testing
+router.post('/', async (req: Request, res: Response) => {
     console.log('=== STANDARD REQUEST ENDPOINT START ===');
     console.log('Received request body:', JSON.stringify(req.body, null, 2));
     console.log('Request headers:', req.headers);
@@ -867,8 +867,8 @@ export default function(app: any) {
     }
   });
 
-  // Get all requests
-  app.get('/api/requests', async (req: Request, res: Response) => {
+// Get all requests
+router.get('/', async (req: Request, res: Response) => {
     try {
       // Use raw SQL query to get all active requests
       const requests = await prisma.$queryRaw`
@@ -884,8 +884,8 @@ export default function(app: any) {
     }
   });
 
-  // Get a specific request by ID
-  app.get('/api/requests/:id', async (req: Request, res: Response) => {
+// Get a specific request by ID
+router.get('/:id', async (req: Request, res: Response) => {
     const requestId = parseInt(req.params.id);
     
     try {
@@ -909,8 +909,8 @@ export default function(app: any) {
     }
   });
 
-  // Update a request
-  app.put('/api/requests/:id', async (req: Request, res: Response) => {
+// Update a request
+router.put('/:id', async (req: Request, res: Response) => {
     const requestId = parseInt(req.params.id);
     const { name, abbreviation, description, status, assignedId } = req.body;
     const currentDate = new Date().toISOString();
@@ -977,8 +977,8 @@ export default function(app: any) {
     }
   });
 
-  // Delete a request (soft delete)
-  app.delete('/api/requests/:id', async (req: Request, res: Response) => {
+// Delete a request (soft delete)
+router.delete('/:id', async (req: Request, res: Response) => {
     const requestId = parseInt(req.params.id);
     const currentDate = new Date().toISOString();
     
@@ -996,4 +996,5 @@ export default function(app: any) {
       res.status(500).json({ error: 'Failed to delete request' });
     }
   });
-}
+
+export default router;

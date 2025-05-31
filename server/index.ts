@@ -2019,7 +2019,7 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
 app.use('/api/external', externalRoutes);
 
 // Register requests routes
-requestsRoutes(app);
+app.use('/api/requests', requestsRoutes);
 
 // For all other routes, serve the index.html file (for SPA routing)
 app.get('*', (req, res) => {

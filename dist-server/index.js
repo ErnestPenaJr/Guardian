@@ -43,7 +43,6 @@ app.use(passport.initialize());
 const distPath = join(__dirname, 'dist');
 console.log(`[STATIC FILES] Serving static files from: ${distPath}`);
 app.use(express.static(distPath));
-
 // Register API routes
 app.use('/api/forms', formsRoutes);
 app.use('/api/external', externalRoutes);
@@ -1875,7 +1874,8 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
     }
 });
 app.use('/api/external', externalRoutes);
-// Note: We've already registered requestsRoutes properly above
+// Register requests routes
+app.use('/api/requests', requestsRoutes);
 // For all other routes, serve the index.html file (for SPA routing)
 app.get('*', (req, res) => {
     res.sendFile(join(distPath, 'index.html'));

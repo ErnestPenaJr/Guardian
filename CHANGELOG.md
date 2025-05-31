@@ -8,6 +8,9 @@
 - Added field editing modal with improved styling
 - Added API Explorer route and link to the application
 - Created dedicated CSS styles for EnhancedFormBuilder
+- Added field lookups functionality with dedicated admin pages
+- Added form groups functionality with admin management
+- Added new admin pages for field management
 
 ### Changed
 - Simplified form builder UI by removing subject management functionality
@@ -22,6 +25,9 @@
 - Fixed SQL queries in `server/routes/requests.ts` by changing schema prefix to `GUARDIAN.` (from `dbo.`) for `REQUESTS` and `FORMS_INSTANCE` tables to resolve 'Invalid object name' error.
 - Fixed syntax errors in FormBuilder component
 - Removed unused imports and variables to resolve lint warnings
+- Converted requests routes to use Express Router pattern to fix 'app.post is not a function' error
+- Resolved merge conflicts in server/index.ts, prisma/schema.prisma, dist-server/index.js, and dist/index.html
+- Fixed route registration for requestsRoutes in server/index.ts
 
 ## [0.1.0] - 2025-05-23
 
