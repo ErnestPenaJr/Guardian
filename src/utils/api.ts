@@ -1,9 +1,11 @@
 import axios from 'axios';
 
 // Base URL for API requests
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' // In production, the API is served from the same domain
-  : 'http://localhost:3001/api'; // In development, the API is served from a separate port
+// In development, we use the Vite proxy which is configured in vite.config.ts
+// In production, the API is served from the same domain
+const API_URL = '/api';
+
+console.log('API_URL configured as:', API_URL);
 
 // Create an axios instance with default config
 const api = axios.create({

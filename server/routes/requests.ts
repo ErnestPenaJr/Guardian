@@ -997,4 +997,60 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
   });
 
+// Assign a request to a user
+router.post('/:id/assign', async (req: Request, res: Response) => {
+  try {
+    console.log('=== ASSIGN REQUEST START ===');
+    console.log('Request ID:', req.params.id);
+    console.log('Request body:', req.body);
+    
+    // Get user info from request for audit purposes
+    const userInfo = getUserInfoFromRequest(req);
+    const { userId } = req.body;
+    
+    // Validate inputs
+    if (!req.params.id || isNaN(parseInt(req.params.id))) {
+      return res.status(400).json({ error: 'Invalid request ID' });
+    }
+    
+    if (!userId || isNaN(parseInt(userId))) {
+      return res.status(400).json({ error: 'Invalid user ID for assignment' });
+    }
+    
+    const requestId = parseInt(req.params.id);
+    const assignedUserId = parseInt(userId);
+    const updatedById = userInfo.userId;
+    const currentDate = new Date();
+    
+    // Update the request in the database
+    await prisma.$executeRawUnsafe(`
+      UPDATE ${DB_SCHEMA}.REQUESTS 
+      SET ASSIGNED_ID = ${assignedUserId},
+          UPDATE_USER_ID = ${updatedById},
+          UPDATE_DATE = @currentDate
+      WHERE REQUEST_ID = ${requestId}
+    `, { currentDate });
+    
+    // Get the updated request to return
+    const updatedRequest = await prisma.$queryRawUnsafe(`
+      SELECT r.*, 
+        u1.FIRST_NAME + ' ' + u1.LAST_NAME as REQUESTOR_NAME,
+        u2.FIRST_NAME + ' ' + u2.LAST_NAME as ASSIGNED_TO_NAME
+      FROM ${DB_SCHEMA}.REQUESTS r
+      LEFT JOIN ${DB_SCHEMA}.USERS u1 ON r.REQUESTOR_ID = u1.USER_ID
+      LEFT JOIN ${DB_SCHEMA}.USERS u2 ON r.ASSIGNED_ID = u2.USER_ID
+      WHERE r.REQUEST_ID = ${requestId}
+    `) as any[];
+    
+    console.log('Request assigned successfully');
+    res.status(200).json(updatedRequest[0] || { message: 'Request assigned but details not available' });
+  } catch (error: any) {
+    console.error('Error assigning request:', error);
+    res.status(500).json({
+      error: 'Error assigning request',
+      details: error?.message || 'Unknown error'
+    });
+  }
+});
+
 export default router;
