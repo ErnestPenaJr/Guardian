@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import '../styles/StyleGuide.css';
 
 const StyleGuide: React.FC = () => {
   const [formState, setFormState] = useState({
@@ -153,15 +154,15 @@ const StyleGuide: React.FC = () => {
           </section>
 
           {/* Typography Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-h5 font-display font-bold text-primary mb-6">02. Typography</h2>
+          <section className="sg-section">
+            <h2 className="sg-section-title">02. Typography</h2>
             
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="md:w-1/3">
-                  <div className="text-gray-3 text-[120px] font-display font-bold leading-none">Aa</div>
-                  <h3 className="text-h5 text-gray-1 mt-2">Heading</h3>
-                  <p className="text-body-xs text-gray-3 mt-1">Line height and paragraph spacing for heading is: 1.1 × font size</p>
+                  <div className="sg-text-gray-3 text-[120px] font-display sg-font-bold leading-none">Aa</div>
+                  <h3 className="sg-h5 mt-2">Heading</h3>
+                  <p className="sg-body-xs sg-text-gray-3 mt-1">Line height and paragraph spacing for heading is: 1.1 × font size</p>
                 </div>
                 
                 <div className="md:w-2/3">
@@ -270,6 +271,65 @@ const StyleGuide: React.FC = () => {
                       <div className="text-body-sm font-normal">Small Text Regular</div>
                       <div className="text-body-sm">14 px</div>
                       <div className="text-body-sm">19.6 px</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Typography CSS Classes Demo */}
+              <div className="bg-gray-50 p-6 rounded-lg mt-8">
+                <h3 className="sg-body-md sg-font-semibold mb-4">CSS Class Implementation</h3>
+                
+                <div className="space-y-6">
+                  {/* Headings */}
+                  <div>
+                    <p className="sg-body-sm sg-font-medium mb-2">Heading Classes</p>
+                    <div className="space-y-3">
+                      <h1 className="sg-h1">Heading 1 (sg-h1)</h1>
+                      <h2 className="sg-h2">Heading 2 (sg-h2)</h2>
+                      <h3 className="sg-h3">Heading 3 (sg-h3)</h3>
+                      <h4 className="sg-h4">Heading 4 (sg-h4)</h4>
+                      <h5 className="sg-h5">Heading 5 (sg-h5)</h5>
+                      <h6 className="sg-h6">Heading 6 (sg-h6)</h6>
+                    </div>
+                  </div>
+                  
+                  {/* Body Text */}
+                  <div>
+                    <p className="sg-body-sm sg-font-medium mb-2">Body Text Classes</p>
+                    <div className="space-y-3">
+                      <p className="sg-body-lg sg-font-bold">Large Bold Text (sg-body-lg sg-font-bold)</p>
+                      <p className="sg-body-lg">Large Regular Text (sg-body-lg)</p>
+                      <p className="sg-body-md sg-font-bold">Medium Bold Text (sg-body-md sg-font-bold)</p>
+                      <p className="sg-body-md">Medium Regular Text (sg-body-md)</p>
+                      <p className="sg-body-base sg-font-bold">Normal Bold Text (sg-body-base sg-font-bold)</p>
+                      <p className="sg-body-base">Normal Regular Text (sg-body-base)</p>
+                      <p className="sg-body-sm sg-font-bold">Small Bold Text (sg-body-sm sg-font-bold)</p>
+                      <p className="sg-body-sm">Small Regular Text (sg-body-sm)</p>
+                      <p className="sg-body-xs">Extra Small Text (sg-body-xs)</p>
+                    </div>
+                  </div>
+                  
+                  {/* Text Colors */}
+                  <div>
+                    <p className="sg-body-sm sg-font-medium mb-2">Text Color Classes</p>
+                    <div className="space-y-2">
+                      <p className="sg-body-base sg-text-primary">Primary Text Color (sg-text-primary)</p>
+                      <p className="sg-body-base sg-text-secondary">Secondary Text Color (sg-text-secondary)</p>
+                      <p className="sg-body-base sg-text-gray-1">Gray 1 Text Color (sg-text-gray-1)</p>
+                      <p className="sg-body-base sg-text-gray-2">Gray 2 Text Color (sg-text-gray-2)</p>
+                      <p className="sg-body-base sg-text-gray-3">Gray 3 Text Color (sg-text-gray-3)</p>
+                    </div>
+                  </div>
+                  
+                  {/* Font Weights */}
+                  <div>
+                    <p className="sg-body-sm sg-font-medium mb-2">Font Weight Classes</p>
+                    <div className="space-y-2">
+                      <p className="sg-body-base sg-font-regular">Regular (400) Text (sg-font-regular)</p>
+                      <p className="sg-body-base sg-font-medium">Medium (500) Text (sg-font-medium)</p>
+                      <p className="sg-body-base sg-font-semibold">Semibold (600) Text (sg-font-semibold)</p>
+                      <p className="sg-body-base sg-font-bold">Bold (700) Text (sg-font-bold)</p>
                     </div>
                   </div>
                 </div>
@@ -388,7 +448,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     placeholder="Placeholder" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="sg-input"
                   />
                   <p className="text-body-xs text-gray-3 mt-1">Status</p>
                 </div>
@@ -400,7 +460,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="sg-input"
                     readOnly
                   />
                 </div>
@@ -410,7 +470,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="sg-input"
                     readOnly
                   />
                   <p className="text-body-xs text-gray-3 mt-1">Status</p>
@@ -421,7 +481,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-success focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+                    className="sg-input sg-input-success"
                     readOnly
                   />
                   <p className="text-body-xs text-success mt-1">Success !</p>
@@ -435,7 +495,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input text" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="sg-input"
                     readOnly
                   />
                 </div>
@@ -446,7 +506,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text Here" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="sg-input"
                     readOnly
                   />
                   <p className="text-body-xs text-gray-3 mt-1">Empty</p>
@@ -457,7 +517,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-warning focus:outline-none focus:ring-2 focus:ring-warning focus:border-transparent transition-all"
+                    className="sg-input sg-input-warning"
                     readOnly
                   />
                   <p className="text-body-xs text-warning mt-1">Warning !</p>
@@ -472,10 +532,10 @@ const StyleGuide: React.FC = () => {
                     <input 
                       type="text" 
                       value="Input Text icon" 
-                      className="w-full px-4 py-3 pl-10 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                      className="sg-input sg-input-with-icon"
                       readOnly
                     />
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="sg-input-icon-container">
                       <svg className="h-5 w-5 text-gray-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                       </svg>
@@ -501,7 +561,7 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-error focus:outline-none focus:ring-2 focus:ring-error focus:border-transparent transition-all"
+                    className="sg-input sg-input-error"
                     readOnly
                   />
                   <p className="text-body-xs text-error mt-1">Error !</p>
@@ -511,8 +571,8 @@ const StyleGuide: React.FC = () => {
           </section>
 
           {/* Selectors Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-h5 font-display font-bold text-primary mb-6">05. Selectors</h2>
+          <section className="sg-section">
+            <h2 className="sg-section-title">05. Selectors</h2>
             
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -520,32 +580,32 @@ const StyleGuide: React.FC = () => {
                   <h3 className="text-body-md font-semibold mb-4">Dropdown</h3>
                   
                   <div className="space-y-4">
-                    <div className="relative">
-                      <select className="w-full px-4 py-3 rounded-lg border border-gray-5 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all pr-10">
+                    <div className="sg-dropdown-container">
+                      <select className="sg-dropdown">
                         <option>Dropdown</option>
                       </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                      <div className="sg-dropdown-icon">
                         <svg className="w-5 h-5 text-gray-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                       </div>
                     </div>
                     
-                    <div className="relative">
-                      <select className="w-full px-4 py-3 rounded-lg border border-gray-5 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all pr-10">
+                    <div className="sg-dropdown-container">
+                      <select className="sg-dropdown">
                         <option>Dropdown</option>
                       </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                      <div className="sg-dropdown-icon">
                         <svg className="w-5 h-5 text-gray-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                       </div>
                     </div>
                     
-                    <div className="border border-gray-5 rounded-lg overflow-hidden">
-                      <div className="px-4 py-3 hover:bg-gray-50">Option 1</div>
-                      <div className="px-4 py-3 bg-primary text-white">Option 2</div>
-                      <div className="px-4 py-3 hover:bg-gray-50">Option 3</div>
+                    <div className="sg-options-container">
+                      <div className="sg-option">Option 1</div>
+                      <div className="sg-option sg-option-selected">Option 2</div>
+                      <div className="sg-option">Option 3</div>
                     </div>
                   </div>
                 </div>
@@ -554,37 +614,37 @@ const StyleGuide: React.FC = () => {
                   <h3 className="text-body-md font-semibold mb-4">Checkbox</h3>
                   
                   <div className="space-y-4">
-                    <div className="flex items-center">
+                    <div className="sg-checkbox-container">
                       <input 
                         type="checkbox" 
                         name="checkbox1"
                         checked={formState.checkbox1} 
                         onChange={handleChange}
-                        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+                        className="sg-checkbox" 
                       />
-                      <label className="ml-2 text-body-sm">Checkbox</label>
+                      <label className="text-body-sm">Checkbox</label>
                     </div>
                     
-                    <div className="flex items-center">
+                    <div className="sg-checkbox-container">
                       <input 
                         type="checkbox" 
                         name="checkbox2"
                         checked={formState.checkbox2}
                         onChange={handleChange}
-                        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+                        className="sg-checkbox" 
                       />
-                      <label className="ml-2 text-body-sm">Checkbox</label>
+                      <label className="text-body-sm">Checkbox</label>
                     </div>
                     
-                    <div className="flex items-center">
+                    <div className="sg-checkbox-container">
                       <input 
                         type="checkbox" 
                         name="checkbox3"
                         checked={formState.checkbox3}
                         onChange={handleChange}
-                        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+                        className="sg-checkbox" 
                       />
-                      <label className="ml-2 text-body-sm">Checkbox</label>
+                      <label className="text-body-sm">Checkbox</label>
                     </div>
                   </div>
                 </div>
@@ -593,40 +653,40 @@ const StyleGuide: React.FC = () => {
                   <h3 className="text-body-md font-semibold mb-4">Radio Button</h3>
                   
                   <div className="space-y-4">
-                    <div className="flex items-center">
+                    <div className="sg-radio-container">
                       <input 
                         type="radio" 
                         name="radio"
                         value="option1"
                         checked={formState.radio === "option1"} 
                         onChange={handleChange}
-                        className="w-5 h-5 text-primary focus:ring-primary" 
+                        className="sg-radio" 
                       />
-                      <label className="ml-2 text-body-sm">Radio Button</label>
+                      <label className="text-body-sm">Radio Button</label>
                     </div>
                     
-                    <div className="flex items-center">
+                    <div className="sg-radio-container">
                       <input 
                         type="radio" 
                         name="radio"
                         value="option2"
                         checked={formState.radio === "option2"}
                         onChange={handleChange}
-                        className="w-5 h-5 text-primary focus:ring-primary" 
+                        className="sg-radio" 
                       />
-                      <label className="ml-2 text-body-sm">Radio Button</label>
+                      <label className="text-body-sm">Radio Button</label>
                     </div>
                     
-                    <div className="flex items-center">
+                    <div className="sg-radio-container">
                       <input 
                         type="radio" 
                         name="radio"
                         value="option3"
                         checked={formState.radio === "option3"}
                         onChange={handleChange}
-                        className="w-5 h-5 text-primary focus:ring-primary" 
+                        className="sg-radio" 
                       />
-                      <label className="ml-2 text-body-sm">Radio Button</label>
+                      <label className="text-body-sm">Radio Button</label>
                     </div>
                   </div>
                 </div>
@@ -637,33 +697,27 @@ const StyleGuide: React.FC = () => {
                   <h3 className="text-body-md font-semibold mb-4">Toggle</h3>
                   
                   <div className="space-y-4">
-                    <div className="flex items-center">
-                      <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                        <input 
-                          type="checkbox" 
-                          name="toggle1"
-                          checked={formState.toggle1}
-                          onChange={handleChange}
-                          id="toggle1" 
-                          className="sr-only peer" 
-                        />
-                        <div className="w-10 h-6 bg-gray-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-5 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                      </div>
+                    <div className="sg-toggle-container">
+                      <input 
+                        type="checkbox" 
+                        name="toggle1"
+                        checked={formState.toggle1}
+                        onChange={handleChange}
+                        id="toggle1" 
+                        className="sg-toggle" 
+                      />
                       <label htmlFor="toggle1" className="text-body-sm">Toggle ON</label>
                     </div>
                     
-                    <div className="flex items-center">
-                      <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                        <input 
-                          type="checkbox" 
-                          name="toggle2"
-                          checked={formState.toggle2}
-                          onChange={handleChange}
-                          id="toggle2" 
-                          className="sr-only peer" 
-                        />
-                        <div className="w-10 h-6 bg-gray-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-5 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                      </div>
+                    <div className="sg-toggle-container">
+                      <input 
+                        type="checkbox" 
+                        name="toggle2"
+                        checked={formState.toggle2}
+                        onChange={handleChange}
+                        id="toggle2" 
+                        className="sg-toggle" 
+                      />
                       <label htmlFor="toggle2" className="text-body-sm">Toggle OFF</label>
                     </div>
                   </div>
@@ -680,6 +734,30 @@ const StyleGuide: React.FC = () => {
                     <div className="border border-gray-5 rounded-lg p-4 text-center">
                       <p className="text-gray-3">No Additions</p>
                     </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Text Selection Section */}
+              <div className="grid grid-cols-1 gap-6 mt-8">
+                <div>
+                  <h3 className="text-body-md font-semibold mb-4">Text Selection</h3>
+                  <p className="mb-2">Select the text below to see the different selection styles:</p>
+                  
+                  <div className="space-y-4">
+                    <p>This text uses the default selection style (secondary color)</p>
+                    
+                    <p className="sg-primary-selection">This text uses primary color selection</p>
+                    
+                    <p className="sg-secondary-selection">This text uses secondary color selection</p>
+                    
+                    <p className="sg-success-selection">This text uses success color selection</p>
+                    
+                    <p className="sg-warning-selection">This text uses warning color selection</p>
+                    
+                    <p className="sg-error-selection">This text uses error color selection</p>
+                    
+                    <p className="sg-grey-selection">This text uses grey color selection</p>
                   </div>
                 </div>
               </div>

@@ -14,6 +14,7 @@ import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import '../styles/ag-grid-custom.css';
+import '../styles/StyleGuide.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -654,7 +655,8 @@ const AdminFields: React.FC = () => {
                 placeholder="Filter..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-w-[300px]"
+                className="sg-input max-w-[300px]"
+                data-component-name="AdminFields"
               />
               {searchTerm && (
                 <button
@@ -766,23 +768,26 @@ const AdminFields: React.FC = () => {
                             name="FIELD_NAME"
                             value={formData.FIELD_NAME}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="sg-input w-full"
                             placeholder="Enter field name"
                             required
+                            data-component-name="AdminFields"
                           />
                         </div>
 
                         {/* Field Type */}
                         <div>
                           <label htmlFor="fieldType" className="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
-                          <select
-                            id="fieldType"
-                            name="FIELD_TYPE_ID"
-                            value={formData.FIELD_TYPE_ID}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            required
-                          >
+                          <div className="sg-dropdown-container w-full">
+                            <select
+                              id="fieldType"
+                              name="FIELD_TYPE_ID"
+                              value={formData.FIELD_TYPE_ID}
+                              onChange={handleInputChange}
+                              className="sg-dropdown w-full"
+                              required
+                              data-component-name="AdminFields"
+                            >
                             <option value="">Select a type</option>
                             {dynamicFieldTypes.length > 0 ? (
                               dynamicFieldTypes.map((type) => (
@@ -797,7 +802,13 @@ const AdminFields: React.FC = () => {
                                 </option>
                               ))
                             )}
-                          </select>
+                            </select>
+                            <div className="sg-dropdown-icon">
+                              <svg className="w-5 h-5 text-gray-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                              </svg>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Display Format */}
@@ -809,78 +820,84 @@ const AdminFields: React.FC = () => {
                             name="DISPLAY_FORMAT"
                             value={formData.DISPLAY_FORMAT}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="sg-input w-full"
                             placeholder="e.g., MM/DD/YYYY for dates"
+                            data-component-name="AdminFields"
                           />
                         </div>
                       </div>
 
                       {/* Checkboxes */}
                       <div className="space-y-3 mb-6">
-                        <label htmlFor="isRequired" className="flex items-center cursor-pointer">
+                        <label htmlFor="isRequired" className="sg-checkbox-container flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             id="isRequired"
                             name="REQUIRED"
                             checked={formData.REQUIRED}
                             onChange={handleInputChange}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sg-checkbox"
+                            data-component-name="AdminFields"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Required Field</span>
+                          <span className="sg-checkbox-label ml-2 text-sm">Required Field</span>
                         </label>
 
-                        <label htmlFor="isActive" className="flex items-center cursor-pointer">
+                        <label htmlFor="isActive" className="sg-checkbox-container flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             id="isActive"
                             name="IS_ACTIVE"
                             checked={formData.IS_ACTIVE}
                             onChange={handleInputChange}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sg-checkbox"
+                            data-component-name="AdminFields"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Active Field</span>
+                          <span className="sg-checkbox-label ml-2 text-sm">Active Field</span>
                         </label>
 
-                        <label htmlFor="isPublic" className="flex items-center cursor-pointer">
+                        <label htmlFor="isPublic" className="sg-checkbox-container flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             id="isPublic"
                             name="IS_PUBLIC"
                             checked={formData.IS_PUBLIC}
                             onChange={handleInputChange}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sg-checkbox"
+                            data-component-name="AdminFields"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Public Field</span>
+                          <span className="sg-checkbox-label ml-2 text-sm">Public Field</span>
                         </label>
 
-                        <label htmlFor="isSensitive" className="flex items-center cursor-pointer">
+                        <label htmlFor="isSensitive" className="sg-checkbox-container flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             id="isSensitive"
                             name="IS_SENSITIVE"
                             checked={formData.IS_SENSITIVE}
                             onChange={handleInputChange}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sg-checkbox"
+                            data-component-name="AdminFields"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Sensitive Data</span>
+                          <span className="sg-checkbox-label ml-2 text-sm">Sensitive Data</span>
                         </label>
 
-                        <label htmlFor="hasLookup" className="flex items-center cursor-pointer">
+                        <label htmlFor="hasLookup" className="sg-checkbox-container flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             id="hasLookup"
                             name="HAS_LOOKUP"
                             checked={formData.HAS_LOOKUP}
                             onChange={handleInputChange}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sg-checkbox"
+                            data-component-name="AdminFields"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Has Lookup Values</span>
+                          <span className="sg-checkbox-label ml-2 text-sm">Has Lookup Values</span>
                         </label>
 
                         {formData.HAS_LOOKUP && (
                           <label
                             htmlFor="canSelectMultiple"
-                            className={`flex items-center ${formData.HAS_LOOKUP ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                            className={`sg-checkbox-container flex items-center ${formData.HAS_LOOKUP ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                           >
                             <input
                               type="checkbox"
@@ -889,9 +906,10 @@ const AdminFields: React.FC = () => {
                               checked={formData.CAN_SELECT_MULIPLE}
                               onChange={handleInputChange}
                               disabled={!formData.HAS_LOOKUP}
-                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                              className="sg-checkbox"
+                              data-component-name="AdminFields"
                             />
-                            <span className="ml-2 text-sm text-gray-700">Allow Multiple Selection</span>
+                            <span className="sg-checkbox-label ml-2 text-sm">Allow Multiple Selection</span>
                           </label>
                         )}
                       </div>
@@ -917,13 +935,15 @@ const AdminFields: React.FC = () => {
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="sg-button-secondary"
+                      data-component-name="AdminFields"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      className="sg-button-primary"
+                      data-component-name="AdminFields"
                     >
                       {currentField ? 'Update Field' : 'Add Field'}
                     </button>

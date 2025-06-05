@@ -110,7 +110,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                setFormsGroupsModalOpen(true);
+                window.location.href = '/admin-forms-groups';
               }}
             >
               Manage Field Groups

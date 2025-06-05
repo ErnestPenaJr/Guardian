@@ -1,6 +1,37 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
+import passport from 'passport';
+
+// Define a type for the user object from passport
+interface AuthUser {
+  id?: number;
+  USER_ID?: number;
+  [key: string]: any;
+}
+
+// Helper function to get user ID safely
+const getUserId = (user: AuthUser): number | undefined => {
+  // Try different properties that might contain the user ID
+  return user.id || user.USER_ID || user.userId || user.user_id;
+};
+
+// Custom auth middleware that handles errors gracefully
+const customAuth = (req: any, res: any, next: any) => {
+  passport.authenticate('jwt', { session: false }, (err: any, user: AuthUser | false, info: any) => {
+    if (err) {
+      console.error('Authentication error:', err);
+      return res.status(500).json({ error: 'Internal server error during authentication' });
+    }
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required', details: info?.message || 'Invalid or missing token' });
+    }
+    
+    req.user = user;
+    next();
+  })(req, res, next);
+};
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -32,11 +63,6 @@ interface GroupFieldWithDetails {
   FIELD_ID: number;
   SORT_ORDER: number;
   IS_REQUIRED: number;
-  FIELD_NAME: string;
-  FIELD_TYPE: string;
-  FIELD_DESCRIPTION?: string;
-  FIELD_OPTIONS?: string;
-  FIELD_IS_REQUIRED: number;
   CREATE_USER_ID?: number;
   UPDATE_USER_ID?: number;
   CREATE_DATE?: Date;
@@ -44,13 +70,12 @@ interface GroupFieldWithDetails {
 }
 
 // Get all groups
-router.get('/', async (req, res) => {
+router.get('/', customAuth, async (req, res) => {
   try {
     // Use raw SQL query instead of Prisma model
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
+      SELECT g.* 
       FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
       WHERE g.IS_PUBLIC = 1 OR g.IS_PUBLIC = 0
       ORDER BY g.GROUP_NAME ASC
     `;
@@ -63,15 +88,14 @@ router.get('/', async (req, res) => {
 });
 
 // Get a specific group by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', customAuth, async (req, res) => {
   try {
     const { id } = req.params;
     
     // Use raw SQL query instead of Prisma model
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
+      SELECT g.* 
       FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
       WHERE g.GROUP_ID = ${parseInt(id)}
     `;
     
@@ -88,7 +112,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Get fields for a specific group
-router.get('/:id/fields', async (req, res) => {
+router.get('/:id/fields', customAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const groupId = parseInt(id);
@@ -106,11 +130,10 @@ router.get('/:id/fields', async (req, res) => {
     
     // Get fields for the group
     const fields = await prisma.$queryRaw`
-      SELECT gf.*, f.FIELD_NAME, f.FIELD_TYPE, f.FIELD_DESCRIPTION, f.FIELD_OPTIONS, f.IS_REQUIRED as FIELD_IS_REQUIRED
+      SELECT gf.*
       FROM GUARDIAN.FORMS_GROUPS_FIELDS gf
-      JOIN GUARDIAN.FORMS_FIELDS f ON gf.FIELD_ID = f.FIELD_ID
       WHERE gf.GROUP_ID = ${groupId}
-      ORDER BY gf.SORT_ORDER, f.FIELD_NAME
+      ORDER BY gf.SORT_ORDER
     `;
     
     res.json(fields as GroupFieldWithDetails[]);
@@ -132,7 +155,7 @@ router.post('/', requireAuth, async (req, res) => {
     } = req.body;
     
     // Get the authenticated user
-    const userId = req.user?.id;
+    const userId = getUserId(req.user as AuthUser);
     
     // Create the group using raw SQL
     const currentDate = new Date().toISOString();
@@ -168,9 +191,8 @@ router.post('/', requireAuth, async (req, res) => {
     const typedResult = result as { GROUP_ID: number }[];
     const newGroupId = typedResult[0].GROUP_ID;
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
+      SELECT g.* 
       FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
       WHERE g.GROUP_ID = ${newGroupId}
     `;
     
@@ -196,7 +218,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     } = req.body;
     
     // Get the authenticated user
-    const userId = req.user?.id;
+    const userId = getUserId(req.user as AuthUser);
     const currentDate = new Date().toISOString();
     const isPublicValue = IS_PUBLIC ? 1 : 0;
     
@@ -216,9 +238,8 @@ router.put('/:id', requireAuth, async (req, res) => {
     
     // Get the updated group
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
+      SELECT g.* 
       FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
       WHERE g.GROUP_ID = ${groupId}
     `;
     
@@ -253,7 +274,7 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
     }
     
     // Get the authenticated user
-    const userId = req.user?.id;
+    const userId = getUserId(req.user as AuthUser);
     const currentDate = new Date().toISOString();
     
     // Delete existing group fields
@@ -267,7 +288,6 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
     for (let i = 0; i < fields.length; i++) {
       const field = fields[i];
       const sortOrder = field.SORT_ORDER || i;
-      const isRequired = field.IS_REQUIRED ? 1 : 0;
       
       // Insert the new group field
       await prisma.$queryRaw`
@@ -275,7 +295,6 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
           GROUP_ID,
           FIELD_ID,
           SORT_ORDER,
-          IS_REQUIRED,
           CREATE_USER_ID,
           UPDATE_USER_ID,
           CREATE_DATE,
@@ -284,7 +303,6 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
           ${groupId},
           ${field.FIELD_ID},
           ${sortOrder},
-          ${isRequired},
           ${userId},
           ${userId},
           ${currentDate},
@@ -297,7 +315,6 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
         GROUP_ID: groupId,
         FIELD_ID: field.FIELD_ID,
         SORT_ORDER: sortOrder,
-        IS_REQUIRED: isRequired,
         CREATE_USER_ID: userId,
         UPDATE_USER_ID: userId,
         CREATE_DATE: currentDate,
@@ -309,6 +326,80 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
   } catch (error) {
     console.error(`Error adding fields to group ${req.params.id}:`, error);
     res.status(500).json({ error: 'Failed to add fields to group' });
+  }
+});
+
+// Get fields for a group (requires authentication)
+router.get('/:id/fields', customAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const groupId = parseInt(id);
+    
+    console.log(`============================================`);
+    console.log(`DEBUG: Fetching fields for group ID: ${groupId}`);
+    console.log(`DEBUG: User:`, req.user);
+    
+    // Check if the group exists first
+    const groups = await prisma.$queryRaw`
+      SELECT * FROM GUARDIAN.FORMS_GROUPS 
+      WHERE GROUP_ID = ${groupId}
+    `;
+    
+    const group = (groups as any[])[0];
+    if (!group) {
+      console.error(`DEBUG: Group with ID ${groupId} not found`);
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    
+    console.log(`DEBUG: Group found:`, group);
+    
+    // Get group fields with related field data
+    console.log(`DEBUG: Executing query to get group fields`);
+    const groupFields = await prisma.$queryRaw`
+      SELECT 
+        gf.GROUP_ID,
+        gf.FIELD_ID,
+        gf.SORT_ORDER,
+        gf.CREATE_USER_ID,
+        gf.UPDATE_USER_ID,
+        gf.CREATE_DATE,
+        gf.UPDATE_DATE,
+        f.FIELD_NAME,
+        ft.FIELD_TYPE_DESC
+      FROM GUARDIAN.FORMS_GROUPS_FIELDS gf
+      LEFT JOIN GUARDIAN.FIELDS f ON gf.FIELD_ID = f.FIELD_ID
+      LEFT JOIN GUARDIAN.FIELD_TYPES ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+      WHERE gf.GROUP_ID = ${groupId}
+      ORDER BY gf.SORT_ORDER ASC
+    `;
+    
+    console.log(`DEBUG: Raw group fields query result:`, groupFields);
+    console.log(`DEBUG: Number of fields found: ${(groupFields as any[]).length}`);
+    
+    // Transform the result to match the expected format
+    const result = (groupFields as any[]).map(item => ({
+      GROUP_ID: item.GROUP_ID,
+      FIELD_ID: item.FIELD_ID,
+      SORT_ORDER: item.SORT_ORDER,
+      FIELDS: {
+        FIELD_NAME: item.FIELD_NAME,
+        FIELD_TYPE: {
+          FIELD_TYPE_DESC: item.FIELD_TYPE_DESC
+        }
+      },
+      CREATE_USER_ID: item.CREATE_USER_ID,
+      UPDATE_USER_ID: item.UPDATE_USER_ID,
+      CREATE_DATE: item.CREATE_DATE,
+      UPDATE_DATE: item.UPDATE_DATE
+    }));
+    
+    console.log(`DEBUG: Formatted result:`, result);
+    console.log(`============================================`);
+    
+    res.json(result);
+  } catch (error) {
+    console.error(`Error getting fields for group ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Failed to get group fields' });
   }
 });
 

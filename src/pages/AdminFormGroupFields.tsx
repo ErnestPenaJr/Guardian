@@ -17,12 +17,12 @@ interface GroupField {
   GROUP_ID: number;
   FIELD_ID: number;
   SORT_ORDER?: number;
-  IS_REQUIRED?: boolean;
   FIELD_NAME?: string; // For display purposes
   FIELD_TYPE_DESC?: string; // For display purposes
+  [key: string]: any; // Allow indexing with string keys
 }
 
-const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) => {
+const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }): React.ReactNode => {
   const [groupFields, setGroupFields] = useState<GroupField[]>([]);
   const [filteredFields, setFilteredFields] = useState<GroupField[]>([]);
   const [availableFields, setAvailableFields] = useState<any[]>([]);
@@ -30,87 +30,111 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
   const [error, setError] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
   
   // Confirmation modal state
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<GroupField | null>(null);
   
   // Reference to the grid API
-  const gridApiRef = useRef<any>(null);
+  const gridRef = useRef<any>(null);
   
   const [newGroupField, setNewGroupField] = useState<GroupField>({
     GROUP_ID: groupId,
     FIELD_ID: 0,
-    SORT_ORDER: 0,
-    IS_REQUIRED: false
+    SORT_ORDER: 0
   });
 
   // Fetch group fields
   const fetchGroupFields = useCallback(async () => {
     try {
       // Validate groupId
+      console.log('===== DEBUG: fetchGroupFields called =====');
+      console.log('DEBUG: groupId received:', groupId, 'Type:', typeof groupId);
+      
       if (!groupId || isNaN(Number(groupId))) {
-        console.error('Invalid groupId:', groupId);
+        console.error('DEBUG: Invalid groupId:', groupId);
         setError('Invalid group ID. Please select a valid group.');
         setLoading(false);
         return;
       }
 
+      // Ensure groupId is a number
+      const groupIdNum = Number(groupId);
+      console.log('DEBUG: Converted groupId:', groupIdNum);
+
       setLoading(true);
       setError(null);
       
-      console.log('Fetching group details for groupId:', groupId);
+      console.log('DEBUG: Fetching group details for groupId:', groupIdNum);
       
       // Fetch the group details to get the name
       try {
-        const groupResponse = await api.get(`/forms-groups/${groupId}`);
-        console.log('Group details response:', groupResponse.data);
+        const groupResponse = await api.get(`/forms-groups/${groupIdNum}`);
+        console.log('DEBUG: Group details API response status:', groupResponse.status);
+        console.log('DEBUG: Group details response data:', groupResponse.data);
         
         if (groupResponse.data) {
           setGroupName(groupResponse.data.GROUP_NAME || 'Group');
+          console.log('DEBUG: Group name set to:', groupResponse.data.GROUP_NAME);
         }
       } catch (groupErr: any) {
-        console.error('Error fetching group details:', groupErr);
+        console.error('DEBUG: Error fetching group details:', groupErr);
+        console.error('DEBUG: Error response:', groupErr.response?.data);
         // Continue even if group details fail
       }
       
       // Fetch the actual group fields from the API
-      const fieldsResponse = await api.get(`/forms-groups/${groupId}/fields`);
-      console.log('Group fields response:', fieldsResponse.data);
+      console.log('DEBUG: Fetching group fields data for groupId:', groupIdNum);
+      const fieldsResponse = await api.get(`/forms-groups/${groupIdNum}/fields`);
+      console.log('DEBUG: Group fields API response status:', fieldsResponse.status);
+      console.log('DEBUG: Group fields response data:', fieldsResponse.data);
       
       if (fieldsResponse.data && Array.isArray(fieldsResponse.data)) {
-        // Transform the response data to match our component's expected format
-        const formattedFields = fieldsResponse.data.map(item => ({
-          GROUP_ID: item.GROUP_ID,
-          FIELD_ID: item.FIELD_ID,
-          SORT_ORDER: item.SORT_ORDER,
-          IS_REQUIRED: item.IS_REQUIRED,
-          FIELD_NAME: item.FIELDS?.FIELD_NAME || 'Unknown Field',
-          FIELD_TYPE_DESC: item.FIELDS?.FIELD_TYPE?.FIELD_TYPE_DESC || 'Unknown Type'
-        }));
+        console.log('DEBUG: Response data is an array with length:', fieldsResponse.data.length);
         
-        console.log('Formatted group fields:', formattedFields);
+        // Check first item structure to debug what fields are available
+        if (fieldsResponse.data.length > 0) {
+          console.log('DEBUG: First item structure:', JSON.stringify(fieldsResponse.data[0], null, 2));
+          console.log('DEBUG: FIELDS property exists:', !!fieldsResponse.data[0].FIELDS);
+          console.log('DEBUG: FIELD_NAME directly on item:', fieldsResponse.data[0].FIELD_NAME);
+        }
+        
+        // Map the API response to handle both nested and flat data structures
+        const formattedFields = fieldsResponse.data.map(item => {
+          // Keep the data in the original format but ensure required fields exist
+          return {
+            // Core group field properties
+            GROUP_ID: item.GROUP_ID,
+            FIELD_ID: item.FIELD_ID,
+            SORT_ORDER: item.SORT_ORDER,
+            IS_REQUIRED: typeof item.IS_REQUIRED === 'boolean' ? item.IS_REQUIRED : item.IS_REQUIRED === 1,
+            // Field name and type - keep both direct and nested paths for the valueGetters
+            FIELD_NAME: item.FIELD_NAME,
+            FIELD_TYPE_DESC: item.FIELD_TYPE_DESC,
+            // Also preserve the nested structure if it exists
+            FIELDS: item.FIELDS
+          };
+        });
+        
+        console.log('DEBUG: Formatted fields:', formattedFields);
         setGroupFields(formattedFields);
         setFilteredFields(formattedFields); // Initialize filtered fields with all fields
+        console.log('DEBUG: State updated with formatted fields');
       } else {
-        console.warn('Unexpected response format for group fields:', fieldsResponse.data);
+        console.warn('DEBUG: Unexpected response format for group fields:', fieldsResponse.data);
         setGroupFields([]);
         setFilteredFields([]);
+        console.log('DEBUG: Set empty arrays for group fields and filtered fields');
       }
+      console.log('===== DEBUG: fetchGroupFields completed =====');
     } catch (err: any) {
-      console.error('Error fetching group fields:', err);
+      console.error('DEBUG: Error fetching group fields:', err);
       if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error('Error response data:', err.response.data);
-        console.error('Error response status:', err.response.status);
-        console.error('Error response headers:', err.response.headers);
-      } else if (err.request) {
-        // The request was made but no response was received
-        console.error('Error request:', err.request);
+        console.error('DEBUG: Error response:', err.response.data);
       } else {
         // Something happened in setting up the request that triggered an Error
-        console.error('Error message:', err.message);
+        console.error('DEBUG: Error message:', err.message);
       }
       setError(`Failed to load group fields: ${err.message || 'Unknown error'}`);
       toast.error('Failed to load group fields');
@@ -118,13 +142,14 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
       setFilteredFields([]);
     } finally {
       setLoading(false);
+      console.log('DEBUG: fetchGroupFields function complete');
     }
   }, [groupId]);
 
   // Fetch available fields
   const fetchAvailableFields = useCallback(async () => {
     try {
-      // Fetch all available fields from the API
+      // Fetch all available fields from the API using the existing /fields endpoint
       const fieldsResponse = await api.get('/fields');
       console.log('Available fields response:', fieldsResponse.data);
       
@@ -145,16 +170,22 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
         setAvailableFields([]);
       }
     } catch (err: any) {
-      console.error('Error setting mock available fields:', err);
+      console.error('Error fetching available fields:', err);
       toast.error(`Failed to load available fields: ${err.message || 'Unknown error'}`);
     }
   }, []);
 
   // Load data when component mounts
   useEffect(() => {
-    fetchGroupFields();
-    fetchAvailableFields();
-  }, [fetchGroupFields, fetchAvailableFields]);
+    console.log('DEBUG: AdminFormGroupFields useEffect triggered');
+    if (groupId) {
+      console.log('DEBUG: Calling fetchGroupFields with groupId:', groupId);
+      fetchGroupFields();
+      fetchAvailableFields();
+    } else {
+      console.log('DEBUG: No groupId available yet');
+    }
+  }, [fetchGroupFields, fetchAvailableFields, groupId]);
 
   // Handle input change for new group field
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -166,15 +197,13 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
         ...prev,
         [name]: checked
       }));
-    } else if (name === 'FIELD_ID') {
+    } else if (name === 'FIELD_ID' || name === 'SORT_ORDER') {
+      // Ensure numeric fields are stored as numbers
+      const numValue = value === '' ? 0 : parseInt(value);
+      console.log(`Setting ${name} to numeric value:`, numValue);
       setNewGroupField(prev => ({
         ...prev,
-        [name]: parseInt(value)
-      }));
-    } else if (name === 'SORT_ORDER') {
-      setNewGroupField(prev => ({
-        ...prev,
-        [name]: parseInt(value) || 0
+        [name]: numValue
       }));
     } else {
       setNewGroupField(prev => ({
@@ -185,8 +214,9 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
   };
 
   // Add new group field
-  const handleAddGroupField = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddGroupField = async (e: React.MouseEvent | React.FormEvent) => {
+    // Prevent default browser behavior if it's a form event
+    if ('preventDefault' in e) e.preventDefault();
     
     if (!newGroupField.FIELD_ID) {
       toast.error('Please select a field');
@@ -201,52 +231,54 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
         return;
       }
       
-      // Add the field to the group
-      const fields = [
-        {
-          FIELD_ID: newGroupField.FIELD_ID,
-          SORT_ORDER: newGroupField.SORT_ORDER,
-          IS_REQUIRED: newGroupField.IS_REQUIRED
-        }
-      ];
-      
-      // Get the selected field details for display
+      // Get the selected field details for validating it exists
       const selectedField = availableFields.find(field => field.FIELD_ID === newGroupField.FIELD_ID);
+      if (!selectedField) {
+        toast.error('Selected field not found in available fields');
+        return;
+      }
       
-      // Add all existing fields to maintain them
+      // Prepare fields array with all existing fields plus new field
+      const fields = [];
+      
+      // Add all existing fields - ensure each has FIELD_ID as a number
       groupFields.forEach(field => {
         fields.push({
-          FIELD_ID: field.FIELD_ID,
-          SORT_ORDER: field.SORT_ORDER,
-          IS_REQUIRED: field.IS_REQUIRED
+          GROUP_ID: Number(groupId),
+          FIELD_ID: Number(field.FIELD_ID),
+          SORT_ORDER: Number(field.SORT_ORDER || 0)
         });
       });
       
-      await api.post(`/forms-groups/${groupId}/fields`, { fields });
+      // Add the new field
+      fields.push({
+        GROUP_ID: Number(groupId),
+        FIELD_ID: Number(newGroupField.FIELD_ID),
+        SORT_ORDER: Number(newGroupField.SORT_ORDER || fields.length)
+      });
       
-      // Add the new field to the displayed list with field details
-      const newField = {
-        GROUP_ID: groupId,
-        FIELD_ID: newGroupField.FIELD_ID,
-        SORT_ORDER: newGroupField.SORT_ORDER,
-        IS_REQUIRED: newGroupField.IS_REQUIRED,
-        FIELD_NAME: selectedField?.FIELD_NAME || 'Unknown Field',
-        FIELD_TYPE_DESC: selectedField?.FIELD_TYPE?.FIELD_TYPE_DESC || 'Unknown Type'
-      };
+      console.log('Sending fields to API:', fields); // Debug the request payload
       
-      setGroupFields(prev => [...prev, newField]);
+      // Submit to API - ensure we're sending the fields array in the correct format
+      const response = await api.post(`/forms-groups/${groupId}/fields`, { fields });
+      console.log('API response:', response.data); // Debug the response
       
-      // Reset the form
+      // After successful save, refresh data
+      await fetchGroupFields();
+      
+      // Reset form fields but keep form open
       setNewGroupField({
         GROUP_ID: groupId,
         FIELD_ID: 0,
-        SORT_ORDER: 0,
-        IS_REQUIRED: false
+        SORT_ORDER: 0
       });
       
       toast.success('Field added to group successfully');
-    } catch (err) {
-      console.error('Error adding field to group:', err);
+    } catch (error: any) {
+      console.error('Error adding field to group:', error);
+      if (error.response) {
+        console.error('API error response:', error.response.data);
+      }
       toast.error('Failed to add field to group');
     }
   };
@@ -262,9 +294,7 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
       
       // Prepare the fields array for the API call
       const fields = updatedFields.map(field => ({
-        FIELD_ID: field.FIELD_ID,
-        SORT_ORDER: field.SORT_ORDER,
-        IS_REQUIRED: field.IS_REQUIRED
+        FIELD_ID: field.FIELD_ID
       }));
       
       // Update the group fields
@@ -296,31 +326,35 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
     if (!field) return;
     
     try {
-      // Update the local state first
+      // For SORT_ORDER, ensure it's a proper number
+      const processedValue = field === 'SORT_ORDER' ? Number(newValue) : newValue;
+      
+      // First update the local state for immediate visual feedback
       const updatedFields = groupFields.map(groupField => {
         if (groupField.FIELD_ID === fieldId) {
-          return { ...groupField, [field]: newValue };
+          return { ...groupField, [field]: processedValue };
         }
         return groupField;
       });
       
+      // Update both state arrays
       setGroupFields(updatedFields);
+      setFilteredFields(updatedFields);
       
-      // Prepare the fields array for the API call
-      const fields = updatedFields.map(field => ({
-        FIELD_ID: field.FIELD_ID,
-        SORT_ORDER: field.SORT_ORDER,
-        IS_REQUIRED: field.IS_REQUIRED
+      // Prepare the API payload - server needs an array of objects with FIELD_ID and SORT_ORDER
+      const fieldsForApi = updatedFields.map(field => ({
+        FIELD_ID: Number(field.FIELD_ID),
+        SORT_ORDER: Number(field.SORT_ORDER || 0) // Ensure we send a number
       }));
       
-      // Update the group fields
-      await api.post(`/forms-groups/${groupId}/fields`, { fields });
+      // Send complete set of fields to the API
+      await api.post(`/forms-groups/${groupId}/fields`, { fields: fieldsForApi });
       
       toast.success('Field updated successfully');
     } catch (err) {
       console.error('Error updating field:', err);
       toast.error('Failed to update field');
-      // Revert the change in the grid
+      // On error, refresh data from server
       fetchGroupFields();
     }
   };
@@ -390,18 +424,16 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
   // Column definitions for the grid
   const columnDefs: ColDef[] = [
     {
-      field: 'FIELD_NAME',
-      headerName: 'Field Name',
+      field: 'FIELD_ID',
+      headerName: 'Field',
       sortable: true,
       filter: true,
-      flex: 1
-    },
-    {
-      field: 'FIELD_TYPE_DESC',
-      headerName: 'Field Type',
-      sortable: true,
-      filter: true,
-      width: 150
+      width: 150,
+      editable: false, // Read-only field
+      valueFormatter: (params) => {
+        const field = availableFields.find(f => f.FIELD_ID === params.value);
+        return field ? field.FIELD_NAME : params.value;
+      }
     },
     {
       field: 'SORT_ORDER',
@@ -413,18 +445,12 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
       cellClass: 'editable-cell',
       valueFormatter: (params) => {
         return params.value !== undefined && params.value !== null ? params.value.toString() : '';
-      }
-    },
-    {
-      field: 'IS_REQUIRED',
-      headerName: 'Required',
-      editable: true,
-      sortable: true,
-      filter: true,
-      width: 120,
-      cellRenderer: BooleanCellRenderer,
-      cellClass: 'editable-cell',
-      cellEditor: 'agCheckboxCellEditor'
+      },
+      cellEditor: 'agNumberCellEditor',
+      // Allow single-click editing for better UX
+      singleClickEdit: true,
+      // These help with numeric validation
+      valueParser: (params) => Number(params.newValue)
     },
     {
       headerName: 'Actions',
@@ -440,15 +466,20 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
     resizable: true,
     sortable: true,
     filter: true,
-    floatingFilter: false
+    floatingFilter: false,
+    tabToNextCell: true,   // Enable tab navigation between cells
+    stopEditingWhenGridLosesFocus: true  // Save changes when grid loses focus
   };
 
   // Grid ready event handler
   const onGridReady = (params: GridReadyEvent) => {
-    gridApiRef.current = params.api;
+    gridRef.current = params.api;
     params.api.sizeColumnsToFit();
+    // Use 'fullRow' to commit all changes together
+    params.api.setGridOption('editType', 'fullRow');
   };
 
+  
   return (
     <div className="w-full">
       {/* Confirmation Modal */}
@@ -476,7 +507,7 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
             placeholder="Filter..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="sg-input"
           />
           {searchTerm && (
             <button
@@ -491,14 +522,9 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
         {/* Right side: Add button - This will open the form */}
         <button
           type="button"
-          onClick={() => {
-            // Open form modal or similar action
-            const fieldId = document.getElementById('fieldId');
-            if (fieldId) {
-              fieldId.focus();
-            }
-          }}
+          onClick={() => setShowAddForm(true)}
           className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary whitespace-nowrap"
+          data-component-name="AdminFormGroupFields"
         >
           Add New Field
         </button>
@@ -533,7 +559,7 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
         </div>
       ) : (
         <>
-          {/* Show search result count when filtering */}
+          {/* Search result count when filtering */}
           {searchTerm && (
             <div className="mb-2 text-sm text-gray-600">
               Found {filteredFields.length} {filteredFields.length === 1 ? 'result' : 'results'}
@@ -543,75 +569,79 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
             </div>
           )}
           
+
+          
           {/* Add Field Form */}
-          <div className="mb-6">
-            <form onSubmit={handleAddGroupField} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label htmlFor="fieldId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Field <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="fieldId"
-                  name="FIELD_ID"
-                  value={newGroupField.FIELD_ID || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
+          {showAddForm && (
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-medium text-gray-900">Add New Field</h3>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddForm(false)}
+                  className="text-gray-400 hover:text-gray-500"
                 >
-                  <option value="">Select a field</option>
-                  {availableFields.map(field => (
-                    <option key={field.FIELD_ID} value={field.FIELD_ID}>
-                      {field.FIELD_NAME}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1">
-                  Sort Order
-                </label>
-                <input
-                  type="number"
-                  id="sortOrder"
-                  name="SORT_ORDER"
-                  value={newGroupField.SORT_ORDER || 0}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Enter sort order"
-                  min="0"
-                />
-              </div>
-              
-              <div className="flex items-center mt-7">
-                <input
-                  type="checkbox"
-                  id="isRequired"
-                  name="IS_REQUIRED"
-                  checked={newGroupField.IS_REQUIRED || false}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                />
-                <label htmlFor="isRequired" className="ml-2 block text-sm text-gray-900">
-                  Required Field
-                </label>
-              </div>
-              
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary whitespace-nowrap"
-                >
-                  Add Field
+                  <span className="sr-only">Close</span>
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </form>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div className="md:col-span-6">
+                  <label htmlFor="fieldId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Field <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="fieldId"
+                    name="FIELD_ID"
+                    value={newGroupField.FIELD_ID || ''}
+                    onChange={handleInputChange}
+                    className="sg-dropdown w-full"
+                    required
+                  >
+                    <option value="">Select a field</option>
+                    {availableFields.map(field => (
+                      <option key={field.FIELD_ID} value={field.FIELD_ID}>
+                        {field.FIELD_NAME}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="md:col-span-3">
+                  <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1">
+                    Sort Order
+                  </label>
+                  <input
+                    type="number"
+                    id="sortOrder"
+                    name="SORT_ORDER"
+                    value={newGroupField.SORT_ORDER || 0}
+                    onChange={handleInputChange}
+                    className="sg-input w-full"
+                    placeholder="Enter sort order"
+                    min="0"
+                  />
+                </div>
+                
+                <div className="md:col-span-3 flex items-end">
+                  <button
+                    type="button"
+                    onClick={(e) => handleAddGroupField(e)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary whitespace-nowrap w-full justify-center"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {filteredFields.length === 0 && !searchTerm ? (
             <div className="text-center py-4 text-gray-500">No fields added to this group yet. Add your first field above.</div>
           ) : (
-            <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
+            <div className="ag-theme-alpine" style={{ height: '300px', width: '100%' }}>
               <AgGridReact
                 rowData={filteredFields}
                 columnDefs={columnDefs}
@@ -622,6 +652,10 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
                 onCellValueChanged={onCellValueChanged}
                 pagination={false}
                 paginationPageSize={10}
+                stopEditingWhenCellsLoseFocus={true}
+                suppressClickEdit={false}
+                undoRedoCellEditing={true}
+                undoRedoCellEditingLimit={20}
               />
             </div>
           )}

@@ -14,6 +14,7 @@ import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import '../styles/ag-grid-custom.css';
+import '../styles/StyleGuide.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -195,12 +196,6 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
     }
   ], [navigate]);
 
-  // Default column definitions
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    suppressMovable: true
-  }), []);
-
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -228,6 +223,7 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
+      console.log(`Checkbox ${name} changed to:`, checked);
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -355,11 +351,16 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
   // Open modal for editing an existing group
   const handleEdit = (group: any) => {
     setCurrentGroup(group);
+    
+    // Convert IS_PUBLIC from database representation (0/1) to boolean
+    const isPublic = group.IS_PUBLIC === 1 || group.IS_PUBLIC === true;
+    console.log('Setting IS_PUBLIC value:', group.IS_PUBLIC, '→', isPublic);
+    
     setFormData({
       GROUP_NAME: group.GROUP_NAME || '',
       GROUP_DESCRIPTION: group.GROUP_DESCRIPTION || '',
       SORT_ORDER: group.SORT_ORDER || 0,
-      IS_PUBLIC: group.IS_PUBLIC === 1,
+      IS_PUBLIC: isPublic,
       ORGANIZATION_ID: group.ORGANIZATION_ID || null
     });
     setIsModalOpen(true);
@@ -421,8 +422,10 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
         <div className="flex items-center">
           {!isInModal && (
             <button
-              className="mr-4 text-blue-600 hover:text-blue-800 transition-colors"
+              className="sg-button-icon mr-4"
               onClick={() => navigate('/admin')}
+              aria-label="Go back to admin"
+              data-component-name="AdminFormsGroups"
             >
               <FaArrowLeft size={20} />
             </button>
@@ -443,12 +446,14 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
               placeholder="Filter..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-w-[300px]"
+              className="sg-input max-w-[300px]"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="sg-button-icon absolute right-3 top-1/2 transform -translate-y-1/2"
+                data-component-name="AdminFormsGroups"
+                aria-label="Clear search"
               >
                 ×
               </button>
@@ -457,9 +462,9 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
           
           {/* Right side: Add button */}
           <button
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary whitespace-nowrap"
-            style={{ backgroundColor: '#2EBCBC' }}
+            className="sg-button-primary sg-button-with-icon whitespace-nowrap"
             onClick={handleAddNew}
+            data-component-name="AdminFormsGroups"
           >
             <FaPlus className="mr-2" /> Add New Group
           </button>
@@ -482,18 +487,27 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
             </div>
           ) : (
+            
             <AgGridReact
               ref={gridRef}
               rowData={filteredGroups}
               columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
               animateRows={true}
               rowSelection="single"
               pagination={true}
               paginationPageSize={10}
               suppressCellFocus={true}
-              suppressRowClickSelection={true}
               overlayNoRowsTemplate="No groups found"
+              paginationPageSizeSelector={[10, 25, 50, 100]}
+              headerHeight={48}
+              rowHeight={40}
+              defaultColDef={{
+                flex: 1,
+                minWidth: 100,
+                filter: true,
+                sortable: true,
+                resizable: true
+              }}
             />
           )}
         </div>
@@ -509,95 +523,110 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
               </h2>
               <button
                 onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700 bg-transparent border-none p-2 rounded-full hover:bg-gray-100 transition"
+                className="sg-button-icon"
+                aria-label="Close modal"
+                data-component-name="AdminFormsGroups"
               >
                 <FaTimes size={20} />
               </button>
             </div>
             
             <div className="p-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                {/* Form on the left side */}
-                <form onSubmit={handleSubmit} className="md:w-1/2 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Group Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="GROUP_NAME"
-                      value={formData.GROUP_NAME}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
+              <form onSubmit={handleSubmit}>
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Form on the left side */}
+                  <div className="md:w-1/3 space-y-4">
+                    <div data-component-name="AdminFormsGroups">
+                      <label className="block text-sm font-medium text-gray-700 mb-1" data-component-name="AdminFormsGroups">
+                        Group Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="GROUP_NAME"
+                        value={formData.GROUP_NAME}
+                        onChange={handleInputChange}
+                        required
+                        className="sg-input"
+                        data-component-name="AdminFormsGroups"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1" data-component-name="AdminFormsGroups">
+                        Description
+                      </label>
+                      <textarea
+                        name="GROUP_DESCRIPTION"
+                        value={formData.GROUP_DESCRIPTION || ''}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="sg-textarea"
+                        data-component-name="AdminFormsGroups"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sort Order
+                      </label>
+                      <input
+                        type="number"
+                        name="SORT_ORDER"
+                        value={formData.SORT_ORDER}
+                        onChange={handleInputChange}
+                        min={0}
+                        className="sg-input"
+                        data-component-name="AdminFormsGroups"
+                      />
+                    </div>
+                    
+                    <div className="sg-checkbox-container" data-component-name="AdminFormsGroups">
+                      <input
+                        type="checkbox"
+                        id="IS_PUBLIC"
+                        name="IS_PUBLIC"
+                        checked={formData.IS_PUBLIC}
+                        onChange={handleCheckboxChange}
+                        className="sg-toggle"
+                        data-component-name="AdminFormsGroups"
+                      />
+                      <label htmlFor="IS_PUBLIC" className="sg-toggle-label">
+                        Public
+                      </label>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      name="GROUP_DESCRIPTION"
-                      value={formData.GROUP_DESCRIPTION || ''}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Sort Order
-                    </label>
-                    <input
-                      type="number"
-                      name="SORT_ORDER"
-                      value={formData.SORT_ORDER}
-                      onChange={handleInputChange}
-                      min={0}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="IS_PUBLIC"
-                      name="IS_PUBLIC"
-                      checked={formData.IS_PUBLIC}
-                      onChange={handleCheckboxChange}
-                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                    />
-                    <label htmlFor="IS_PUBLIC" className="ml-2 block text-sm text-gray-700">
-                      Public
-                    </label>
-                  </div>
-                  
-                  <div className="pt-4 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    >
-                      {currentGroup ? 'Update' : 'Create'}
-                    </button>
-                  </div>
-                </form>
+
+                  {/* Group fields display on the right */}
+                  {currentGroup && (
+                    <div className="md:w-2/3 border-l border-gray-200 pl-6" data-component-name="AdminFormsGroups">
+                      {(() => {
+                        console.log('Rendering AdminFormGroupFields with groupId:', currentGroup.GROUP_ID, 'Type:', typeof currentGroup.GROUP_ID);
+                        return null;
+                      })()}
+                      <AdminFormGroupFields groupId={Number(currentGroup.GROUP_ID)} />
+                    </div>
+                  )}
+                </div>
                 
-                {/* Show AdminFormGroupFields component on the right side when editing a group */}
-                {currentGroup && (
-                  <div className="md:w-1/2 border-l border-gray-200 pl-6">
-                    <AdminFormGroupFields groupId={currentGroup.GROUP_ID} />
-                  </div>
-                )}
-              </div>
+                {/* Footer with buttons */}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3" data-component-name="AdminFormsGroups">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="sg-button-secondary"
+                    data-component-name="AdminFormsGroups"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="sg-button-primary"
+                    data-component-name="AdminFormsGroups"
+                  >
+                    {currentGroup ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
