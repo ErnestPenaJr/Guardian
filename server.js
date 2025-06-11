@@ -100,7 +100,16 @@ console.log('\n===== STATIC FILES =====');
 if (fs.existsSync(distPath)) {
     console.log(`Serving static files from: ${distPath}`);
     listDirectoryContents(distPath);
-    app.use(express.static(distPath));
+
+    // Configure static middleware to ignore server-side directories
+    app.use(express.static(distPath, {
+        setHeaders: (res, path) => { // Skip serving .js files from middleware/routes directories
+            if (path.includes('/middleware/') || path.includes('/routes/')) {
+                res.status(404).end();
+                return;
+            }
+        }
+    }));
 } else {
     console.error(`ERROR: dist directory not found at ${distPath}`);
     console.error('Frontend build is missing from the deployment');
@@ -113,6 +122,24 @@ if (fs.existsSync(indexPath)) {
 } else {
     console.error(`ERROR: index.html not found at ${indexPath}`);
 }
+
+// Clean up server-side code that shouldn't be in dist
+const serverDirsInDist = ['middleware', 'routes'];
+serverDirsInDist.forEach(dirName => {
+    const serverDirPath = path.join(distPath, dirName);
+    if (fs.existsSync(serverDirPath)) {
+        console.log(`WARNING: Removing server-side directory from dist: ${dirName}`);
+        try {
+            fs.rmSync(serverDirPath, {
+                recursive: true,
+                force: true
+            });
+            console.log(`Successfully removed ${dirName} from dist`);
+        } catch (err) {
+            console.error(`Failed to remove ${dirName} from dist:`, err.message);
+        }
+    }
+});
 
 // Simple health check endpoint
 app.get('/api/health', (req, res) => {
