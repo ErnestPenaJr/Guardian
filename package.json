@@ -1,9 +1,11 @@
 {
-  "name": "guardian",
+  "name": "Guardian",
   "private": true,
-  "version": "2.0.0",
-  "type": "module",
+  "version": "2.5.0",
+  "type": "commonjs",
+  "main": "azure-server.js",
   "scripts": {
+    "start": "node azure-server.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -11,7 +13,6 @@
     "build-server": "tsc -p tsconfig.server.json",
     "start-server": "node ./dist-server/index.js",
     "backend": "npm run build-server && PORT=3001 npm run start-server",
-    "start": "node azure-server.js",
     "add-templates": "ts-node scripts/add_standard_templates.ts"
   },
   "dependencies": {
