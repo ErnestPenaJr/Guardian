@@ -43,6 +43,10 @@ if (SENDGRID_API_KEY) {
 
 const prisma = new PrismaClient();
 const app = express();
+
+// Trust proxy - required for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
@@ -216,7 +220,7 @@ app.get('/api/me', passport.authenticate('jwt', { session: false }), async (req:
     }));
     
     // Get company information if available
-    let company = null;
+    let company: { id: number; name: string } | null = null;
     if (user.COMPANY_ID) {
       const companyData = await prisma.cOMPANY.findUnique({
         where: { COMPANY_ID: user.COMPANY_ID }
@@ -1441,72 +1445,46 @@ app.delete('/api/invites/:id', passport.authenticate('jwt', { session: false }),
 });
 
 // --- GET USERS ENDPOINT ---
-app.get('/api/users', passport.authenticate('jwt', { session: false }), isAdmin, async (req: any, res) => {
+app.get('/api/users', passport.authenticate('jwt', { session: false }), async (req: any, res) => {
   try {
-    // Get admin's company ID from JWT token
-    const adminCompanyId = req.user.COMPANY_ID;
+    // Get user's company ID from JWT token
+    const userCompanyId = req.user.COMPANY_ID;
 
-    if (adminCompanyId === null) {
-      return res.status(403).json({ error: 'Admin user is not associated with a company' });
+    if (userCompanyId === null) {
+      return res.status(403).json({ error: 'User is not associated with a company' });
     }
 
-    // Get all users from the same company
+    // Get all active users from the same company
     const users = await prisma.uSERS.findMany({
       where: {
-        COMPANY_ID: adminCompanyId
-      }
+        COMPANY_ID: userCompanyId,
+        STATUS: 'A' // Only get active users
+      },
+      select: {
+        USER_ID: true,
+        FIRST_NAME: true,
+        LAST_NAME: true,
+        EMAIL: true,
+        STATUS: true
+      },
+      orderBy: [
+        { FIRST_NAME: 'asc' },
+        { LAST_NAME: 'asc' }
+      ]
     });
     
-    // Get user roles
-    const userRoles = await prisma.uSER_ROLES.findMany({
-      where: {
-        USER_ID: {
-          in: users.map(user => user.USER_ID)
-        }
-      }
-    });
-    
-    // Get roles
-    const roles = await prisma.rOLES.findMany();
-    
-    // Create a map of roles by ID for quick lookup
-    const rolesMap = roles.reduce((acc, role) => {
-      acc[role.ROLE_ID] = role;
-      return acc;
-    }, {} as Record<number, any>);
-    
-    // Group roles by user ID
-    const rolesByUserId = userRoles.reduce((acc, ur) => {
-      if (!acc[ur.USER_ID]) {
-        acc[ur.USER_ID] = [];
-      }
-      const role = rolesMap[ur.ROLE_ID];
-      if (role) {
-        acc[ur.USER_ID].push({
-          id: role.ROLE_ID,
-          name: role.NAME,
-          displayName: role.DISPLAY_NAME
-        });
-      }
-      return acc;
-    }, {} as Record<number, any[]>);
-    
-    // Format the response to match what the frontend expects
+    // Format users for the dropdown
     const formattedUsers = users.map(user => ({
-      id: user.USER_ID,
-      firstName: user.FIRST_NAME,
-      lastName: user.LAST_NAME,
-      email: user.EMAIL,
-      createdAt: user.CREATE_DATE,
-      status: user.STATUS,
-      roles: rolesByUserId[user.USER_ID] || [],
-      companyId: user.COMPANY_ID
+      USER_ID: user.USER_ID,
+      FIRST_NAME: user.FIRST_NAME,
+      LAST_NAME: user.LAST_NAME,
+      EMAIL: user.EMAIL
     }));
     
     res.json(formattedUsers);
-  } catch (err) {
-    console.error('[GET USERS]', err);
-    res.status(500).json({ error: 'Server error while fetching users' });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 

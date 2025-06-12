@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import NewRequestModal from './NewRequestModal';
 import SelectFormModal from '../components/SelectFormModal';
 import AddRequestModal from '../components/AddRequestModal';
+import RequestModal from '../components/RequestModal';
 import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
 import { useAuth } from '../hooks/useAuth';
@@ -52,6 +53,8 @@ const RequestDashboard: React.FC = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
   
   // Check if user has one of the allowed roles
   const hasCreateRequestAccess = useMemo(() => {
@@ -93,7 +96,7 @@ const RequestDashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get('/requests');
+      const { data } = await api.get('/api/requests');
       setRequests(data);
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || 'Failed to fetch requests');
@@ -225,10 +228,9 @@ const RequestDashboard: React.FC = () => {
           <button 
             className="btn btn-sm btn-outline-primary"
             onClick={() => {
-              // View request details
-              // Use TRACKINGID in URL when available, otherwise use REQUEST_ID
-              const requestIdentifier = row.TRACKINGID || row.REQUEST_ID;
-              window.location.href = `/request/${requestIdentifier}`;
+              // View request details in modal
+              setSelectedRequest(row);
+              setShowRequestModal(true);
             }}
           >
             View
@@ -488,41 +490,41 @@ const RequestDashboard: React.FC = () => {
           try {
             console.log('Submitting request data:', requestData);
             
-            // Use the simple-request endpoint which has the most reliable implementation
+            // Try the standard endpoint first as it's the most reliable
             try {
-              console.log('Using simple-request endpoint...');
-              const simpleResponse = await api.post('/simple-request', requestData);
-              console.log('simple-request endpoint success:', simpleResponse.data);
+              console.log('Using standard endpoint...');
+              const response = await api.post('/api/requests', requestData);
+              console.log('Standard endpoint success:', response.data);
               
               // Refresh the requests list
               fetchRequests();
               
-              return simpleResponse.data;
-            } catch (simpleError) {
-              console.error('simple-request endpoint failed:', simpleError);
+              return response.data;
+            } catch (standardError) {
+              console.error('Standard endpoint failed:', standardError);
               
-              // Fall back to the SQL endpoint
+              // Fall back to the simple-request endpoint
               try {
+                console.log('Falling back to simple-request endpoint...');
+                const simpleResponse = await api.post('/api/requests/simple-request', requestData);
+                console.log('simple-request endpoint success:', simpleResponse.data);
+                
+                // Refresh the requests list
+                fetchRequests();
+                
+                return simpleResponse.data;
+              } catch (simpleError) {
+                console.error('simple-request endpoint failed:', simpleError);
+                
+                // Last resort: try the SQL endpoint
                 console.log('Falling back to SQL endpoint...');
-                const sqlResponse = await api.post('/sql-request', requestData);
+                const sqlResponse = await api.post('/api/requests/sql-request', requestData);
                 console.log('SQL endpoint success:', sqlResponse.data);
                 
                 // Refresh the requests list
                 fetchRequests();
                 
                 return sqlResponse.data;
-              } catch (sqlError) {
-                console.error('SQL endpoint failed:', sqlError);
-                
-                // Last resort: try the standard endpoint
-                console.log('Falling back to standard endpoint...');
-                const response = await api.post('/requests', requestData);
-                console.log('Standard endpoint success:', response.data);
-                
-                // Refresh the requests list
-                fetchRequests();
-                
-                return response.data;
               }
             }
           } catch (error: any) {
@@ -532,6 +534,19 @@ const RequestDashboard: React.FC = () => {
           }
         }}
       />
+      
+      {/* Request Details Modal */}
+      {selectedRequest && (
+        <RequestModal
+          request={selectedRequest}
+          show={showRequestModal}
+          onHide={() => {
+            setShowRequestModal(false);
+            setSelectedRequest(null);
+          }}
+          onUpdate={fetchRequests}
+        />
+      )}
     </div>
   );
 };

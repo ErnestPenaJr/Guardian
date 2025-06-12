@@ -20,6 +20,7 @@
 - Using SimpleFormBuilder.css for styling the form builder interface
 
 ### Fixed
+- Fixed TypeScript error in `server/index.ts` by adding an explicit type (`{ id: number; name: string } | null`) to the `company` variable declaration within the `/api/me` route handler, resolving an issue where an object was assigned to a variable inferred as `null`.
 - Refactored `/api/debug/requests` in `server/routes/requests.ts` to correctly insert into `GUARDIAN.REQUESTS` and `GUARDIAN.FORMS_INSTANCE`, use the `GUARDIAN.` schema, and handle `TRACKINGID` by mapping input `description` to `REQUEST_DESCRIPTION`.
 - Modified `/api/sql-request` in `server/routes/requests.ts` to not insert into `TRACKINGID` (as it's a computed column) and correctly map input `description` to `REQUEST_DESCRIPTION`.
 - Fixed SQL queries in `server/routes/requests.ts` by changing schema prefix to `GUARDIAN.` (from `dbo.`) for `REQUESTS` and `FORMS_INSTANCE` tables to resolve 'Invalid object name' error.

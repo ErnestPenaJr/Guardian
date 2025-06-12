@@ -86,7 +86,7 @@ function Login() {
       setIsLoading(true);
       
       // Call the login API endpoint using our API utility
-      const response = await api.post('/login', {
+      const response = await api.post('/api/login', {
         email: credentials.email,
         password: credentials.password
       });

@@ -3,7 +3,7 @@ import axios from 'axios';
 // Base URL for API requests
 // In development, we use the Vite proxy which is configured in vite.config.ts
 // In production, the API is served from the same domain
-const API_URL = '/api';
+const API_URL = '/';
 
 console.log('API_URL configured as:', API_URL);
 

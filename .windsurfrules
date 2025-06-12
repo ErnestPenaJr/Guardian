@@ -1,1 +1,19 @@
-Limit code changes to the minimum necessary to implement the requested feature or fix the reported issue.
+---
+description: This rule explains React component patterns, hooks usage, and best practices.
+globs: **/*.jsx,**/*.tsx
+alwaysApply: false
+---
+
+# React rules
+
+- Use functional components with hooks instead of class components
+- Use custom hooks for reusable logic
+- Use the Context API for state management when needed
+- Use proper prop validation with PropTypes
+- Use React.memo for performance optimization when necessary
+- Use fragments to avoid unnecessary DOM elements
+- Use proper list rendering with keys
+- Prefer composition over inheritance
+- Limit code changes to the minimum necessary to implement the requested feature or fix the reported issue.
+- Focuse on changes that are related to the current task at hand. 
+- Do not make changes to code that is not related to the current task at hand.

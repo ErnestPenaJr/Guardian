@@ -435,7 +435,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
             <>
               {step === 0 && 'Configure your first form!'}
               {step === 1 && `Set up your: ${formData.formType} Form`}
-              {step === 2 && 'Design your form'}
+              {step === 2 && 'Create your form'}
             </>
           )}
         </h3>
@@ -456,7 +456,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
           <div className="step-labels mb-4">
             <div className="step-label">Select form type</div>
             <div className="step-label">Create a title</div>
-            <div className="step-label">Design your form</div>
+            <div className="step-label">Create your form</div>
           </div>
         </>
       )}

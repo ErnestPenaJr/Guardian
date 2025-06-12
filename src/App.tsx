@@ -1,4 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -22,6 +25,7 @@ import ApiAccessPortal from './pages/ApiAccessPortal';
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover />
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
@@ -32,17 +36,20 @@ function App() {
           <Route path="/verify-forgot-password" element={<VerifyForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/style-guide" element={<StyleGuide />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/invite/accept" element={<InviteAccept />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin-user-management" element={<AdminUserManagement />} />
-          <Route path="/admin-fields" element={<AdminFields />} />
-          <Route path="/admin-fields/lookups/:fieldId" element={<AdminFieldsLookupPage />} />
-          <Route path="/admin-forms-groups" element={<AdminFormsGroups />} />
-          <Route path="/admin-forms-groups/fields/:groupId" element={<AdminFormGroupFieldsPage />} />
-          <Route path="/requests-dashboard" element={<RequestDashboard />} />
-          <Route path="/health" element={<Health />} />
-          <Route path="/api-manager" element={<EndpointManagerPage />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin-user-management" element={<ProtectedRoute><AdminUserManagement /></ProtectedRoute>} />
+          <Route path="/admin-fields" element={<ProtectedRoute><AdminFields /></ProtectedRoute>} />
+          <Route path="/admin-fields/lookups/:fieldId" element={<ProtectedRoute><AdminFieldsLookupPage /></ProtectedRoute>} />
+          <Route path="/admin-forms-groups" element={<ProtectedRoute><AdminFormsGroups /></ProtectedRoute>} />
+          <Route path="/admin-forms-groups/fields/:groupId" element={<ProtectedRoute><AdminFormGroupFieldsPage /></ProtectedRoute>} />
+          <Route path="/requests-dashboard" element={<ProtectedRoute><RequestDashboard /></ProtectedRoute>} />
+          {/* Commented out to prevent navigation when clicking View button 
+          <Route path="/request/:id" element={<Navigate to="/requests-dashboard" replace />} />
+          */}
+          <Route path="/health" element={<ProtectedRoute><Health /></ProtectedRoute>} />
+          <Route path="/api-manager" element={<ProtectedRoute><EndpointManagerPage /></ProtectedRoute>} />
           <Route path="/api-access-portal" element={<ApiAccessPortal />} />
           <Route path="/api-explorer" element={<ApiAccessPortal />} />
         </Routes>

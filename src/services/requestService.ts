@@ -61,7 +61,7 @@ const requestService = {
   }): Promise<any> => {
     try {
       console.log('Using SQL endpoint to create request:', requestData);
-      const response = await axiosWithAuth().post('/sql-request', requestData);
+      const response = await axiosWithAuth().post('/requests/sql-request', requestData);
       return response.data;
     } catch (error) {
       console.error('Error in SQL request creation:', error);
@@ -77,7 +77,7 @@ const requestService = {
   }): Promise<any> => {
     try {
       console.log('Using simple endpoint to create request:', requestData);
-      const response = await axiosWithAuth().post('/simple-request', requestData);
+      const response = await axiosWithAuth().post('/requests/simple-request', requestData);
       return response.data;
     } catch (error) {
       console.error('Error in simple request creation:', error);
