@@ -18,7 +18,7 @@ Guardian is a web application built on modern technologies that enables organiza
 
 ## User Personas
 
-### 1. Administrator (role_id: 1)
+### 1. Administrator (role_id: 1, "Guardian Admin")
 - IT professionals responsible for system configuration
 - Has access to the Admin Dashboard with user management capabilities
 - Can create and manage workflow templates and field types
@@ -30,23 +30,23 @@ Guardian is a web application built on modern technologies that enables organiza
 - Can access the API Explorer and advanced user management
 - Has access to all administrative features
 
-### 3. External User (role_id: 5)
+### 3. External User (role_id: 5, "External User")
 - Client or external stakeholder submitting requests
 - Limited access to only relevant forms and workflows
 - Can track status of their submitted requests
 - Has a simplified user interface
 
-### 4. General User
+### 4. General User (role_id: 2, "User")
 - Internal employee using the system for standard workflows
 - Can create and track requests
 - Access determined by assigned role permissions
 
-### 5. Manager
+### 5. Manager (role_id: 3, "Manager")
 - Oversees request workflows and approvals
 - Has access to reporting dashboards
 - Can assign and reassign requests
 
-### 6. Processor
+### 6. Processor (role_id: 4, "Processor")
 - Handles request processing and updates
 - Works with assigned requests in their queue
 
