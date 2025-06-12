@@ -169,31 +169,13 @@ function Home() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   
-  // State to track countdown timer for auto-refresh
-  const [refreshCountdown, setRefreshCountdown] = useState(30);
+  // State for refresh button loading state
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch requests when component mounts and set up refresh timer
+  // Fetch requests when component mounts
   useEffect(() => {
     console.log('Home component mounted, fetching requests...');
     fetchRequests();
-    
-    // Set up an interval to refresh data every 30 seconds
-    const refreshIntervalId = setInterval(() => {
-      console.log('Refreshing requests data...');
-      fetchRequests();
-      setRefreshCountdown(30); // Reset countdown after refresh
-    }, 30000);
-    
-    // Set up countdown timer that updates every second
-    const countdownIntervalId = setInterval(() => {
-      setRefreshCountdown(prevCount => prevCount > 0 ? prevCount - 1 : 0);
-    }, 1000);
-    
-    // Clean up intervals on component unmount
-    return () => {
-      clearInterval(refreshIntervalId);
-      clearInterval(countdownIntervalId);
-    };
   }, []);
 
   useEffect(() => {
@@ -426,32 +408,13 @@ function Home() {
       name: 'Requestor',
       selector: (row: Request) => row.requestorName,
       sortable: true,
-      width: '150px',
+      width: '180px',
     },
     {
       name: 'Assigned To',
       selector: (row: Request) => row.assignedName || 'Unassigned',
       sortable: true,
-      width: '150px',
-    },
-    {
-      name: 'Actions',
-      cell: (row: Request) => (
-        <button 
-          className="btn btn-sm btn-outline-primary"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleViewRequest(row);
-          }}
-          data-component-name="<button />"
-        >
-          View
-        </button>
-      ),
-      ignoreRowClick: true,
-      // Fix React warnings by removing problematic props
-      // These props are meant for the DataTable internal use, not for DOM elements
-      width: '100px',
+      width: '180px',
     }
   ];
 
@@ -905,17 +868,21 @@ function Home() {
                         <button 
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
                           onClick={() => {
-                            fetchRequests();
-                            setRefreshCountdown(30);
-                            setToggleCleared(!toggleCleared);
-                            setSelectedRows([]);
+                            setIsRefreshing(true);
+                            fetchRequests()
+                              .finally(() => {
+                                setIsRefreshing(false);
+                                setToggleCleared(!toggleCleared);
+                                setSelectedRows([]);
+                              });
                           }}
+                          disabled={isRefreshing}
                           data-component-name="Home"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
-                          Refresh ({refreshCountdown}s)
+                          {isRefreshing ? 'Refreshing...' : 'Refresh'}
                         </button>
                       </div>
                       <div className="relative w-64">
@@ -960,6 +927,8 @@ function Home() {
                         console.log('Selected Rows:', state.selectedRows);
                         setSelectedRows(state.selectedRows);
                       }}
+                      onRowClicked={handleViewRequest}
+                      pointerOnHover
                       clearSelectedRows={toggleCleared}
                       sortServer={false}
                       defaultSortFieldId={1}
