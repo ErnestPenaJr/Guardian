@@ -97,9 +97,11 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       
       try {
         // Make the API call to assign the user
-        await api.post(`/api/requests/${request.REQUEST_ID}/assign`, { 
+        console.log('Making API call to assign user:', selectedUser, 'to request:', request.REQUEST_ID);
+        const response = await api.post(`/api/requests/${request.REQUEST_ID}/assign`, { 
           userId: selectedUser
         });
+        console.log('User assignment API response:', response.data);
         
         // Find the assigned user (for logging purposes)
         const assignedUser = users.find(u => (u.USER_ID || u.id) === parseInt(selectedUser));
@@ -108,7 +110,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           'Unknown user');
           
         // Refresh the requests list and close the modal
-        onUpdate(); 
+        console.log('Calling onUpdate callback to refresh request list');
+        onUpdate();
+        console.log('Calling onHide to close the modal'); 
         onHide();
       } catch (apiErr: any) {
         console.error('API error when assigning user:', apiErr);

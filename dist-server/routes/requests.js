@@ -889,34 +889,69 @@ router.get('/', async (req, res) => {
         // Get query parameters for filtering
         const { status, type, assignedTo, requestorId, limit } = req.query;
         // Build the WHERE clause dynamically
-        let whereClause = "WHERE STATUS <> 'D'";
+        let whereClause = "WHERE r.STATUS <> 'D'";
         // Add status filter if provided
         if (status) {
-            whereClause += ` AND STATUS = '${status}'`;
+            whereClause += ` AND r.STATUS = '${status}'`;
         }
         // Add type filter if provided
         if (type) {
-            whereClause += ` AND REQUEST_TYPE = '${type}'`;
+            whereClause += ` AND r.REQUEST_TYPE = '${type}'`;
         }
         // Add assigned user filter if provided
         if (assignedTo) {
-            whereClause += ` AND ASSIGNED_ID = ${assignedTo}`;
+            whereClause += ` AND r.ASSIGNED_ID = ${assignedTo}`;
         }
         // Add requestor filter if provided
         if (requestorId) {
-            whereClause += ` AND REQUESTOR_ID = ${requestorId}`;
+            whereClause += ` AND r.REQUESTOR_ID = ${requestorId}`;
         }
         // Determine limit clause
-        const limitClause = limit ? `LIMIT ${limit}` : '';
-        // Use raw SQL query with the dynamic WHERE clause
+        const limitClause = limit ? `TOP ${limit}` : '';
+        // Use raw SQL query with the dynamic WHERE clause and LEFT JOINs to get user details
         const query = `
-        SELECT * FROM GUARDIAN.REQUESTS 
+        SELECT ${limitClause} 
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
         ${whereClause} 
-        ORDER BY CREATE_DATE DESC
-        ${limitClause}
+        ORDER BY r.CREATE_DATE DESC
       `;
         console.log('Executing query:', query);
-        const requests = await prisma.$queryRawUnsafe(query);
+        const rawRequests = await prisma.$queryRawUnsafe(query);
+        // Transform the results to include requestor and assigned objects
+        const requests = rawRequests.map((req) => {
+            // Create the request object with all original properties
+            const request = { ...req };
+            // Add requestor object if requestor data exists
+            if (req.requestor_first_name || req.requestor_last_name) {
+                request.requestor = {
+                    FIRST_NAME: req.requestor_first_name,
+                    LAST_NAME: req.requestor_last_name
+                };
+                request.requestorName = `${req.requestor_first_name} ${req.requestor_last_name}`;
+            }
+            // Add assigned object if assigned data exists
+            if (req.assigned_first_name || req.assigned_last_name) {
+                request.assigned = {
+                    FIRST_NAME: req.assigned_first_name,
+                    LAST_NAME: req.assigned_last_name
+                };
+                request.assignedName = `${req.assigned_first_name} ${req.assigned_last_name}`;
+            }
+            // Remove the extra fields to keep the response clean
+            delete request.requestor_first_name;
+            delete request.requestor_last_name;
+            delete request.assigned_first_name;
+            delete request.assigned_last_name;
+            return request;
+        });
+        console.log(`Returning ${requests.length} requests with user details`);
         res.json(requests);
     }
     catch (error) {

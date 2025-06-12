@@ -335,8 +335,8 @@ model REQUESTS {
   REQUEST_NAME        String    @db.VarChar(255)
   EXTERNAL_USER       String?   @default("N", map: "DF__REQUESTS__EXTERN__00200768") @db.Char(1)
   SUBMITTED_DATE      DateTime  @default(now(), map: "DF__REQUESTS__SUBMIT__01142BA1") @db.DateTime
-  REQUESTOR_ID        Int?
-  ASSIGNED_ID         Int?
+  REQUESTOR_ID        Int? @relation(fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__REQUESTS__REQUESTOR_ID__02084FDA")
+  ASSIGNED_ID         Int? @relation(fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__REQUESTS__ASSIGNED_ID__02084FDA")
   STATUS              String?   @default("A", map: "DF__REQUESTS__STATUS__02084FDA") @db.Char(1)
   CREATE_DATE         DateTime  @default(now(), map: "DF__REQUESTS__CREATE__02FC7413") @db.DateTime
   UPDATE_DATE         DateTime? @default(now(), map: "DF__REQUESTS__UPDATE__03F0984C") @db.DateTime

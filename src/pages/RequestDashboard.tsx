@@ -93,12 +93,17 @@ const RequestDashboard: React.FC = () => {
 
   // Fetch requests from the API
   const fetchRequests = async () => {
+    console.log('fetchRequests called - refreshing request data');
     setLoading(true);
     setError(null);
     try {
+      console.log('Fetching requests from API...');
       const { data } = await api.get('/api/requests');
+      console.log('Requests fetched successfully:', data.length, 'requests');
+      console.log('Setting requests state with new data');
       setRequests(data);
     } catch (err: any) {
+      console.error('Error fetching requests:', err);
       setError(err.response?.data?.error || err.message || 'Failed to fetch requests');
       toast.error('Failed to fetch requests');
     } finally {
