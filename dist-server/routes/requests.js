@@ -1021,6 +1021,14 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete request' });
     }
 });
+import sgMail from '@sendgrid/mail';
+// Get SendGrid configuration from environment variables
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.VITE_SENDGRID_API_KEY;
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.VITE_SENDGRID_FROM_EMAIL || 'support@shieldlytics.com';
+// Configure SendGrid if API key is available
+if (SENDGRID_API_KEY) {
+    sgMail.setApiKey(SENDGRID_API_KEY);
+}
 // Assign a request to a user
 router.post('/:id/assign', async (req, res) => {
     try {
@@ -1046,21 +1054,74 @@ router.post('/:id/assign', async (req, res) => {
       UPDATE GUARDIAN.REQUESTS 
       SET ASSIGNED_ID = ${assignedUserId},
           UPDATE_USER_ID = ${updatedById},
-          UPDATE_DATE = @currentDate
+          UPDATE_DATE = GETDATE()
       WHERE REQUEST_ID = ${requestId}
-    `, { currentDate });
+    `);
         // Get the updated request to return
         const updatedRequest = await prisma.$queryRawUnsafe(`
       SELECT r.*, 
         u1.FIRST_NAME + ' ' + u1.LAST_NAME as REQUESTOR_NAME,
-        u2.FIRST_NAME + ' ' + u2.LAST_NAME as ASSIGNED_TO_NAME
+        u2.FIRST_NAME + ' ' + u2.LAST_NAME as ASSIGNED_TO_NAME,
+        u2.EMAIL as ASSIGNED_USER_EMAIL
       FROM GUARDIAN.REQUESTS r
       LEFT JOIN GUARDIAN.USERS u1 ON r.REQUESTOR_ID = u1.USER_ID
       LEFT JOIN GUARDIAN.USERS u2 ON r.ASSIGNED_ID = u2.USER_ID
       WHERE r.REQUEST_ID = ${requestId}
     `);
+        // Send notification email to assigned user if SendGrid is configured
+        const request = updatedRequest[0];
+        if (SENDGRID_API_KEY && request && request.ASSIGNED_USER_EMAIL) {
+            try {
+                console.log(`[REQUEST ASSIGNMENT] Sending notification email to ${request.ASSIGNED_USER_EMAIL}`);
+                const trackingId = request.TRACKINGID || `REQ-${request.REQUEST_ID}`;
+                const requestName = request.REQUEST_NAME || 'Unnamed Request';
+                // Get assigner name from JWT token or use a default
+                let assignerName = 'System Administrator';
+                if (req.user) {
+                    const user = req.user;
+                    if (user.firstName && user.lastName) {
+                        assignerName = `${user.firstName} ${user.lastName}`;
+                    }
+                    else if (user.FIRST_NAME && user.LAST_NAME) {
+                        assignerName = `${user.FIRST_NAME} ${user.LAST_NAME}`;
+                    }
+                }
+                const msg = {
+                    to: request.ASSIGNED_USER_EMAIL,
+                    from: SENDGRID_FROM_EMAIL,
+                    subject: `Request Assignment: ${trackingId}`,
+                    html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Request Assignment Notification</h2>
+              <p>Hello,</p>
+              <p>You have been assigned to the following request:</p>
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p><strong>Request ID:</strong> ${trackingId}</p>
+                <p><strong>Request Name:</strong> ${requestName}</p>
+                <p><strong>Assigned By:</strong> ${assignerName}</p>
+                <p><strong>Assignment Date:</strong> ${new Date().toLocaleString()}</p>
+              </div>
+              <p>Please log in to the Guardian system to review and process this request.</p>
+              <p>Thank you,<br>Guardian System</p>
+            </div>
+          `
+                };
+                await sgMail.send(msg);
+                console.log('[REQUEST ASSIGNMENT] Notification email sent successfully');
+            }
+            catch (emailError) {
+                // Log email error but don't fail the request assignment
+                console.error('[REQUEST ASSIGNMENT] Error sending notification email:', emailError);
+                if (emailError.response) {
+                    console.error('[REQUEST ASSIGNMENT] SendGrid API Error Details:', emailError.response.body);
+                }
+            }
+        }
+        else {
+            console.log('[REQUEST ASSIGNMENT] Email notification skipped - SendGrid not configured or missing email');
+        }
         console.log('Request assigned successfully');
-        res.status(200).json(updatedRequest[0] || { message: 'Request assigned but details not available' });
+        res.status(200).json(request || { message: 'Request assigned but details not available' });
     }
     catch (error) {
         console.error('Error assigning request:', error);
