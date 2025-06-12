@@ -2,10 +2,10 @@
   "name": "guardian-server",
   "version": "1.0.0",
   "description": "Guardian MVP Server",
-  "main": "server.js",
+  "main": "azure-server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node azure-server.js"
   },
   "dependencies": {
     "express": "^4.21.2",
