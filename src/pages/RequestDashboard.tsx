@@ -93,21 +93,45 @@ const RequestDashboard: React.FC = () => {
 
   // Fetch requests from the API
   const fetchRequests = async () => {
-    console.log('fetchRequests called - refreshing request data');
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] fetchRequests called - refreshing request data`);
+    console.log('Current requests state:', requests.length, 'requests');
+    
     setLoading(true);
     setError(null);
+    
     try {
-      console.log('Fetching requests from API...');
+      console.log(`[${timestamp}] Fetching requests from API...`);
       const { data } = await api.get('/api/requests');
-      console.log('Requests fetched successfully:', data.length, 'requests');
-      console.log('Setting requests state with new data');
+      console.log(`[${timestamp}] Requests fetched successfully:`, data.length, 'requests');
+      console.log('First few requests:', data.slice(0, 3));
+      
+      // Check if there are any differences between current and new data
+      const currentIds = new Set(requests.map((r: any) => r.REQUEST_ID));
+      // Calculate if there are new or removed requests
+      const hasNewRequests = data.some((r: any) => !currentIds.has(r.REQUEST_ID));
+      const hasDifferentAssignments = data.some((r: any) => {
+        const currentReq = requests.find((cr: any) => cr.REQUEST_ID === r.REQUEST_ID);
+        return currentReq && currentReq.ASSIGNED_ID !== r.ASSIGNED_ID;
+      });
+      
+      console.log(`[${timestamp}] Data comparison:`, {
+        currentRequestCount: requests.length,
+        newRequestCount: data.length,
+        hasNewRequests,
+        hasDifferentAssignments
+      });
+      
+      console.log(`[${timestamp}] Setting requests state with new data`);
       setRequests(data);
+      console.log(`[${timestamp}] State update queued`);
     } catch (err: any) {
-      console.error('Error fetching requests:', err);
+      console.error(`[${timestamp}] Error fetching requests:`, err);
       setError(err.response?.data?.error || err.message || 'Failed to fetch requests');
       toast.error('Failed to fetch requests');
     } finally {
       setLoading(false);
+      console.log(`[${timestamp}] Loading state set to false`);
     }
   };
 
@@ -546,10 +570,19 @@ const RequestDashboard: React.FC = () => {
           request={selectedRequest}
           show={showRequestModal}
           onHide={() => {
+            console.log('Modal onHide callback triggered');
             setShowRequestModal(false);
             setSelectedRequest(null);
+            // Force a refresh when the modal is closed to ensure latest data
+            console.log('Forcing refresh after modal close');
+            setTimeout(() => {
+              fetchRequests();
+            }, 300);
           }}
-          onUpdate={fetchRequests}
+          onUpdate={() => {
+            console.log('Modal onUpdate callback triggered');
+            fetchRequests();
+          }}
         />
       )}
     </div>

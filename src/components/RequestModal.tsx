@@ -89,7 +89,13 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
   
   const handleAssignUser = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser) {
+      console.log('No user selected, cannot assign');
+      return;
+    }
+    
+    console.log('handleAssignUser called with selectedUser:', selectedUser);
+    console.log('Current request state:', request);
     
     try {
       setLoading(true);
@@ -111,9 +117,17 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           
         // Refresh the requests list and close the modal
         console.log('Calling onUpdate callback to refresh request list');
-        onUpdate();
-        console.log('Calling onHide to close the modal'); 
-        onHide();
+        console.log('onUpdate type:', typeof onUpdate);
+        
+        // Call onUpdate with a small delay to ensure state updates are processed
+        setTimeout(() => {
+          console.log('Executing onUpdate callback after timeout');
+          onUpdate();
+          
+          // Close the modal after the update
+          console.log('Calling onHide to close the modal');
+          onHide();
+        }, 100);
       } catch (apiErr: any) {
         console.error('API error when assigning user:', apiErr);
         setError(apiErr.response?.data?.error || 'Failed to assign user. Please try again.');
