@@ -90,6 +90,8 @@ app.use((req, res, next) => {
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
     console.log(`Serving static files from: ${distPath}`);
+    const history = require('connect-history-api-fallback');
+    app.use(history());
     app.use(express.static(distPath));
 } else {
     console.warn(`Warning: Static files directory (${distPath}) not found`);
