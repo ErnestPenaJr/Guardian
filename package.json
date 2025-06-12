@@ -11,7 +11,7 @@
     "build-server": "tsc -p tsconfig.server.json",
     "start-server": "node ./dist-server/index.js",
     "backend": "npm run build-server && PORT=3001 npm run start-server",
-    "start": "node server.js",
+    "start": "node azure-server.js",
     "add-templates": "ts-node scripts/add_standard_templates.ts"
   },
   "dependencies": {
