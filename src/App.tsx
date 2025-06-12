@@ -18,33 +18,47 @@ import RequestDashboard from './pages/RequestDashboard';
 import Health from './pages/Health';
 import EndpointManagerPage from './pages/EndpointManagerPage';
 import ApiAccessPortal from './pages/ApiAccessPortal';
+import AdminLayout from './layouts/AdminLayout';
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Router>
         <Routes>
-          <Route path="/" element={<Login />} />
+          {/* Authentication routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/style-guide" element={<StyleGuide />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-forgot-password" element={<VerifyForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/style-guide" element={<StyleGuide />} />
+          <Route path="/invite-accept" element={<InviteAccept />} />
+          
+          {/* Main navigation routes with Home component (contains sidebar) */}
           <Route path="/home" element={<Home />} />
-          <Route path="/invite/accept" element={<InviteAccept />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin-user-management" element={<AdminUserManagement />} />
-          <Route path="/admin-fields" element={<AdminFields />} />
-          <Route path="/admin-fields/lookups/:fieldId" element={<AdminFieldsLookupPage />} />
-          <Route path="/admin-forms-groups" element={<AdminFormsGroups />} />
-          <Route path="/admin-forms-groups/fields/:groupId" element={<AdminFormGroupFieldsPage />} />
-          <Route path="/requests-dashboard" element={<RequestDashboard />} />
-          <Route path="/health" element={<Health />} />
+          <Route path="/dashboard" element={<Home />} />
+          <Route path="/my-requests" element={<Home />} />
+          <Route path="/settings" element={<Home />} />
+          <Route path="/" element={<Home />} />
+          
+          {/* Admin routes with sidebar from Home component */}
+          <Route path="/admin-fields" element={<Home />} />
+          <Route path="/admin-fields-lookup" element={<Home />} />
+          <Route path="/admin-forms-groups" element={<Home />} />
+          <Route path="/admin-form-group-fields/:formGroupId" element={<Home />} />
+          
+          {/* Admin routes with sidebar from Home component */}
+          <Route path="/admin" element={<Home />} />
+          <Route path="/admin-user-management" element={<Home />} />
+          <Route path="/request-dashboard" element={<Home />} />
+          {/* Style Guide Route - Ensure wrapped in Home for layout */}
+          <Route path="/style-guide" element={<Home />} />
           <Route path="/api-manager" element={<EndpointManagerPage />} />
-          <Route path="/api-access-portal" element={<ApiAccessPortal />} />
           <Route path="/api-explorer" element={<ApiAccessPortal />} />
+
+          {/* Health check doesn't need layout */}
+          <Route path="/health" element={<Health />} />
         </Routes>
       </Router>
     </div>

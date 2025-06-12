@@ -1743,6 +1743,130 @@ app.delete('/api/users/:id', passport.authenticate('jwt', { session: false }), i
     }
 });
 // --- DELETE USER ENDPOINT (SIMPLIFIED) ---
+// --- UPDATE USER ENDPOINT ---
+app.put('/api/users/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const { firstName, lastName, email, roleId } = req.body;
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+        // Check if user exists
+        const user = await prisma.uSERS.findUnique({
+            where: { USER_ID: userId }
+        });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        // Update user details
+        const updatedUser = await prisma.uSERS.update({
+            where: { USER_ID: userId },
+            data: {
+                FIRST_NAME: firstName,
+                LAST_NAME: lastName,
+                EMAIL: email,
+                UPDATE_DATE: new Date()
+            }
+        });
+        // Update role if provided
+        if (roleId) {
+            // First check if role exists
+            const roleExists = await prisma.rOLES.findUnique({
+                where: { ROLE_ID: roleId }
+            });
+            if (!roleExists) {
+                return res.status(400).json({ error: 'Invalid role ID' });
+            }
+            // Delete existing roles
+            await prisma.uSER_ROLES.deleteMany({
+                where: { USER_ID: userId }
+            });
+            // Assign new role
+            await prisma.uSER_ROLES.create({
+                data: {
+                    USER_ID: userId,
+                    ROLE_ID: roleId
+                }
+            });
+        }
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            user: {
+                id: updatedUser.USER_ID,
+                firstName: updatedUser.FIRST_NAME,
+                lastName: updatedUser.LAST_NAME,
+                email: updatedUser.EMAIL
+            }
+        });
+    }
+    catch (err) {
+        console.error('[UPDATE USER]', err);
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
+// --- UPDATE USER ENDPOINT (ALTERNATIVE PATH) ---
+app.put('/api/users/update/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const { firstName, lastName, email, roleId } = req.body;
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+        // Check if user exists
+        const user = await prisma.uSERS.findUnique({
+            where: { USER_ID: userId }
+        });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        // Update user details
+        const updatedUser = await prisma.uSERS.update({
+            where: { USER_ID: userId },
+            data: {
+                FIRST_NAME: firstName,
+                LAST_NAME: lastName,
+                EMAIL: email,
+                UPDATE_DATE: new Date()
+            }
+        });
+        // Update role if provided
+        if (roleId) {
+            // First check if role exists
+            const roleExists = await prisma.rOLES.findUnique({
+                where: { ROLE_ID: roleId }
+            });
+            if (!roleExists) {
+                return res.status(400).json({ error: 'Invalid role ID' });
+            }
+            // Delete existing roles
+            await prisma.uSER_ROLES.deleteMany({
+                where: { USER_ID: userId }
+            });
+            // Assign new role
+            await prisma.uSER_ROLES.create({
+                data: {
+                    USER_ID: userId,
+                    ROLE_ID: roleId
+                }
+            });
+        }
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            user: {
+                id: updatedUser.USER_ID,
+                firstName: updatedUser.FIRST_NAME,
+                lastName: updatedUser.LAST_NAME,
+                email: updatedUser.EMAIL
+            }
+        });
+    }
+    catch (err) {
+        console.error('[UPDATE USER]', err);
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
 app.delete('/api/delete-user/:id', passport.authenticate('jwt', { session: false }), isAdmin, async (req, res) => {
     try {
         const userId = parseInt(req.params.id);

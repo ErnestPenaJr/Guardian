@@ -5,7 +5,7 @@ import {
   MessageCircle, CheckCircle, FileText, Monitor, CreditCard,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import { Tooltip } from 'react-tooltip';
@@ -19,6 +19,11 @@ import SendInvitesForm from '../components/SendInvitesForm';
 import RequestDashboard from './RequestDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
+import AdminFields from './AdminFields';
+import AdminFieldsLookupPage from './AdminFieldsLookupPage';
+import AdminFormsGroups from './AdminFormsGroups';
+import AdminFormGroupFieldsPage from './AdminFormGroupFieldsPage';
+import StyleGuide from './StyleGuide';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 
@@ -121,8 +126,23 @@ const requestColumns = [
 
 function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement' | 'apiManager'>('dashboard');
+  
+  // Determine section based on URL path
+  const getSectionFromPath = (path: string) => {
+    if (path === '/my-requests') return 'workorder';
+    if (path === '/settings' || path === '/admin' || path.startsWith('/admin-') || path === '/style-guide') return 'admin';
+    return 'dashboard'; // Default to dashboard for /home or /dashboard
+  };
+  
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement' | 'apiManager'>(getSectionFromPath(location.pathname));
+  
+  // Update selected section when URL changes
+  useEffect(() => {
+    const section = getSectionFromPath(location.pathname);
+    setSelectedSection(section);
+  }, [location.pathname]);
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [notifOpen, setNotifOpen] = useState(false);
   const [isNavExpanded, setIsNavExpanded] = useState(true);
@@ -297,7 +317,7 @@ function Home() {
     {
       icon: <LayoutDashboard className="w-6 h-6" />,
       label: 'Dashboard',
-      onClick: () => setSelectedSection('dashboard'),
+      onClick: () => navigate('/dashboard'),
       active: selectedSection === 'dashboard',
     },
     // Notices item hidden per request
@@ -310,24 +330,22 @@ function Home() {
     {
       icon: <FileText className="w-6 h-6" />,
       label: 'My Requests',
-      onClick: () => setSelectedSection('workorder'),
+      onClick: () => navigate('/my-requests'),
       active: selectedSection === 'workorder',
     },
-    ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
-      {
-        icon: <Sliders className="w-6 h-6" />,
-        label: 'Settings',
-        onClick: () => setSelectedSection('admin'),
-        active: selectedSection === 'admin',
-      },
-
-      {
-        icon: <Send className="w-6 h-6" />,
-        label: 'Invites',
-        onClick: handleSendInvite,
-        active: false,
-      }
-    ] : [])
+    // Show Settings and Invites for all users
+    {
+      icon: <Sliders className="w-6 h-6" />,
+      label: 'Settings',
+      onClick: () => navigate('/admin'),
+      active: selectedSection === 'admin',
+    },
+    {
+      icon: <Send className="w-6 h-6" />,
+      label: 'Invites',
+      onClick: handleSendInvite,
+      active: false,
+    }
   ];
 
   // Center action handler (could open a modal or perform an action)
@@ -432,7 +450,7 @@ function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Top Bar */}
-      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-teal-500 flex items-center justify-between px-4 md:px-8 z-40">
+      <header className="sticky top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-teal-500 flex items-center justify-between px-4 md:px-8 z-50">
         <div className="flex items-center gap-2 md:gap-3">
           <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="h-8 w-auto" />
           <span className="font-bold text-lg md:text-2xl text-gray-700 hidden sm:inline">Guardian</span>
@@ -641,7 +659,7 @@ function Home() {
         <Tooltip id="sidebar-tooltip" place="right" />
       </nav>
       {/* Main Content: Switchable Dashboard */}
-      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'ml-24' : 'ml-8'} transition-all duration-300 ease-in-out bg-gray-50`}>
+      <main className={`flex-1 flex flex-col px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'ml-48' : 'ml-16'} transition-all duration-300 ease-in-out bg-gray-50`}>
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container">
@@ -896,12 +914,26 @@ function Home() {
         ) : (
           // Existing desktop logic
           selectedSection === 'workorder' ? (
-            <div className="mt-4 md:mt-6">
+            <div>
               <RequestDashboard />
             </div>
-          ) : selectedSection === 'admin' && user && ((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') ? (
-            <div className="mt-4 md:mt-6">
-              <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
+          ) : selectedSection === 'admin' ? (
+            <div>
+              {location.pathname === '/admin-fields' ? (
+                <AdminFields />
+              ) : location.pathname === '/admin-fields-lookup' ? (
+                <AdminFieldsLookupPage />
+              ) : location.pathname === '/admin-forms-groups' ? (
+                <AdminFormsGroups />
+              ) : location.pathname.startsWith('/admin-form-group-fields/') ? (
+                <AdminFormGroupFieldsPage />
+              ) : location.pathname === '/admin-user-management' ? (
+                <AdminUserManagement />
+              ) : location.pathname === '/style-guide' ? (
+                <StyleGuide />
+              ) : (
+                <AdminDashboard onShowUserManagement={() => navigate('/admin-user-management')} />
+              )}
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
             <div className="mt-4 md:mt-6">

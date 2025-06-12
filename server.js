@@ -1,4 +1,4 @@
-// Simple entry point for Azure Web App - CommonJS format
+// Simple entry point for Azure Web App - ES Module format
 // This file should be in the root directory for Azure deployment
 
 // Log startup information
@@ -8,18 +8,26 @@ console.log(`Current directory: ${process.cwd()}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
 // Import required modules
-let express, path, fs, cors;
+let express, path, fs, cors, url;
 try {
-  express = require('express');
-  path = require('path');
-  fs = require('fs');
-  cors = require('cors');
+  // ES Module imports
+  express = await import('express');
+  express = express.default;
+  path = await import('path');
+  path = path.default;
+  fs = await import('fs');
+  url = await import('url');
+  cors = await import('cors');
+  cors = cors.default;
   console.log('Successfully imported all required modules');
 } catch (err) {
   console.error('ERROR IMPORTING MODULES:', err.message);
-  console.error('Module resolution paths:', module.paths);
   process.exit(1);
 }
+
+// Get equivalent of __dirname in ESM
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create Express app
 const app = express();

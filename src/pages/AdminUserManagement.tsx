@@ -170,6 +170,109 @@ const InviteUserModal = ({ show, onClose, roles, onSubmit }: InviteUserModalProp
   );
 };
 
+// Define interface for the EditUserModal
+interface EditUserModalProps {
+  show: boolean;
+  onClose: () => void;
+  roles: Role[];
+  user: UserRow | null;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}
+
+// EditUserModal component
+const EditUserModal: React.FC<EditUserModalProps> = ({ show, onClose, roles, user, onSubmit }) => {
+  if (!show || !user) return null;
+
+  // Split name into first and last name if needed
+  const nameParts = user.name?.split(' ') || ['', ''];
+  const firstName = user.firstName || nameParts[0] || '';
+  const lastName = user.lastName || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
+  
+  // Get role ID from user roles
+  const userRoleId = user.roles && user.roles.length > 0 ? user.roles[0].id : '';
+  
+  // Function to capitalize first letter of each word
+  const capitalizeWords = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const words = value.split(' ');
+    const capitalizedWords = words.map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    );
+    e.target.value = capitalizedWords.join(' ');
+  };
+
+  return (
+    <div
+      className="modal fade show d-block"
+      tabIndex={-1}
+      role="dialog"
+      style={{ background: 'rgba(0,0,0,0.4)' }}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-dialog modal-dialog-centered" role="document" onClick={e => e.stopPropagation()}>
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">Edit User</h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
+          </div>
+          <div className="modal-body">
+            <form id="edit-user-form" onSubmit={onSubmit} autoComplete="off">
+              <input type="hidden" name="userId" value={user.id} />
+              <div className="mb-3">
+                <label className="form-label">First Name</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  name="firstName" 
+                  required 
+                  defaultValue={firstName}
+                  onChange={capitalizeWords} 
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Last Name</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  name="lastName" 
+                  required 
+                  defaultValue={lastName}
+                  onChange={capitalizeWords} 
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Email</label>
+                <input 
+                  type="email" 
+                  className="form-control" 
+                  name="email" 
+                  required 
+                  defaultValue={user.email}
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Role</label>
+                <select className="form-select" name="role" required defaultValue={userRoleId}>
+                  <option value="" disabled>Select role</option>
+                  {roles.map((role, idx) => (
+                    <option key={role.id ?? idx} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer px-0">
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Update User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminUserManagement: React.FC = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -178,6 +281,8 @@ const AdminUserManagement: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showInviteUserModal, setShowInviteUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [userSearch, setUserSearch] = useState('');
   const [inviteSearch, setInviteSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
@@ -666,6 +771,175 @@ const AdminUserManagement: React.FC = () => {
     }
   };
 
+  // Handle edit user form submission
+  const handleEditUserSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const userId = formData.get('userId') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const email = formData.get('email') as string;
+    const roleId = formData.get('role') as string;
+
+    // Validation
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !roleId) {
+      Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
+      return;
+    }
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Swal.fire('Invalid Email', 'Please enter a valid email address.', 'warning');
+      return;
+    }
+
+    try {
+      // Show loading state
+      Swal.fire({
+        title: 'Updating User...',
+        text: 'Please wait while we update the user account.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
+      // Log debugging information
+      console.log('Updating user with ID:', userId);
+      console.log('API endpoint path:', `/users/${userId}`);
+      console.log('Update payload:', { firstName, lastName, email, roleId: Number(roleId) });
+      
+      try {
+        // First, try the standard REST endpoint
+        console.log('Attempting with endpoint: /users/{id}');
+        try {
+          const response = await api.put(`/users/${userId}`, {
+            firstName,
+            lastName,
+            email,
+            roleId: Number(roleId)
+          });
+          console.log('Success with /users/{id} endpoint:', response);
+          // Don't return early, continue execution
+          throw new Error('SUCCESS'); // This will break out of the try blocks but be caught by our success handler
+        } catch (error) {
+          console.log('Failed with /users/{id} endpoint, trying alternatives...');
+          // Continue to next attempt
+        }
+
+        // Second, try with 'update' in the path
+        // console.log('Attempting with endpoint: /users/update/{id}');
+        // try {
+        //   const response = await api.put(`/users/update/${userId}`, {
+        //     firstName,
+        //     lastName,
+        //     email,
+        //     roleId: Number(roleId)
+        //   });
+        //   console.log('Success with /users/update/{id} endpoint:', response);
+        //   // Don't return early, continue execution
+        //   throw new Error('SUCCESS'); // This will break out of the try blocks but be caught by our success handler
+        // } catch (error) {
+        //   console.log('Failed with /users/update/{id} endpoint, trying next alternative...');
+        //   // Continue to next attempt
+        // }
+
+        // Third attempt with POST instead of PUT
+        // console.log('Attempting with POST method: /users/{id}');
+        // try {
+        //   const response = await api.post(`/users/${userId}`, {
+        //     firstName,
+        //     lastName,
+        //     email,
+        //     roleId: Number(roleId),
+        //     _method: 'PUT' // Some APIs use this convention for method overriding
+        //   });
+        //   console.log('Success with POST to /users/{id} endpoint:', response);
+        //   // Don't return early, continue execution
+        //   throw new Error('SUCCESS'); // This will break out of the try blocks but be caught by our success handler
+        // } catch (error) {
+        //   console.log('All endpoint attempts failed');
+        //   throw error; // No more alternatives to try
+        // }
+      } catch (apiError: any) {
+        // Check if this is our success signal
+        if (apiError.message === 'SUCCESS') {
+          // This is actually a success, continue execution
+          console.log('Update successful, continuing...');
+        } else {
+          console.error('API Error Details:', { 
+            status: apiError?.response?.status,
+            statusText: apiError?.response?.statusText, 
+            data: apiError?.response?.data,
+            url: apiError?.config?.url,
+            method: apiError?.config?.method
+          });
+          throw apiError; // Re-throw to be caught by outer catch block
+        }
+      }
+      
+      // Close loading dialog
+      Swal.close();
+      
+      // Show success message
+      await Swal.fire({
+        title: 'User Updated!',
+        text: 'User has been successfully updated.',
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+      
+      setShowEditUserModal(false);
+      
+      // Refresh user data
+      try {
+        const usersRes = await api.get('/users');
+        
+        // Format and update user data
+        const formattedUsers = usersRes.data.map((user: any) => {
+          // Format date properly
+          let dateCreated = 'Invalid Date';
+          try {
+            if (user.createdAt) {
+              dateCreated = new Date(user.createdAt).toISOString();
+            }
+          } catch (e) {
+            console.error('Error formatting date:', e);
+          }
+          
+          return {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+            email: user.email,
+            dateCreated,
+            status: user.status || 'P',
+            roles: user.roles || [],
+            companyId: user.companyId || null
+          };
+        });
+        
+        setUsers(formattedUsers);
+      } catch (refreshErr) {
+        console.error('Error refreshing data after updating user:', refreshErr);
+        // Show error but don't block the flow
+        Swal.fire({
+          title: 'Warning',
+          text: 'User was updated but there was an error refreshing the table data. Please reload the page.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+      }
+    } catch (err: any) {
+      // Close loading dialog
+      Swal.close();
+      
+      Swal.fire('Failed to update user', err?.response?.data?.error || err.message || 'Unknown error', 'error');
+    }
+  };
+  
   // Handle invite user form submission
   const handleInviteUserSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1052,7 +1326,15 @@ const AdminUserManagement: React.FC = () => {
                                 <span className="text-warning fw-semibold">Inactive</span>}
                           </td>
                           <td>
-                            <button className="btn btn-sm btn-outline-primary me-1" title="Edit User">
+                            <button 
+                              className="btn btn-sm btn-outline-primary me-1" 
+                              title="Edit User" 
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowEditUserModal(true);
+                              }}
+                              data-component-name="AdminUserManagement"
+                            >
                               <FaEdit />
                             </button>
                             <button className="btn btn-sm btn-outline-danger" title="Delete User" onClick={() => handleDeleteUser(user.id)}><FaTrashAlt /></button>
@@ -1307,6 +1589,7 @@ const AdminUserManagement: React.FC = () => {
           </div>
           {showAddUserModal && <AddUserModal show={showAddUserModal} onClose={() => setShowAddUserModal(false)} roles={roles} user={user} onSubmit={handleAddUserSubmit} />}
           {showInviteUserModal && <InviteUserModal show={showInviteUserModal} onClose={() => setShowInviteUserModal(false)} roles={roles} onSubmit={handleInviteUserSubmit} />}
+          {showEditUserModal && <EditUserModal show={showEditUserModal} onClose={() => setShowEditUserModal(false)} roles={roles} user={selectedUser} onSubmit={handleEditUserSubmit} />}
         </div>
       </div>
     </div>

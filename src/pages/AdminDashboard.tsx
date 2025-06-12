@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icons/fa';
 import Modal from 'react-modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
@@ -14,6 +14,7 @@ Modal.setAppElement('#root');
 
 const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onShowUserManagement }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   
   // State for modals
   const [enhancedFormBuilderModalOpen, setEnhancedFormBuilderModalOpen] = useState(false);
@@ -71,7 +72,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
 
   return (
     <div className="container">
-      <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
+      <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Workflow Card */}
         <a
@@ -79,8 +80,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
           onClick={e => {
             e.preventDefault();
-            // Add workflow navigation or action here
-            // navigate('/workflow-manager');
+            // No action needed as the child links handle navigation
           }}
         >
           <FaProjectDiagram className="h-12 w-12 text-secondary mb-4" />
@@ -100,7 +100,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = '/admin-fields';
+                navigate('/admin-fields');
               }}
             >
               Manage Fields
@@ -110,7 +110,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = '/admin-forms-groups';
+                navigate('/admin-forms-groups');
               }}
             >
               Manage Field Groups
@@ -140,10 +140,11 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
 
         {/* Style Guide Card */}
         <a
-          href="/style-guide"
+          href="#"
           className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
           onClick={e => {
             e.preventDefault();
+            console.log('Navigating to Style Guide');
             window.location.href = '/style-guide';
           }}
         >
