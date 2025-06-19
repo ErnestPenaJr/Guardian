@@ -15,6 +15,8 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import '../styles/ag-grid-custom.css';
 import '../styles/StyleGuide.css';
+// Import role utilities
+import { hasRole, RoleId } from '../utils/roles';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -232,7 +234,13 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
   // Handle checkbox change
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
+    
+    // Only allow changes if user has Jafar role for IS_PUBLIC checkbox
+    if (name === 'IS_PUBLIC' && (!user?.roles || !hasRole(user.roles, RoleId.JAFAR))) {
+      return; // Prevent changes for non-Jafar users
+    }
+    
+    setFormData({ ...formData, [name]: checked });
   };
 
   // Close modal and reset form
@@ -535,7 +543,7 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
               <form onSubmit={handleSubmit}>
                 <div className="flex flex-col md:flex-row gap-8">
                   {/* Form on the left side */}
-                  <div className="md:w-1/3 space-y-6">
+                  <div className={`${!currentGroup ? 'md:w-full' : 'md:w-1/3'} space-y-6`}>
                     <div data-component-name="AdminFormsGroups">
                       <label className="block text-sm font-medium text-gray-700 mb-1" data-component-name="AdminFormsGroups">
                         Group Name <span className="text-red-500">*</span>
@@ -580,6 +588,7 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
                       />
                     </div>
                     
+                    {/* Public checkbox - only editable by Jafar role */}
                     <div className="sg-checkbox-container" data-component-name="AdminFormsGroups">
                       <input
                         type="checkbox"
@@ -588,9 +597,12 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
                         checked={formData.IS_PUBLIC}
                         onChange={handleCheckboxChange}
                         className="sg-toggle"
+                        disabled={!user?.roles || !hasRole(user.roles, RoleId.JAFAR)}
                         data-component-name="AdminFormsGroups"
                       />
-                      <label htmlFor="IS_PUBLIC" className="sg-toggle-label">
+                      <label 
+                        htmlFor={user?.roles && hasRole(user.roles, RoleId.JAFAR) ? "IS_PUBLIC" : ""}
+                        className={`sg-toggle-label ${!user?.roles || !hasRole(user.roles, RoleId.JAFAR) ? 'text-gray-400 cursor-not-allowed' : ''}`}>
                         Public
                       </label>
                     </div>

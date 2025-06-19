@@ -1,12 +1,58 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
+import { isAdmin } from '../models/permissions.js';
 const prisma = new PrismaClient();
 const router = express.Router();
-// Get all fields
-router.get('/', async (req, res) => {
+// Get all fields (requires authentication)
+router.get('/', requireAuth, async (req, res) => {
     try {
+        // Get user from request object (added by requireAuth middleware)
+        const user = req.user; // Cast to any to access properties
+        // Get user roles - handle both arrays and string format for compatibility
+        const roles = user?.roles || [];
+        const role = user?.role || '';
+        // Convert string role to number array if needed
+        const normalizedRoles = roles.length > 0 ? roles : (role ? [parseInt(role)] : []);
+        // Use utility function to check admin role
+        const userIsAdmin = isAdmin(normalizedRoles);
+        // Check for JAFAR role (ID: 6)
+        const userIsJafar = normalizedRoles.includes(6);
+        let fieldsQuery = {};
+        // Apply role-based filtering at the database query level
+        if (userIsJafar) {
+            // JAFAR users can see all fields (no filtering needed)
+            // fieldsQuery remains an empty object to return all fields
+            console.log('User has JAFAR role - showing all fields');
+        }
+        else if (userIsAdmin) {
+            // For ADMIN users, show fields where isPublic is true or company ID matches the user's company ID
+            fieldsQuery = {
+                OR: [
+                    { IS_PUBLIC: true },
+                    {
+                        ORGANIZATION_ID: user?.COMPANY_ID, // Use COMPANY_ID instead of company.id
+                        NOT: { ORGANIZATION_ID: null }
+                    }
+                ]
+            };
+            console.log('User has ADMIN role - applying organization filtering');
+        }
+        else {
+            // For other users, show public fields AND fields matching their company ID
+            fieldsQuery = {
+                OR: [
+                    { IS_PUBLIC: true },
+                    {
+                        ORGANIZATION_ID: user?.COMPANY_ID,
+                        NOT: { ORGANIZATION_ID: null }
+                    }
+                ]
+            };
+            console.log('User has standard role - showing public fields and company fields');
+        }
         const fields = await prisma.fIELDS.findMany({
+            where: fieldsQuery,
             include: {
                 FIELD_TYPE: true,
                 FIELD_LOOKUP_DISPLAY_TYPE: true
@@ -15,6 +61,7 @@ router.get('/', async (req, res) => {
                 FIELD_NAME: 'asc'
             }
         });
+        console.log(`Returning ${fields.length} fields for user with roles: ${JSON.stringify(user?.roles?.map((r) => r.id))}`);
         res.json(fields);
     }
     catch (error) {

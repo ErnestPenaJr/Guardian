@@ -8,17 +8,9 @@ import VerifyForgotPassword from './pages/VerifyForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
 import InviteAccept from './pages/InviteAccept';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminUserManagement from './pages/AdminUserManagement';
-import AdminFields from './pages/AdminFields.tsx';
-import AdminFieldsLookupPage from './pages/AdminFieldsLookupPage';
-import AdminFormsGroups from './pages/AdminFormsGroups';
-import AdminFormGroupFieldsPage from './pages/AdminFormGroupFieldsPage';
-import RequestDashboard from './pages/RequestDashboard';
 import Health from './pages/Health';
 import EndpointManagerPage from './pages/EndpointManagerPage';
 import ApiAccessPortal from './pages/ApiAccessPortal';
-import AdminLayout from './layouts/AdminLayout';
 
 function App() {
   return (
@@ -35,6 +27,8 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/invite-accept" element={<InviteAccept />} />
           
+          {/* User profile route - placed before other routes to ensure it takes precedence */}
+          
           {/* Main navigation routes with Home component (contains sidebar) */}
           <Route path="/home" element={<Home />} />
           <Route path="/dashboard" element={<Home />} />
@@ -47,6 +41,10 @@ function App() {
           <Route path="/admin-fields-lookup" element={<Home />} />
           <Route path="/admin-forms-groups" element={<Home />} />
           <Route path="/admin-form-group-fields/:formGroupId" element={<Home />} />
+          <Route path="/profile" element={<Home />} />
+          <Route path="/change-password" element={<Home />} />
+
+          {/* User profile route moved to top of routes */}
           
           {/* Admin routes with sidebar from Home component */}
           <Route path="/admin" element={<Home />} />

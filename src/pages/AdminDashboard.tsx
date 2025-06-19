@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icons/fa';
+import { hasRole, RoleId } from '../utils/roles';
 import Modal from 'react-modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
 import NewRequestModal from '../pages/NewRequestModal';
@@ -119,7 +120,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         </a>
 
         {/* Users Card - triggers callback to show user management - only visible to JAFAR (role 6) */}
-        {((user.roles && user.roles.some((role: any) => role.id === 6)) || user.role === '6') && (
+        {(user.roles && hasRole(user.roles, RoleId.ADMIN)) && (
           <a
             href="#"
             className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"

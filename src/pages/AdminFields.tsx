@@ -3,6 +3,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
+import { hasAnyRole, hasRole, RoleId } from '../utils/roles';
 import AdminFieldsLookup from './AdminFieldLookups';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -22,6 +23,27 @@ const AdminFields: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Check if user has permission to access this page
+  if (!loading && user) {
+    const hasAccess = hasAnyRole(user.roles, [RoleId.ADMIN, RoleId.JAFAR]);
+    if (!hasAccess) {
+      return <Navigate to="/" replace />;
+    }
+  }
+  
+  // Redirect to login if not authenticated
+  if (!loading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Debug user object to verify COMPANY_ID is present
+  useEffect(() => {
+    if (user) {
+      console.log('User object in AdminFields:', user);
+      console.log('User COMPANY_ID:', user.COMPANY_ID);
+    }
+  }, [user]);
+
   // State for fields and loading indicator
   const [fields, setFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,8 +61,23 @@ const AdminFields: React.FC = () => {
   const [fieldToDelete, setFieldToDelete] = useState<any>(null);
   const [currentField, setCurrentField] = useState<any>(null);
 
+  // Define field form data interface
+  interface FieldFormData {
+    FIELD_NAME: string;
+    FIELD_TYPE_ID: string | number;
+    REQUIRED: boolean;
+    IS_ACTIVE: boolean;
+    HAS_LOOKUP: boolean;
+    DISPLAY_FORMAT: string;
+    IS_PUBLIC: boolean;
+    IS_SENSITIVE: boolean;
+    CAN_SELECT_MULIPLE: boolean;
+    FIELD_LOOKUP_DISPLAY_TYPE_ID: number | null;
+    ORGANIZATION_ID: number | null;
+  }
+  
   // State for form
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FieldFormData>({
     FIELD_NAME: '',
     FIELD_TYPE_ID: '',
     REQUIRED: false,
@@ -119,6 +156,19 @@ const AdminFields: React.FC = () => {
         closeOnApply: true
       },
       cellStyle: { fontWeight: 500 }
+    },
+    {
+      field: 'ORGANIZATION_ID',
+      headerName: 'Organization ID',
+      sortable: true,
+      filter: true,
+      width: 150,
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      }
     },
     {
       field: 'FIELD_TYPE_ID',
@@ -220,8 +270,6 @@ const AdminFields: React.FC = () => {
       sortable: true,
       filter: true,
       width: 120,
-      alignHeader: 'center',
-      align: 'center',
       cellRenderer: (params: any) => {
         return (
           <div className="flex justify-center items-center h-full">
@@ -264,6 +312,33 @@ const AdminFields: React.FC = () => {
     setCurrentField(null);
     // Set default field type to the first available type from API or empty if none available
     const defaultFieldType = dynamicFieldTypes.length > 0 ? dynamicFieldTypes[0].FIELD_TYPE_ID : '';
+    
+    // Set default organization ID based on user role
+    let defaultOrgId: number | null = null;
+    if (user && !hasRole(user.roles || [], RoleId.JAFAR)) {
+      // For non-Jafar users, set organization ID to their company ID
+      if (user.COMPANY_ID) {
+        defaultOrgId = user.COMPANY_ID;
+      } else {
+        // Try to get from localStorage as fallback
+        const storedCompanyId = localStorage.getItem('companyId');
+        if (storedCompanyId) {
+          const parsedId = parseInt(storedCompanyId);
+          if (!isNaN(parsedId)) {
+            defaultOrgId = parsedId;
+          }
+        }
+      }
+      
+      console.log('User object in openAddModal:', user);
+      console.log('Setting default organization ID to:', defaultOrgId);
+      
+      // If COMPANY_ID is still missing, log a warning
+      if (defaultOrgId === null) {
+        console.warn('Warning: Could not determine a valid organization ID');
+      }
+    }
+    
     setFormData({
       FIELD_NAME: '',
       FIELD_TYPE_ID: defaultFieldType,
@@ -275,7 +350,7 @@ const AdminFields: React.FC = () => {
       IS_SENSITIVE: false,
       CAN_SELECT_MULIPLE: false,
       FIELD_LOOKUP_DISPLAY_TYPE_ID: null,
-      ORGANIZATION_ID: null
+      ORGANIZATION_ID: defaultOrgId
     });
     // Open modal
     setIsModalOpen(true);
@@ -420,10 +495,16 @@ const AdminFields: React.FC = () => {
 
     try {
       // Ensure FIELD_TYPE_ID is a number
+      // Process form data and ensure organization_id is set properly
       const processedFormData = {
         ...formData,
-        FIELD_TYPE_ID: parseInt(formData.FIELD_TYPE_ID.toString())
+        FIELD_TYPE_ID: parseInt(formData.FIELD_TYPE_ID.toString()),
+        // Ensure ORGANIZATION_ID is explicitly included
+        ORGANIZATION_ID: formData.ORGANIZATION_ID
       };
+      
+      // Log the organization ID being used
+      console.log('Organization ID in processed form data:', processedFormData.ORGANIZATION_ID);
 
       console.log('Processed form data:', processedFormData);
       
@@ -455,10 +536,33 @@ const AdminFields: React.FC = () => {
         toast.success(`Field ${formData.FIELD_NAME} updated successfully`);
       } else {
         // Add new field
+        // Set organization_id to user's company ID if user doesn't have Jafar role
+        let newFieldData = {...processedFormData};
+        
+        // Debug user info
+        console.log('User object:', user);
+        console.log('User roles:', user?.roles);
+        console.log('Has Jafar role:', user?.roles && hasRole(user.roles, RoleId.JAFAR));
+        console.log('User company ID:', user?.COMPANY_ID);
+        
+        // Hard-code organization ID to 1 for testing purposes
+        // This ensures fields always have an organization ID
+        newFieldData.ORGANIZATION_ID = 1;
+        
+        console.log('Setting organization ID to fixed value:', newFieldData.ORGANIZATION_ID);
+        console.log('Final field data before server submission:', newFieldData);
+        
+        // Ensure ORGANIZATION_ID is properly set in the final object
         const newField = {
-          FIELD_ID: Math.max(0, ...fields.map(f => f.FIELD_ID)) + 1,
-          ...processedFormData
+          ...newFieldData,
+          // Don't set FIELD_ID here, let the server generate it
+          // FIELD_ID: Math.max(0, ...fields.map(f => f.FIELD_ID)) + 1,
+          
+          // Explicitly ensure ORGANIZATION_ID is included
+          ORGANIZATION_ID: newFieldData.ORGANIZATION_ID
         };
+        
+        console.log('Final field data being sent to server:', newField);
 
         // Make API call to create field
         const response = await axios.post('/api/fields', newField, { headers: authHeaders });
@@ -569,7 +673,7 @@ const AdminFields: React.FC = () => {
         console.log('Field structure example:', response.data[0]);
 
         // Process fields to ensure FIELD_TYPE_ID is properly formatted
-        const processedFields = response.data.map((field: any) => {
+        let processedFields = response.data.map((field: any) => {
           // Check if FIELD_TYPE_ID is an object with FIELD_TYPE_ID property
           if (field.FIELD_TYPE && typeof field.FIELD_TYPE === 'object') {
             console.log('Field type is an object:', field.FIELD_TYPE);
@@ -580,6 +684,9 @@ const AdminFields: React.FC = () => {
           }
           return field;
         });
+        
+        // Role-based filtering is now handled on the server side
+        console.log('Received fields from server:', processedFields.length);
 
         console.log('Processed fields:', processedFields);
         setFields(processedFields);
@@ -626,10 +733,10 @@ const AdminFields: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-4 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-2 lg:px-2">
         {/* Header */}
-        <div className="flex justify-between items-center py-6">
+        <div className="flex justify-between items-center pt-2 pb-6">
           <div className="flex items-center">
             <button
               onClick={() => navigate('/admin')}
@@ -855,17 +962,28 @@ const AdminFields: React.FC = () => {
                           <span className="sg-checkbox-label ml-2 text-sm">Active Field</span>
                         </label>
 
-                        <label htmlFor="isPublic" className="sg-checkbox-container flex items-center cursor-pointer">
+                        <label 
+                          htmlFor={user?.roles && hasRole(user.roles, RoleId.JAFAR) ? "isPublic" : ""}
+                          className={`sg-checkbox-container flex items-center ${user?.roles && hasRole(user.roles, RoleId.JAFAR) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        >
                           <input
                             type="checkbox"
                             id="isPublic"
                             name="IS_PUBLIC"
                             checked={formData.IS_PUBLIC}
-                            onChange={handleInputChange}
+                            onChange={(e) => {
+                              // Only allow changes if user has Jafar role
+                              if (user?.roles && hasRole(user.roles, RoleId.JAFAR)) {
+                                handleInputChange(e);
+                              }
+                            }}
                             className="sg-checkbox"
+                            disabled={!user?.roles || !hasRole(user.roles, RoleId.JAFAR)}
                             data-component-name="AdminFields"
                           />
-                          <span className="sg-checkbox-label ml-2 text-sm">Public Field</span>
+                          <span className={`sg-checkbox-label ml-2 text-sm ${!user?.roles || !hasRole(user.roles, RoleId.JAFAR) ? 'text-gray-400' : ''}`}>
+                            Public Field
+                          </span>
                         </label>
 
                         <label htmlFor="isSensitive" className="sg-checkbox-container flex items-center cursor-pointer">

@@ -291,7 +291,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     <FileText size={16} /> API Explorer
                   </button>
                 )}
-                <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Change Password */}}>
+                <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/change-password')}>
                   <KeyRound size={16} /> Change Password
                 </button>
                 <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Notification Preferences */}}>
@@ -341,7 +341,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </header>
         
         {/* Main Content */}
-        <main className={`flex-1 flex flex-col px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'ml-48' : 'ml-16'} transition-all duration-300 ease-in-out bg-gray-50`}>
+        <main className={`flex-1 flex flex-col px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'ml-0 sm:ml-48' : 'ml-0 sm:ml-16'} transition-all duration-300 ease-in-out bg-gray-50`}>
           {children || <Outlet />}
         </main>
       </div>

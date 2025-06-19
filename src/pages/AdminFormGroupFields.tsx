@@ -498,7 +498,7 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }):
 
       <div className="flex items-center mb-4 gap-4">
         {/* Left side: Header */}
-        <h2 className="text-lg font-medium text-gray-900 whitespace-nowrap">Group Fields{groupName ? `: ${groupName}` : ''}</h2>
+        <h2 className="text-lg font-medium text-gray-900 max-w-30 whitespace-nowrap">Fields{groupName ? `: ${groupName}` : ''}</h2>
         
         {/* Middle: Search filter */}
         <div className="flex-grow relative">
@@ -507,7 +507,7 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }):
             placeholder="Filter..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="sg-input"
+            className="sg-input min-w-30"
           />
           {searchTerm && (
             <button

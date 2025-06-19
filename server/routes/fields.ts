@@ -1,14 +1,58 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
+import { isAdmin } from '../models/permissions.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Get all fields
-router.get('/', async (req, res) => {
+// Get all fields (requires authentication)
+router.get('/', requireAuth, async (req, res) => {
   try {
+    // Get user from request object (added by requireAuth middleware)
+    const user = req.user as any; // Cast to any to access properties
+    
+    // Get user roles - handle both arrays and string format for compatibility
+    const roles: number[] = user?.roles || [];
+    const role: string = user?.role || '';
+    
+    // Convert string role to number array if needed
+    const normalizedRoles = roles.length > 0 ? roles : (role ? [parseInt(role)] : []);
+    
+    // Use utility function to check admin role
+    const userIsAdmin = isAdmin(normalizedRoles);
+    // Check for JAFAR role (ID: 6)
+    const userIsJafar = normalizedRoles.includes(6);
+    
+    let fieldsQuery = {};
+    
+    // Apply role-based filtering at the database query level
+    if (!userIsJafar) {
+      // Extract company ID from user object - handle different possible structures
+      const companyId = user?.COMPANY_ID || user?.company?.id || null;
+      
+      console.log('User object structure for GET request:', JSON.stringify(user, null, 2));
+      console.log('Non-Jafar user filtering - Company ID:', companyId);
+      
+      if (!companyId) {
+        console.warn('Warning: User has no COMPANY_ID for field filtering');
+      }
+      
+      // For other users, show public fields AND fields matching their company ID
+      fieldsQuery = {
+        OR: [
+          { IS_PUBLIC: true },
+          { 
+            ORGANIZATION_ID: companyId,
+            NOT: { ORGANIZATION_ID: null }
+          }
+        ]
+      };
+      console.log('User has standard role - showing public fields and company fields with query:', JSON.stringify(fieldsQuery));
+    }
+    
     const fields = await prisma.fIELDS.findMany({
+      where: fieldsQuery,
       include: {
         FIELD_TYPE: true,
         FIELD_LOOKUP_DISPLAY_TYPE: true
@@ -18,6 +62,7 @@ router.get('/', async (req, res) => {
       }
     });
     
+    console.log(`Returning ${fields.length} fields for user with roles: ${JSON.stringify(user?.roles?.map((r: any) => r.id))}`);
     res.json(fields);
   } catch (error) {
     console.error('Error fetching fields:', error);
@@ -92,45 +137,94 @@ router.get('/:id/lookups', async (req, res) => {
 // Create a new field (requires authentication)
 router.post('/', requireAuth, async (req, res) => {
   try {
+    console.log('Field creation request body:', req.body);
+    
     const { 
       FIELD_NAME, 
       FIELD_TYPE_ID, 
       DISPLAY_FORMAT, 
       HAS_LOOKUP, 
       IS_PUBLIC, 
-      IS_REQUIRED, 
+      REQUIRED, // Note: frontend sends REQUIRED, backend expects IS_REQUIRED
       IS_SENSITIVE,
       FIELD_LOOKUP_DISPLAY_TYPE_ID,
-      ORGANIZATION_ID
+      ORGANIZATION_ID,
+      CAN_SELECT_MULIPLE
     } = req.body;
     
     // Get the authenticated user
-    const userId = req.user?.id;
+    const user = req.user as any;
+    const userId = user?.id;
     
-    // Create the field
+    // Get user roles - handle both arrays and string format for compatibility
+    const roles: number[] = user?.roles || [];
+    const normalizedRoles = Array.isArray(roles) ? roles : [];
+    
+    // Check for JAFAR role (ID: 6)
+    const userIsJafar = normalizedRoles.includes(6);
+    
+    // Validate required fields
+    if (!FIELD_NAME) {
+      return res.status(400).json({ error: 'Field name is required' });
+    }
+    
+    if (!FIELD_TYPE_ID) {
+      return res.status(400).json({ error: 'Field type is required' });
+    }
+    
+    // Extract company ID from user object - handle different possible structures
+    const companyId = user?.COMPANY_ID || user?.company?.id || null;
+    console.log('User object structure:', JSON.stringify(user, null, 2));
+    console.log('Extracted company ID:', companyId);
+    
+    // For non-Jafar users, enforce organization ID to be their company ID
+    let finalOrgId = ORGANIZATION_ID;
+    if (!userIsJafar && companyId) {
+      finalOrgId = companyId;
+      console.log('Non-Jafar user creating field - enforcing company ID:', finalOrgId);
+    } else if (!ORGANIZATION_ID) {
+      console.warn('Missing ORGANIZATION_ID in field creation request');
+      // Use user's company ID as fallback if available
+      if (companyId) {
+        finalOrgId = companyId;
+        console.log('Using user company ID as fallback:', finalOrgId);
+      }
+    }
+    
+    console.log('Creating field with organization ID:', finalOrgId);
+    
+    // Create the field with proper mapping between frontend and backend field names
     const field = await prisma.fIELDS.create({
       data: {
         FIELD_NAME,
-        FIELD_TYPE_ID,
-        DISPLAY_FORMAT,
+        FIELD_TYPE_ID: parseInt(FIELD_TYPE_ID.toString()), // Ensure it's a number
+        DISPLAY_FORMAT: DISPLAY_FORMAT || '',
         HAS_LOOKUP: HAS_LOOKUP || false,
         IS_PUBLIC: IS_PUBLIC || false,
         IS_ACTIVE: true,
         IS_DELETED: false,
-        IS_REQUIRED: IS_REQUIRED || false,
+        IS_REQUIRED: REQUIRED || false, // Map from frontend REQUIRED to backend IS_REQUIRED
         IS_SENSITIVE: IS_SENSITIVE || false,
-        CAN_SELECT_MULIPLE: false,
-        FIELD_LOOKUP_DISPLAY_TYPE_ID,
-        ORGANIZATION_ID,
+        CAN_SELECT_MULIPLE: CAN_SELECT_MULIPLE || false,
+        FIELD_LOOKUP_DISPLAY_TYPE_ID: FIELD_LOOKUP_DISPLAY_TYPE_ID || null,
+        ORGANIZATION_ID: finalOrgId || 1, // Use finalOrgId with fallback to 1
         CREATE_USER_ID: userId,
         UPDATE_USER_ID: userId
       }
     });
     
+    console.log('Field created successfully:', field);
     res.status(201).json(field);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating field:', error);
-    res.status(500).json({ error: 'Failed to create field' });
+    // Provide more detailed error information
+    if (error.code === 'P2002') {
+      res.status(400).json({ error: 'A field with this name already exists' });
+    } else if (error.code === 'P2003') {
+      res.status(400).json({ error: 'Invalid reference (foreign key constraint failed)' });
+    } else {
+      res.status(500).json({ error: `Failed to create field: ${error.message || 'Unknown error'}` });
+    }
   }
 });
 

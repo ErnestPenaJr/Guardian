@@ -98,8 +98,10 @@ function Login() {
       localStorage.setItem('user', JSON.stringify(response.data.user));
 
       // Store companyId and companyName from the user object
-      const { companyId, companyName } = response.data.user || {};
-      if (companyId) localStorage.setItem('companyId', companyId.toString());
+      // Check both camelCase and uppercase with underscore formats
+      const { companyId, COMPANY_ID, companyName } = response.data.user || {};
+      const finalCompanyId = COMPANY_ID || companyId;
+      if (finalCompanyId) localStorage.setItem('companyId', finalCompanyId.toString());
       if (companyName) localStorage.setItem('companyName', companyName);
 
       // Show success message
