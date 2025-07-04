@@ -10,7 +10,7 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    api.get('/roles')
+    api.get('/api/roles')
       .then(res => setRoles(res.data))
       .catch(() => setRoles([]));
   }, []);

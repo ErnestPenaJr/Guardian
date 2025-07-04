@@ -192,9 +192,9 @@ const AdminUserManagement: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      api.get('/users'),
-      api.get('/invites'),
-      api.get('/roles')
+      api.get('/api/users'),
+      api.get('/api/invites'),
+      api.get('/api/roles')
     ]).then(([usersRes, invitesRes, rolesRes]) => {
       // Format user data
       const formattedUsers = usersRes.data.map((user: any) => {
@@ -278,27 +278,27 @@ const AdminUserManagement: React.FC = () => {
     setResendingInviteId(inviteId);
     try {
       // Try with { inviteId } first
-      await api.post('/invites/resend', { inviteId });
+      await api.post('/api/invites/resend', { inviteId });
       Swal.fire('Invite resent!', '', 'success');
     } catch (err1) {
       try {
         // Try with { INVITE_ID } if the first fails
-        await api.post('/invites/resend', { INVITE_ID: inviteId });
+        await api.post('/api/invites/resend', { INVITE_ID: inviteId });
         Swal.fire('Invite resent!', '', 'success');
       } catch (err2) {
         Swal.fire('Failed to resend invite', (err2 as any)?.message || 'Please check your network or contact support.', 'error');
       }
     } finally {
-      const invitesRes = await api.get('/invites');
+      const invitesRes = await api.get('/api/invites');
       setInvites(invitesRes.data);
       setResendingInviteId(null);
     }
   };
 
   const handleRemoveInvite = async (inviteId: number) => {
-    await api.delete(`/invites/${inviteId}`);
+    await api.delete(`/api/invites/${inviteId}`);
     Swal.fire('Invite removed!', '', 'success');
-    const invitesRes = await api.get('/invites');
+    const invitesRes = await api.get('/api/invites');
     setInvites(invitesRes.data);
   };
 
@@ -330,7 +330,7 @@ const AdminUserManagement: React.FC = () => {
         });
         
         // Use the simplified endpoint
-        const response = await api.delete(`/delete-user/${userId}`);
+        const response = await api.delete(`/api/delete-user/${userId}`);
         console.log('Delete response:', response);
         
         // Close loading dialog
@@ -347,9 +347,9 @@ const AdminUserManagement: React.FC = () => {
         // Refresh data from both endpoints
         try {
           const [usersRes, invitesRes, rolesRes] = await Promise.all([
-            api.get('/users'),
-            api.get('/invites'),
-            api.get('/roles')
+            api.get('/api/users'),
+            api.get('/api/invites'),
+            api.get('/api/roles')
           ]);
           
           // Format and update user data
@@ -559,7 +559,7 @@ const AdminUserManagement: React.FC = () => {
         }
       });
       
-      const response = await api.post('/users', {
+      const response = await api.post('/api/users', {
         firstName,
         lastName,
         email,
@@ -583,9 +583,9 @@ const AdminUserManagement: React.FC = () => {
       // Refresh data from both endpoints using the same approach as delete
       try {
         const [usersRes, invitesRes, rolesRes] = await Promise.all([
-          api.get('/users'),
-          api.get('/invites'),
-          api.get('/roles')
+          api.get('/api/users'),
+          api.get('/api/invites'),
+          api.get('/api/roles')
         ]);
         
         // Format and update user data
@@ -698,7 +698,7 @@ const AdminUserManagement: React.FC = () => {
         }
       });
       
-      const response = await api.post('/invites', {
+      const response = await api.post('/api/invites', {
         email,
         roleId: Number(roleId)
       });
@@ -719,9 +719,9 @@ const AdminUserManagement: React.FC = () => {
       // Refresh data using the same approach as other operations
       try {
         const [usersRes, invitesRes, rolesRes] = await Promise.all([
-          api.get('/users'),
-          api.get('/invites'),
-          api.get('/roles')
+          api.get('/api/users'),
+          api.get('/api/invites'),
+          api.get('/api/roles')
         ]);
         
         // Format and update data
@@ -1032,7 +1032,7 @@ const AdminUserManagement: React.FC = () => {
                   <tbody>
                     {paginatedUsers.length > 0 ? (
                       paginatedUsers.map((user, idx) => (
-                        <tr key={`user-${user.id}`}>
+                        <tr key={`user-${user.id || idx}`}>
                           <td>{idx + 1}</td>
                           <td>
                             <b>{user.name}</b><br />
