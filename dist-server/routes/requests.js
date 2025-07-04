@@ -1121,6 +1121,9 @@ router.post('/:id/assign', async (req, res) => {
                         assignerName = `${user.FIRST_NAME} ${user.LAST_NAME}`;
                     }
                 }
+                // Get the application URL from environment or use a default
+                const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:3001';
+                const requestUrl = `${appUrl}/requests/${requestId}`;
                 const msg = {
                     to: request.ASSIGNED_USER_EMAIL,
                     from: SENDGRID_FROM_EMAIL,
@@ -1136,7 +1139,9 @@ router.post('/:id/assign', async (req, res) => {
                 <p><strong>Assigned By:</strong> ${assignerName}</p>
                 <p><strong>Assignment Date:</strong> ${new Date().toLocaleString()}</p>
               </div>
-              <p>Please log in to the Guardian system to review and process this request.</p>
+              <p>Please click the link below to access and process this request:</p>
+              <p><a href="${requestUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 20px 0;">View Request</a></p>
+              <p>Or copy and paste this URL into your browser: ${requestUrl}</p>
               <p>Thank you,<br>Guardian System</p>
             </div>
           `

@@ -1,14 +1,17 @@
+// Import built-in Node.js modules
+import * as crypto from 'crypto';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+// Import third-party modules with types
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import bcrypt from 'bcryptjs';
-import { passport, loginSchema, generateToken, requireAuth } from './auth.js';
 import rateLimit from 'express-rate-limit';
+// Import local modules
+import { passport, loginSchema, generateToken, requireAuth } from './auth.js';
 import { isAdmin } from './middleware/isAdmin.js';
 import formsRoutes from './routes/forms.js';
 import externalRoutes from './routes/external.js';
@@ -18,8 +21,10 @@ import fieldTypesRoutes from './routes/field-types.js';
 import requestsRoutes from './routes/requests.js';
 import fieldLookupsRoutes from './routes/field-lookups.js';
 import groupsRoutes from './routes/forms-groups.js';
+// Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
+const join = path.join;
 // Load environment variables
 // Support both server- and client-named keys
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.VITE_SENDGRID_API_KEY;

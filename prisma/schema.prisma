@@ -140,24 +140,7 @@ model FORMS {
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
-  FORMS_FIELDS     FORMS_FIELDS[]   @ignore
   FORMS_INSTANCE   FORMS_INSTANCE[]
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_FIELDS {
-  FORM_ID        Int
-  FIELD_ID       Int
-  IS_REQUIRED    Boolean  @default(false, map: "DF__FORMS_FIE__IS_RE__64CCF2AE")
-  SORT_ORDER     Int?
-  CREATE_USER_ID Int?
-  UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__CREAT__65C116E7") @db.DateTime
-  UPDATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__UPDAT__66B53B20") @db.DateTime
-  FIELDS         FIELDS   @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FORMS_FIE__FIELD__689D8392")
-  FORMS          FORMS    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, map: "FK__FORMS_FIE__UPDAT__67A95F59")
-
-  @@ignore
 }
 
 model FORMS_GROUPS {
@@ -172,42 +155,21 @@ model FORMS_GROUPS {
   CREATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__CREATE_D__6497E884") @db.DateTime
   UPDATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
   ORGANIZATIONS       ORGANIZATIONS?        @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__GROUPS__ORGANIZA__668030F6")
-  FORMS_GROUPS_FIELDS FORMS_GROUPS_FIELDS[] @ignore
+  FORMS_GROUPS_FIELDS FORMS_GROUPS_FIELDS[] 
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model FORMS_GROUPS_FIELDS {
   GROUP_ID       Int
   FIELD_ID       Int
   SORT_ORDER     Int?
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__CREAT__68687968") @db.DateTime
-  UPDATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__UPDAT__695C9DA1") @db.DateTime
-  FIELDS         FIELDS       @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__FIELD__6B44E613")
-  FORMS_GROUPS   FORMS_GROUPS @relation(fields: [GROUP_ID], references: [GROUP_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__UPDAT__6A50C1DA")
+  CREATE_DATE    DateTime @default(now(), map: "DF__FORMS_GRO__CREAT__42E1EEFE") @db.DateTime
+  UPDATE_DATE    DateTime @default(now(), map: "DF__FORMS_GRO__UPDAT__43D61337") @db.DateTime
+  FIELD          FIELDS   @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK_FORMS_GROUPS_FIELDS_FIELDS")
+  GROUP          FORMS_GROUPS @relation(fields: [GROUP_ID], references: [GROUP_ID], onUpdate: NoAction, map: "FK_FORMS_GROUPS_FIELDS_FORMS_GROUPS")
 
-  @@ignore
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_HISTORY {
-  FORM_ID          Int
-  FORM_NAME        String   @db.VarChar(50)
-  FORM_DESCRIPTION String   @db.VarChar(255)
-  ORGANIZATION_ID  Int?
-  IS_PUBLIC        Boolean
-  IS_ACTIVE        Boolean
-  IS_DELETED       Boolean
-  CREATE_USER_ID   Int?
-  UPDATE_USER_ID   Int?
-  CREATE_DATE      DateTime @db.DateTime
-  UPDATE_DATE      DateTime @db.DateTime
-  SysStartTime     DateTime
-  SysEndTime       DateTime
-
-  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_HISTORY", clustered: true)
-  @@ignore
+  @@id([GROUP_ID, FIELD_ID], map: "PK_FORMS_GROUPS_FIELDS")
 }
 
 model FORMS_INSTANCE {
@@ -225,8 +187,6 @@ model FORMS_INSTANCE {
   FORMS_INSTANCE_VALUES FORMS_INSTANCE_VALUES[]
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_INSTANCE_HISTORY {
   FORM_INSTANCE_ID Int
   FORM_ID          Int
   ASSIGNED_ID      Int

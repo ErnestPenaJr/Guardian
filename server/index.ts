@@ -1,14 +1,19 @@
+// Import built-in Node.js modules
+import * as crypto from 'crypto';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// Import third-party modules with types
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import bcrypt from 'bcryptjs';
-import { passport, loginSchema, generateToken, requireAuth, hashPassword } from './auth.js';
 import rateLimit from 'express-rate-limit';
+
+// Import local modules
+import { passport, loginSchema, generateToken, requireAuth, hashPassword } from './auth.js';
 import { isAdmin } from './middleware/isAdmin.js';
 import formsRoutes from './routes/forms.js';
 import externalRoutes from './routes/external.js';
@@ -25,8 +30,10 @@ type User = { USER_ID: number; FIRST_NAME: string; LAST_NAME: string; EMAIL: str
 type UserRole = { USER_ID: number; ROLE_ID: number };
 type Invite = { INVITE_ID: number; EMAIL: string; ROLE_ID: number; STATUS: string; EXPIRES_AT: Date; CREATED_AT: Date; USED_AT: Date | null };
 
+// Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
+const join = path.join;
 
 // Load environment variables
 // Support both server- and client-named keys

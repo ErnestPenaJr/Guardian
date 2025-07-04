@@ -160,35 +160,7 @@ model FORMS_FIELDS {
   @@ignore
 }
 
-model FORMS_GROUPS {
-  GROUP_ID            Int                   @id(map: "PK_GROUP") @default(autoincrement())
-  ORGANIZATION_ID     Int?
-  GROUP_NAME          String                @db.VarChar(50)
-  GROUP_DESCRIPTION   String                @db.VarChar(200)
-  SORT_ORDER          Int?
-  IS_PUBLIC           Boolean               @default(false, map: "DF__GROUPS__IS_PUBLI__63A3C44B")
-  CREATE_USER_ID      Int?
-  UPDATE_USER_ID      Int?
-  CREATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__CREATE_D__6497E884") @db.DateTime
-  UPDATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
-  ORGANIZATIONS       ORGANIZATIONS?        @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__GROUPS__ORGANIZA__668030F6")
-  FORMS_GROUPS_FIELDS FORMS_GROUPS_FIELDS[] @ignore
-}
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_GROUPS_FIELDS {
-  GROUP_ID       Int
-  FIELD_ID       Int
-  SORT_ORDER     Int?
-  CREATE_USER_ID Int?
-  UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__CREAT__68687968") @db.DateTime
-  UPDATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__UPDAT__695C9DA1") @db.DateTime
-  FIELDS         FIELDS       @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__FIELD__6B44E613")
-  FORMS_GROUPS   FORMS_GROUPS @relation(fields: [GROUP_ID], references: [GROUP_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__UPDAT__6A50C1DA")
-
-  @@ignore
-}
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model FORMS_HISTORY {
@@ -256,6 +228,7 @@ model FORMS_INSTANCE_VALUES {
   FIELDS                 FIELDS         @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FIELD__5555A4F4")
   FORMS_INSTANCE         FORMS_INSTANCE @relation(fields: [FORM_INSTANCE_ID], references: [FORM_INSTANCE_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FORM___546180BB")
 }
+
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model FORMS_INSTANCE_VALUES_HISTORY {
@@ -330,13 +303,43 @@ model ORGANIZATIONS_HISTORY {
   @@ignore
 }
 
+model FORMS_GROUPS {
+  GROUP_ID            Int                   @id(map: "PK_GROUP") @default(autoincrement())
+  ORGANIZATION_ID     Int?
+  GROUP_NAME          String                @db.VarChar(50)
+  GROUP_DESCRIPTION   String                @db.VarChar(200)
+  SORT_ORDER          Int?
+  IS_PUBLIC           Boolean               @default(false, map: "DF__GROUPS__IS_PUBLI__63A3C44B")
+  CREATE_USER_ID      Int?
+  UPDATE_USER_ID      Int?
+  CREATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__CREATE_D__6497E884") @db.DateTime
+  UPDATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
+  ORGANIZATIONS       ORGANIZATIONS?        @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__GROUPS__ORGANIZA__668030F6")
+  FORMS_GROUPS_FIELDS FORMS_GROUPS_FIELDS[] @ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model FORMS_GROUPS_FIELDS {
+  GROUP_ID       Int
+  FIELD_ID       Int
+  SORT_ORDER     Int?
+  CREATE_USER_ID Int?
+  UPDATE_USER_ID Int?
+  CREATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__CREAT__68687968") @db.DateTime
+  UPDATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__UPDAT__695C9DA1") @db.DateTime
+  FIELDS         FIELDS       @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__FIELD__6B44E613")
+  FORMS_GROUPS   FORMS_GROUPS @relation(fields: [GROUP_ID], references: [GROUP_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__UPDAT__6A50C1DA")
+
+  @@ignore
+}
+
 model REQUESTS {
   REQUEST_ID          Int       @id(map: "PK_REQUESTS") @default(autoincrement())
   REQUEST_NAME        String    @db.VarChar(255)
   EXTERNAL_USER       String?   @default("N", map: "DF__REQUESTS__EXTERN__00200768") @db.Char(1)
   SUBMITTED_DATE      DateTime  @default(now(), map: "DF__REQUESTS__SUBMIT__01142BA1") @db.DateTime
-  REQUESTOR_ID        Int? @relation(fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__REQUESTS__REQUESTOR_ID__02084FDA")
-  ASSIGNED_ID         Int? @relation(fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__REQUESTS__ASSIGNED_ID__02084FDA")
+  REQUESTOR_ID        Int?
+  ASSIGNED_ID         Int?
   STATUS              String?   @default("A", map: "DF__REQUESTS__STATUS__02084FDA") @db.Char(1)
   CREATE_DATE         DateTime  @default(now(), map: "DF__REQUESTS__CREATE__02FC7413") @db.DateTime
   UPDATE_DATE         DateTime? @default(now(), map: "DF__REQUESTS__UPDATE__03F0984C") @db.DateTime
@@ -346,6 +349,10 @@ model REQUESTS {
   ABBREVIATION        String?   @db.VarChar(5)
   COMPANY_ID          Decimal?  @db.Decimal(38, 0)
   REQUEST_DESCRIPTION String?   @db.VarChar(2000)
+  
+  // Relations
+  requestor USERS? @relation("REQUESTOR", fields: [REQUESTOR_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK__REQUESTS__REQUESTOR_ID__02084FDA")
+  assignee  USERS? @relation("ASSIGNEE", fields: [ASSIGNED_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK__REQUESTS__ASSIGNED_ID__02084FDA")
 }
 
 model ROLES {
@@ -414,66 +421,12 @@ model USERS {
   EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
   PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
   COMPANY_INFO                  COMPANY_INFO[]
+  
+  // Relations
+  assignedRequests  REQUESTS[] @relation("ASSIGNEE")
+  requestedRequests REQUESTS[] @relation("REQUESTOR")
 }
 
-model FORMS_INSTANCE_VALUES {
-  FORM_INSTANCE_VALUE_ID Int            @id(map: "PK_FORMS_INSTANCE_VALUES") @default(autoincrement())
-  FORM_INSTANCE_ID       Int
-  FIELD_ID               Int
-  VALUE                  String?        @db.VarChar(255)
-  CREATE_USER_ID         Int?
-  UPDATE_USER_ID         Int?
-  CREATE_DATE            DateTime       @default(now(), map: "DF__FORMS_INS__CREAT__52793849") @db.DateTime
-  UPDATE_DATE            DateTime       @default(now(), map: "DF__FORMS_INS__UPDAT__536D5C82") @db.DateTime
-  SysStartTime           DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_INSTANCE_VALUES_SysStart")
-  SysEndTime             DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_VALUES_SysEnd")
-  FIELDS                 FIELDS         @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FIELD__5555A4F4")
-  FORMS_INSTANCE         FORMS_INSTANCE @relation(fields: [FORM_INSTANCE_ID], references: [FORM_INSTANCE_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FORM___546180BB")
-}
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_INSTANCE_VALUES_HISTORY {
-  FORM_INSTANCE_VALUE_ID Int
-  FORM_INSTANCE_ID       Int
-  FIELD_ID               Int
-  VALUE                  String?  @db.VarChar(255)
-  CREATE_USER_ID         Int?
-  UPDATE_USER_ID         Int?
-  CREATE_DATE            DateTime @db.DateTime
-  UPDATE_DATE            DateTime @db.DateTime
-  SysStartTime           DateTime
-  SysEndTime             DateTime
 
-  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_VALUES_HISTORY", clustered: true)
-  @@ignore
-}
 
-model FORMS_GROUPS {
-  GROUP_ID            Int                   @id(map: "PK_GROUP") @default(autoincrement())
-  ORGANIZATION_ID     Int?
-  GROUP_NAME          String                @db.VarChar(50)
-  GROUP_DESCRIPTION   String                @db.VarChar(200)
-  SORT_ORDER          Int?
-  IS_PUBLIC           Boolean               @default(false, map: "DF__GROUPS__IS_PUBLI__63A3C44B")
-  CREATE_USER_ID      Int?
-  UPDATE_USER_ID      Int?
-  CREATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__CREATE_D__6497E884") @db.DateTime
-  UPDATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
-  ORGANIZATIONS       ORGANIZATIONS?        @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__GROUPS__ORGANIZA__668030F6")
-  FORMS_GROUPS_FIELDS FORMS_GROUPS_FIELDS[] @ignore
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_GROUPS_FIELDS {
-  GROUP_ID       Int
-  FIELD_ID       Int
-  SORT_ORDER     Int?
-  CREATE_USER_ID Int?
-  UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__CREAT__68687968") @db.DateTime
-  UPDATE_DATE    DateTime     @default(now(), map: "DF__GROUP_FIE__UPDAT__695C9DA1") @db.DateTime
-  FIELDS         FIELDS       @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__FIELD__6B44E613")
-  FORMS_GROUPS   FORMS_GROUPS @relation(fields: [GROUP_ID], references: [GROUP_ID], onUpdate: NoAction, map: "FK__GROUP_FIE__UPDAT__6A50C1DA")
-
-  @@ignore
-}

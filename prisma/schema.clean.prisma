@@ -242,7 +242,6 @@ model FORMS_INSTANCE_HISTORY {
   @@ignore
 }
 
-model FORMS_INSTANCE_VALUES {
   FORM_INSTANCE_VALUE_ID Int            @id(map: "PK_FORMS_INSTANCE_VALUES") @default(autoincrement())
   FORM_INSTANCE_ID       Int
   FIELD_ID               Int
@@ -258,7 +257,6 @@ model FORMS_INSTANCE_VALUES {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_INSTANCE_VALUES_HISTORY {
   FORM_INSTANCE_VALUE_ID Int
   FORM_INSTANCE_ID       Int
   FIELD_ID               Int
@@ -416,7 +414,6 @@ model USERS {
   COMPANY_INFO                  COMPANY_INFO[]
 }
 
-model FORMS_INSTANCE_VALUES {
   FORM_INSTANCE_VALUE_ID Int            @id(map: "PK_FORMS_INSTANCE_VALUES") @default(autoincrement())
   FORM_INSTANCE_ID       Int
   FIELD_ID               Int
@@ -432,7 +429,6 @@ model FORMS_INSTANCE_VALUES {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model FORMS_INSTANCE_VALUES_HISTORY {
   FORM_INSTANCE_VALUE_ID Int
   FORM_INSTANCE_ID       Int
   FIELD_ID               Int
