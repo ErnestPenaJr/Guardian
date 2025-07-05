@@ -1,5 +1,5 @@
-# Azure DevOps Pipeline for Guardian MVP - Corrected Version
-# This pipeline builds the React frontend, prepares the Node.js backend, and deploys to Azure Web App
+# Alternative Azure DevOps Pipeline for Guardian MVP
+# This version uses a different deployment approach to avoid file locking issues
 
 trigger:
 - main
@@ -26,66 +26,52 @@ stages:
         versionSpec: '$(nodeVersion)'
       displayName: 'Install Node.js $(nodeVersion)'
 
-    # Cache node_modules for faster builds
-    - task: Cache@2
-      inputs:
-        key: 'npm | "$(Agent.OS)" | package-lock.json'
-        restoreKeys: |
-          npm | "$(Agent.OS)"
-        path: node_modules
-      displayName: 'Cache npm dependencies'
-
     # Install frontend dependencies and build
     - script: |
         echo "Installing frontend dependencies..."
         npm ci --production=false
         echo "Building frontend..."
         npm run build
-        echo "Frontend build completed. Contents of dist:"
-        ls -la dist/
+        echo "Frontend build completed."
       displayName: 'Install dependencies and build frontend'
 
     # Build backend TypeScript
     - script: |
         echo "Building backend TypeScript..."
         npm run build-server
-        echo "Backend build completed. Contents of dist-server:"
-        ls -la dist-server/
+        echo "Backend build completed."
       displayName: 'Build backend TypeScript'
 
-    # Prepare deployment directory
+    # Prepare minimal deployment directory (without Prisma files initially)
     - script: |
         echo "Creating deployment directory structure..."
         mkdir -p deployment
         
-        # Copy built frontend to deployment
-        echo "Copying frontend build..."
+        # Copy built frontend
         cp -r dist deployment/
         
-        # Copy backend files
-        echo "Copying backend files..."
+        # Copy essential backend files only
         cp -r dist-server/* deployment/
         cp azure-server.js deployment/
         cp deployment-package.json deployment/package.json
         
-        # Copy Prisma schema and migrations
-        echo "Copying Prisma files..."
-        cp -r prisma deployment/
-        
-        # Copy environment template
-        echo "Copying environment files..."
+        # Copy environment template (not the actual .env)
         cp .env deployment/.env.example
         
-        # Copy any additional server assets
-        if [ -d "server/emails" ]; then
-          cp -r server/emails deployment/
+        # Create a minimal prisma directory structure
+        mkdir -p deployment/prisma
+        cp prisma/schema.prisma deployment/prisma/
+        
+        # Copy migrations if they exist
+        if [ -d "prisma/migrations" ]; then
+          cp -r prisma/migrations deployment/prisma/
         fi
         
-        echo "Deployment directory contents:"
+        echo "Deployment directory prepared"
         ls -la deployment/
       displayName: 'Prepare deployment directory'
 
-    # Create web.config for Azure App Service
+    # Create optimized web.config
     - script: |
         cd deployment
         cat > web.config << 'EOF'
@@ -101,9 +87,6 @@ stages:
                   <match url="^dist/(.*)$" />
                   <action type="Rewrite" url="dist/{R:1}" />
                 </rule>
-                <rule name="NodeInspector" stopProcessing="true">
-                  <match url="^azure-server.js\/debug[\/]?" />
-                </rule>
                 <rule name="DynamicContent">
                   <conditions>
                     <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
@@ -114,51 +97,14 @@ stages:
               </rules>
             </rewrite>
             <iisnode 
-              watchedFiles="web.config;*.js;dist/**/*"
+              watchedFiles="web.config;*.js"
               nodeProcessCommandLine="node.exe"
               debuggingEnabled="false"
-              loggingEnabled="true"
-              logDirectory="iisnode" />
-            <defaultDocument>
-              <files>
-                <add value="azure-server.js" />
-              </files>
-            </defaultDocument>
+              loggingEnabled="true" />
           </system.webServer>
         </configuration>
         EOF
-        echo "Created web.config:"
-        cat web.config
-      displayName: 'Create web.config for Azure'
-
-    # Create startup script for Azure
-    - script: |
-        cd deployment
-        cat > startup.sh << 'EOF'
-        #!/bin/bash
-        echo "Starting Guardian MVP application..."
-        echo "Node version: $(node --version)"
-        echo "NPM version: $(npm --version)"
-        
-        # Install production dependencies
-        if [ ! -d "node_modules" ]; then
-          echo "Installing production dependencies..."
-          npm install --production
-        fi
-        
-        # Generate Prisma client if needed
-        if [ -f "prisma/schema.prisma" ]; then
-          echo "Generating Prisma client..."
-          npx prisma generate
-        fi
-        
-        # Start the application
-        echo "Starting application..."
-        node azure-server.js
-        EOF
-        chmod +x startup.sh
-        echo "Created startup script"
-      displayName: 'Create startup script'
+      displayName: 'Create web.config'
 
     # Archive deployment package
     - task: ArchiveFiles@2
@@ -200,22 +146,7 @@ stages:
               downloadPath: '$(System.ArtifactsDirectory)'
             displayName: 'Download build artifacts'
 
-          # Stop Azure Web App before deployment
-          - task: AzureAppServiceManage@0
-            inputs:
-              azureSubscription: '$(azureSubscription)'
-              Action: 'Stop Azure App Service'
-              WebAppName: '$(appName)'
-            displayName: 'Stop Azure Web App'
-            continueOnError: true
-
-          # Wait for app to fully stop
-          - script: |
-              echo "Waiting for app to fully stop..."
-              sleep 15
-            displayName: 'Wait for app stop'
-
-          # Deploy to Azure Web App
+          # Deploy using Run From Package method
           - task: AzureWebApp@1
             inputs:
               azureSubscription: '$(azureSubscription)'
@@ -223,30 +154,31 @@ stages:
               appName: '$(appName)'
               package: '$(System.ArtifactsDirectory)/guardian-app/guardian-app.zip'
               runtimeStack: 'NODE|20-lts'
-              startUpCommand: 'bash startup.sh'
-              deploymentMethod: 'zipDeploy'
+              deploymentMethod: 'runFromPackage'
               appSettings: |
                 -NODE_ENV production
                 -WEBSITE_NODE_DEFAULT_VERSION 20.x
+                -WEBSITE_RUN_FROM_PACKAGE 1
                 -SCM_DO_BUILD_DURING_DEPLOYMENT false
                 -ENABLE_ORYX_BUILD false
-                -WEBSITE_RUN_FROM_PACKAGE 0
                 -WEBSITE_RESTART_TIME 60
-            displayName: 'Deploy to Azure Web App'
+            displayName: 'Deploy to Azure Web App (Run From Package)'
 
-          # Start Azure Web App after deployment
-          - task: AzureAppServiceManage@0
-            inputs:
-              azureSubscription: '$(azureSubscription)'
-              Action: 'Start Azure App Service'
-              WebAppName: '$(appName)'
-            displayName: 'Start Azure Web App'
-
-          # Verify deployment
+          # Wait and verify deployment
           - script: |
               echo "Deployment completed. Waiting for application to start..."
-              sleep 30
+              sleep 45
               echo "Attempting to verify deployment..."
-              curl -f https://$(appName).azurewebsites.net/health || echo "Health check failed - application may still be starting"
+              
+              # Try to access the health endpoint
+              response=$(curl -s -o /dev/null -w "%{http_code}" https://$(appName).azurewebsites.net/ || echo "000")
+              echo "HTTP Response Code: $response"
+              
+              if [ "$response" = "200" ] || [ "$response" = "302" ]; then
+                echo "✅ Application is responding successfully"
+              else
+                echo "⚠️ Application may still be starting up (HTTP $response)"
+                echo "Check the application logs in Azure portal for more details"
+              fi
             displayName: 'Verify deployment'
             continueOnError: true
