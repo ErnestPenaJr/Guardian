@@ -1,0 +1,205 @@
+# Azure Pipeline - No Prisma Directory Approach
+# This version completely excludes Prisma files from deployment to avoid locking issues
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  nodeVersion: '20.x'
+  appName: 'GUARDIAN-MVP'
+  azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
+
+stages:
+- stage: Build
+  displayName: 'Build Application'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build Frontend and Backend'
+    steps:
+    
+    # Install Node.js
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(nodeVersion)'
+      displayName: 'Install Node.js $(nodeVersion)'
+
+    # Install frontend dependencies and build
+    - script: |
+        echo "Installing frontend dependencies..."
+        npm ci --production=false
+        echo "Building frontend..."
+        npm run build
+        echo "Frontend build completed."
+      displayName: 'Install dependencies and build frontend'
+
+    # Build backend TypeScript
+    - script: |
+        echo "Building backend TypeScript..."
+        npm run build-server
+        echo "Backend build completed."
+      displayName: 'Build backend TypeScript'
+
+    # Create deployment without any Prisma files
+    - script: |
+        echo "Creating Prisma-free deployment..."
+        mkdir -p no-prisma-deployment
+        
+        # Copy built frontend
+        echo "Copying frontend build..."
+        cp -r dist no-prisma-deployment/
+        
+        # Copy backend files
+        echo "Copying backend files..."
+        cp -r dist-server/* no-prisma-deployment/
+        cp azure-server.js no-prisma-deployment/
+        
+        # Create package.json without Prisma dependencies
+        echo "Creating package.json without Prisma..."
+        cat > no-prisma-deployment/package.json << 'EOF'
+        {
+          "name": "guardian-server",
+          "version": "1.0.0",
+          "description": "Guardian MVP Server - No Prisma",
+          "main": "azure-server.js",
+          "type": "commonjs",
+          "scripts": {
+            "start": "node azure-server.js"
+          },
+          "dependencies": {
+            "express": "^4.21.2",
+            "cors": "^2.8.5",
+            "body-parser": "^2.2.0",
+            "bcryptjs": "^3.0.2",
+            "jsonwebtoken": "^9.0.2",
+            "passport": "^0.7.0",
+            "passport-jwt": "^4.0.1",
+            "passport-local": "^1.0.0",
+            "@sendgrid/mail": "^8.1.4",
+            "multer": "^1.4.5-lts.2",
+            "zod": "^3.22.4"
+          },
+          "engines": {
+            "node": ">=20.0.0"
+          }
+        }
+        EOF
+        
+        # Copy environment template
+        cp .env no-prisma-deployment/.env.example
+        
+        echo "No-Prisma deployment directory prepared:"
+        ls -la no-prisma-deployment/
+      displayName: 'Prepare Prisma-free deployment'
+
+    # Create web.config
+    - script: |
+        cd no-prisma-deployment
+        cat > web.config << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <system.webServer>
+            <handlers>
+              <add name="iisnode" path="azure-server.js" verb="*" modules="iisnode" />
+            </handlers>
+            <rewrite>
+              <rules>
+                <rule name="StaticContent">
+                  <match url="^dist/(.*)$" />
+                  <action type="Rewrite" url="dist/{R:1}" />
+                </rule>
+                <rule name="DynamicContent">
+                  <conditions>
+                    <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
+                    <add input="{REQUEST_URI}" pattern="^/dist/" negate="True"/>
+                  </conditions>
+                  <action type="Rewrite" url="azure-server.js"/>
+                </rule>
+              </rules>
+            </rewrite>
+            <iisnode 
+              watchedFiles="web.config;*.js"
+              nodeProcessCommandLine="node.exe"
+              debuggingEnabled="false"
+              loggingEnabled="true" />
+          </system.webServer>
+        </configuration>
+        EOF
+      displayName: 'Create web.config'
+
+    # Archive deployment package
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/no-prisma-deployment'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/guardian-no-prisma.zip'
+        replaceExistingArchive: true
+      displayName: 'Create deployment package'
+
+    # Publish build artifacts
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/guardian-no-prisma.zip'
+        ArtifactName: 'guardian-no-prisma'
+        publishLocation: 'Container'
+      displayName: 'Publish build artifacts'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployJob
+    displayName: 'Deploy to Azure Web App'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          
+          # Download build artifacts
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'guardian-no-prisma'
+              downloadPath: '$(System.ArtifactsDirectory)'
+            displayName: 'Download build artifacts'
+
+          # Deploy using Run From Package to avoid file system issues
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webAppLinux'
+              appName: '$(appName)'
+              package: '$(System.ArtifactsDirectory)/guardian-no-prisma/guardian-no-prisma.zip'
+              runtimeStack: 'NODE|20-lts'
+              deploymentMethod: 'runFromPackage'
+              appSettings: |
+                -NODE_ENV production
+                -WEBSITE_NODE_DEFAULT_VERSION 20.x
+                -WEBSITE_RUN_FROM_PACKAGE 1
+                -SCM_DO_BUILD_DURING_DEPLOYMENT false
+                -ENABLE_ORYX_BUILD false
+            displayName: 'Deploy to Azure Web App (Run From Package)'
+
+          # Verify deployment
+          - script: |
+              echo "Waiting for application to start..."
+              sleep 30
+              echo "Testing deployment..."
+              
+              response=$(curl -s -o /dev/null -w "%{http_code}" https://$(appName).azurewebsites.net/ || echo "000")
+              echo "HTTP Response: $response"
+              
+              if [ "$response" = "200" ] || [ "$response" = "302" ]; then
+                echo "✅ Application deployed successfully!"
+              else
+                echo "⚠️ Application response: $response"
+                echo "Check Azure portal for application logs"
+              fi
+            displayName: 'Verify deployment'
+            continueOnError: true
