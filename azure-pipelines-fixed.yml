@@ -106,7 +106,7 @@ steps:
   inputs:
     azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
     appType: 'webAppLinux'
-    appName: 'GUARDIAN-DEV'
+    appName: 'GUARDIAN-MVP'
     package: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
     startUpCommand: 'npm start'
   displayName: 'Deploy to Azure Web App'
