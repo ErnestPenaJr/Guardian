@@ -1,16 +1,12 @@
 // azure-server.js
+// Enhanced Azure Web App entry point for Guardian MVP
 
-// Simple entry point for Azure Web App with auto-dependency installation
 console.log('===== GUARDIAN SERVER STARTING =====');
-console.log(`Node version: ${
-    process.version
-}`);
-console.log(`Current directory: ${
-    process.cwd()
-}`);
-console.log(`Environment: ${
-    process.env.NODE_ENV || 'development'
-}`);
+console.log(`Node version: ${process.version}`);
+console.log(`Current directory: ${process.cwd()}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`Port: ${process.env.PORT || 8080}`);
+console.log(`Azure Web App: ${process.env.WEBSITE_SITE_NAME || 'local'}`);
 
 const fs = require('fs');
 const path = require('path');
@@ -26,26 +22,38 @@ const isModuleInstalled = (moduleName) => {
 };
 
 const installDependencies = () => {
-    console.log('Attempting to install missing dependencies...');
+    console.log('Checking and installing missing dependencies...');
     try {
-        if (! fs.existsSync(path.join(process.cwd(), 'package.json'))) {
+        const packageJsonPath = path.join(process.cwd(), 'package.json');
+        if (!fs.existsSync(packageJsonPath)) {
             console.log('Creating minimal package.json...');
             const minimalPackage = {
                 name: "guardian-server",
                 version: "1.0.0",
                 main: "azure-server.js",
+                type: "commonjs",
+                engines: {
+                    node: ">=20.0.0"
+                },
                 dependencies: {
                     "express": "^4.21.2",
-                    "cors": "^2.8.5"
+                    "cors": "^2.8.5",
+                    "body-parser": "^2.2.0"
                 }
             };
-            fs.writeFileSync(path.join(process.cwd(), 'package.json'), JSON.stringify(minimalPackage, null, 2));
+            fs.writeFileSync(packageJsonPath, JSON.stringify(minimalPackage, null, 2));
         }
-        execSync('npm install express cors', {stdio: 'inherit'});
-        console.log('Dependencies installed successfully');
+        
+        // Install only if node_modules doesn't exist
+        if (!fs.existsSync(path.join(process.cwd(), 'node_modules'))) {
+            console.log('Installing dependencies...');
+            execSync('npm install --production', {stdio: 'inherit', timeout: 300000});
+        }
+        
+        console.log('Dependencies ready');
         return true;
     } catch (error) {
-        console.error('Failed to install dependencies:', error);
+        console.error('Failed to install dependencies:', error.message);
         return false;
     }
 };
