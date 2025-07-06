@@ -215,26 +215,36 @@ stages:
                 echo "Deployment completed"
             displayName: 'Deploy using Azure CLI'
 
-          # Configure app settings
+          # Configure app settings and runtime
           - task: AzureCLI@2
             inputs:
               azureSubscription: '$(azureSubscription)'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                echo "Configuring app settings..."
+                echo "Configuring app settings and runtime..."
+                
+                # Set app settings
                 az webapp config appsettings set \
                   --name $(appName) \
                   --resource-group $(az webapp show --name $(appName) --query resourceGroup -o tsv) \
                   --settings \
                     NODE_ENV=production \
-                    WEBSITE_NODE_DEFAULT_VERSION=20.x \
+                    WEBSITE_NODE_DEFAULT_VERSION=~20 \
                     SCM_DO_BUILD_DURING_DEPLOYMENT=false \
                     ENABLE_ORYX_BUILD=false \
                     WEBSITE_RUN_FROM_PACKAGE=0 \
                     WEBSITE_RESTART_TIME=60
-                echo "App settings configured"
-            displayName: 'Configure app settings'
+                
+                # Configure Linux runtime stack (avoid LinuxFxVersion issues)
+                az webapp config set \
+                  --name $(appName) \
+                  --resource-group $(az webapp show --name $(appName) --query resourceGroup -o tsv) \
+                  --startup-file "npm start" \
+                  --always-on true
+                
+                echo "App settings and runtime configured"
+            displayName: 'Configure app settings and runtime'
 
           # Start the Azure Web App
           - task: AzureCLI@2
