@@ -1,6 +1,16 @@
 // azure-server.js
 // Enhanced Azure Web App entry point for Guardian MVP
 
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+async function startServer() {
 console.log('===== GUARDIAN SERVER STARTING =====');
 console.log(`Node version: ${process.version}`);
 console.log(`Current directory: ${process.cwd()}`);
@@ -8,13 +18,9 @@ console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`Port: ${process.env.PORT || 8080}`);
 console.log(`Azure Web App: ${process.env.WEBSITE_SITE_NAME || 'local'}`);
 
-const fs = require('fs');
-const path = require('path');
-const {execSync} = require('child_process');
-
-const isModuleInstalled = (moduleName) => {
+const isModuleInstalled = async (moduleName) => {
     try {
-        require.resolve(moduleName);
+        await import(moduleName);
         return true;
     } catch (e) {
         return false;
@@ -58,20 +64,23 @@ const installDependencies = () => {
     }
 };
 
-if (! isModuleInstalled('express') || ! isModuleInstalled('cors')) {
+// Check for required modules
+const expressInstalled = await isModuleInstalled('express');
+const corsInstalled = await isModuleInstalled('cors');
+
+if (!expressInstalled || !corsInstalled) {
     console.log('Required modules not found. Attempting to install...');
     const installed = installDependencies();
-    if (! installed) {
+    if (!installed) {
         console.error('Failed to install required dependencies. Exiting.');
         process.exit(1);
     }
 }
 
-let express,
-    cors;
+let express, cors;
 try {
-    express = require('express');
-    cors = require('cors');
+    express = (await import('express')).default;
+    cors = (await import('cors')).default;
     console.log('Successfully imported all required modules');
 } catch (err) {
     console.error('ERROR IMPORTING MODULES:', err.message);
@@ -96,13 +105,25 @@ app.use((req, res, next) => {
 });
 
 const distPath = path.join(__dirname, 'dist');
+console.log(`Checking for static files at: ${distPath}`);
 if (fs.existsSync(distPath)) {
-    console.log(`Serving static files from: ${distPath}`);
-    const history = require('connect-history-api-fallback');
-    app.use(history());
+    console.log(`✅ Serving static files from: ${distPath}`);
+    try {
+        const history = (await import('connect-history-api-fallback')).default;
+        app.use(history({
+            rewrites: [
+                { from: /^\/api\/.*$/, to: function(context) {
+                    return context.parsedUrl.pathname;
+                }}
+            ]
+        }));
+    } catch (err) {
+        console.log('History API fallback not available, using basic routing');
+    }
     app.use(express.static(distPath));
 } else {
-    console.warn(`Warning: Static files directory (${distPath}) not found`);
+    console.warn(`⚠️  Warning: Static files directory (${distPath}) not found`);
+    console.log('Available directories:', fs.readdirSync(__dirname));
 } app.get('/api/health', (req, res) => {
     res.json({status: 'ok', timestamp: new Date().toISOString()});
 });
@@ -127,4 +148,12 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Access the application at: http://localhost:${PORT}`);
+});
+
+}
+
+// Start the server
+startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
 });
