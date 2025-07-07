@@ -52,36 +52,12 @@ steps:
     ls -la node_modules
   displayName: 'Install server dependencies in deployment directory'
 
-# Create web.config for Azure
+# Create startup command file for Linux
 - script: |
     cd deployment
-    echo '<?xml version="1.0" encoding="utf-8"?>
-    <configuration>
-      <system.webServer>
-        <handlers>
-          <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
-        </handlers>
-        <rewrite>
-          <rules>
-            <rule name="DynamicContent">
-              <match url="/*" />
-              <action type="Rewrite" url="server.js" />
-            </rule>
-          </rules>
-        </rewrite>
-        <iisnode watchedFiles="web.config;*.js" />
-      </system.webServer>
-    </configuration>' > web.config
-    cat web.config
-  displayName: 'Create web.config for Azure'
-
-# Create .deployment file
-- script: |
-    cd deployment
-    echo '[config]
-    SCM_DO_BUILD_DURING_DEPLOYMENT=true' > .deployment
-    cat .deployment
-  displayName: 'Create .deployment file'
+    echo 'npm start' > startup.txt
+    cat startup.txt
+  displayName: 'Create startup command file'
 
 # Zip the deployment package
 - task: ArchiveFiles@2
@@ -107,6 +83,7 @@ steps:
     azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
     appType: 'webAppLinux'
     appName: 'GUARDIAN-MVP'
+    runtimeStack: 'NODE|18-lts'
     package: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
     startUpCommand: 'npm start'
   displayName: 'Deploy to Azure Web App'
