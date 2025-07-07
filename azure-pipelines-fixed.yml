@@ -83,7 +83,9 @@ steps:
     azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
     appType: 'webAppLinux'
     appName: 'GUARDIAN-MVP'
-    runtimeStack: 'NODE|18-lts'
+    runtimeStack: 'NODE|16-lts'  # Changed to 16-lts for better compatibility
     package: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
     startUpCommand: 'npm start'
+    enableCustomDeployment: true
+    deploymentMethod: 'auto'
   displayName: 'Deploy to Azure Web App'
