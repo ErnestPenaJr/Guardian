@@ -107,7 +107,13 @@ app.use((req, res, next) => {
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
     console.log(`✅ Serving static files from: ${distPath}`);
-    app.use(express.static(distPath));
+    // Serve static files from the dist directory
+    app.use(express.static(path.join(__dirname, 'dist')));
+    
+    // Handle SPA routing - return the main index.html for all other requests
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
 } else {
     console.warn(`⚠️  Warning: Static files directory (${distPath}) not found`);
 }
