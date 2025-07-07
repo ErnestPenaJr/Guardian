@@ -28,8 +28,10 @@ steps:
 - script: |
     echo "Copying frontend build to deployment/dist"
     cp -r dist deployment/
+    # Ensure staticwebapp.config.json is in the root of the deployment
+    cp public/staticwebapp.config.json deployment/dist/
     ls -la deployment/dist
-  displayName: 'Copy frontend build to deployment'
+  displayName: 'Copy frontend build and config to deployment'
 
 # Copy server.js to deployment root
 - script: |
