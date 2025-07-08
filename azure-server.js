@@ -1128,8 +1128,64 @@ app.get('/api/test-ernest', async (req, res) => {
                 result.databaseError = dbError.message;
                 console.error('Database test error:', dbError);
             }
+        } else if (sqlPool) {
+            // Try SQL pool fallback
+            try {
+                console.log('🔍 Testing Ernest with SQL pool...');
+                result.sqlPoolStatus = 'available';
+                
+                const request = sqlPool.request();
+                const userResult = await request
+                    .input('email', sql.VarChar, email)
+                    .query('SELECT * FROM USERS WHERE EMAIL = @email');
+                
+                result.userFound = userResult.recordset.length > 0;
+                if (userResult.recordset.length > 0) {
+                    const user = userResult.recordset[0];
+                    result.userDetails = {
+                        id: user.USER_ID,
+                        email: user.EMAIL,
+                        firstName: user.FIRST_NAME,
+                        lastName: user.LAST_NAME,
+                        emailValidated: user.EMAIL_VALIDATED,
+                        status: user.STATUS,
+                        hasPasswordHash: !!user.PASSWORD_HASH,
+                        companyId: user.COMPANY_ID
+                    };
+                    
+                    // Check user roles using SQL
+                    const rolesRequest = sqlPool.request();
+                    const rolesResult = await rolesRequest
+                        .input('userId', sql.Int, user.USER_ID)
+                        .query('SELECT ROLE_ID FROM USER_ROLES WHERE USER_ID = @userId AND STATUS = \'P\'');
+                    
+                    result.userRoles = rolesResult.recordset.map(r => r.ROLE_ID);
+                    
+                    // Test password if available
+                    if (user.PASSWORD_HASH) {
+                        const passwordValid = await bcrypt.compare(password, user.PASSWORD_HASH);
+                        result.passwordValid = passwordValid;
+                    }
+                    
+                    // Test full authentication flow
+                    const authResult = await authenticateUser(email, password);
+                    result.authenticationTest = {
+                        success: authResult.success,
+                        message: authResult.message,
+                        user: authResult.user || null
+                    };
+                } else {
+                    result.userDetails = null;
+                    result.message = 'User not found in database via SQL';
+                }
+            } catch (sqlError) {
+                result.sqlError = sqlError.message;
+                console.error('SQL test error:', sqlError);
+                result.message = 'SQL pool available but query failed';
+            }
         } else {
-            result.message = 'Prisma not available - check /api/debug-prisma';
+            result.message = 'Neither Prisma nor SQL pool available';
+            result.sqlPoolStatus = 'not available';
         }
         
         res.json(result);
@@ -1153,6 +1209,43 @@ app.get('/api/test', (req, res) => {
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development'
     });
+});
+
+// SQL connection status test
+app.get('/api/test-sql', async (req, res) => {
+    try {
+        const result = {
+            databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+            sqlPoolStatus: sqlPool ? 'initialized' : 'not initialized',
+            prismaStatus: prisma ? 'initialized' : 'not initialized',
+            timestamp: new Date().toISOString()
+        };
+        
+        if (sqlPool) {
+            try {
+                // Test a simple query
+                const request = sqlPool.request();
+                const testResult = await request.query('SELECT 1 as test');
+                result.sqlTest = {
+                    success: true,
+                    result: testResult.recordset[0]
+                };
+            } catch (sqlError) {
+                result.sqlTest = {
+                    success: false,
+                    error: sqlError.message
+                };
+            }
+        }
+        
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Authentication test endpoint
