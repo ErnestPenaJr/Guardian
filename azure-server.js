@@ -909,6 +909,84 @@ app.get('/api/test', (req, res) => {
     });
 });
 
+// Authentication test endpoint
+app.post('/api/test-auth', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        console.log('🔍 Authentication test for:', email);
+        
+        const result = {
+            email: email,
+            hasPassword: !!password,
+            prismaStatus: prisma ? 'initialized' : 'not initialized',
+            databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+            timestamp: new Date().toISOString()
+        };
+        
+        // Test database authentication if Prisma is available
+        if (prisma && email) {
+            try {
+                console.log('🔍 Checking user in database...');
+                const user = await prisma.uSERS.findFirst({
+                    where: { EMAIL: email }
+                });
+                
+                result.userFound = !!user;
+                if (user) {
+                    result.userDetails = {
+                        id: user.USER_ID,
+                        email: user.EMAIL,
+                        firstName: user.FIRST_NAME,
+                        lastName: user.LAST_NAME,
+                        emailValidated: user.EMAIL_VALIDATED,
+                        status: user.STATUS,
+                        hasPasswordHash: !!user.PASSWORD_HASH,
+                        companyId: user.COMPANY_ID
+                    };
+                    
+                    // Check user roles
+                    const userRoles = await prisma.uSER_ROLES.findMany({
+                        where: { USER_ID: user.USER_ID, STATUS: 'P' }
+                    });
+                    result.userRoles = userRoles.map(ur => ur.ROLE_ID);
+                    
+                    // Test password if provided
+                    if (password && user.PASSWORD_HASH) {
+                        const bcrypt = require('bcryptjs');
+                        const passwordValid = await bcrypt.compare(password, user.PASSWORD_HASH);
+                        result.passwordValid = passwordValid;
+                    }
+                } else {
+                    result.userDetails = null;
+                }
+            } catch (dbError) {
+                result.databaseError = dbError.message;
+                console.error('Database test error:', dbError);
+            }
+        } else {
+            result.message = 'Prisma not available or no email provided';
+        }
+        
+        // Test against test users too
+        const testUser = TEST_USERS.find(user => user.email === email);
+        result.testUserFound = !!testUser;
+        if (testUser && password) {
+            result.testUserPasswordValid = testUser.password === password;
+        }
+        
+        res.json(result);
+        
+    } catch (error) {
+        console.error('Auth test error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Manual Prisma regeneration endpoint
 app.post('/api/regenerate-prisma', async (req, res) => {
     try {
