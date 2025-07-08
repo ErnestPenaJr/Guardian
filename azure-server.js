@@ -1214,6 +1214,7 @@ app.get('/api/debug-prisma', (req, res) => {
         const prismaClientPath = path.join(__dirname, 'node_modules', '@prisma', 'client');
         const prismaSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
         const prismaDir = path.join(__dirname, 'prisma');
+        const dotPrismaPath = path.join(__dirname, 'node_modules', '.prisma', 'client');
         
         let prismaFiles = [];
         if (fs.existsSync(prismaDir)) {
@@ -1226,6 +1227,18 @@ app.get('/api/debug-prisma', (req, res) => {
             nodeModulesInfo = fs.readdirSync(nodeModulesPath).filter(dir => dir.includes('prisma'));
         }
         
+        let dotPrismaFiles = [];
+        if (fs.existsSync(dotPrismaPath)) {
+            dotPrismaFiles = fs.readdirSync(dotPrismaPath);
+        }
+        
+        // Check if key files exist in .prisma/client
+        const keyFiles = ['index.js', 'index.d.ts', 'schema.prisma', 'query-engine-windows.exe'];
+        const keyFileChecks = {};
+        keyFiles.forEach(file => {
+            keyFileChecks[file] = fs.existsSync(path.join(dotPrismaPath, file));
+        });
+        
         res.json({
             success: true,
             prismaStatus: prisma ? 'initialized' : 'not initialized',
@@ -1234,15 +1247,19 @@ app.get('/api/debug-prisma', (req, res) => {
                 __dirname: __dirname,
                 prismaClientPath: prismaClientPath,
                 prismaSchemaPath: prismaSchemaPath,
-                prismaDir: prismaDir
+                prismaDir: prismaDir,
+                dotPrismaPath: dotPrismaPath
             },
             fileChecks: {
                 prismaClientExists: fs.existsSync(prismaClientPath),
                 prismaSchemaExists: fs.existsSync(prismaSchemaPath),
-                prismaDirExists: fs.existsSync(prismaDir)
+                prismaDirExists: fs.existsSync(prismaDir),
+                dotPrismaExists: fs.existsSync(dotPrismaPath)
             },
             prismaFiles: prismaFiles,
             nodeModulesPrisma: nodeModulesInfo,
+            dotPrismaClientFiles: dotPrismaFiles,
+            keyFileChecks: keyFileChecks,
             timestamp: new Date().toISOString()
         });
     } catch (error) {
