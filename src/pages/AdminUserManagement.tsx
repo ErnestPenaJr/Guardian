@@ -170,6 +170,93 @@ const InviteUserModal = ({ show, onClose, roles, onSubmit }: InviteUserModalProp
   );
 };
 
+const EditUserModal: React.FC<{
+  show: boolean;
+  onClose: () => void;
+  roles: Role[];
+  user: UserRow | null;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}> = ({ show, onClose, roles, user, onSubmit }) => {
+  if (!show || !user) return null;
+  
+  // Extract names from user
+  const [firstName, lastName] = user.name ? user.name.split(' ') : ['', ''];
+  
+  // Function to capitalize first letter of each word
+  const capitalizeWords = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const words = value.split(' ');
+    const capitalizedWords = words.map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    );
+    e.target.value = capitalizedWords.join(' ');
+  };
+
+  // Get user's current role ID
+  const currentRoleId = user.roles && user.roles.length > 0 ? user.roles[0].id : '';
+
+  return (
+    <div
+      className="modal fade show d-block"
+      tabIndex={-1}
+      role="dialog"
+      style={{ background: 'rgba(0,0,0,0.4)' }}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-dialog modal-dialog-centered" role="document" onClick={e => e.stopPropagation()}>
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">
+              Edit User: {user.name}
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
+          </div>
+          <div className="modal-body">
+            <form id="edit-user-form" onSubmit={onSubmit} autoComplete="off">
+              <input type="hidden" name="userId" value={user.id} />
+              <div className="mb-3">
+                <label className="form-label">First Name</label>
+                <input type="text" className="form-control" name="firstName" required onChange={capitalizeWords} defaultValue={firstName} />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Last Name</label>
+                <input type="text" className="form-control" name="lastName" required onChange={capitalizeWords} defaultValue={lastName} />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Email</label>
+                <input type="email" className="form-control" name="email" required defaultValue={user.email} />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Role</label>
+                <select className="form-select" name="role" required defaultValue={currentRoleId}>
+                  <option value="" disabled>Select role</option>
+                  {roles.map((role, idx) => (
+                    <option key={role.id ?? idx} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Status</label>
+                <select className="form-select" name="status" required defaultValue={user.status}>
+                  <option value="A">Active</option>
+                  <option value="S">Suspended</option>
+                  <option value="P">Inactive</option>
+                </select>
+              </div>
+              <div className="modal-footer px-0">
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Update User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminUserManagement: React.FC = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -178,6 +265,8 @@ const AdminUserManagement: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showInviteUserModal, setShowInviteUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [userSearch, setUserSearch] = useState('');
   const [inviteSearch, setInviteSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
@@ -254,7 +343,7 @@ const AdminUserManagement: React.FC = () => {
       setInvites(formattedInvites);
       
       // Set roles from API response
-      setRoles(rolesRes.data || []);
+      setRoles(rolesRes.data.data || []);
       
       // Ensure user has company information
       if (user && !user.company && localStorage.getItem('user')) {
@@ -409,7 +498,7 @@ const AdminUserManagement: React.FC = () => {
           // Update state with fresh data
           setUsers(formattedUsers);
           setInvites(formattedInvites);
-          setRoles(rolesRes.data || []);
+          setRoles(rolesRes.data.data || []);
           
           console.log('Table data refreshed successfully after deletion');
         } catch (refreshErr) {
@@ -645,7 +734,7 @@ const AdminUserManagement: React.FC = () => {
         // Update state with fresh data
         setUsers(formattedUsers);
         setInvites(formattedInvites);
-        setRoles(rolesRes.data || []);
+        setRoles(rolesRes.data.data || []);
         
         console.log('Table data refreshed successfully after adding user');
       } catch (refreshErr) {
@@ -663,6 +752,152 @@ const AdminUserManagement: React.FC = () => {
       Swal.close();
       
       Swal.fire('Failed to add user', err?.response?.data?.error || err.message || 'Unknown error', 'error');
+    }
+  };
+
+  // Handle edit user click
+  const handleEditUser = (user: UserRow) => {
+    setEditingUser(user);
+    setShowEditUserModal(true);
+  };
+
+  // Handle edit user form submission
+  const handleEditUserSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const userId = formData.get('userId') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const email = formData.get('email') as string;
+    const roleId = formData.get('role') as string;
+    const status = formData.get('status') as string;
+
+    // --- Verification ---
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !roleId || !status) {
+      Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
+      return;
+    }
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Swal.fire('Invalid Email', 'Please enter a valid email address.', 'warning');
+      return;
+    }
+
+    try {
+      // Show loading state
+      Swal.fire({
+        title: 'Updating User...',
+        text: 'Please wait while we update the user account.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
+      const response = await api.put(`/api/users/${userId}`, {
+        firstName,
+        lastName,
+        email,
+        roleId: Number(roleId),
+        status
+      });
+      
+      // Close loading dialog
+      Swal.close();
+      
+      // Show success message
+      await Swal.fire({
+        title: 'User Updated!',
+        text: 'User has been successfully updated.',
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+      
+      setShowEditUserModal(false);
+      setEditingUser(null);
+      
+      // Refresh data using the same approach as other operations
+      try {
+        const [usersRes, invitesRes, rolesRes] = await Promise.all([
+          api.get('/api/users'),
+          api.get('/api/invites'),
+          api.get('/api/roles')
+        ]);
+        
+        // Format and update user data
+        const formattedUsers = (usersRes.data.data || []).map((user: any) => {
+          let dateCreated = 'Invalid Date';
+          try {
+            if (user.createdAt) {
+              dateCreated = new Date(user.createdAt).toISOString();
+            }
+          } catch (e) {
+            console.error('Error formatting date:', e);
+          }
+          
+          return {
+            id: user.id,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+            email: user.email,
+            dateCreated,
+            status: user.status || 'P',
+            roles: user.roles || [],
+            companyId: user.companyId || null
+          };
+        });
+        
+        // Format and update invite data
+        const formattedInvites = invitesRes.data.map((invite: any) => {
+          let createdAt = 'Invalid Date';
+          let expiresAt = null;
+          
+          try {
+            if (invite.createdAt) {
+              createdAt = new Date(invite.createdAt).toISOString();
+            }
+            if (invite.expiresAt) {
+              expiresAt = new Date(invite.expiresAt).toISOString();
+            }
+          } catch (e) {
+            console.error('Error formatting invite dates:', e);
+          }
+          
+          return {
+            INVITE_ID: invite.id,
+            EMAIL: invite.email,
+            ROLE_ID: invite.roleId,
+            STATUS: invite.status,
+            EXPIRES_AT: expiresAt,
+            CREATED_AT: createdAt,
+            USED_AT: invite.usedAt,
+            companyId: invite.companyId || null,
+            status: invite.status === 'P' ? 'pending' : 
+                   invite.status === 'A' ? 'accepted' : 'expired'
+          };
+        });
+        
+        // Update state with fresh data
+        setUsers(formattedUsers);
+        setInvites(formattedInvites);
+        setRoles(rolesRes.data.data || []);
+        
+        console.log('Table data refreshed successfully after updating user');
+      } catch (refreshErr) {
+        console.error('Error refreshing data after updating user:', refreshErr);
+        Swal.fire({
+          title: 'Warning',
+          text: 'User was updated but there was an error refreshing the table data. Please reload the page.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+      }
+    } catch (err: any) {
+      // Close loading dialog
+      Swal.close();
+      
+      Swal.fire('Failed to update user', err?.response?.data?.error || err.message || 'Unknown error', 'error');
     }
   };
 
@@ -777,7 +1012,7 @@ const AdminUserManagement: React.FC = () => {
         
         setUsers(formattedUsers);
         setInvites(formattedInvites);
-        setRoles(rolesRes.data || []);
+        setRoles(rolesRes.data.data || []);
         
         console.log('Table data refreshed successfully after sending invitation');
       } catch (refreshErr) {
@@ -1052,7 +1287,7 @@ const AdminUserManagement: React.FC = () => {
                                 <span className="text-warning fw-semibold">Inactive</span>}
                           </td>
                           <td>
-                            <button className="btn btn-sm btn-outline-primary me-1" title="Edit User">
+                            <button className="btn btn-sm btn-outline-primary me-1" title="Edit User" onClick={() => handleEditUser(user)}>
                               <FaEdit />
                             </button>
                             <button className="btn btn-sm btn-outline-danger" title="Delete User" onClick={() => handleDeleteUser(user.id)}><FaTrashAlt /></button>
@@ -1307,6 +1542,7 @@ const AdminUserManagement: React.FC = () => {
           </div>
           {showAddUserModal && <AddUserModal show={showAddUserModal} onClose={() => setShowAddUserModal(false)} roles={roles} user={user} onSubmit={handleAddUserSubmit} />}
           {showInviteUserModal && <InviteUserModal show={showInviteUserModal} onClose={() => setShowInviteUserModal(false)} roles={roles} onSubmit={handleInviteUserSubmit} />}
+          {showEditUserModal && <EditUserModal show={showEditUserModal} onClose={() => { setShowEditUserModal(false); setEditingUser(null); }} roles={roles} user={editingUser} onSubmit={handleEditUserSubmit} />}
         </div>
       </div>
     </div>

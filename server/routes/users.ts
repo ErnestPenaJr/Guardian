@@ -187,4 +187,86 @@ router.get('/', isAdmin, async (req: any, res) => {
   }
 });
 
+// Update user endpoint
+router.put('/:id', isAdmin, async (req: any, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { firstName, lastName, email, roleId, status } = req.body;
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID'
+      });
+    }
+    
+    // Validate required fields
+    if (!firstName || !lastName || !email || !roleId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+    
+    console.log(`[UPDATE USER] Updating user ${userId} with data:`, { firstName, lastName, email, roleId, status });
+    
+    // Check if user exists
+    const existingUser = await prisma.uSERS.findUnique({
+      where: { USER_ID: userId }
+    });
+    
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Update user in transaction
+    await prisma.$transaction(async (prisma) => {
+      // Update user basic information
+      await prisma.uSERS.update({
+        where: { USER_ID: userId },
+        data: {
+          FIRST_NAME: firstName,
+          LAST_NAME: lastName,
+          EMAIL: email,
+          STATUS: status,
+          UPDATE_DATE: new Date()
+        }
+      });
+      
+      // Update user role - first delete existing roles, then add new one
+      await prisma.uSER_ROLES.deleteMany({
+        where: { USER_ID: userId }
+      });
+      
+      await prisma.uSER_ROLES.create({
+        data: {
+          USER_ID: userId,
+          ROLE_ID: Number(roleId),
+          STATUS: 'A',
+          CREATE_DATE: new Date(),
+          UPDATE_DATE: new Date()
+        }
+      });
+    });
+    
+    console.log(`[UPDATE USER] Successfully updated user ${userId}`);
+    
+    res.json({
+      success: true,
+      message: 'User updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('[UPDATE USER] Error updating user:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user',
+      error: errorMessage
+    });
+  }
+});
+
 export default router;
