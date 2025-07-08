@@ -939,6 +939,88 @@ app.get('/api/test-users', (req, res) => {
     });
 });
 
+// Test specific user credentials
+app.get('/api/test-ernest', async (req, res) => {
+    try {
+        const email = 'ernest@shieldlytics.com';
+        const password = 'MDA268RedDragon$';
+        
+        console.log('🔍 Testing Ernest credentials...');
+        
+        const result = {
+            email: email,
+            prismaStatus: prisma ? 'initialized' : 'not initialized',
+            databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+            timestamp: new Date().toISOString()
+        };
+        
+        // Test database authentication if Prisma is available
+        if (prisma) {
+            try {
+                console.log('🔍 Checking Ernest in database...');
+                const user = await prisma.uSERS.findFirst({
+                    where: { EMAIL: email }
+                });
+                
+                result.userFound = !!user;
+                if (user) {
+                    result.userDetails = {
+                        id: user.USER_ID,
+                        email: user.EMAIL,
+                        firstName: user.FIRST_NAME,
+                        lastName: user.LAST_NAME,
+                        emailValidated: user.EMAIL_VALIDATED,
+                        status: user.STATUS,
+                        hasPasswordHash: !!user.PASSWORD_HASH,
+                        companyId: user.COMPANY_ID
+                    };
+                    
+                    // Check user roles
+                    const userRoles = await prisma.uSER_ROLES.findMany({
+                        where: { USER_ID: user.USER_ID, STATUS: 'P' }
+                    });
+                    result.userRoles = userRoles.map(ur => ur.ROLE_ID);
+                    
+                    // Test password
+                    if (user.PASSWORD_HASH) {
+                        const bcrypt = require('bcryptjs');
+                        const passwordValid = await bcrypt.compare(password, user.PASSWORD_HASH);
+                        result.passwordValid = passwordValid;
+                    } else {
+                        result.passwordIssue = 'No password hash found';
+                    }
+                    
+                    // Test full authentication flow
+                    const authResult = await authenticateUser(email, password);
+                    result.authenticationTest = {
+                        success: authResult.success,
+                        message: authResult.message,
+                        user: authResult.user || null
+                    };
+                } else {
+                    result.userDetails = null;
+                    result.message = 'User not found in database';
+                }
+            } catch (dbError) {
+                result.databaseError = dbError.message;
+                console.error('Database test error:', dbError);
+            }
+        } else {
+            result.message = 'Prisma not available - check /api/debug-prisma';
+        }
+        
+        res.json(result);
+        
+    } catch (error) {
+        console.error('Ernest test error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Simple API test (no auth required)
 app.get('/api/test', (req, res) => {
     res.json({
