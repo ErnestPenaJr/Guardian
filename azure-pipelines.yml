@@ -1,84 +1,128 @@
-# Azure Pipelines YAML for Guardian MVP
+# azure-pipelines.yml
 trigger:
 - main
 
 pool:
-  vmImage: 'ubuntu-latest'
-
-variables:
-  nodeVersion: '20.x'
+  vmImage: ubuntu-latest
 
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: $(nodeVersion)
-  displayName: 'Install Node.js $(nodeVersion)'
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
 
-# Install dependencies and build frontend
 - script: |
-    echo "Installing dependencies..."
     npm install
-    echo "Building frontend..."
     npm run build
-    echo "Build completed. Checking dist directory:"
-    ls -la dist/
-  displayName: 'Build Frontend'
+    echo "Frontend build completed. Listing dist directory contents:"
+    ls -la dist
+  displayName: 'Install and build frontend'
 
-# Create deployment structure
 - script: |
-    echo "Creating deployment structure..."
     mkdir -p deployment
-    
-    # Copy frontend build
+    echo "Creating deployment directory structure"
+  displayName: 'Prepare deployment directory'
+
+- script: |
+    echo "Copying frontend build to deployment/dist"
     cp -r dist deployment/
+    ls -la deployment/dist
+  displayName: 'Copy frontend build to deployment'
+
+- script: |
+    echo "Copying azure-server.js to deployment root"
+    cp azure-server.js deployment/server.js
+  displayName: 'Copy azure-server.js to deployment'
+
+- script: |
+    echo "Copying deployment-package.json to deployment/package.json"
+    cp deployment-package.json deployment/package.json
+    cat deployment/package.json
+  displayName: 'Copy deployment package.json'
+
+- script: |
+    echo "Copying Prisma schema and related files"
+    if [ -f "prisma/schema.prisma" ]; then
+      mkdir -p deployment/prisma
+      cp -r prisma/* deployment/prisma/
+      echo "Prisma schema copied"
+      ls -la deployment/prisma/
+    else
+      echo "No Prisma schema found - skipping"
+    fi
+  displayName: 'Copy Prisma files'
+
+- script: |
+    echo '[config]
+    SCM_DO_BUILD_DURING_DEPLOYMENT=true' > deployment/.deployment
+    cat deployment/.deployment
+  displayName: 'Create .deployment file'
+
+- script: |
+    cd deployment
+    echo '<?xml version="1.0" encoding="utf-8"?>
+    <configuration>
+      <system.webServer>
+        <handlers>
+          <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
+        </handlers>
+        <rewrite>
+          <rules>
+            <rule name="NodeInspector" patternSyntax="ECMAScript" stopProcessing="true">
+              <match url="^server.js\/debug[\/]?" />
+            </rule>
+            <rule name="StaticContent">
+              <action type="Rewrite" url="public{REQUEST_URI}"/>
+            </rule>
+            <rule name="DynamicContent">
+              <conditions>
+                <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
+              </conditions>
+              <action type="Rewrite" url="server.js"/>
+            </rule>
+          </rules>
+        </rewrite>
+        <security>
+          <requestFiltering>
+            <hiddenSegments>
+              <remove segment="bin"/>
+            </hiddenSegments>
+          </requestFiltering>
+        </security>
+        <httpErrors existingResponse="PassThrough" />
+      </system.webServer>
+    </configuration>' > web.config
+  displayName: 'Create web.config'
+
+- script: |
+    cd deployment
+    npm install
+    echo "Installed server dependencies in deployment directory"
     
-    # Copy server file
-    cp azure-server.js deployment/
-    
-    # Copy prisma schema and migrations
-    mkdir -p deployment/prisma
-    cp prisma/schema.prisma deployment/prisma/
-    if [ -d "prisma/migrations" ]; then
-      cp -r prisma/migrations deployment/prisma/
+    # Generate Prisma client if schema exists
+    if [ -f "prisma/schema.prisma" ]; then
+      echo "Generating Prisma client..."
+      npx prisma generate
+      echo "Prisma client generated"
+    else
+      echo "No Prisma schema found - skipping client generation"
     fi
     
-    # Use the deployment-specific package.json
-    cp azure-deployment-package.json deployment/package.json
-    
-    echo "Deployment structure created:"
-    find deployment -type f | head -20
-  displayName: 'Prepare Deployment Structure'
+    ls -la node_modules
+  displayName: 'Install server dependencies and generate Prisma client'
 
-# Install production dependencies
 - script: |
     cd deployment
-    echo "Installing production dependencies..."
-    npm install --only=production
-    
-    echo "Generating Prisma client..."
-    npx prisma generate
-    
-    echo "Production dependencies installed:"
-    ls -la node_modules/ | head -10
-  displayName: 'Install Production Dependencies'
-
-# Create deployment package
-- script: |
-    echo "Creating deployment package..."
-    cd deployment
-    zip -r ../guardian-mvp-deployment.zip . -x "*.git*" "*.DS_Store*" "*node_modules/.cache*"
+    zip -r ../app.zip .
     cd ..
-    echo "Package created:"
-    ls -lah guardian-mvp-deployment.zip
-  displayName: 'Create Deployment Package'
+    du -h app.zip
+  displayName: 'Create deployment package'
 
-# Deploy to Azure Web App
 - task: AzureWebApp@1
   inputs:
-    azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
-    appType: 'webAppLinux'
+    azureSubscription: 'AzureSP-Dev'
+    appType: 'webApp'
     appName: 'GUARDIAN-MVP'
-    package: '$(System.DefaultWorkingDirectory)/guardian-mvp-deployment.zip'
+    package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
-    startUpCommand: 'npm start'
   displayName: 'Deploy to Azure Web App'
