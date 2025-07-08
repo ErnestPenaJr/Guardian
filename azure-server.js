@@ -852,20 +852,8 @@ app.get('/api/test', (req, res) => {
     });
 });
 
-// Catch-all handler for SPA routing (must be last)
-app.get('*', (req, res) => {
-    const indexPath = path.join(distPath, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        console.error(`index.html not found at: ${indexPath}`);
-        res.status(404).send(`
-            <h1>Application files not found</h1>
-            <p>Please check deployment. Looking for: ${indexPath}</p>
-            <p>Current directory: ${process.cwd()}</p>
-        `);
-    }
-});
+// Define static files path
+const distPath = path.join(__dirname, 'dist');
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -899,15 +887,23 @@ process.on('uncaughtException', (err) => {
 });
 
 // Serve static files from dist directory (must be after all API routes)
-const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
     console.log(`✅ Serving static files from: ${distPath}`);
-    // Serve static files from the dist directory
     app.use(express.static(distPath));
     
     // Handle SPA routing - return the main index.html for all other requests
     app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+        const indexPath = path.join(distPath, 'index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+        } else {
+            console.error(`index.html not found at: ${indexPath}`);
+            res.status(404).send(`
+                <h1>Application files not found</h1>
+                <p>Please check deployment. Looking for: ${indexPath}</p>
+                <p>Current directory: ${process.cwd()}</p>
+            `);
+        }
     });
 } else {
     console.warn(`⚠️  Warning: Static files directory (${distPath}) not found`);
