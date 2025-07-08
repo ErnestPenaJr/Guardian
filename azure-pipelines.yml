@@ -1,87 +1,76 @@
-# azure-pipelines.yml
+# Azure Pipelines YAML for Guardian MVP
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '20.x'
 
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
+    versionSpec: $(nodeVersion)
+  displayName: 'Install Node.js $(nodeVersion)'
 
-# Install and build frontend
+# Install dependencies and build frontend
 - script: |
+    echo "Installing dependencies..."
     npm install
+    echo "Building frontend..."
     npm run build
-    echo "Frontend build completed. Listing dist directory contents:"
-    ls -la dist
-  displayName: 'Install and build frontend'
+    echo "Build completed. Checking dist directory:"
+    ls -la dist/
+  displayName: 'Build Frontend'
 
-# Prepare deployment directory
+# Create deployment structure
 - script: |
+    echo "Creating deployment structure..."
     mkdir -p deployment
-    echo "Creating deployment directory structure"
-  displayName: 'Prepare deployment directory'
-
-# Copy frontend build to deployment directory
-- script: |
-    echo "Copying frontend build to deployment/dist"
+    
+    # Copy frontend build
     cp -r dist deployment/
-    ls -la deployment/dist
-  displayName: 'Copy frontend build to deployment'
-
-# Copy azure-server.js to deployment root
-- script: |
-    echo "Copying azure-server.js to deployment root"
+    
+    # Copy server file
     cp azure-server.js deployment/
-  displayName: 'Copy azure-server.js to deployment'
+    
+    # Copy prisma schema and migrations
+    mkdir -p deployment/prisma
+    cp prisma/schema.prisma deployment/prisma/
+    if [ -d "prisma/migrations" ]; then
+      cp -r prisma/migrations deployment/prisma/
+    fi
+    
+    # Use the deployment-specific package.json
+    cp azure-deployment-package.json deployment/package.json
+    
+    echo "Deployment structure created:"
+    find deployment -type f | head -20
+  displayName: 'Prepare Deployment Structure'
 
-# Create .deployment file
-- script: |
-    echo '[config]
-    SCM_DO_BUILD_DURING_DEPLOYMENT=true' > deployment/.deployment
-    cat deployment/.deployment
-  displayName: 'Create .deployment file'
-
-# Create server-side package.json
-- script: |
-    cd deployment
-    echo '{
-      "name": "guardian-server",
-      "version": "1.0.0",
-      "type": "commonjs",
-      "main": "azure-server.js",
-      "scripts": {
-        "start": "node azure-server.js"
-      },
-      "engines": {
-        "node": ">=20.0.0"
-      },
-      "dependencies": {
-        "express": "^4.21.2",
-        "cors": "^2.8.5"
-      }
-    }' > package.json
-    cat package.json
-  displayName: 'Create server package.json'
-
-# Install server dependencies
+# Install production dependencies
 - script: |
     cd deployment
-    npm install
-    echo "Installed server dependencies in deployment directory"
-    ls -la node_modules
-  displayName: 'Install server dependencies'
+    echo "Installing production dependencies..."
+    npm install --only=production
+    
+    echo "Generating Prisma client..."
+    npx prisma generate
+    
+    echo "Production dependencies installed:"
+    ls -la node_modules/ | head -10
+  displayName: 'Install Production Dependencies'
 
-# Zip deployment package
+# Create deployment package
 - script: |
+    echo "Creating deployment package..."
     cd deployment
-    zip -r ../app.zip .
+    zip -r ../guardian-mvp-deployment.zip . -x "*.git*" "*.DS_Store*" "*node_modules/.cache*"
     cd ..
-    du -h app.zip
-  displayName: 'Create deployment package'
+    echo "Package created:"
+    ls -lah guardian-mvp-deployment.zip
+  displayName: 'Create Deployment Package'
 
 # Deploy to Azure Web App
 - task: AzureWebApp@1
@@ -89,7 +78,7 @@ steps:
     azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
     appType: 'webAppLinux'
     appName: 'GUARDIAN-MVP'
-    package: '$(System.DefaultWorkingDirectory)/app.zip'
-    startUpCommand: 'npm start'
+    package: '$(System.DefaultWorkingDirectory)/guardian-mvp-deployment.zip'
     runtimeStack: 'NODE|20-lts'
+    startUpCommand: 'npm start'
   displayName: 'Deploy to Azure Web App'
