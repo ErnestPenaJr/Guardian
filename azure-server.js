@@ -106,25 +106,7 @@ app.use((req, res, next) => {
 // Authentication function
 const authenticateUser = async (email, password) => {
     try {
-        // Check test users first
-        const testUser = TEST_USERS.find(user => user.email === email);
-        if (testUser && testUser.password === password) {
-            return {
-                success: true,
-                user: {
-                    id: testUser.id,
-                    email: testUser.email,
-                    firstName: testUser.firstName,
-                    lastName: testUser.lastName,
-                    roles: testUser.roles,
-                    COMPANY_ID: 0,
-                    username: testUser.email,
-                    role: testUser.roles.includes(1) ? 'admin' : 'user'
-                }
-            };
-        }
-
-        // Try database authentication if Prisma is available
+        // Try database authentication first if Prisma is available
         if (prisma) {
             try {
                 const user = await prisma.uSERS.findFirst({
@@ -173,8 +155,27 @@ const authenticateUser = async (email, password) => {
                 };
             } catch (dbError) {
                 console.error('Database authentication error:', dbError);
-                return { success: false, message: 'Database authentication failed. Try again later' };
+                // Fall back to test users if database fails
+                console.log('Falling back to test users...');
             }
+        }
+
+        // Fall back to test users if database is not available or authentication failed
+        const testUser = TEST_USERS.find(user => user.email === email);
+        if (testUser && testUser.password === password) {
+            return {
+                success: true,
+                user: {
+                    id: testUser.id,
+                    email: testUser.email,
+                    firstName: testUser.firstName,
+                    lastName: testUser.lastName,
+                    roles: testUser.roles,
+                    COMPANY_ID: 0,
+                    username: testUser.email,
+                    role: testUser.roles.includes(1) ? 'admin' : 'user'
+                }
+            };
         }
 
         return { success: false, message: 'Authentication service unavailable' };
