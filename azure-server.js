@@ -57,19 +57,44 @@ const initializePrisma = async () => {
             prismaInitLog.push(`🔍 Checking for existing .prisma client at: ${dotPrismaPath}`);
             prismaInitLog.push(`🔍 .prisma client exists: ${fs.existsSync(dotPrismaPath)}`);
             
-            // Try to initialize Prisma client directly (it might already be generated)
+            // Try to clear require cache and force reload
             try {
-                prisma = new PrismaClient({
+                // Clear the require cache for @prisma/client
+                const prismaClientPath = require.resolve('@prisma/client');
+                delete require.cache[prismaClientPath];
+                
+                // Also clear any .prisma/client cache
+                Object.keys(require.cache).forEach(key => {
+                    if (key.includes('.prisma') || key.includes('@prisma')) {
+                        delete require.cache[key];
+                    }
+                });
+                
+                prismaInitLog.push('🔄 Cleared Prisma require cache');
+                
+                // Try to require fresh
+                const { PrismaClient: FreshPrismaClient } = require('@prisma/client');
+                
+                prisma = new FreshPrismaClient({
                     log: ['query', 'info', 'warn', 'error'],
                 });
-                prismaInitLog.push('✅ Prisma client initialized successfully (using existing generation)');
-                console.log('✅ Prisma client initialized successfully (using existing generation)');
+                prismaInitLog.push('✅ Prisma client initialized successfully (fresh require)');
+                console.log('✅ Prisma client initialized successfully (fresh require)');
             } catch (directInitError) {
-                prismaInitLog.push(`⚠️ Direct initialization failed: ${directInitError.message}`);
-                console.log('⚠️ Direct initialization failed, attempting generation...');
+                prismaInitLog.push(`⚠️ Fresh initialization failed: ${directInitError.message}`);
+                console.log('⚠️ Fresh initialization failed, trying alternative...');
                 
-                // Only try generation if direct initialization fails
+                // Try with minimal options
                 try {
+                    prisma = new PrismaClient();
+                    prismaInitLog.push('✅ Prisma client initialized successfully (minimal config)');
+                    console.log('✅ Prisma client initialized successfully (minimal config)');
+                } catch (minimalError) {
+                    prismaInitLog.push(`⚠️ Minimal initialization failed: ${minimalError.message}`);
+                    console.log('⚠️ Minimal initialization failed, attempting generation...');
+                    
+                    // Only try generation if direct initialization fails
+                    try {
                     const { execSync } = require('child_process');
                     
                     // Try different ways to run prisma generate with shorter timeout
@@ -112,10 +137,11 @@ const initializePrisma = async () => {
                     prismaInitLog.push('✅ Prisma client initialized successfully (after generation)');
                     console.log('✅ Prisma client initialized successfully (after generation)');
                     
-                } catch (generateError) {
-                    prismaInitLog.push(`❌ Prisma generation and initialization failed: ${generateError.message}`);
-                    console.log('❌ Prisma generation and initialization failed:', generateError.message);
-                    throw generateError; // Re-throw to be caught by outer catch
+                    } catch (generateError) {
+                        prismaInitLog.push(`❌ Prisma generation and initialization failed: ${generateError.message}`);
+                        console.log('❌ Prisma generation and initialization failed:', generateError.message);
+                        throw generateError; // Re-throw to be caught by outer catch
+                    }
                 }
             }
             
