@@ -58,11 +58,37 @@ const initializePrisma = async () => {
             
             try {
                 const { execSync } = require('child_process');
-                const generateOutput = execSync('npx prisma generate', { 
-                    cwd: __dirname,
-                    encoding: 'utf8',
-                    timeout: 30000
-                });
+                
+                // Try different ways to run prisma generate
+                let generateOutput;
+                const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
+                const prismaCmdPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
+                
+                try {
+                    // Try using direct prisma binary path first
+                    generateOutput = execSync(`"${prismaPath}" generate`, { 
+                        cwd: __dirname,
+                        encoding: 'utf8',
+                        timeout: 30000
+                    });
+                } catch (firstTry) {
+                    try {
+                        // Try using node to run prisma directly
+                        generateOutput = execSync(`node "${prismaCmdPath}" generate`, { 
+                            cwd: __dirname,
+                            encoding: 'utf8',
+                            timeout: 30000
+                        });
+                    } catch (secondTry) {
+                        // Try with npm run if available
+                        generateOutput = execSync('npm run postinstall', { 
+                            cwd: __dirname,
+                            encoding: 'utf8',
+                            timeout: 30000
+                        });
+                    }
+                }
+                
                 prismaInitLog.push(`✅ Prisma generate successful: ${generateOutput.trim()}`);
                 console.log('✅ Prisma generate successful:', generateOutput);
             } catch (generateError) {
@@ -994,12 +1020,35 @@ app.post('/api/regenerate-prisma', async (req, res) => {
         
         console.log('🔧 Manual Prisma regeneration requested...');
         
-        // Run prisma generate
-        const generateOutput = execSync('npx prisma generate', { 
-            cwd: __dirname,
-            encoding: 'utf8',
-            timeout: 60000
-        });
+        // Run prisma generate using direct paths
+        let generateOutput;
+        const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
+        const prismaCmdPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
+        
+        try {
+            // Try using direct prisma binary path first
+            generateOutput = execSync(`"${prismaPath}" generate`, { 
+                cwd: __dirname,
+                encoding: 'utf8',
+                timeout: 60000
+            });
+        } catch (firstTry) {
+            try {
+                // Try using node to run prisma directly
+                generateOutput = execSync(`node "${prismaCmdPath}" generate`, { 
+                    cwd: __dirname,
+                    encoding: 'utf8',
+                    timeout: 60000
+                });
+            } catch (secondTry) {
+                // Try with npm run if available
+                generateOutput = execSync('npm run postinstall', { 
+                    cwd: __dirname,
+                    encoding: 'utf8',
+                    timeout: 60000
+                });
+            }
+        }
         
         console.log('✅ Prisma regeneration successful:', generateOutput);
         
