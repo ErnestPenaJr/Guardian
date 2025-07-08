@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Import required modules
-let express, cors, bcrypt, jwt, passport;
+let express, cors, bcrypt, jwt, passport, sql;
 let PrismaClient;
 
 try {
@@ -18,6 +18,7 @@ try {
     bcrypt = require('bcryptjs');
     jwt = require('jsonwebtoken');
     passport = require('passport');
+    sql = require('mssql');
     const { PrismaClient: PC } = require('@prisma/client');
     PrismaClient = PC;
     
@@ -31,6 +32,7 @@ try {
 // Initialize Prisma client
 let prisma;
 let prismaInitLog = [];
+let sqlPool;
 
 const initializePrisma = async () => {
     try {
@@ -167,8 +169,45 @@ const initializePrisma = async () => {
     }
 };
 
+// Initialize SQL pool as fallback
+const initializeSqlPool = async () => {
+    if (process.env.DATABASE_URL && !sqlPool) {
+        try {
+            // Parse the DATABASE_URL for mssql
+            const dbUrl = process.env.DATABASE_URL;
+            const urlMatch = dbUrl.match(/sqlserver:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)\?(.+)/);
+            
+            if (urlMatch) {
+                const [, user, password, server, port, database] = urlMatch;
+                
+                const config = {
+                    user: decodeURIComponent(user),
+                    password: decodeURIComponent(password),
+                    server: server,
+                    port: parseInt(port),
+                    database: database,
+                    options: {
+                        encrypt: true,
+                        trustServerCertificate: false
+                    }
+                };
+                
+                sqlPool = new sql.ConnectionPool(config);
+                await sqlPool.connect();
+                console.log('✅ SQL pool connected successfully as Prisma fallback');
+            }
+        } catch (sqlError) {
+            console.error('❌ SQL pool initialization failed:', sqlError.message);
+            sqlPool = null;
+        }
+    }
+};
+
 // Initialize Prisma asynchronously
 initializePrisma();
+
+// Initialize SQL pool as fallback
+initializeSqlPool();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -278,7 +317,65 @@ const authenticateUser = async (email, password) => {
                 };
             } catch (dbError) {
                 console.error('Database authentication error:', dbError);
-                // Fall back to test users if database fails
+                console.log('Falling back to SQL pool...');
+            }
+        }
+
+        // Try SQL pool as fallback if Prisma failed
+        if (!prisma && sqlPool) {
+            try {
+                console.log('🔍 Using SQL pool for authentication...');
+                
+                const request = sqlPool.request();
+                const userResult = await request
+                    .input('email', sql.VarChar, email)
+                    .query('SELECT * FROM USERS WHERE EMAIL = @email AND STATUS = \'A\'');
+                
+                if (userResult.recordset.length === 0) {
+                    return { success: false, message: 'User not found with this email address' };
+                }
+                
+                const user = userResult.recordset[0];
+                
+                if (!user.EMAIL_VALIDATED) {
+                    return { success: false, message: 'Email not verified. Please verify your email before logging in' };
+                }
+                
+                if (!user.PASSWORD_HASH) {
+                    return { success: false, message: 'Password not set for this account. Please use password reset' };
+                }
+                
+                const isPasswordValid = await bcrypt.compare(password, user.PASSWORD_HASH);
+                if (!isPasswordValid) {
+                    return { success: false, message: 'Invalid password. Please try again' };
+                }
+                
+                // Get user roles
+                const rolesRequest = sqlPool.request();
+                const rolesResult = await rolesRequest
+                    .input('userId', sql.Int, user.USER_ID)
+                    .query('SELECT ROLE_ID FROM USER_ROLES WHERE USER_ID = @userId AND STATUS = \'P\'');
+                
+                const roleIds = rolesResult.recordset.map(r => r.ROLE_ID);
+                
+                console.log('✅ SQL pool authentication successful for:', email);
+                
+                return {
+                    success: true,
+                    user: {
+                        id: user.USER_ID,
+                        email: user.EMAIL,
+                        firstName: user.FIRST_NAME,
+                        lastName: user.LAST_NAME,
+                        roles: roleIds,
+                        COMPANY_ID: user.COMPANY_ID,
+                        username: user.EMAIL,
+                        role: roleIds.includes(1) ? 'admin' : 'user'
+                    }
+                };
+                
+            } catch (sqlError) {
+                console.error('SQL pool authentication error:', sqlError);
                 console.log('Falling back to test users...');
             }
         }
