@@ -99,17 +99,26 @@ steps:
     npm install
     echo "Installed server dependencies in deployment directory"
     
-    # Generate Prisma client if schema exists
-    if [ -f "prisma/schema.prisma" ]; then
-      echo "Generating Prisma client..."
-      npx prisma generate
-      echo "Prisma client generated"
+    # Copy pre-generated Prisma client from local build
+    if [ -d "../node_modules/.prisma/client" ]; then
+      echo "Copying pre-generated Prisma client..."
+      mkdir -p node_modules/.prisma
+      cp -r ../node_modules/.prisma/client node_modules/.prisma/
+      echo "Pre-generated Prisma client copied successfully"
+      ls -la node_modules/.prisma/client/
     else
-      echo "No Prisma schema found - skipping client generation"
+      echo "No pre-generated Prisma client found - attempting generation"
+      if [ -f "prisma/schema.prisma" ]; then
+        echo "Generating Prisma client..."
+        npx prisma generate
+        echo "Prisma client generated"
+      else
+        echo "No Prisma schema found - skipping client generation"
+      fi
     fi
     
     ls -la node_modules
-  displayName: 'Install server dependencies and generate Prisma client'
+  displayName: 'Install server dependencies and copy Prisma client'
 
 - script: |
     cd deployment
