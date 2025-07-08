@@ -7,6 +7,17 @@ generator client {
 datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
+  
+  // Azure SQL specific settings
+  relationMode = "prisma"
+  
+  // Enable connection pooling
+  connectionLimit = 10
+  poolTimeout = 10
+  
+  // Enable SSL/TLS for Azure SQL
+  sslaccept = "strict"
+  ssl = { rejectUnauthorized = false }
 }
 
 model ATTACHMENTS {

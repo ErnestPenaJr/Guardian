@@ -1056,14 +1056,12 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete request' });
     }
 });
-import sgMail from '@sendgrid/mail';
-// Get SendGrid configuration from environment variables
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.VITE_SENDGRID_API_KEY;
-const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.VITE_SENDGRID_FROM_EMAIL || 'support@shieldlytics.com';
-// Configure SendGrid if API key is available
-if (SENDGRID_API_KEY) {
-    sgMail.setApiKey(SENDGRID_API_KEY);
-}
+import { Resend } from 'resend';
+// Get Resend configuration from environment variables
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+// Initialize Resend client if API key is available
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 // Assign a request to a user
 router.post('/:id/assign', async (req, res) => {
     try {
@@ -1103,9 +1101,9 @@ router.post('/:id/assign', async (req, res) => {
       LEFT JOIN GUARDIAN.USERS u2 ON r.ASSIGNED_ID = u2.USER_ID
       WHERE r.REQUEST_ID = ${requestId}
     `);
-        // Send notification email to assigned user if SendGrid is configured
+        // Send notification email to assigned user if Resend is configured
         const request = updatedRequest[0];
-        if (SENDGRID_API_KEY && request && request.ASSIGNED_USER_EMAIL) {
+        if (resend && request && request.ASSIGNED_USER_EMAIL) {
             try {
                 console.log(`[REQUEST ASSIGNMENT] Sending notification email to ${request.ASSIGNED_USER_EMAIL}`);
                 const trackingId = request.TRACKINGID || `REQ-${request.REQUEST_ID}`;
@@ -1124,13 +1122,16 @@ router.post('/:id/assign', async (req, res) => {
                 // Get the application URL from environment or use a default
                 const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:3001';
                 const requestUrl = `${appUrl}/requests/${requestId}`;
-                const msg = {
-                    to: request.ASSIGNED_USER_EMAIL,
-                    from: SENDGRID_FROM_EMAIL,
+                const { data, error } = await resend.emails.send({
+                    from: `Shieldlytics <${EMAIL_FROM}>`,
+                    to: [request.ASSIGNED_USER_EMAIL],
                     subject: `Request Assignment: ${trackingId}`,
                     html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>Request Assignment Notification</h2>
+              <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height:40px;">
+              </div>
+              <h2 style="color: #333;">Request Assignment Notification</h2>
               <p>Hello,</p>
               <p>You have been assigned to the following request:</p>
               <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -1140,25 +1141,34 @@ router.post('/:id/assign', async (req, res) => {
                 <p><strong>Assignment Date:</strong> ${new Date().toLocaleString()}</p>
               </div>
               <p>Please click the link below to access and process this request:</p>
-              <p><a href="${requestUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 20px 0;">View Request</a></p>
-              <p>Or copy and paste this URL into your browser: ${requestUrl}</p>
-              <p>Thank you,<br>Guardian System</p>
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="${requestUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">View Request</a>
+              </div>
+              <p style="text-align: center; color: #777; font-size: 14px;">
+                Or copy and paste this URL into your browser:<br>
+                ${requestUrl}
+              </p>
+              <p>Thank you,<br>The Shieldlytics Team</p>
+              <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
+              <p style="font-size: 12px; color: #777; text-align: center;">
+                This is an automated message. Please do not reply to this email.
+              </p>
             </div>
           `
-                };
-                await sgMail.send(msg);
-                console.log('[REQUEST ASSIGNMENT] Notification email sent successfully');
+                });
+                if (error) {
+                    console.error('[RESEND] Error sending assignment email:', error);
+                    throw error;
+                }
+                console.log('[REQUEST ASSIGNMENT] Notification email sent successfully:', data);
             }
             catch (emailError) {
                 // Log email error but don't fail the request assignment
                 console.error('[REQUEST ASSIGNMENT] Error sending notification email:', emailError);
-                if (emailError.response) {
-                    console.error('[REQUEST ASSIGNMENT] SendGrid API Error Details:', emailError.response.body);
-                }
             }
         }
         else {
-            console.log('[REQUEST ASSIGNMENT] Email notification skipped - SendGrid not configured or missing email');
+            console.log('[REQUEST ASSIGNMENT] Email notification skipped - Resend not configured or missing email');
         }
         console.log('Request assigned successfully');
         res.status(200).json(request || { message: 'Request assigned but details not available' });

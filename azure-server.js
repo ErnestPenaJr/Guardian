@@ -103,21 +103,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static files from dist directory
-const distPath = path.join(__dirname, 'dist');
-if (fs.existsSync(distPath)) {
-    console.log(`✅ Serving static files from: ${distPath}`);
-    // Serve static files from the dist directory
-    app.use(express.static(path.join(__dirname, 'dist')));
-    
-    // Handle SPA routing - return the main index.html for all other requests
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
-} else {
-    console.warn(`⚠️  Warning: Static files directory (${distPath}) not found`);
-}
-
 // Authentication function
 const authenticateUser = async (email, password) => {
     try {
@@ -913,6 +898,22 @@ process.on('uncaughtException', (err) => {
     process.exit(1);
 });
 
+// Serve static files from dist directory (must be after all API routes)
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+    console.log(`✅ Serving static files from: ${distPath}`);
+    // Serve static files from the dist directory
+    app.use(express.static(distPath));
+    
+    // Handle SPA routing - return the main index.html for all other requests
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+} else {
+    console.warn(`⚠️  Warning: Static files directory (${distPath}) not found`);
+}
+
+// Error handling for unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     process.exit(1);
