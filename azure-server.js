@@ -30,42 +30,59 @@ try {
 
 // Initialize Prisma client
 let prisma;
-try {
-    if (process.env.DATABASE_URL) {
-        console.log('✅ DATABASE_URL found, initializing Prisma...');
-        console.log('📁 Checking for Prisma client...');
-        
-        // Check if Prisma client exists
-        const prismaClientPath = path.join(__dirname, 'node_modules', '@prisma', 'client');
-        const prismaSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
-        
-        console.log('🔍 Prisma client path:', prismaClientPath);
-        console.log('🔍 Prisma client exists:', fs.existsSync(prismaClientPath));
-        console.log('🔍 Prisma schema path:', prismaSchemaPath);
-        console.log('🔍 Prisma schema exists:', fs.existsSync(prismaSchemaPath));
-        
-        // List prisma directory contents if it exists
-        const prismaDir = path.join(__dirname, 'prisma');
-        if (fs.existsSync(prismaDir)) {
-            console.log('📋 Prisma directory contents:', fs.readdirSync(prismaDir));
+let prismaInitLog = [];
+
+const initializePrisma = async () => {
+    try {
+        if (process.env.DATABASE_URL) {
+            prismaInitLog.push('✅ DATABASE_URL found, initializing Prisma...');
+            console.log('✅ DATABASE_URL found, initializing Prisma...');
+            
+            // Check if Prisma client exists
+            const prismaClientPath = path.join(__dirname, 'node_modules', '@prisma', 'client');
+            const prismaSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+            
+            prismaInitLog.push(`🔍 Prisma client exists: ${fs.existsSync(prismaClientPath)}`);
+            prismaInitLog.push(`🔍 Prisma schema exists: ${fs.existsSync(prismaSchemaPath)}`);
+            
+            // List prisma directory contents if it exists
+            const prismaDir = path.join(__dirname, 'prisma');
+            if (fs.existsSync(prismaDir)) {
+                const contents = fs.readdirSync(prismaDir);
+                prismaInitLog.push(`📋 Prisma directory contents: ${contents.join(', ')}`);
+            }
+            
+            // Try to initialize Prisma client
+            prisma = new PrismaClient({
+                log: ['query', 'info', 'warn', 'error'],
+            });
+            prismaInitLog.push('✅ Prisma client initialized successfully');
+            console.log('✅ Prisma client initialized successfully');
+            
+            // Test the connection
+            prismaInitLog.push('🔍 Testing database connection...');
+            console.log('🔍 Testing database connection...');
+            await prisma.$connect();
+            prismaInitLog.push('✅ Database connection successful');
+            console.log('✅ Database connection successful');
+        } else {
+            prismaInitLog.push('⚠️  DATABASE_URL not found, running in test mode only');
+            console.warn('⚠️  DATABASE_URL not found, running in test mode only');
+            prisma = null;
         }
-        
-        // Try to initialize Prisma client
-        prisma = new PrismaClient({
-            log: ['query', 'info', 'warn', 'error'],
-        });
-        console.log('✅ Prisma client initialized successfully');
-    } else {
-        console.warn('⚠️  DATABASE_URL not found, running in test mode only');
+    } catch (error) {
+        prismaInitLog.push(`❌ Failed to initialize Prisma: ${error.message}`);
+        prismaInitLog.push(`❌ Stack trace: ${error.stack}`);
+        console.error('❌ Failed to initialize Prisma:', error);
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+        console.error('Will fall back to test users only');
         prisma = null;
     }
-} catch (error) {
-    console.error('❌ Failed to initialize Prisma:', error);
-    console.error('Error details:', error.message);
-    console.error('Stack trace:', error.stack);
-    console.error('Will fall back to test users only');
-    prisma = null;
-}
+};
+
+// Initialize Prisma asynchronously
+initializePrisma();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -894,6 +911,7 @@ app.get('/api/debug-prisma', (req, res) => {
         res.json({
             success: true,
             prismaStatus: prisma ? 'initialized' : 'not initialized',
+            initializationLog: prismaInitLog,
             paths: {
                 __dirname: __dirname,
                 prismaClientPath: prismaClientPath,
