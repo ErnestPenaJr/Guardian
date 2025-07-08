@@ -52,57 +52,72 @@ const initializePrisma = async () => {
                 prismaInitLog.push(`📋 Prisma directory contents: ${contents.join(', ')}`);
             }
             
-            // Try to generate Prisma client first
-            prismaInitLog.push('🔧 Attempting to generate Prisma client...');
-            console.log('🔧 Attempting to generate Prisma client...');
+            // Check if Prisma client is already generated
+            const dotPrismaPath = path.join(__dirname, 'node_modules', '.prisma', 'client');
+            prismaInitLog.push(`🔍 Checking for existing .prisma client at: ${dotPrismaPath}`);
+            prismaInitLog.push(`🔍 .prisma client exists: ${fs.existsSync(dotPrismaPath)}`);
             
+            // Try to initialize Prisma client directly (it might already be generated)
             try {
-                const { execSync } = require('child_process');
+                prisma = new PrismaClient({
+                    log: ['query', 'info', 'warn', 'error'],
+                });
+                prismaInitLog.push('✅ Prisma client initialized successfully (using existing generation)');
+                console.log('✅ Prisma client initialized successfully (using existing generation)');
+            } catch (directInitError) {
+                prismaInitLog.push(`⚠️ Direct initialization failed: ${directInitError.message}`);
+                console.log('⚠️ Direct initialization failed, attempting generation...');
                 
-                // Try different ways to run prisma generate
-                let generateOutput;
-                const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
-                const prismaCmdPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
-                
+                // Only try generation if direct initialization fails
                 try {
-                    // Try using direct prisma binary path first
-                    generateOutput = execSync(`"${prismaPath}" generate`, { 
-                        cwd: __dirname,
-                        encoding: 'utf8',
-                        timeout: 30000
-                    });
-                } catch (firstTry) {
+                    const { execSync } = require('child_process');
+                    
+                    // Try different ways to run prisma generate with shorter timeout
+                    let generateOutput;
+                    const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
+                    const prismaCmdPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
+                    
                     try {
-                        // Try using node to run prisma directly
-                        generateOutput = execSync(`node "${prismaCmdPath}" generate`, { 
+                        // Try using direct prisma binary path first
+                        generateOutput = execSync(`"${prismaPath}" generate`, { 
                             cwd: __dirname,
                             encoding: 'utf8',
-                            timeout: 30000
+                            timeout: 15000 // Reduced timeout
                         });
-                    } catch (secondTry) {
-                        // Try with npm run if available
-                        generateOutput = execSync('npm run postinstall', { 
-                            cwd: __dirname,
-                            encoding: 'utf8',
-                            timeout: 30000
-                        });
+                    } catch (firstTry) {
+                        try {
+                            // Try using node to run prisma directly
+                            generateOutput = execSync(`node "${prismaCmdPath}" generate`, { 
+                                cwd: __dirname,
+                                encoding: 'utf8',
+                                timeout: 15000 // Reduced timeout
+                            });
+                        } catch (secondTry) {
+                            // Try with npm run if available
+                            generateOutput = execSync('npm run postinstall', { 
+                                cwd: __dirname,
+                                encoding: 'utf8',
+                                timeout: 15000 // Reduced timeout
+                            });
+                        }
                     }
+                    
+                    prismaInitLog.push(`✅ Prisma generate successful: ${generateOutput.trim()}`);
+                    console.log('✅ Prisma generate successful:', generateOutput);
+                    
+                    // Try to initialize again after generation
+                    prisma = new PrismaClient({
+                        log: ['query', 'info', 'warn', 'error'],
+                    });
+                    prismaInitLog.push('✅ Prisma client initialized successfully (after generation)');
+                    console.log('✅ Prisma client initialized successfully (after generation)');
+                    
+                } catch (generateError) {
+                    prismaInitLog.push(`❌ Prisma generation and initialization failed: ${generateError.message}`);
+                    console.log('❌ Prisma generation and initialization failed:', generateError.message);
+                    throw generateError; // Re-throw to be caught by outer catch
                 }
-                
-                prismaInitLog.push(`✅ Prisma generate successful: ${generateOutput.trim()}`);
-                console.log('✅ Prisma generate successful:', generateOutput);
-            } catch (generateError) {
-                prismaInitLog.push(`⚠️ Prisma generate failed: ${generateError.message}`);
-                console.log('⚠️ Prisma generate failed:', generateError.message);
-                // Continue anyway, maybe it was already generated
             }
-            
-            // Try to initialize Prisma client
-            prisma = new PrismaClient({
-                log: ['query', 'info', 'warn', 'error'],
-            });
-            prismaInitLog.push('✅ Prisma client initialized successfully');
-            console.log('✅ Prisma client initialized successfully');
             
             // Test the connection
             prismaInitLog.push('🔍 Testing database connection...');
