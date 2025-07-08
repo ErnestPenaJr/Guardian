@@ -2,18 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import Swal from 'sweetalert2';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [credentials, setCredentials] = useState({
     email: '',
     password: ''
   });
   
   // Validation states
-  const [validation, setValidation] = useState({
+  const [validation, setValidation] = useState<{
+    email: {
+      valid: boolean;
+      message: string;
+      touched: boolean;
+    };
+    password: {
+      valid: boolean;
+      message: string;
+      touched: boolean;
+    };
+  }>({
     email: {
       valid: false,
       message: '',
@@ -198,7 +210,7 @@ function Login() {
     setValidation(prev => ({
       ...prev,
       [name]: {
-        ...prev[name as keyof typeof prev],
+        ...(prev as any)[name],
         touched: true
       }
     }));
@@ -274,7 +286,7 @@ function Login() {
             <div className="relative">
               <input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={credentials.password}
                 onChange={handleChange}
@@ -288,8 +300,16 @@ function Login() {
                 } focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-10`}
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                tabIndex={-1}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
               {validation.password.touched && (
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <div className="absolute inset-y-0 right-8 flex items-center pr-3 pointer-events-none">
                   {validation.password.valid ? (
                     <span className="text-green-500">✓</span>
                   ) : (
