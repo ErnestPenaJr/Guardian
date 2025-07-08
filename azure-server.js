@@ -33,6 +33,24 @@ let prisma;
 try {
     if (process.env.DATABASE_URL) {
         console.log('✅ DATABASE_URL found, initializing Prisma...');
+        console.log('📁 Checking for Prisma client...');
+        
+        // Check if Prisma client exists
+        const prismaClientPath = path.join(__dirname, 'node_modules', '@prisma', 'client');
+        const prismaSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+        
+        console.log('🔍 Prisma client path:', prismaClientPath);
+        console.log('🔍 Prisma client exists:', fs.existsSync(prismaClientPath));
+        console.log('🔍 Prisma schema path:', prismaSchemaPath);
+        console.log('🔍 Prisma schema exists:', fs.existsSync(prismaSchemaPath));
+        
+        // List prisma directory contents if it exists
+        const prismaDir = path.join(__dirname, 'prisma');
+        if (fs.existsSync(prismaDir)) {
+            console.log('📋 Prisma directory contents:', fs.readdirSync(prismaDir));
+        }
+        
+        // Try to initialize Prisma client
         prisma = new PrismaClient({
             log: ['query', 'info', 'warn', 'error'],
         });
@@ -43,6 +61,8 @@ try {
     }
 } catch (error) {
     console.error('❌ Failed to initialize Prisma:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
     console.error('Will fall back to test users only');
     prisma = null;
 }
@@ -851,6 +871,51 @@ app.get('/api/test', (req, res) => {
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development'
     });
+});
+
+// Prisma client debug endpoint
+app.get('/api/debug-prisma', (req, res) => {
+    try {
+        const prismaClientPath = path.join(__dirname, 'node_modules', '@prisma', 'client');
+        const prismaSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+        const prismaDir = path.join(__dirname, 'prisma');
+        
+        let prismaFiles = [];
+        if (fs.existsSync(prismaDir)) {
+            prismaFiles = fs.readdirSync(prismaDir);
+        }
+        
+        let nodeModulesInfo = [];
+        const nodeModulesPath = path.join(__dirname, 'node_modules');
+        if (fs.existsSync(nodeModulesPath)) {
+            nodeModulesInfo = fs.readdirSync(nodeModulesPath).filter(dir => dir.includes('prisma'));
+        }
+        
+        res.json({
+            success: true,
+            prismaStatus: prisma ? 'initialized' : 'not initialized',
+            paths: {
+                __dirname: __dirname,
+                prismaClientPath: prismaClientPath,
+                prismaSchemaPath: prismaSchemaPath,
+                prismaDir: prismaDir
+            },
+            fileChecks: {
+                prismaClientExists: fs.existsSync(prismaClientPath),
+                prismaSchemaExists: fs.existsSync(prismaSchemaPath),
+                prismaDirExists: fs.existsSync(prismaDir)
+            },
+            prismaFiles: prismaFiles,
+            nodeModulesPrisma: nodeModulesInfo,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Define static files path
