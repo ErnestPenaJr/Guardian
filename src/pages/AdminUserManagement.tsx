@@ -568,9 +568,9 @@ const AdminUserManagement: React.FC = () => {
         'Date Created': user.dateCreated && user.dateCreated !== 'Invalid Date' 
           ? new Date(user.dateCreated).toLocaleDateString() 
           : 'N/A',
-        'Role': user.roles && Array.isArray(user.roles) ? 
-          (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
-          'User',
+        'Role': user.roles && Array.isArray(user.roles) && user.roles.length > 0 ? 
+          user.roles.map((role: any) => role.name || role.displayName || 'Unknown').join(', ') : 
+          'No Role',
         'Status': user.status === 'A' ? 'Active' : user.status === 'S' ? 'Suspended' : 'Inactive',
         'Type': 'User',
       })),
@@ -582,7 +582,11 @@ const AdminUserManagement: React.FC = () => {
                        (invite.CREATED_AT !== 'Invalid Date' && invite.createdAt !== 'Invalid Date') ? 
           new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
           : 'N/A',
-        'Role': (invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User',
+        'Role': (() => {
+          const roleId = invite.ROLE_ID || invite.roleId;
+          const role = roles.find(r => r.id === roleId);
+          return role ? (role.name || role.displayName || 'Unknown') : 'Unknown';
+        })(),
         'Status': invite.status ? 
           (invite.status.charAt(0).toUpperCase() + invite.status.slice(1)) : 
           (invite.STATUS === 'P' ? 'Pending' : invite.STATUS === 'A' ? 'Accepted' : 'Expired'),
@@ -1278,9 +1282,9 @@ const AdminUserManagement: React.FC = () => {
                               ? new Date(user.dateCreated).toLocaleDateString() 
                               : 'N/A'}
                           </td>
-                          <td>{user.roles && Array.isArray(user.roles) ? 
-                            (user.roles.some((role: any) => role.id === 1) ? 'Admin' : 'User') : 
-                            'User'}</td>
+                          <td>{user.roles && Array.isArray(user.roles) && user.roles.length > 0 ? 
+                            user.roles.map((role: any) => role.name || role.displayName || 'Unknown').join(', ') : 
+                            'No Role'}</td>
                           <td>
                             {user.status === 'A' ? <span className="text-success fw-semibold">Active</span> :
                               user.status === 'S' ? <span className="text-danger fw-semibold">Suspended</span> :
@@ -1463,7 +1467,11 @@ const AdminUserManagement: React.FC = () => {
                                 new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
                                 : 'N/A'}
                             </td>
-                            <td style={{ whiteSpace: 'nowrap'}}>{(invite.ROLE_ID === 1 || invite.roleId === 1) ? 'Admin' : 'User'}</td>
+                            <td style={{ whiteSpace: 'nowrap'}}>{(() => {
+                              const roleId = invite.ROLE_ID || invite.roleId;
+                              const role = roles.find(r => r.id === roleId);
+                              return role ? (role.name || role.displayName || 'Unknown') : 'Unknown';
+                            })()}</td>
                             <td style={{ whiteSpace: 'nowrap', textAlign: 'start', verticalAlign: 'start' }}>
                               {invite.status === 'pending' && !isExpired && (
                                 <span className="text-primary fw-semibold d-flex align-items-center justify-content-start gap-1">

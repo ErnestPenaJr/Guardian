@@ -84626,15 +84626,26 @@ router9.get("/", isAdmin, async (req, res) => {
     }));
     const usersWithRoles = await Promise.all(formattedUsers.map(async (user) => {
       try {
+        const allUserRoles = await prisma10.uSER_ROLES.findMany({
+          where: {
+            USER_ID: user.id
+          },
+          select: {
+            ROLE_ID: true,
+            STATUS: true
+          }
+        });
+        console.log(`[USERS] User ${user.id} (${user.firstName} ${user.lastName}) all roles:`, allUserRoles);
         const userRoles = await prisma10.uSER_ROLES.findMany({
           where: {
             USER_ID: user.id,
-            STATUS: "A"
+            STATUS: "P"
           },
           select: {
             ROLE_ID: true
           }
         });
+        console.log(`[USERS] User ${user.id} (${user.firstName} ${user.lastName}) has ${userRoles.length} active roles:`, userRoles.map((ur3) => ur3.ROLE_ID));
         const roleIds = userRoles.map((ur3) => ur3.ROLE_ID);
         let roles = [];
         if (roleIds.length > 0) {

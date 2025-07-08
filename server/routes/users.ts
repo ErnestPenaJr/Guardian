@@ -106,16 +106,30 @@ router.get('/', isAdmin, async (req: any, res) => {
     // Then, get roles for each user using Prisma ORM
     const usersWithRoles = await Promise.all(formattedUsers.map(async (user) => {
       try {
-        // Get user roles using Prisma ORM
+        // Get user roles using Prisma ORM - first try without STATUS filter
+        const allUserRoles = await prisma.uSER_ROLES.findMany({
+          where: {
+            USER_ID: user.id
+          },
+          select: {
+            ROLE_ID: true,
+            STATUS: true
+          }
+        });
+        
+        console.log(`[USERS] User ${user.id} (${user.firstName} ${user.lastName}) all roles:`, allUserRoles);
+        
         const userRoles = await prisma.uSER_ROLES.findMany({
           where: {
             USER_ID: user.id,
-            STATUS: 'A'
+            STATUS: 'P'
           },
           select: {
             ROLE_ID: true
           }
         });
+        
+        console.log(`[USERS] User ${user.id} (${user.firstName} ${user.lastName}) has ${userRoles.length} active roles:`, userRoles.map(ur => ur.ROLE_ID));
 
         // Get role details for each role ID
         const roleIds = userRoles.map(ur => ur.ROLE_ID);
