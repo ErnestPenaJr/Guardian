@@ -197,7 +197,7 @@ const AdminUserManagement: React.FC = () => {
       api.get('/api/roles')
     ]).then(([usersRes, invitesRes, rolesRes]) => {
       // Format user data
-      const formattedUsers = usersRes.data.map((user: any) => {
+      const formattedUsers = (usersRes.data.data || []).map((user: any) => {
         // Format date properly
         let dateCreated = 'Invalid Date';
         try {
@@ -353,7 +353,7 @@ const AdminUserManagement: React.FC = () => {
           ]);
           
           // Format and update user data
-          const formattedUsers = usersRes.data.map((user: any) => {
+          const formattedUsers = (usersRes.data.data || []).map((user: any) => {
             // Format date properly
             let dateCreated = 'Invalid Date';
             try {
@@ -589,7 +589,7 @@ const AdminUserManagement: React.FC = () => {
         ]);
         
         // Format and update user data
-        const formattedUsers = usersRes.data.map((user: any) => {
+        const formattedUsers = (usersRes.data.data || []).map((user: any) => {
           // Format date properly
           let dateCreated = 'Invalid Date';
           try {
@@ -725,7 +725,7 @@ const AdminUserManagement: React.FC = () => {
         ]);
         
         // Format and update data
-        const formattedUsers = usersRes.data.map((user: any) => {
+        const formattedUsers = (usersRes.data.data || []).map((user: any) => {
           let dateCreated = 'Invalid Date';
           try {
             if (user.createdAt) {

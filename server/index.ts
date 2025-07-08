@@ -23,6 +23,8 @@ import fieldTypesRoutes from './routes/field-types.js';
 import requestsRoutes from './routes/requests.js';
 import fieldLookupsRoutes from './routes/field-lookups.js';
 import groupsRoutes from './routes/forms-groups.js';
+import usersRoutes from './routes/users.js';
+import rolesRoutes from './routes/roles.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -79,9 +81,11 @@ app.use('/api/external', externalRoutes);
 app.use('/api/endpoint-viewer', endpointViewerRoutes);
 app.use('/api/fields', fieldsRoutes);
 app.use('/api/field-types', fieldTypesRoutes);
-app.use('/api/field-lookups', fieldLookupsRoutes);
-app.use('/api/forms-groups', groupsRoutes);
 app.use('/api/requests', requestsRoutes);
+app.use('/api/forms-groups', groupsRoutes);
+app.use('/api/users', usersRoutes); // Users routes
+app.use('/api/roles', rolesRoutes); // Roles routes
+app.use('/api/field-lookups', fieldLookupsRoutes);
 
 // Create a rate limiter for login attempts
 // 5 failed attempts per 15 minutes per IP

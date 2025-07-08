@@ -16,40 +16,51 @@ const roleInputSchema = z.object({
 });
 
 // Get all roles
-router.get('/', async (req, res) => {
+router.get('/', isAdmin, async (req, res) => {
   try {
-    // First check if roles exist in the database
-    const dbRoles = await prisma.rOLES.findMany({
-      orderBy: { ROLE_ID: 'asc' }
+    console.log('[ROLES] Fetching all roles');
+    
+    const roles = await prisma.rOLES.findMany({
+      where: {
+        STATUS: 'A' // Only active roles
+      },
+      select: {
+        ROLE_ID: true,
+        NAME: true,
+        DISPLAY_NAME: true,
+        DESCRIPTION: true,
+        STATUS: true,
+        CREATE_DATE: true
+      },
+      orderBy: {
+        NAME: 'asc'
+      }
     });
-
-    // If no roles exist, return predefined roles
-    if (dbRoles.length === 0) {
-      return res.json(PREDEFINED_ROLES);
-    }
-
-    // Map database roles to our role schema format
-    const roles = await Promise.all(dbRoles.map(async (role) => {
-      // Get role permissions from the database
-      const rolePermissions = await prisma.$queryRaw`
-        SELECT PERMISSION_ID FROM ROLE_PERMISSIONS 
-        WHERE ROLE_ID = ${role.ROLE_ID} AND STATUS = 'A'
-      `;
-
-      return {
-        id: role.ROLE_ID,
-        name: role.NAME,
-        displayName: role.DISPLAY_NAME,
-        description: role.DESCRIPTION,
-        // Using type assertion since rolePermissions is of type unknown
-        permissions: (rolePermissions as any[]).map((p: any) => p.PERMISSION_ID),
-      };
+    
+    console.log(`[ROLES] Found ${roles.length} active roles`);
+    
+    // Transform the data to match expected format
+    const formattedRoles = roles.map(role => ({
+      id: role.ROLE_ID,
+      name: role.NAME,
+      displayName: role.DISPLAY_NAME,
+      description: role.DESCRIPTION,
+      status: role.STATUS,
+      createdAt: role.CREATE_DATE
     }));
-
-    res.json(roles);
-  } catch (error) {
+    
+    res.json({
+      success: true,
+      data: formattedRoles
+    });
+  } catch (error: unknown) {
     console.error('Error fetching roles:', error);
-    res.status(500).json({ message: 'Failed to fetch roles' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch roles',
+      error: errorMessage
+    });
   }
 });
 

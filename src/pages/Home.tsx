@@ -30,6 +30,18 @@ ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 const MySwal = withReactContent(Swal);
 
+// Define User interface
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  companyId: number;
+  roles: any[];
+}
+
 // Define Request interface
 interface Request {
   REQUEST_ID: number;
@@ -319,8 +331,8 @@ function Home() {
   const [selectedRows, setSelectedRows] = useState<Request[]>([]);
   const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [toggleCleared, setToggleCleared] = useState<boolean>(false);
   const [requestStatusData, setRequestStatusData] = useState<Array<{ label: string; value: number; color: string }>>([]);
   const [totalRequests, setTotalRequests] = useState<number>(0);
@@ -333,7 +345,7 @@ function Home() {
     setShowRequestModal(true);
     
     if (request.ASSIGNED_ID) {
-      setSelectedUser({ USER_ID: request.ASSIGNED_ID, FIRST_NAME: request.assignedName?.split(' ')[0] || '', LAST_NAME: request.assignedName?.split(' ')[1] || '' });
+      setSelectedUser({ id: request.ASSIGNED_ID, firstName: request.assignedName?.split(' ')[0] || '', lastName: request.assignedName?.split(' ')[1] || '' });
     } else {
       setSelectedUser(null);
     }
@@ -422,13 +434,9 @@ function Home() {
   const fetchUsers = async () => {
     if (hasAssignPermission()) {
       try {
-        const authToken = localStorage.getItem('token');
-        const response = await axios.get('/api/users', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-        setUsers(response.data);
+        const response = await api.get('/api/users');
+        // Extract the data array from the response structure
+        setUsers(response.data.data || []);
       } catch (error) {
         console.error('Error fetching users:', error);
         toast.error('Failed to load users for assignment');
@@ -446,7 +454,7 @@ function Home() {
     try {
       const authToken = localStorage.getItem('token');
       await axios.post(`/api/requests/${currentRequest.REQUEST_ID}/assign`, {
-        userId: selectedUser.USER_ID
+        userId: selectedUser.id
       }, {
         headers: {
           'Authorization': `Bearer ${authToken}`
@@ -458,8 +466,8 @@ function Home() {
         if (req.REQUEST_ID === currentRequest.REQUEST_ID) {
           return {
             ...req,
-            ASSIGNED_ID: selectedUser.USER_ID,
-            assignedName: `${selectedUser.FIRST_NAME} ${selectedUser.LAST_NAME}`
+            ASSIGNED_ID: selectedUser.id,
+            assignedName: `${selectedUser.firstName} ${selectedUser.lastName}`
           };
         }
         return req;
@@ -470,7 +478,7 @@ function Home() {
       setShowRequestModal(false);
       
       // Show success toast
-      toast.success(`Request assigned to ${selectedUser.FIRST_NAME} ${selectedUser.LAST_NAME}`);
+      toast.success(`Request assigned to ${selectedUser.firstName} ${selectedUser.lastName}`);
       
       // Refresh data after assignment
       fetchRequests();
@@ -1155,17 +1163,17 @@ function Home() {
                 <div className="flex flex-col md:flex-row gap-3">
                   <select
                     className="form-select rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50 flex-grow"
-                    value={selectedUser ? selectedUser.USER_ID : ''}
+                    value={selectedUser ? selectedUser.id : ''}
                     onChange={(e) => {
                       const userId = e.target.value;
-                      const user = users.find(u => u.USER_ID.toString() === userId.toString());
+                      const user = users.find(u => u.id.toString() === userId.toString());
                       setSelectedUser(user || null);
                     }}
                   >
                     <option value="">Select a user to assign</option>
                     {users.map((user) => (
-                      <option key={user.USER_ID} value={user.USER_ID}>
-                        {user.FIRST_NAME} {user.LAST_NAME} ({user.EMAIL})
+                      <option key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName} ({user.email})
                       </option>
                     ))}
                   </select>

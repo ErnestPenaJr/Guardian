@@ -3,6 +3,17 @@ import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import api from '../utils/api';
 import './RequestModal.css';
 
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  companyId: number;
+  roles: any[];
+}
+
 interface Request {
   REQUEST_ID: number;
   REQUEST_NAME: string;
@@ -40,7 +51,7 @@ interface Props {
 }
 
 const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string>('');
@@ -70,8 +81,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       // Add error handling for the API call
       try {
         const response = await api.get('/api/users');
-        if (response && response.data) {
-          setUsers(response.data || []);
+        if (response && response.data && response.data.data) {
+          setUsers(response.data.data || []);
         } else {
           setUsers([]);
         }
@@ -233,8 +244,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       >
                         <option value="">Select a user</option>
                         {users && users.map((user, index) => (
-                          <option key={user.USER_ID || user.id || `user-${index}`} value={user.USER_ID || user.id}>
-                            {user.FIRST_NAME || user.firstName} {user.LAST_NAME || user.lastName}
+                          <option key={user.id || (user as any).USER_ID || `user-${index}`} value={user.id || (user as any).USER_ID}>
+                            {user.firstName || (user as any).FIRST_NAME} {user.lastName || (user as any).LAST_NAME}
                           </option>
                         ))}
                       </Form.Select>

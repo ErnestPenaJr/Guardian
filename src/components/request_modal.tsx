@@ -9,10 +9,14 @@ interface RequestModalProps {
 }
 
 interface User {
-  USER_ID: number;
-  FIRST_NAME: string;
-  LAST_NAME: string;
-  EMAIL: string;
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  companyId: number;
+  roles: any[];
 }
 
 const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) => {
@@ -28,8 +32,8 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
       // Fetch users
       api.get('/api/users')
         .then(response => {
-          if (Array.isArray(response.data)) {
-            setUsers(response.data);
+          if (response.data && response.data.data && Array.isArray(response.data.data)) {
+            setUsers(response.data.data);
             // If the request already has an assigned user, select it
             if (request.ASSIGNED_ID) {
               setSelectedUser(request.ASSIGNED_ID);
@@ -222,8 +226,8 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
                     >
                       <option value="">Select a user</option>
                       {users.map(user => (
-                        <option key={user.USER_ID} value={user.USER_ID}>
-                          {user.FIRST_NAME} {user.LAST_NAME} ({user.EMAIL})
+                        <option key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName} ({user.email})
                         </option>
                       ))}
                     </select>
