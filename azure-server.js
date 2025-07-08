@@ -52,6 +52,25 @@ const initializePrisma = async () => {
                 prismaInitLog.push(`📋 Prisma directory contents: ${contents.join(', ')}`);
             }
             
+            // Try to generate Prisma client first
+            prismaInitLog.push('🔧 Attempting to generate Prisma client...');
+            console.log('🔧 Attempting to generate Prisma client...');
+            
+            try {
+                const { execSync } = require('child_process');
+                const generateOutput = execSync('npx prisma generate', { 
+                    cwd: __dirname,
+                    encoding: 'utf8',
+                    timeout: 30000
+                });
+                prismaInitLog.push(`✅ Prisma generate successful: ${generateOutput.trim()}`);
+                console.log('✅ Prisma generate successful:', generateOutput);
+            } catch (generateError) {
+                prismaInitLog.push(`⚠️ Prisma generate failed: ${generateError.message}`);
+                console.log('⚠️ Prisma generate failed:', generateError.message);
+                // Continue anyway, maybe it was already generated
+            }
+            
             // Try to initialize Prisma client
             prisma = new PrismaClient({
                 log: ['query', 'info', 'warn', 'error'],
@@ -888,6 +907,55 @@ app.get('/api/test', (req, res) => {
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development'
     });
+});
+
+// Manual Prisma regeneration endpoint
+app.post('/api/regenerate-prisma', async (req, res) => {
+    try {
+        const { execSync } = require('child_process');
+        
+        console.log('🔧 Manual Prisma regeneration requested...');
+        
+        // Run prisma generate
+        const generateOutput = execSync('npx prisma generate', { 
+            cwd: __dirname,
+            encoding: 'utf8',
+            timeout: 60000
+        });
+        
+        console.log('✅ Prisma regeneration successful:', generateOutput);
+        
+        // Try to reinitialize Prisma
+        if (prisma) {
+            await prisma.$disconnect();
+        }
+        
+        // Reload the Prisma client
+        delete require.cache[require.resolve('@prisma/client')];
+        const { PrismaClient } = require('@prisma/client');
+        
+        prisma = new PrismaClient({
+            log: ['query', 'info', 'warn', 'error'],
+        });
+        
+        // Test connection
+        await prisma.$connect();
+        
+        res.json({
+            success: true,
+            message: 'Prisma client regenerated and reconnected successfully',
+            output: generateOutput.trim(),
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('❌ Prisma regeneration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Prisma client debug endpoint
