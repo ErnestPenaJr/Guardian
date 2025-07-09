@@ -1061,8 +1061,8 @@ app.get('/api/test-ernest', async (req, res) => {
         if (prisma) {
             try {
                 console.log('🔍 Checking Ernest in database...');
-                // Use raw SQL to bypass Prisma schema issues - only select columns that exist
-                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID FROM USERS WHERE EMAIL = ${email}`;
+                // Use raw SQL to bypass Prisma schema issues - only select columns that definitely exist
+                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL = ${email}`;
                 const user = users.length > 0 ? users[0] : null;
                 
                 result.userFound = !!user;
@@ -1073,8 +1073,7 @@ app.get('/api/test-ernest', async (req, res) => {
                         firstName: user.FIRST_NAME,
                         lastName: user.LAST_NAME,
                         status: user.STATUS,
-                        hasPasswordHash: !!user.PASSWORD_HASH,
-                        companyId: user.COMPANY_ID
+                        hasPasswordHash: !!user.PASSWORD_HASH
                     };
                     
                     // Check user roles using raw SQL
