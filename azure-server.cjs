@@ -40,66 +40,39 @@ const initializePrisma = async () => {
             prismaInitLog.push('✅ DATABASE_URL found, initializing Prisma...');
             console.log('✅ DATABASE_URL found, initializing Prisma...');
             
-            // Check if Prisma client exists
-            const prismaClientPath = path.join(__dirname, 'node_modules', '@prisma', 'client');
-            const prismaSchemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
-            
-            prismaInitLog.push(`🔍 Prisma client exists: ${fs.existsSync(prismaClientPath)}`);
-            prismaInitLog.push(`🔍 Prisma schema exists: ${fs.existsSync(prismaSchemaPath)}`);
-            
-            // List prisma directory contents if it exists
-            const prismaDir = path.join(__dirname, 'prisma');
-            if (fs.existsSync(prismaDir)) {
-                const contents = fs.readdirSync(prismaDir);
-                prismaInitLog.push(`📋 Prisma directory contents: ${contents.join(', ')}`);
-            }
-            
-            // Check if Prisma client is already generated
-            const dotPrismaPath = path.join(__dirname, 'node_modules', '.prisma', 'client');
-            prismaInitLog.push(`🔍 Checking for existing .prisma client at: ${dotPrismaPath}`);
-            prismaInitLog.push(`🔍 .prisma client exists: ${fs.existsSync(dotPrismaPath)}`);
-            
-            // Try to clear require cache and force reload
+            // Direct simple initialization
             try {
-                // Clear the require cache for @prisma/client
-                const prismaClientPath = require.resolve('@prisma/client');
-                delete require.cache[prismaClientPath];
-                
-                // Also clear any .prisma/client cache
-                Object.keys(require.cache).forEach(key => {
-                    if (key.includes('.prisma') || key.includes('@prisma')) {
-                        delete require.cache[key];
+                prisma = new PrismaClient({
+                    datasources: {
+                        db: {
+                            url: process.env.DATABASE_URL
+                        }
                     }
                 });
+                prismaInitLog.push('✅ Prisma client initialized with direct datasource');
+                console.log('✅ Prisma client initialized with direct datasource');
+            } catch (directError) {
+                prismaInitLog.push(`⚠️ Direct initialization failed: ${directError.message}`);
+                console.log('⚠️ Direct initialization failed, trying default...');
                 
-                prismaInitLog.push('🔄 Cleared Prisma require cache');
-                
-                // Try to require fresh
-                const { PrismaClient: FreshPrismaClient } = require('@prisma/client');
-                
-                prisma = new FreshPrismaClient({
-                    log: ['query', 'info', 'warn', 'error'],
-                });
-                prismaInitLog.push('✅ Prisma client initialized successfully (fresh require)');
-                console.log('✅ Prisma client initialized successfully (fresh require)');
-            } catch (directInitError) {
-                prismaInitLog.push(`⚠️ Fresh initialization failed: ${directInitError.message}`);
-                console.log('⚠️ Fresh initialization failed, trying alternative...');
-                
-                // Try with minimal options
+                // Try default initialization
                 try {
                     prisma = new PrismaClient();
-                    prismaInitLog.push('✅ Prisma client initialized successfully (minimal config)');
-                    console.log('✅ Prisma client initialized successfully (minimal config)');
-                } catch (minimalError) {
-                    prismaInitLog.push(`⚠️ Minimal initialization failed: ${minimalError.message}`);
-                    console.log('⚠️ Minimal initialization failed');
+                    prismaInitLog.push('✅ Prisma client initialized with default config');
+                    console.log('✅ Prisma client initialized with default config');
+                } catch (defaultError) {
+                    prismaInitLog.push(`❌ Default initialization failed: ${defaultError.message}`);
+                    console.log('❌ Default initialization failed');
                     
-                    // Skip runtime generation in production - rely on pre-generated client
+                    // Log more details for debugging
+                    prismaInitLog.push(`🔍 Error details: ${JSON.stringify(defaultError, null, 2)}`);
+                    console.log('🔍 Error details:', defaultError);
+                    
+                    // Skip complex initialization in production
                     if (process.env.NODE_ENV === 'production') {
-                        prismaInitLog.push('🚫 Skipping runtime generation in production - using pre-generated client');
-                        console.log('🚫 Skipping runtime generation in production');
-                        throw minimalError;
+                        prismaInitLog.push('🚫 Production mode - unable to initialize Prisma');
+                        console.log('🚫 Production mode - unable to initialize Prisma');
+                        throw defaultError;
                     }
                     
                     // Only try generation in development if direct initialization fails
