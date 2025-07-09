@@ -1060,17 +1060,32 @@ app.get('/api/test-ernest', async (req, res) => {
         // Test database authentication if Prisma is available
         if (prisma) {
             try {
+                console.log('🔍 Testing database connectivity...');
+                
+                // First, test basic database connectivity
+                const totalUsers = await prisma.$queryRaw`SELECT COUNT(*) as total FROM USERS`;
+                console.log('🔍 Total users in database:', totalUsers[0].total);
+                result.totalUsers = totalUsers[0].total;
+                
+                // Get first 5 users to see what data looks like
+                const sampleUsers = await prisma.$queryRaw`SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME FROM USERS ORDER BY USER_ID`;
+                console.log('🔍 Sample users from database:');
+                sampleUsers.forEach(u => console.log(`  - ID: ${u.USER_ID}, Email: ${JSON.stringify(u.EMAIL)}, Name: ${u.FIRST_NAME} ${u.LAST_NAME}`));
+                result.sampleUsers = sampleUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}` }));
+                
                 console.log('🔍 Checking Ernest in database...');
                 
                 // First, let's see ALL users with "ernest" in their email to debug
                 const allErnestUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL LIKE '%ernest%'`;
                 console.log('🔍 All users with "ernest" in email:', allErnestUsers.length);
                 allErnestUsers.forEach(u => console.log('  - Email:', JSON.stringify(u.EMAIL), 'Length:', u.EMAIL.length));
+                result.ernestUsers = allErnestUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}` }));
                 
                 // Also check for shieldlytics domain
                 const shieldUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL LIKE '%shieldlytics%'`;
                 console.log('🔍 All users with "shieldlytics" in email:', shieldUsers.length);
                 shieldUsers.forEach(u => console.log('  - Email:', JSON.stringify(u.EMAIL), 'Length:', u.EMAIL.length));
+                result.shieldUsers = shieldUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}` }));
                 
                 // Use raw SQL to bypass Prisma schema issues - only select columns that definitely exist
                 // Use case-insensitive search and trim whitespace
