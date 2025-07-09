@@ -1148,34 +1148,34 @@ app.get('/api/test-ernest', async (req, res) => {
             try {
                 console.log('🔍 Testing database connectivity...');
                 
-                // First, test basic database connectivity
-                const totalUsers = await prisma.$queryRaw`SELECT COUNT(*) as total FROM USERS`;
-                console.log('🔍 Total users in database:', totalUsers[0].total);
+                // First, test basic database connectivity - use GUARDIAN schema
+                const totalUsers = await prisma.$queryRaw`SELECT COUNT(*) as total FROM GUARDIAN.USERS`;
+                console.log('🔍 Total users in GUARDIAN schema:', totalUsers[0].total);
                 result.totalUsers = totalUsers[0].total;
                 
                 // Get first 5 users to see what data looks like
-                const sampleUsers = await prisma.$queryRaw`SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS ORDER BY USER_ID`;
-                console.log('🔍 Sample users from database:');
+                const sampleUsers = await prisma.$queryRaw`SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM GUARDIAN.USERS ORDER BY USER_ID`;
+                console.log('🔍 Sample users from GUARDIAN schema:');
                 sampleUsers.forEach(u => console.log(`  - ID: ${u.USER_ID}, Email: ${JSON.stringify(u.EMAIL)}, Name: ${u.FIRST_NAME} ${u.LAST_NAME}, HasPassword: ${!!u.PASSWORD_HASH}, Status: ${u.STATUS}`));
                 result.sampleUsers = sampleUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}`, hasPassword: !!u.PASSWORD_HASH, status: u.STATUS }));
                 
-                console.log('🔍 Checking Ernest in database...');
+                console.log('🔍 Checking Ernest in GUARDIAN schema...');
                 
                 // First, let's see ALL users with "ernest" in their email to debug
-                const allErnestUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL LIKE '%ernest%'`;
+                const allErnestUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM GUARDIAN.USERS WHERE EMAIL LIKE '%ernest%'`;
                 console.log('🔍 All users with "ernest" in email:', allErnestUsers.length);
                 allErnestUsers.forEach(u => console.log('  - Email:', JSON.stringify(u.EMAIL), 'Length:', u.EMAIL.length));
                 result.ernestUsers = allErnestUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}` }));
                 
                 // Also check for shieldlytics domain
-                const shieldUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL LIKE '%shieldlytics%'`;
+                const shieldUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM GUARDIAN.USERS WHERE EMAIL LIKE '%shieldlytics%'`;
                 console.log('🔍 All users with "shieldlytics" in email:', shieldUsers.length);
                 shieldUsers.forEach(u => console.log('  - Email:', JSON.stringify(u.EMAIL), 'Length:', u.EMAIL.length));
                 result.shieldUsers = shieldUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}` }));
                 
                 // Use raw SQL to bypass Prisma schema issues - only select columns that definitely exist
-                // Use case-insensitive search and trim whitespace
-                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))`;
+                // Use case-insensitive search and trim whitespace - query GUARDIAN schema
+                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM GUARDIAN.USERS WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))`;
                 const user = users.length > 0 ? users[0] : null;
                 
                 // Debug: show what we're searching for vs what we found
@@ -1193,9 +1193,9 @@ app.get('/api/test-ernest', async (req, res) => {
                         hasPasswordHash: !!user.PASSWORD_HASH
                     };
                     
-                    // Check user roles using raw SQL
+                    // Check user roles using raw SQL - use GUARDIAN schema
                     try {
-                        const userRoles = await prisma.$queryRaw`SELECT ROLE_ID FROM USER_ROLES WHERE USER_ID = ${user.USER_ID}`;
+                        const userRoles = await prisma.$queryRaw`SELECT ROLE_ID FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID}`;
                         result.userRoles = userRoles.map(ur => ur.ROLE_ID);
                     } catch (roleError) {
                         console.log('Role query error:', roleError.message);
