@@ -30,9 +30,9 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying azure-server.js to deployment root"
-    cp azure-server.js deployment/server.js
-  displayName: 'Copy azure-server.js to deployment'
+    echo "Copying azure-server.cjs to deployment root"
+    cp azure-server.cjs deployment/server.js
+  displayName: 'Copy azure-server.cjs to deployment'
 
 - script: |
     echo "Copying deployment-package.json to deployment/package.json"
