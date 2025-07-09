@@ -1062,8 +1062,13 @@ app.get('/api/test-ernest', async (req, res) => {
             try {
                 console.log('🔍 Checking Ernest in database...');
                 // Use raw SQL to bypass Prisma schema issues - only select columns that definitely exist
-                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL = ${email}`;
+                // Use case-insensitive search and trim whitespace
+                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))`;
                 const user = users.length > 0 ? users[0] : null;
+                
+                // Debug: show what we're searching for vs what we found
+                console.log('🔍 Searching for email:', email);
+                console.log('🔍 Found users:', users.length);
                 
                 result.userFound = !!user;
                 if (user) {
