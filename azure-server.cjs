@@ -289,16 +289,12 @@ const authenticateUser = async (email, password) => {
         // Try database authentication first if Prisma is available
         if (prisma) {
             try {
-                const user = await prisma.uSERS.findFirst({
-                    where: { EMAIL: email }
-                });
+                // Use raw SQL to query GUARDIAN schema
+                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM GUARDIAN.USERS WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))`;
+                const user = users.length > 0 ? users[0] : null;
 
                 if (!user) {
                     return { success: false, message: 'User not found with this email address' };
-                }
-
-                if (!user.EMAIL_VALIDATED) {
-                    return { success: false, message: 'Email not verified. Please verify your email before logging in' };
                 }
 
                 if (user.STATUS !== 'A') {
@@ -314,10 +310,8 @@ const authenticateUser = async (email, password) => {
                     return { success: false, message: 'Invalid password. Please try again' };
                 }
 
-                // Get user roles
-                const userRoles = await prisma.uSER_ROLES.findMany({
-                    where: { USER_ID: user.USER_ID }
-                });
+                // Get user roles using raw SQL
+                const userRoles = await prisma.$queryRaw`SELECT ROLE_ID FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID}`;
                 const roleIds = userRoles.map(ur => ur.ROLE_ID);
 
                 return {
