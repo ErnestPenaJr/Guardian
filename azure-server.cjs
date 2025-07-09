@@ -1061,13 +1061,24 @@ app.get('/api/test-ernest', async (req, res) => {
         if (prisma) {
             try {
                 console.log('🔍 Checking Ernest in database...');
+                
+                // First, let's see ALL users with "ernest" in their email to debug
+                const allErnestUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL LIKE '%ernest%'`;
+                console.log('🔍 All users with "ernest" in email:', allErnestUsers.length);
+                allErnestUsers.forEach(u => console.log('  - Email:', JSON.stringify(u.EMAIL), 'Length:', u.EMAIL.length));
+                
+                // Also check for shieldlytics domain
+                const shieldUsers = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE EMAIL LIKE '%shieldlytics%'`;
+                console.log('🔍 All users with "shieldlytics" in email:', shieldUsers.length);
+                shieldUsers.forEach(u => console.log('  - Email:', JSON.stringify(u.EMAIL), 'Length:', u.EMAIL.length));
+                
                 // Use raw SQL to bypass Prisma schema issues - only select columns that definitely exist
                 // Use case-insensitive search and trim whitespace
                 const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))`;
                 const user = users.length > 0 ? users[0] : null;
                 
                 // Debug: show what we're searching for vs what we found
-                console.log('🔍 Searching for email:', email);
+                console.log('🔍 Searching for email:', JSON.stringify(email), 'Length:', email.length);
                 console.log('🔍 Found users:', users.length);
                 
                 result.userFound = !!user;
