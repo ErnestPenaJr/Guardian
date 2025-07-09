@@ -1045,8 +1045,8 @@ app.get('/api/test-users', (req, res) => {
 // Test specific user credentials
 app.get('/api/test-ernest', async (req, res) => {
     try {
-        const email = 'ernest@shieldlytics.com';
-        const password = 'MDA268RedDragon$';
+        const email = 'test@example.com';  // Use existing user instead
+        const password = 'password123';     // We'll need to check what password this user has
         
         console.log('🔍 Testing Ernest credentials...');
         
@@ -1068,10 +1068,10 @@ app.get('/api/test-ernest', async (req, res) => {
                 result.totalUsers = totalUsers[0].total;
                 
                 // Get first 5 users to see what data looks like
-                const sampleUsers = await prisma.$queryRaw`SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME FROM USERS ORDER BY USER_ID`;
+                const sampleUsers = await prisma.$queryRaw`SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS FROM USERS ORDER BY USER_ID`;
                 console.log('🔍 Sample users from database:');
-                sampleUsers.forEach(u => console.log(`  - ID: ${u.USER_ID}, Email: ${JSON.stringify(u.EMAIL)}, Name: ${u.FIRST_NAME} ${u.LAST_NAME}`));
-                result.sampleUsers = sampleUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}` }));
+                sampleUsers.forEach(u => console.log(`  - ID: ${u.USER_ID}, Email: ${JSON.stringify(u.EMAIL)}, Name: ${u.FIRST_NAME} ${u.LAST_NAME}, HasPassword: ${!!u.PASSWORD_HASH}, Status: ${u.STATUS}`));
+                result.sampleUsers = sampleUsers.map(u => ({ id: u.USER_ID, email: u.EMAIL, name: `${u.FIRST_NAME} ${u.LAST_NAME}`, hasPassword: !!u.PASSWORD_HASH, status: u.STATUS }));
                 
                 console.log('🔍 Checking Ernest in database...');
                 
