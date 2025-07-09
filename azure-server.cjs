@@ -93,9 +93,16 @@ const initializePrisma = async () => {
                     console.log('✅ Prisma client initialized successfully (minimal config)');
                 } catch (minimalError) {
                     prismaInitLog.push(`⚠️ Minimal initialization failed: ${minimalError.message}`);
-                    console.log('⚠️ Minimal initialization failed, attempting generation...');
+                    console.log('⚠️ Minimal initialization failed');
                     
-                    // Only try generation if direct initialization fails
+                    // Skip runtime generation in production - rely on pre-generated client
+                    if (process.env.NODE_ENV === 'production') {
+                        prismaInitLog.push('🚫 Skipping runtime generation in production - using pre-generated client');
+                        console.log('🚫 Skipping runtime generation in production');
+                        throw minimalError;
+                    }
+                    
+                    // Only try generation in development if direct initialization fails
                     try {
                     const { execSync } = require('child_process');
                     
