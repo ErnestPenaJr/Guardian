@@ -7,6 +7,13 @@ console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NOT SET'}`);
 console.log(`DATABASE_URL source: ${process.env.DATABASE_URL ? 'environment' : 'missing'}`);
 
+// Fallback: Set DATABASE_URL if not found in environment
+if (!process.env.DATABASE_URL) {
+    console.log('⚠️ DATABASE_URL not found in environment, setting fallback value...');
+    process.env.DATABASE_URL = 'sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN@guardian-dev-db;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false';
+    console.log('✅ DATABASE_URL set from fallback configuration');
+}
+
 // Check if .env file exists and manually load it
 const fs = require('fs');
 const path = require('path');
