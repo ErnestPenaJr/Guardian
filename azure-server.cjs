@@ -4,9 +4,18 @@ console.log('===== GUARDIAN SERVER STARTING =====');
 console.log(`Node version: ${process.version}`);
 console.log(`Current directory: ${process.cwd()}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NOT SET'}`);
+console.log(`DATABASE_URL source: ${process.env.DATABASE_URL ? 'environment' : 'missing'}`);
 
+// Check if .env file exists
 const fs = require('fs');
 const path = require('path');
+const envPath = path.join(__dirname, '.env');
+console.log(`Looking for .env file at: ${envPath}`);
+console.log(`Env file exists: ${fs.existsSync(envPath)}`);
+if (fs.existsSync(envPath)) {
+    console.log(`Env file size: ${fs.statSync(envPath).size} bytes`);
+}
 
 // Import required modules
 let express, cors, bcrypt, jwt, passport, sql;
