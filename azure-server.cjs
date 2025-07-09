@@ -1073,6 +1073,54 @@ app.get('/api/test-users', (req, res) => {
     });
 });
 
+// Debug endpoint to show environment and file status
+app.get('/api/debug-env', async (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        
+        const debugInfo = {
+            timestamp: new Date().toISOString(),
+            currentDirectory: process.cwd(),
+            nodeVersion: process.version,
+            platform: process.platform,
+            environment: process.env.NODE_ENV || 'development',
+            databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+            databaseUrlPreview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NOT SET'
+        };
+        
+        // Check for .env file
+        const envPath = path.join(__dirname, '.env');
+        debugInfo.envFilePath = envPath;
+        debugInfo.envFileExists = fs.existsSync(envPath);
+        
+        if (fs.existsSync(envPath)) {
+            try {
+                const envContent = fs.readFileSync(envPath, 'utf8');
+                debugInfo.envFileSize = envContent.length;
+                debugInfo.envFilePreview = envContent.substring(0, 200);
+                debugInfo.envFileLines = envContent.split('\n').length;
+            } catch (err) {
+                debugInfo.envFileError = err.message;
+            }
+        }
+        
+        // List directory contents
+        try {
+            debugInfo.directoryContents = fs.readdirSync(__dirname);
+        } catch (err) {
+            debugInfo.directoryError = err.message;
+        }
+        
+        res.json(debugInfo);
+    } catch (error) {
+        res.status(500).json({
+            error: 'Debug endpoint failed',
+            message: error.message
+        });
+    }
+});
+
 // Test specific user credentials
 app.get('/api/test-ernest', async (req, res) => {
     try {
