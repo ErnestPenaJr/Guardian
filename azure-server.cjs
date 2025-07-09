@@ -1054,8 +1054,8 @@ app.get('/api/test-users', (req, res) => {
 // Test specific user credentials
 app.get('/api/test-ernest', async (req, res) => {
     try {
-        const email = 'test@example.com';  // Use existing user instead
-        const password = 'password123';     // We'll need to check what password this user has
+        const email = 'ernest@shieldlytics.com';
+        const password = 'MDA268RedDragon$';
         
         console.log('🔍 Testing Ernest credentials...');
         
