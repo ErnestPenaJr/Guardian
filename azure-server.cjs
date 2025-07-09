@@ -1061,9 +1061,9 @@ app.get('/api/test-ernest', async (req, res) => {
         if (prisma) {
             try {
                 console.log('🔍 Checking Ernest in database...');
-                const user = await prisma.uSERS.findFirst({
-                    where: { EMAIL: email }
-                });
+                // Use raw SQL to bypass Prisma schema issues
+                const users = await prisma.$queryRaw`SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, EMAIL_VALIDATED, STATUS, COMPANY_ID FROM USERS WHERE EMAIL = ${email}`;
+                const user = users.length > 0 ? users[0] : null;
                 
                 result.userFound = !!user;
                 if (user) {
@@ -1078,11 +1078,14 @@ app.get('/api/test-ernest', async (req, res) => {
                         companyId: user.COMPANY_ID
                     };
                     
-                    // Check user roles
-                    const userRoles = await prisma.uSER_ROLES.findMany({
-                        where: { USER_ID: user.USER_ID, STATUS: 'P' }
-                    });
-                    result.userRoles = userRoles.map(ur => ur.ROLE_ID);
+                    // Check user roles using raw SQL
+                    try {
+                        const userRoles = await prisma.$queryRaw`SELECT ROLE_ID FROM USER_ROLES WHERE USER_ID = ${user.USER_ID}`;
+                        result.userRoles = userRoles.map(ur => ur.ROLE_ID);
+                    } catch (roleError) {
+                        console.log('Role query error:', roleError.message);
+                        result.userRoles = [];
+                    }
                     
                     // Test password
                     if (user.PASSWORD_HASH) {
