@@ -7,7 +7,7 @@ console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NOT SET'}`);
 console.log(`DATABASE_URL source: ${process.env.DATABASE_URL ? 'environment' : 'missing'}`);
 
-// Check if .env file exists
+// Check if .env file exists and manually load it
 const fs = require('fs');
 const path = require('path');
 const envPath = path.join(__dirname, '.env');
@@ -15,6 +15,28 @@ console.log(`Looking for .env file at: ${envPath}`);
 console.log(`Env file exists: ${fs.existsSync(envPath)}`);
 if (fs.existsSync(envPath)) {
     console.log(`Env file size: ${fs.statSync(envPath).size} bytes`);
+    
+    // Manually load .env file since Azure might not be loading it automatically
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        console.log('Env file content preview (first 100 chars):');
+        console.log(envContent.substring(0, 100));
+        
+        // Parse and set environment variables manually
+        const lines = envContent.split('\n');
+        for (const line of lines) {
+            if (line.trim() && !line.startsWith('#')) {
+                const [key, ...valueParts] = line.split('=');
+                if (key && valueParts.length > 0) {
+                    const value = valueParts.join('=').replace(/^"/, '').replace(/"$/, '');
+                    process.env[key.trim()] = value;
+                    console.log(`Set environment variable: ${key.trim()} = ${value.substring(0, 50)}...`);
+                }
+            }
+        }
+    } catch (envError) {
+        console.error('Error reading .env file:', envError);
+    }
 }
 
 // Import required modules
