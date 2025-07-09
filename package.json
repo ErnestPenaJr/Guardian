@@ -3,9 +3,9 @@
   "private": true,
   "version": "2.5.0",
   "type": "module",
-  "main": "azure-server.js",
+  "main": "dist-server/index.js",
   "scripts": {
-    "start": "node azure-server.js",
+    "start": "node azure-server.cjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
