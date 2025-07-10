@@ -30,8 +30,8 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying fallback server with dependency checking"
-    cp simple-fallback-server.cjs deployment/server.js
+    echo "Copying working simple login server"
+    cp simple-login-server.cjs deployment/server.js
     echo "Simple login server copied to deployment"
     ls -la deployment/
   displayName: 'Copy simple login server to deployment'
