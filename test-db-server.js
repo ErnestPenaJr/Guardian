@@ -1,11 +1,43 @@
 // Test database connection server
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 console.log('=== TEST DB SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+
+// Check if .env file exists and manually load it (Azure compatibility)
+const envPath = path.join(__dirname, '.env');
+console.log(`Looking for .env file at: ${envPath}`);
+console.log(`Env file exists: ${fs.existsSync(envPath)}`);
+
+if (fs.existsSync(envPath)) {
+    console.log(`Env file size: ${fs.statSync(envPath).size} bytes`);
+    
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        console.log('Env file content preview (first 100 chars):');
+        console.log(envContent.substring(0, 100));
+        
+        // Parse and set environment variables manually
+        const lines = envContent.split('\n');
+        for (const line of lines) {
+            if (line.trim() && !line.startsWith('#')) {
+                const [key, ...valueParts] = line.split('=');
+                if (key && valueParts.length > 0) {
+                    const value = valueParts.join('=').replace(/^"/, '').replace(/"$/, '');
+                    process.env[key.trim()] = value;
+                    console.log(`Set environment variable: ${key.trim()} = ${value.substring(0, 50)}...`);
+                }
+            }
+        }
+        console.log(`DATABASE_URL after manual load: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+    } catch (envError) {
+        console.error('Error reading .env file:', envError);
+    }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
