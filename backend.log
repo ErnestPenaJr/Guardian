@@ -35,3 +35,244 @@ Executing query:
         ORDER BY r.CREATE_DATE DESC
       
 Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+[USERS] Fetching users for company ID: 14
+[USERS] Querying USERS table for company ID: 14
+[USERS] Found 3 active users for company ID: 14
+[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
+[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
+[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
+[USERS] Fetching users for company ID: 14
+[USERS] Querying USERS table for company ID: 14
+[USERS] Found 3 active users for company ID: 14
+[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
+[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
+[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+[USERS] Fetching users for company ID: 14
+[USERS] Querying USERS table for company ID: 14
+[USERS] Found 3 active users for company ID: 14
+[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
+[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
+[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
+[USERS] Fetching users for company ID: 14
+[USERS] Querying USERS table for company ID: 14
+[USERS] Found 3 active users for company ID: 14
+[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
+[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
+[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
+[USERS] Fetching users for company ID: 14
+[USERS] Querying USERS table for company ID: 14
+[USERS] Found 3 active users for company ID: 14
+[ROLES] Fetching all roles
+[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
+[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
+[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
+[USERS] Fetching users for company ID: 14
+[USERS] Querying USERS table for company ID: 14
+[USERS] Found 3 active users for company ID: 14
+[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
+[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
+[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
+[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
+[ROLES] Found 5 active roles
+[ROLES] Fetching all roles
+[ROLES] Found 5 active roles
+[ROLES] Fetching all roles
+[ROLES] Found 5 active roles
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+[ROLES] Fetching all roles
+[ROLES] Found 5 active roles
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+[ROLES] Fetching all roles
+[ROLES] Found 5 active roles
+[LOGIN] Login attempt: { email: 'ernest@shieldlytics.com' }
+[LOGIN] Looking up user in database...
+[LOGIN] User found: {
+  id: 1036,
+  email: 'ernest@shieldlytics.com',
+  hasPassword: true,
+  status: 'A',
+  emailValidated: true
+}
+[LOGIN] Comparing password...
+[LOGIN] Authentication successful, fetching user roles...
+[LOGIN] User role IDs: [ 6 ]
+[LOGIN] Found roles: [ 'JAFAR' ]
+[LOGIN] Fetching company info for ID: 14
+[LOGIN] Found company: DEV-TEAM
+[LOGIN] Generating token for user: {
+  id: 1036,
+  email: 'ernest@shieldlytics.com',
+  role: 'jafar',
+  companyId: 14
+}
+[LOGIN] Token generated successfully
+[LOGIN] Login successful, sending response
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details
+Executing query: 
+        SELECT  
+          r.*,
+          requestor.FIRST_NAME as requestor_first_name,
+          requestor.LAST_NAME as requestor_last_name,
+          assigned.FIRST_NAME as assigned_first_name,
+          assigned.LAST_NAME as assigned_last_name
+        FROM GUARDIAN.REQUESTS r
+        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+        WHERE r.STATUS <> 'D' 
+        ORDER BY r.CREATE_DATE DESC
+      
+Returning 26 requests with user details

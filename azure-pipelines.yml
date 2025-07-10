@@ -41,16 +41,21 @@ steps:
   displayName: 'Copy deployment package.json'
 
 - script: |
-    echo "Copying .env file to deployment"
-    if [ -f ".env" ]; then
+    echo "Copying production .env file to deployment"
+    if [ -f ".env.production" ]; then
+      cp .env.production deployment/.env
+      echo "Production .env file copied to deployment as .env"
+      echo "First few lines of production .env file:"
+      head -3 deployment/.env
+    elif [ -f ".env" ]; then
       cp .env deployment/
-      echo ".env file copied to deployment"
+      echo "Development .env file copied to deployment (fallback)"
       echo "First few lines of .env file:"
       head -3 deployment/.env
     else
       echo "No .env file found - this may cause database connection issues"
     fi
-  displayName: 'Copy .env file'
+  displayName: 'Copy production .env file'
 
 - script: |
     echo "Copying Prisma schema and related files"
