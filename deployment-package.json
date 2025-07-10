@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Guardian MVP Server",
   "main": "server.js",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "postinstall": "prisma generate"
