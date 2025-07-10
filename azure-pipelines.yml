@@ -30,11 +30,11 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying diagnostic server to get site back online"
-    cp diagnostic-server.js deployment/server.js
-    echo "Diagnostic server copied to deployment"
+    echo "Copying simple login server with working endpoints"
+    cp simple-login-server.js deployment/server.js
+    echo "Simple login server copied to deployment"
     ls -la deployment/
-  displayName: 'Copy diagnostic server to deployment'
+  displayName: 'Copy simple login server to deployment'
 
 - script: |
     echo "Copying diagnostic-package.json to deployment/package.json"
