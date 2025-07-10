@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { PermissionType, ResourceType, hasPermission } from '../models/permissions';
+import { PermissionType, ResourceType, hasPermission } from '../models/permissions.js';
 
 interface AuthUser {
   id: number;

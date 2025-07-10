@@ -1,4 +1,4 @@
-import { hasPermission } from '../models/permissions';
+import { hasPermission } from '../models/permissions.js';
 // Middleware to check if a user has a specific permission
 export function checkPermission(permissionType, resourceType) {
     return (req, res, next) => {

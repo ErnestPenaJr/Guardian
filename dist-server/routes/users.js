@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../middleware/isAdmin';
+import { isAdmin } from '../middleware/isAdmin.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 // Get all users for the current company

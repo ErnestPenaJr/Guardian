@@ -1,5 +1,5 @@
 import express from 'express';
-import { PERMISSIONS } from '../models/permissions';
+import { PERMISSIONS } from '../models/permissions.js';
 const router = express.Router();
 // Get all permissions
 router.get('/', async (req, res) => {

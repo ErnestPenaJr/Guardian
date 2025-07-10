@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { isProcessor, filterToProcessorGroup } from '../middleware/isProcessor';
+import { isProcessor, filterToProcessorGroup } from '../middleware/isProcessor.js';
 import { z } from 'zod';
 const router = express.Router();
 const prisma = new PrismaClient();

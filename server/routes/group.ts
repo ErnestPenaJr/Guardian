@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { isManager, filterToManagerGroup } from '../middleware/isManager';
+import { isManager, filterToManagerGroup } from '../middleware/isManager.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();

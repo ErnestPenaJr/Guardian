@@ -1,6 +1,6 @@
 import express from 'express';
-import { isAdmin } from '../middleware/isAdmin';
-import { PERMISSIONS } from '../models/permissions';
+import { isAdmin } from '../middleware/isAdmin.js';
+import { PERMISSIONS } from '../models/permissions.js';
 
 const router = express.Router();
 
