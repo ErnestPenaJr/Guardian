@@ -30,11 +30,11 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying Azure-compatible server to deployment"
-    cp server-azure.cjs deployment/server.js
-    echo "Azure server copied to deployment"
+    echo "Copying pure CommonJS server to deployment"
+    cp server-pure-cjs.js deployment/server.js
+    echo "Pure CommonJS server copied to deployment"
     ls -la deployment/
-  displayName: 'Copy Azure-compatible server to deployment'
+  displayName: 'Copy pure CommonJS server to deployment'
 
 - script: |
     echo "Copying deployment-package.json to deployment/package.json"
