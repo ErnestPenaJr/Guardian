@@ -30,11 +30,11 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying debug environment server for troubleshooting"
-    cp debug-env-server.js deployment/server.js
-    echo "Debug env server copied to deployment"
+    echo "Copying fix environment server with manual .env loading"
+    cp fix-env-server.js deployment/server.js
+    echo "Fix env server copied to deployment"
     ls -la deployment/
-  displayName: 'Copy debug environment server to deployment'
+  displayName: 'Copy fix environment server to deployment'
 
 - script: |
     echo "Copying deployment-package.json to deployment/package.json"
