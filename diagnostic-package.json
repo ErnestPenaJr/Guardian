@@ -1,0 +1,16 @@
+{
+  "name": "guardian-diagnostic",
+  "version": "1.0.0",
+  "description": "Guardian Diagnostic Server",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
