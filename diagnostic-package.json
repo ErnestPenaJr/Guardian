@@ -1,14 +1,17 @@
 {
-  "name": "guardian-diagnostic",
+  "name": "guardian-server",
   "version": "1.0.0",
-  "description": "Guardian Diagnostic Server",
+  "description": "Guardian MVP Server with Database",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
   },
   "engines": {
     "node": ">=20.0.0"
