@@ -32,8 +32,11 @@ steps:
 - script: |
     echo "Building and copying TypeScript server to deployment"
     npm run build-server
-    cp dist-server/index.js deployment/server.js
-    echo "Server file copied to deployment"
+    echo "Copying entire dist-server directory to deployment"
+    cp -r dist-server/* deployment/
+    mv deployment/index.js deployment/server.js
+    echo "Server and supporting files copied to deployment"
+    ls -la deployment/
   displayName: 'Build and copy TypeScript server to deployment'
 
 - script: |
