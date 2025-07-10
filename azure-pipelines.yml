@@ -30,17 +30,17 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying diagnostic server for troubleshooting"
-    cp diagnostic-server.js deployment/server.js
-    echo "Diagnostic server copied to deployment"
+    echo "Copying test database server for troubleshooting"
+    cp test-db-server.js deployment/server.js
+    echo "Test DB server copied to deployment"
     ls -la deployment/
-  displayName: 'Copy diagnostic server to deployment'
+  displayName: 'Copy test database server to deployment'
 
 - script: |
-    echo "Copying diagnostic-package.json to deployment/package.json"
-    cp diagnostic-package.json deployment/package.json
+    echo "Copying deployment-package.json to deployment/package.json"
+    cp deployment-package.json deployment/package.json
     cat deployment/package.json
-  displayName: 'Copy diagnostic package.json'
+  displayName: 'Copy deployment package.json'
 
 - script: |
     echo "Copying production .env file to deployment"
