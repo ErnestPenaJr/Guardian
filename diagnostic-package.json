@@ -1,14 +1,19 @@
 {
   "name": "guardian-server",
   "version": "1.0.0",
-  "description": "Guardian MVP Server",
+  "description": "Guardian MVP Server with Real Database",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.22.0"
   },
   "engines": {
     "node": ">=20.0.0"

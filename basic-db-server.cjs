@@ -52,9 +52,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Real login endpoint - hardcoded for YOUR credentials only
+// Real login endpoint - authenticate against REAL database
 app.post('/api/login', async (req, res) => {
-  console.log('[LOGIN] Login attempt:', { email: req.body.email });
+  console.log('[LOGIN] REAL database authentication for:', { email: req.body.email });
   
   const { email, password } = req.body;
   
@@ -64,37 +64,111 @@ app.post('/api/login', async (req, res) => {
     });
   }
   
-  // Only allow YOUR real credentials
-  if (email === 'ernest@shieldlytics.com' && password === 'MDA268RedDragon$') {
-    console.log('[LOGIN] ✅ Ernest authenticated');
-    
-    // Return with your real user data (not mock)
-    res.json({
-      token: 'real-jwt-token-ernest-' + Date.now(),
-      user: {
-        id: 1036,
-        email: 'ernest@shieldlytics.com',
-        firstName: 'Ernest',
-        lastName: 'Pena', 
-        roles: [{ id: 6, name: 'JAFAR', displayName: 'JAFAR Developer' }],
-        company: { id: 14, name: 'DEV-TEAM' },
-        companyId: 14,
-        companyName: 'DEV-TEAM'
-      }
+  if (!process.env.DATABASE_URL) {
+    return res.status(503).json({
+      error: 'Database not configured'
     });
-    return;
   }
   
-  // Reject any other login attempts
-  console.log('[LOGIN] ❌ Unauthorized login attempt');
-  res.status(401).json({
-    error: 'Invalid email or password'
-  });
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const bcrypt = require('bcryptjs');
+    const jwt = require('jsonwebtoken');
+    const prisma = new PrismaClient();
+    
+    console.log('[LOGIN] Looking up user in REAL database...');
+    
+    // Look up user in REAL database
+    const user = await prisma.uSERS.findFirst({
+      where: { EMAIL: email }
+    });
+    
+    if (!user) {
+      console.log('[LOGIN] ❌ User not found in database');
+      return res.status(401).json({
+        error: 'Invalid email or password'
+      });
+    }
+    
+    console.log('[LOGIN] ✅ User found, checking password...');
+    
+    // Check REAL password hash
+    const validPassword = await bcrypt.compare(password, user.PASSWORD_HASH);
+    if (!validPassword) {
+      console.log('[LOGIN] ❌ Invalid password');
+      return res.status(401).json({
+        error: 'Invalid email or password'
+      });
+    }
+    
+    console.log('[LOGIN] ✅ Password valid, getting user roles...');
+    
+    // Get REAL user roles from database
+    const userRoles = await prisma.uSER_ROLES.findMany({
+      where: { USER_ID: user.USER_ID },
+      include: {
+        ROLES: true
+      }
+    });
+    
+    // Get REAL company info
+    let company = null;
+    if (user.COMPANY_ID) {
+      const companyData = await prisma.cOMPANY.findUnique({
+        where: { COMPANY_ID: user.COMPANY_ID }
+      });
+      if (companyData) {
+        company = {
+          id: companyData.COMPANY_ID,
+          name: companyData.NAME || ''
+        };
+      }
+    }
+    
+    // Generate REAL JWT token
+    const JWT_SECRET = process.env.JWT_SECRET || 'guardian-jwt-secret-key';
+    const token = jwt.sign({
+      id: user.USER_ID,
+      email: user.EMAIL,
+      firstName: user.FIRST_NAME,
+      lastName: user.LAST_NAME,
+      companyId: user.COMPANY_ID
+    }, JWT_SECRET, { expiresIn: '24h' });
+    
+    console.log('[LOGIN] ✅ REAL database authentication successful!');
+    
+    res.json({
+      token: token,
+      user: {
+        id: user.USER_ID,
+        email: user.EMAIL,
+        firstName: user.FIRST_NAME,
+        lastName: user.LAST_NAME,
+        roles: userRoles.map(ur => ({
+          id: ur.ROLES.ROLE_ID,
+          name: ur.ROLES.NAME,
+          displayName: ur.ROLES.DISPLAY_NAME || ur.ROLES.NAME
+        })),
+        company: company,
+        companyId: user.COMPANY_ID,
+        companyName: company?.name || null
+      }
+    });
+    
+    await prisma.$disconnect();
+    
+  } catch (error) {
+    console.error('[LOGIN] ❌ REAL database error:', error.message);
+    res.status(500).json({
+      error: 'Database authentication error',
+      details: error.message
+    });
+  }
 });
 
-// Real requests endpoint - returns empty array (no mock data)
+// Real requests endpoint - fetch REAL data from database
 app.get('/api/requests', async (req, res) => {
-  console.log('[REQUESTS] Fetching requests from database');
+  console.log('[REQUESTS] Fetching REAL requests from database');
   
   if (!process.env.DATABASE_URL) {
     return res.status(503).json({
@@ -104,13 +178,33 @@ app.get('/api/requests', async (req, res) => {
     });
   }
   
-  // For now return empty array until we can safely add Prisma
-  console.log('[REQUESTS] Database connection not implemented yet');
-  res.json({
-    success: true,
-    data: [],
-    message: 'Database connection pending - no mock data'
-  });
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    console.log('[REQUESTS] Connecting to database...');
+    const requests = await prisma.rEQUESTS.findMany({
+      orderBy: { CREATE_DATE: 'desc' }
+    });
+    
+    console.log(`[REQUESTS] ✅ Found ${requests.length} REAL requests from database`);
+    
+    res.json({
+      success: true,
+      data: requests
+    });
+    
+    await prisma.$disconnect();
+    
+  } catch (error) {
+    console.error('[REQUESTS] ❌ Database error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch requests from database',
+      details: error.message,
+      data: []
+    });
+  }
 });
 
 // For all non-API routes, serve the index.html file (for SPA routing)
