@@ -7,6 +7,7 @@ generator client {
 datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
+  schemas  = ["GUARDIAN"]
 }
 
 model ATTACHMENTS {
@@ -18,6 +19,8 @@ model ATTACHMENTS {
   UPDATE_USER_ID Int?
   CREATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__CREAT__2BFE89A6") @db.DateTime
   UPDATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__UPDAT__2CF2ADDF") @db.DateTime
+
+  @@schema("GUARDIAN")
 }
 
 model COMPANY {
@@ -27,6 +30,8 @@ model COMPANY {
   PHONE        String?        @db.NVarChar(50)
   CREATED_AT   DateTime       @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
   COMPANY_INFO COMPANY_INFO[]
+
+  @@schema("GUARDIAN")
 }
 
 model COMPANY_INFO {
@@ -41,6 +46,8 @@ model COMPANY_INFO {
   UPDATED_AT      DateTime @default(now(), map: "DF__COMPANY_I__UPDAT__1758727B") @db.DateTime
   COMPANY         COMPANY  @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_COMPANY")
   USERS           USERS    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_USERS")
+
+  @@schema("GUARDIAN")
 }
 
 model FIELD_LOOKUP_DISPLAY_TYPE {
@@ -48,6 +55,8 @@ model FIELD_LOOKUP_DISPLAY_TYPE {
   FIELD_LOOKUP_DISPLAY_TYPE_DESCRIPTION String   @db.VarChar(50)
   SORT_ORDER                            Int?
   FIELDS                                FIELDS[]
+
+  @@schema("GUARDIAN")
 }
 
 model FIELD_TYPE {
@@ -55,6 +64,8 @@ model FIELD_TYPE {
   FIELD_TYPE_DESC String   @db.VarChar(50)
   SORT_ORDER      Int?
   FIELDS          FIELDS[]
+
+  @@schema("GUARDIAN")
 }
 
 model FIELDS {
@@ -83,6 +94,8 @@ model FIELDS {
   FIELDS_LOOKUP                FIELDS_LOOKUP[]
   FORMS_INSTANCE_VALUES        FORMS_INSTANCE_VALUES[]
   FORMS_GROUPS_FIELDS          FORMS_GROUPS_FIELDS[]
+
+  @@schema("GUARDIAN")
 }
 
 model FIELDS_LOOKUP {
@@ -96,6 +109,8 @@ model FIELDS_LOOKUP {
   CREATE_DATE        DateTime @default(now(), map: "DF__FIELDS_LO__CREAT__703EA55A") @db.DateTime
   UPDATE_DATE        DateTime @default(now(), map: "DF__FIELDS_LO__UPDAT__7132C993") @db.DateTime
   FIELDS             FIELDS   @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FIELDS_LO__FIELD__7226EDCC")
+
+  @@schema("GUARDIAN")
 }
 
 model FORMS {
@@ -112,8 +127,10 @@ model FORMS {
   UPDATE_DATE      DateTime         @default(now(), map: "DF__FORMS__UPDATE_DA__6ABAD62E") @db.DateTime
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
-  ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
+  ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
   FORMS_INSTANCE   FORMS_INSTANCE[]
+
+  @@schema("GUARDIAN")
 }
 
 model FORMS_GROUPS {
@@ -129,6 +146,8 @@ model FORMS_GROUPS {
   UPDATE_DATE         DateTime              @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
   ORGANIZATIONS       ORGANIZATIONS?        @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__GROUPS__ORGANIZA__668030F6")
   FORMS_GROUPS_FIELDS FORMS_GROUPS_FIELDS[]
+
+  @@schema("GUARDIAN")
 }
 
 model FORMS_GROUPS_FIELDS {
@@ -143,6 +162,7 @@ model FORMS_GROUPS_FIELDS {
   FORMS_GROUPS   FORMS_GROUPS @relation(fields: [GROUP_ID], references: [GROUP_ID], onUpdate: NoAction, map: "FK_FORMS_GROUPS_FIELDS_FORMS_GROUPS")
 
   @@id([GROUP_ID, FIELD_ID], map: "PK_FORMS_GROUPS_FIELDS")
+  @@schema("GUARDIAN")
 }
 
 model FORMS_INSTANCE {
@@ -158,6 +178,8 @@ model FORMS_INSTANCE {
   SysEndTime            DateTime                @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_SysEnd")
   FORMS                 FORMS                   @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FORM___7908F585")
   FORMS_INSTANCE_VALUES FORMS_INSTANCE_VALUES[]
+
+  @@schema("GUARDIAN")
 }
 
 model FORMS_INSTANCE_VALUES {
@@ -173,6 +195,8 @@ model FORMS_INSTANCE_VALUES {
   SysEndTime             DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_VALUES_SysEnd")
   FIELDS                 FIELDS         @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FIELD__5555A4F4")
   FORMS_INSTANCE         FORMS_INSTANCE @relation(fields: [FORM_INSTANCE_ID], references: [FORM_INSTANCE_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FORM___546180BB")
+
+  @@schema("GUARDIAN")
 }
 
 model INVITES {
@@ -185,6 +209,8 @@ model INVITES {
   EXPIRES_AT DateTime
   USED_AT    DateTime?
   CREATED_AT DateTime  @default(dbgenerated("sysdatetime()"), map: "DF__INVITES__CREATED__2C538F61")
+
+  @@schema("GUARDIAN")
 }
 
 model MILESTONES {
@@ -196,6 +222,8 @@ model MILESTONES {
   UPDATE_USER_ID Int?
   CREATE_DATE    DateTime @default(now(), map: "DF__MILESTONE__CREAT__22751F6C") @db.DateTime
   UPDATE_DATE    DateTime @default(now(), map: "DF__MILESTONE__UPDAT__236943A5") @db.DateTime
+
+  @@schema("GUARDIAN")
 }
 
 model ORGANIZATIONS {
@@ -212,6 +240,8 @@ model ORGANIZATIONS {
   FIELDS          FIELDS[]
   FORMS           FORMS[]
   FORMS_GROUPS    FORMS_GROUPS[]
+
+  @@schema("GUARDIAN")
 }
 
 model REQUESTS {
@@ -234,6 +264,8 @@ model REQUESTS {
   // Add relationships for REQUESTOR_ID and ASSIGNED_ID
   REQUESTOR           USERS?    @relation("RequestorRequests", fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   ASSIGNED_USER       USERS?    @relation("AssignedRequests", fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("GUARDIAN")
 }
 
 model ROLES {
@@ -246,6 +278,8 @@ model ROLES {
   CREATE_DATE    DateTime? @default(now(), map: "DF__ROLES__CREATE_DA__72C60C4A") @db.DateTime
   UPDATE_DATE    DateTime? @default(now(), map: "DF__ROLES__UPDATE_DA__73BA3083") @db.DateTime
   STATUS         String    @default("P", map: "DF__ROLES__STATUS__74AE54BC") @db.Char(1)
+
+  @@schema("GUARDIAN")
 }
 
 model TASKS {
@@ -259,6 +293,8 @@ model TASKS {
   CREATE_DATE      DateTime @default(now(), map: "DF__TASKS__CREATE_DA__3D2915A8") @db.DateTime
   UPDATE_DATE      DateTime @default(now(), map: "DF__TASKS__UPDATE_DA__3E1D39E1") @db.DateTime
   TRACKINGID       String?  @db.NVarChar(4000)
+
+  @@schema("GUARDIAN")
 }
 
 model USER_ROLES {
@@ -270,6 +306,8 @@ model USER_ROLES {
   CREATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__CREAT__797309D9") @db.DateTime
   UPDATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__UPDAT__7A672E12") @db.DateTime
   STATUS         String    @default("P", map: "DF__USER_ROLE__STATU__7B5B524B") @db.Char(1)
+
+  @@schema("GUARDIAN")
 }
 
 model USERS {
@@ -299,4 +337,5 @@ model USERS {
 
   // Add aliases for common field names used in the codebase
   @@map("USERS")
+  @@schema("GUARDIAN")
 }
