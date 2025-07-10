@@ -439,8 +439,7 @@ app.post('/api/login', async (req, res) => {
         // Basic validation
         if (!email || !password) {
             return res.status(400).json({
-                success: false,
-                message: 'Email and password are required'
+                error: 'Email and password are required'
             });
         }
 
@@ -449,8 +448,7 @@ app.post('/api/login', async (req, res) => {
 
         if (!authResult.success) {
             return res.status(401).json({
-                success: false,
-                message: authResult.message || 'Authentication failed'
+                error: authResult.message || 'Invalid email or password'
             });
         }
 
@@ -460,8 +458,6 @@ app.post('/api/login', async (req, res) => {
         console.log('✅ Login successful for:', email);
 
         res.json({
-            success: true,
-            message: 'Login successful',
             token: token,
             user: {
                 id: authResult.user.id,
@@ -469,15 +465,16 @@ app.post('/api/login', async (req, res) => {
                 firstName: authResult.user.firstName,
                 lastName: authResult.user.lastName,
                 roles: authResult.user.roles,
-                role: authResult.user.role
+                company: authResult.user.company || null,
+                companyId: authResult.user.COMPANY_ID || null,
+                companyName: authResult.user.company?.name || null
             }
         });
 
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({
-            success: false,
-            message: 'Internal server error during login'
+            error: 'Server error during login'
         });
     }
 });
