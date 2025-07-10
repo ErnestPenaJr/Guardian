@@ -1314,7 +1314,7 @@ router.post('/:id/assign', async (req: Request, res: Response) => {
         }
         
         // Get the application URL from environment or use a default
-        const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:3001';
+        const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || `${req.protocol}://${req.get('host')}`;
         const requestUrl = `${appUrl}/requests/${requestId}`;
         
         const { data, error } = await resend.emails.send({

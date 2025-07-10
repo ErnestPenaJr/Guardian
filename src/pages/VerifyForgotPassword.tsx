@@ -143,7 +143,7 @@ const VerifyForgotPassword = () => {
       // Get the stored email for verification
       
       // Verify the code with the server instead of just comparing locally
-      const response = await fetch('http://localhost:3001/api/verify-reset-code', {
+      const response = await fetch('/api/verify-reset-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

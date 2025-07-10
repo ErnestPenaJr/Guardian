@@ -4,7 +4,7 @@ import axios from 'axios';
 export const VERIFICATION_CODE_EXPIRY = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // API endpoints
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = '/api';
 const VALIDATE_EMAIL_ENDPOINT = `${API_BASE_URL}/validate-email`;
 const SEND_VERIFICATION_EMAIL_ENDPOINT = `${API_BASE_URL}/send-verification-email`;
 

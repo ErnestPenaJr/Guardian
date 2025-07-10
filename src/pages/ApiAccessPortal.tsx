@@ -475,7 +475,7 @@ const ApiAccessPortal = (): JSX.Element => {
       
       // Prepare the request configuration
       // Use window.location.origin as a fallback instead of relying on process.env
-      const baseUrl = window.location.origin || 'http://localhost:3001';
+      const baseUrl = window.location.origin;
       const url = `${baseUrl}${selectedEndpoint.path}`;
       
       // Replace path parameters with values from requestParams

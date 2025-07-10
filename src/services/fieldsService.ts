@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import api from '../utils/api';
 
 // Interface for database fields
 export interface DbField {
@@ -37,7 +35,7 @@ const fieldsService = {
   // Get fields from the database
   getDbFields: async (): Promise<DbField[]> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/fields`);
+      const response = await api.get('/api/fields');
       return response.data;
     } catch (error) {
       console.error('Error fetching fields:', error);

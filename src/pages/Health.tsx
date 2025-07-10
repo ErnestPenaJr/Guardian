@@ -20,7 +20,7 @@ const Health = () => {
       setError(null);
       
       try {
-        const response = await axios.get('http://localhost:3001/health');
+        const response = await axios.get('/health');
         setHealthData(response.data);
       } catch (err) {
         console.error('Health check failed:', err);

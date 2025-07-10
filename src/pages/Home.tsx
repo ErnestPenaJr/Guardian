@@ -519,7 +519,7 @@ function Home() {
       // Make direct request to backend server
       const response = await axios({
         method: 'get',
-        url: 'http://localhost:3001/api/requests',
+        url: '/api/requests',
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',

@@ -1,25 +1,5 @@
-import axios from 'axios';
+import api from '../utils/api';
 import { FormField } from '../types/formBuilder';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-
-// Helper function to get the authentication token from localStorage
-const getAuthToken = () => {
-  const token = localStorage.getItem('token');
-  return token ? token : '';
-};
-
-// Configure axios with authentication headers
-const axiosWithAuth = () => {
-  const token = getAuthToken();
-  return axios.create({
-    baseURL: `${API_BASE_URL}/api`,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }
-  });
-};
 
 // Define types for database interactions
 export interface FieldType {
@@ -165,7 +145,7 @@ const formService = {
   // Get all field types from the database
   getFieldTypes: async (): Promise<FieldType[]> => {
     try {
-      const response = await axiosWithAuth().get('/field-types');
+      const response = await api.get('/api/field-types');
       if (response.data && Array.isArray(response.data) && response.data.length > 0) {
         return response.data;
       } else {
@@ -208,7 +188,7 @@ const formService = {
   // Get a specific form by ID
   getFormById: async (formId: number): Promise<{ form: DbForm, fields: DbField[] }> => {
     try {
-      const response = await axiosWithAuth().get(`/forms/${formId}`);
+      const response = await api.get(`/api/forms/${formId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching form ${formId}:`, error);
@@ -219,7 +199,7 @@ const formService = {
   // Get all forms
   getAllForms: async (): Promise<DbForm[]> => {
     try {
-      const response = await axiosWithAuth().get('/forms');
+      const response = await api.get('/api/forms');
       return response.data;
     } catch (error) {
       console.error('Error fetching all forms:', error);
@@ -231,7 +211,7 @@ const formService = {
   // Create a new form with fields
   createForm: async (form: DbForm, fields: DbField[]): Promise<{ form: DbForm, fields: DbField[] }> => {
     try {
-      const response = await axiosWithAuth().post('/forms', { form, fields });
+      const response = await api.post('/api/forms', { form, fields });
       return response.data;
     } catch (error) {
       console.error('Error creating form:', error);
@@ -242,7 +222,7 @@ const formService = {
   // Update an existing form with fields
   updateForm: async (formId: number, form: DbForm, fields: DbField[]): Promise<{ form: DbForm, fields: DbField[] }> => {
     try {
-      const response = await axiosWithAuth().put(`/forms/${formId}`, { form, fields });
+      const response = await api.put(`/api/forms/${formId}`, { form, fields });
       return response.data;
     } catch (error) {
       console.error(`Error updating form with ID ${formId}:`, error);
@@ -253,7 +233,7 @@ const formService = {
   // Delete a form
   deleteForm: async (formId: number): Promise<void> => {
     try {
-      await axios.delete(`/api/forms/${formId}`);
+      await api.delete(`/api/forms/${formId}`);
     } catch (error) {
       console.error(`Error deleting form with ID ${formId}:`, error);
       throw error;

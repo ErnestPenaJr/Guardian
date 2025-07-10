@@ -150,7 +150,7 @@ function ForgotPassword() {
     
     try {
       // Call backend to request password reset
-      const response = await fetch('http://localhost:3001/api/request-password-reset', {
+      const response = await fetch('/api/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

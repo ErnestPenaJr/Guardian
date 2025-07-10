@@ -1,24 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-
-// Helper function to get the authentication token from localStorage
-const getAuthToken = () => {
-  const token = localStorage.getItem('token');
-  return token ? token : '';
-};
-
-// Configure axios with authentication headers
-const axiosWithAuth = () => {
-  const token = getAuthToken();
-  return axios.create({
-    baseURL: `${API_BASE_URL}/api`,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }
-  });
-};
+import api from '../utils/api';
 
 // Define types for database interactions
 export interface DbRequest {
@@ -61,7 +41,7 @@ const requestService = {
   }): Promise<any> => {
     try {
       console.log('Using SQL endpoint to create request:', requestData);
-      const response = await axiosWithAuth().post('/requests/sql-request', requestData);
+      const response = await api.post('/api/requests/sql-request', requestData);
       return response.data;
     } catch (error) {
       console.error('Error in SQL request creation:', error);
@@ -77,7 +57,7 @@ const requestService = {
   }): Promise<any> => {
     try {
       console.log('Using simple endpoint to create request:', requestData);
-      const response = await axiosWithAuth().post('/requests/simple-request', requestData);
+      const response = await api.post('/api/requests/simple-request', requestData);
       return response.data;
     } catch (error) {
       console.error('Error in simple request creation:', error);
@@ -96,7 +76,7 @@ const requestService = {
   }): Promise<any> => {
     try {
       console.log('Using debug endpoint to create request:', requestData);
-      const response = await axiosWithAuth().post('/debug/requests', requestData);
+      const response = await api.post('/api/debug/requests', requestData);
       return response.data;
     } catch (error) {
       console.error('Error in debug request creation:', error);
@@ -114,7 +94,7 @@ const requestService = {
     userId?: number;
   }): Promise<{ request: DbRequest, formInstance: DbFormInstance }> => {
     try {
-      const response = await axiosWithAuth().post('/requests', requestData);
+      const response = await api.post('/api/requests', requestData);
       return response.data;
     } catch (error) {
       console.error('Error creating request:', error);
@@ -125,7 +105,7 @@ const requestService = {
   // Get all requests
   getAllRequests: async (): Promise<DbRequest[]> => {
     try {
-      const response = await axiosWithAuth().get('/requests');
+      const response = await api.get('/api/requests');
       return response.data;
     } catch (error) {
       console.error('Error fetching all requests:', error);
@@ -136,7 +116,7 @@ const requestService = {
   // Get a specific request by ID
   getRequestById: async (requestId: number): Promise<DbRequest> => {
     try {
-      const response = await axiosWithAuth().get(`/requests/${requestId}`);
+      const response = await api.get(`/api/requests/${requestId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching request ${requestId}:`, error);
@@ -147,7 +127,7 @@ const requestService = {
   // Update a request
   updateRequest: async (requestId: number, requestData: Partial<DbRequest>): Promise<DbRequest> => {
     try {
-      const response = await axiosWithAuth().put(`/requests/${requestId}`, requestData);
+      const response = await api.put(`/api/requests/${requestId}`, requestData);
       return response.data;
     } catch (error) {
       console.error(`Error updating request ${requestId}:`, error);
@@ -158,7 +138,7 @@ const requestService = {
   // Delete a request
   deleteRequest: async (requestId: number): Promise<void> => {
     try {
-      await axiosWithAuth().delete(`/requests/${requestId}`);
+      await api.delete(`/api/requests/${requestId}`);
     } catch (error) {
       console.error(`Error deleting request ${requestId}:`, error);
       throw error;
