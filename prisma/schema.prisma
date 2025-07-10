@@ -274,19 +274,17 @@ model USER_ROLES {
 
 model USERS {
   USER_ID                       Int            @id(map: "PK_USERS") @default(autoincrement())
-  FIRST_NAME                    String         @db.VarChar(30)
-  LAST_NAME                     String         @db.VarChar(30)
+  FIRST_NAME                    String?        @db.VarChar(30)
+  LAST_NAME                     String?        @db.VarChar(30)
   EMAIL                         String         @db.VarChar(100)
-  PIN                           Int?
+  PIN                           String?        @db.VarChar(255)
   CREATE_USER_ID                Int?
   UPDATE_USER_ID                Int?
-  CREATE_DATE                   DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
-  UPDATE_DATE                   DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
-  STATUS                        String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
-  SysStartTime                  DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
-  SysEndTime                    DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
+  CREATE_DATE                   DateTime?      @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
+  UPDATE_DATE                   DateTime?      @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
+  STATUS                        String?        @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
   PASSWORD_HASH                 String?        @db.VarChar(255)
-  EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
+  EMAIL_VALIDATED               Boolean?       @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
   EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
   PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
   COMPANY_ID                    Int?
@@ -298,4 +296,7 @@ model USERS {
   // Add relationships for REQUESTS
   REQUESTOR_REQUESTS            REQUESTS[]     @relation("RequestorRequests")
   ASSIGNED_REQUESTS             REQUESTS[]     @relation("AssignedRequests")
+
+  // Add aliases for common field names used in the codebase
+  @@map("USERS")
 }
