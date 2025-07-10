@@ -24,6 +24,42 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Mock requests endpoint
+app.get('/api/requests', (req, res) => {
+  console.log('[REQUESTS] Fetching requests');
+  
+  // Return mock requests data
+  res.json({
+    success: true,
+    data: [
+      {
+        id: 1,
+        REQUEST_NAME: 'Security Assessment Request',
+        EXTERNAL_USER: 'test@example.com',
+        SUBMITTED_DATE: '2025-07-10T00:00:00.000Z',
+        STATUS: 'New',
+        CREATE_DATE: '2025-07-10T00:00:00.000Z',
+        requestor_first_name: 'Test',
+        requestor_last_name: 'User',
+        assigned_first_name: 'Ernest',
+        assigned_last_name: 'Pena'
+      },
+      {
+        id: 2,
+        REQUEST_NAME: 'Compliance Review',
+        EXTERNAL_USER: 'user@company.com',
+        SUBMITTED_DATE: '2025-07-09T00:00:00.000Z',
+        STATUS: 'In Progress',
+        CREATE_DATE: '2025-07-09T00:00:00.000Z',
+        requestor_first_name: 'Another',
+        requestor_last_name: 'User',
+        assigned_first_name: 'Ernest',
+        assigned_last_name: 'Pena'
+      }
+    ]
+  });
+});
+
 // Simple login endpoint - test with hardcoded credentials first
 app.post('/api/login', async (req, res) => {
   console.log('[LOGIN] Login attempt:', { email: req.body.email });
