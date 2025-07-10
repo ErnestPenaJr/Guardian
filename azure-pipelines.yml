@@ -30,9 +30,11 @@ steps:
   displayName: 'Copy frontend build to deployment'
 
 - script: |
-    echo "Copying azure-server.cjs to deployment root"
-    cp azure-server.cjs deployment/server.js
-  displayName: 'Copy azure-server.cjs to deployment'
+    echo "Building and copying TypeScript server to deployment"
+    npm run build-server
+    cp dist-server/index.js deployment/server.js
+    echo "Server file copied to deployment"
+  displayName: 'Build and copy TypeScript server to deployment'
 
 - script: |
     echo "Copying deployment-package.json to deployment/package.json"

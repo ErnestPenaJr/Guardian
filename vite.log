@@ -10,3 +10,10 @@
 4:01:24 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
 4:01:33 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
 4:01:42 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+4:02:58 PM [vite] .env changed, restarting server...
+4:02:58 PM [vite] server restarted.
+4:03:03 PM [vite] .env changed, restarting server...
+4:03:03 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+4:03:03 PM [vite] server restarted.
+4:09:21 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+4:09:30 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css

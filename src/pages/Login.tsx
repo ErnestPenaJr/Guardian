@@ -139,9 +139,6 @@ function Login() {
         const errorMessage = error.response.data.message || 'Authentication failed';
         
         // Show appropriate error message based on status code
-        // Add temporary debugging alert
-        alert(`Login Error - Status: ${statusCode}, Message: ${errorMessage}, Data: ${JSON.stringify(error.response.data)}`);
-        
         switch (statusCode) {
           case 401:
             Swal.fire({
@@ -185,7 +182,6 @@ function Login() {
         }
       } else if (error.request) {
         // The request was made but no response was received
-        alert(`Network Error - No response received: ${error.message}`);
         Swal.fire({
           title: 'Server Error',
           text: 'Server not responding. Please try again later.',
@@ -194,7 +190,6 @@ function Login() {
         });
       } else {
         // Something happened in setting up the request that triggered an Error
-        alert(`Setup Error: ${error.message}`);
         Swal.fire({
           title: 'Unexpected Error',
           text: 'An unexpected error occurred. Please try again.',
