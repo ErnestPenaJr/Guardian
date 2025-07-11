@@ -2,10 +2,10 @@
   "name": "Guardian",
   "private": true,
   "version": "2.5.0",
-  "type": "module",
-  "main": "dist-server/index.js",
+  "type": "commonjs",
+  "main": "server.js",
   "scripts": {
-    "start": "node dist-server/index.js",
+    "start": "node server.js",
     "build-and-start": "npm run build && npm run build-server && npm start",
     "postinstall": "npx prisma generate || echo 'Prisma generate failed, continuing...'",
     "deploy": "npm run build && npm run build-server",
