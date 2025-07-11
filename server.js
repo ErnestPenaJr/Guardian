@@ -193,28 +193,38 @@ app.get('/api/requests', async (req, res) => {
     try {
         console.log('📋 Fetching requests from database...');
 
-        // Get requests from database with related user information
+        // Get requests from database with all fields and related user information
         const requests = await prisma.$queryRaw`
             SELECT 
                 r.REQUEST_ID,
                 r.REQUEST_NAME,
                 r.REQUEST_DESCRIPTION,
-                r.STATUS,
+                r.EXTERNAL_USER,
                 r.SUBMITTED_DATE,
-                r.CREATE_DATE,
-                r.TRACKINGID,
-                r.COMPANY_ID,
                 r.REQUESTOR_ID,
                 r.ASSIGNED_ID,
+                r.STATUS,
+                r.CREATE_DATE,
+                r.UPDATE_DATE,
+                r.CREATE_USER_ID,
+                r.UPDATE_USER_ID,
+                r.TRACKINGID,
+                r.ABBREVIATION,
+                r.COMPANY_ID,
+                r.FORM_ID,
                 requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
                 requestor.LAST_NAME as REQUESTOR_LAST_NAME,
                 requestor.EMAIL as REQUESTOR_EMAIL,
                 assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
                 assigned.LAST_NAME as ASSIGNED_LAST_NAME,
-                assigned.EMAIL as ASSIGNED_EMAIL
+                assigned.EMAIL as ASSIGNED_EMAIL,
+                creator.FIRST_NAME as CREATOR_FIRST_NAME,
+                creator.LAST_NAME as CREATOR_LAST_NAME,
+                creator.EMAIL as CREATOR_EMAIL
             FROM GUARDIAN.REQUESTS r
             LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
             LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+            LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID
             ORDER BY r.CREATE_DATE DESC
         `;
 
@@ -237,31 +247,54 @@ app.get('/api/requests', async (req, res) => {
             }
         };
 
-        // Format the data for the frontend (match original mock structure)
+        // Format the data for the frontend with all available fields
         const formattedRequests = requests.map(req => ({
+            // Core request information
             id: req.REQUEST_ID,
+            requestId: req.REQUEST_ID,
             name: req.REQUEST_NAME || 'Untitled Request',
-            description: req.REQUEST_DESCRIPTION || 'No description',
+            description: req.REQUEST_DESCRIPTION || 'No description provided',
             status: getStatusName(req.STATUS),
-            submittedDate: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : new Date().toISOString(),
-            createDate: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : new Date().toISOString(),
-            trackingId: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
-            companyId: req.COMPANY_ID ? Number(req.COMPANY_ID) : null,
+            statusCode: req.STATUS,
             
-            // Requestor as object (like original mock structure)
+            // Dates
+            submittedDate: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
+            createDate: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
+            updateDate: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
+            
+            // Additional fields from REQUESTS table
+            externalUser: req.EXTERNAL_USER === 'Y',
+            trackingId: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
+            abbreviation: req.ABBREVIATION || '',
+            companyId: req.COMPANY_ID ? Number(req.COMPANY_ID) : null,
+            formId: req.FORM_ID || null,
+            
+            // User information as objects
             requestor: req.REQUESTOR_FIRST_NAME ? {
+                id: req.REQUESTOR_ID,
                 name: `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}`,
                 email: req.REQUESTOR_EMAIL || ''
             } : {
+                id: null,
                 name: 'Unknown User',
                 email: ''
             },
             
-            // Assigned user as object
             assignedUser: req.ASSIGNED_FIRST_NAME ? {
+                id: req.ASSIGNED_ID,
                 name: `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}`,
                 email: req.ASSIGNED_EMAIL || ''
-            } : null
+            } : null,
+            
+            creator: req.CREATOR_FIRST_NAME ? {
+                id: req.CREATE_USER_ID,
+                name: `${req.CREATOR_FIRST_NAME} ${req.CREATOR_LAST_NAME}`,
+                email: req.CREATOR_EMAIL || ''
+            } : null,
+            
+            // Frontend compatibility
+            type: req.EXTERNAL_USER === 'Y' ? 'External Request' : 'Internal Request',
+            date: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toLocaleDateString() : 'No Date'
         }));
 
         // Debug: Log formatted data structure
