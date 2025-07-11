@@ -466,8 +466,20 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
-// Serve React app for all other routes
+// Serve React app for all other routes (excluding API and static assets)
 app.get('*', (req, res) => {
+    // Don't serve HTML for API routes or static assets
+    if (req.path.startsWith('/api/') || 
+        req.path.startsWith('/assets/') || 
+        req.path.includes('.js') || 
+        req.path.includes('.css') || 
+        req.path.includes('.png') || 
+        req.path.includes('.jpg') || 
+        req.path.includes('.svg') || 
+        req.path.includes('.ico')) {
+        return res.status(404).send('Not found');
+    }
+    
     const indexPath = path.join(__dirname, 'dist', 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
