@@ -2,10 +2,10 @@
   "name": "Guardian",
   "private": true,
   "version": "2.5.0",
-  "type": "module",
-  "main": "dist-server/index.js",
+  "type": "commonjs",
+  "main": "server.js",
   "scripts": {
-    "start": "node simple-fallback-server.cjs",
+    "start": "node server.js",
     "postinstall": "npx prisma generate || echo 'Prisma generate failed, continuing...'",
     "dev": "vite",
     "build": "vite build",

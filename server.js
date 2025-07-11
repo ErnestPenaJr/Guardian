@@ -1,188 +1,241 @@
-// Simple entry point for Azure Web App - CommonJS format
-// This file should be in the root directory for Azure deployment
+// Fallback server that checks dependencies before starting database features
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
 
-// Log startup information
-console.log('===== GUARDIAN SERVER STARTING =====');
-console.log(`Node version: ${
-    process.version
-}`);
-console.log(`Current directory: ${
-    process.cwd()
-}`);
-console.log(`Environment: ${
-    process.env.NODE_ENV || 'development'
-}`);
+console.log('=== GUARDIAN FALLBACK SERVER STARTING ===');
+console.log(`Node version: ${process.version}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
-// Import required modules
-let express,
-    path,
-    fs,
-    cors;
-try {
-    express = require('express');
-    path = require('path');
-    fs = require('fs');
-    cors = require('cors');
-    console.log('Successfully imported all required modules');
-} catch (err) {
-    console.error('ERROR IMPORTING MODULES:', err.message);
-    console.error('Module resolution paths:', module.paths);
-    process.exit(1);
+// Manually load .env file for Azure compatibility
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  try {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const lines = envContent.split('\n');
+    for (const line of lines) {
+      if (line.trim() && !line.startsWith('#')) {
+        const [key, ...valueParts] = line.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=').replace(/^"/, '').replace(/"$/, '');
+          process.env[key.trim()] = value;
+        }
+      }
+    }
+    console.log(`✅ DATABASE_URL loaded: ${process.env.DATABASE_URL ? 'YES' : 'NO'}`);
+  } catch (error) {
+    console.error('❌ Error loading .env:', error.message);
+  }
+} else {
+  console.log('❌ .env file not found');
 }
 
-// Create Express app
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Enable CORS
-app.use(cors());
-
-// Parse JSON requests
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'dist')));
 
-// Log all requests
-app.use((req, res, next) => {
-    console.log(`[${
-        new Date().toISOString()
-    }] ${
-        req.method
-    } ${
-        req.url
-    }`);
-    next();
-});
+// Check if required dependencies are available
+let dependenciesAvailable = false;
+let dependencyError = null;
 
-// List directory contents to help with debugging
-const listDirectoryContents = (dirPath) => {
-    try {
-        if (fs.existsSync(dirPath)) {
-            console.log(`Contents of ${dirPath}:`);
-            const items = fs.readdirSync(dirPath);
-            items.forEach(item => {
-                const itemPath = path.join(dirPath, item);
-                const stats = fs.statSync(itemPath);
-                console.log(`  - ${item} (${
-                    stats.isDirectory() ? 'directory' : 'file'
-                })`);
-            });
-        } else {
-            console.warn(`Directory not found: ${dirPath}`);
-        }
-    } catch (err) {
-        console.error(`Error listing directory ${dirPath}:`, err.message);
-    }
-};
-
-// List root directory contents
-console.log('\n===== DEPLOYMENT DIRECTORY STRUCTURE =====');
-listDirectoryContents(__dirname);
-
-// Check if node_modules exists
-const nodeModulesPath = path.join(__dirname, 'node_modules');
-if (fs.existsSync(nodeModulesPath)) {
-    console.log(`node_modules found at ${nodeModulesPath}`);
-    // List some key packages to verify installation
-    try {
-        const expressPackageJson = require.resolve('express/package.json');
-        const expressVersion = require(expressPackageJson).version;
-        console.log(`Express version: ${expressVersion}`);
-    } catch (err) {
-        console.error('Error checking express version:', err.message);
-    }
-} else {
-    console.error(`ERROR: node_modules directory not found at ${nodeModulesPath}`);
-    console.error('Dependencies are not installed correctly');
-}
-
-// Serve static files from the dist directory
-const distPath = path.join(__dirname, 'dist');
-console.log('\n===== STATIC FILES =====');
-if (fs.existsSync(distPath)) {
-    console.log(`Serving static files from: ${distPath}`);
-    listDirectoryContents(distPath);
-
-    // Configure static middleware to ignore server-side directories
-    app.use(express.static(distPath, {
-        setHeaders: (res, path) => { // Skip serving .js files from middleware/routes directories
-            if (path.includes('/middleware/') || path.includes('/routes/')) {
-                res.status(404).end();
-                return;
-            }
-        }
-    }));
-} else {
-    console.error(`ERROR: dist directory not found at ${distPath}`);
-    console.error('Frontend build is missing from the deployment');
-}
-
-// Check for index.html
-const indexPath = path.join(distPath, 'index.html');
-if (fs.existsSync(indexPath)) {
-    console.log(`index.html found at ${indexPath}`);
-} else {
-    console.error(`ERROR: index.html not found at ${indexPath}`);
-}
-
-// Clean up server-side code that shouldn't be in dist
-const serverDirsInDist = ['middleware', 'routes'];
-serverDirsInDist.forEach(dirName => {
-    const serverDirPath = path.join(distPath, dirName);
-    if (fs.existsSync(serverDirPath)) {
-        console.log(`WARNING: Removing server-side directory from dist: ${dirName}`);
-        try {
-            fs.rmSync(serverDirPath, {
-                recursive: true,
-                force: true
-            });
-            console.log(`Successfully removed ${dirName} from dist`);
-        } catch (err) {
-            console.error(`Failed to remove ${dirName} from dist:`, err.message);
-        }
-    }
-});
-
-// Simple health check endpoint
-app.get('/api/health', (req, res) => {
-    const healthInfo = {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        nodeVersion: process.version,
-        directories: {
-            root: fs.existsSync(__dirname),
-            nodeModules: fs.existsSync(nodeModulesPath),
-            dist: fs.existsSync(distPath),
-            indexHtml: fs.existsSync(indexPath)
-        }
-    };
-    console.log('Health check response:', healthInfo);
-    res.json(healthInfo);
-});
-
-// FIXED: For all other non-API routes, serve index.html if it exists
-// This avoids the path-to-regexp issue with the '*' wildcard
-app.get(/^(?!\/api).*/, (req, res) => {
-    if (fs.existsSync(indexPath)) {
-        console.log(`Serving index.html for route: ${
-            req.url
-        }`);
-        res.sendFile(indexPath);
-    } else {
-        console.error(`Cannot serve index.html for ${
-            req.url
-        } - file not found`);
-        res.status(404).send('Application not properly deployed. Missing index.html');
-    }
-});
-
-// Start server
 try {
-    app.listen(PORT, () => {
-        console.log('\n===== SERVER STARTED SUCCESSFULLY =====');
-        console.log(`Server running on port ${PORT}`);
-        console.log(`Access the application at: http://localhost:${PORT}`);
-    });
-} catch (err) {
-    console.error('ERROR STARTING SERVER:', err.message);
-    process.exit(1);
+  require.resolve('@prisma/client');
+  require.resolve('bcryptjs');
+  require.resolve('jsonwebtoken');
+  dependenciesAvailable = true;
+  console.log('✅ All dependencies available');
+} catch (error) {
+  dependencyError = error.message;
+  console.log('❌ Dependencies missing:', error.message);
 }
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    nodeVersion: process.version,
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    dependencies: {
+      available: dependenciesAvailable,
+      error: dependencyError
+    },
+    database: {
+      hasUrl: !!process.env.DATABASE_URL,
+      urlPreview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NOT SET'
+    },
+    server: 'fallback-server'
+  });
+});
+
+if (dependenciesAvailable) {
+  // Real requests endpoint - fetch from database
+  app.get('/api/requests', async (req, res) => {
+    console.log('[REQUESTS] Fetching requests from database');
+    
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const requests = await prisma.rEQUESTS.findMany({
+        orderBy: { CREATE_DATE: 'desc' }
+      });
+      
+      console.log(`✅ Found ${requests.length} requests`);
+      
+      res.json({
+        success: true,
+        data: requests
+      });
+      
+      await prisma.$disconnect();
+      
+    } catch (error) {
+      console.error('❌ Database error fetching requests:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch requests',
+        details: error.message
+      });
+    }
+  });
+
+  // Real login endpoint - authenticate against database
+  app.post('/api/login', async (req, res) => {
+    console.log('[LOGIN] Login attempt:', { email: req.body.email });
+    
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Email and password are required'
+      });
+    }
+    
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const bcrypt = require('bcryptjs');
+      const jwt = require('jsonwebtoken');
+      const prisma = new PrismaClient();
+      
+      // Look up user in database
+      const user = await prisma.uSERS.findFirst({
+        where: { EMAIL: email }
+      });
+      
+      if (!user) {
+        console.log('[LOGIN] ❌ User not found');
+        return res.status(401).json({
+          error: 'Invalid email or password'
+        });
+      }
+      
+      // Check password
+      const validPassword = await bcrypt.compare(password, user.PASSWORD_HASH);
+      if (!validPassword) {
+        console.log('[LOGIN] ❌ Invalid password');
+        return res.status(401).json({
+          error: 'Invalid email or password'
+        });
+      }
+      
+      // Get user roles
+      const userRoles = await prisma.uSER_ROLES.findMany({
+        where: { USER_ID: user.USER_ID },
+        include: {
+          ROLES: true
+        }
+      });
+      
+      // Get company info
+      let company = null;
+      if (user.COMPANY_ID) {
+        const companyData = await prisma.cOMPANY.findUnique({
+          where: { COMPANY_ID: user.COMPANY_ID }
+        });
+        if (companyData) {
+          company = {
+            id: companyData.COMPANY_ID,
+            name: companyData.NAME || ''
+          };
+        }
+      }
+      
+      // Generate JWT token
+      const JWT_SECRET = process.env.JWT_SECRET || 'guardian-jwt-secret-key';
+      const token = jwt.sign({
+        id: user.USER_ID,
+        email: user.EMAIL,
+        firstName: user.FIRST_NAME,
+        lastName: user.LAST_NAME,
+        companyId: user.COMPANY_ID
+      }, JWT_SECRET, { expiresIn: '24h' });
+      
+      console.log('[LOGIN] ✅ Login successful');
+      
+      res.json({
+        token: token,
+        user: {
+          id: user.USER_ID,
+          email: user.EMAIL,
+          firstName: user.FIRST_NAME,
+          lastName: user.LAST_NAME,
+          roles: userRoles.map(ur => ({
+            id: ur.ROLES.ROLE_ID,
+            name: ur.ROLES.NAME,
+            displayName: ur.ROLES.DISPLAY_NAME || ur.ROLES.NAME
+          })),
+          company: company,
+          companyId: user.COMPANY_ID,
+          companyName: company?.name || null
+        }
+      });
+      
+      await prisma.$disconnect();
+      
+    } catch (error) {
+      console.error('[LOGIN] ❌ Database error:', error.message);
+      res.status(500).json({
+        error: 'Server error during login',
+        details: error.message
+      });
+    }
+  });
+} else {
+  // Fallback endpoints when dependencies are missing
+  app.get('/api/requests', (req, res) => {
+    res.status(503).json({
+      error: 'Database dependencies not available',
+      details: dependencyError
+    });
+  });
+
+  app.post('/api/login', (req, res) => {
+    res.status(503).json({
+      error: 'Authentication dependencies not available', 
+      details: dependencyError
+    });
+  });
+}
+
+// For all non-API routes, serve the index.html file (for SPA routing)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not Found' });
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Fallback server running on port ${PORT}`);
+  console.log('Available endpoints:');
+  console.log('  GET  /api/health');
+  console.log('  POST /api/login');
+  console.log('  GET  /api/requests');
+  if (!dependenciesAvailable) {
+    console.log('⚠️  Running in fallback mode - dependencies missing');
+  }
+});
