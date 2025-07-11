@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import api from '../utils/api';
+import { useAuth } from '../hooks/useAuth';
 import './RequestModal.css';
 
 interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  status: string;
-  createdAt: string;
-  companyId: number;
-  roles: any[];
+  USER_ID: number;
+  EMAIL: string;
+  FIRST_NAME: string;
+  LAST_NAME: string;
+  FULL_NAME: string;
+  COMPANY_ID: number;
+  ROLE_NAMES: string;
+  value: number;
+  label: string;
+  subtitle: string;
 }
 
 interface Request {
@@ -51,6 +54,7 @@ interface Props {
 }
 
 const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,22 +82,27 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     try {
       setLoading(true);
       setError(null);
-      // Add error handling for the API call
-      try {
-        const response = await api.get('/api/users');
-        if (response && response.data && response.data.data) {
-          setUsers(response.data.data || []);
-        } else {
-          setUsers([]);
-        }
-      } catch (apiErr: any) {
-        console.error('API error:', apiErr);
-        // Don't show error to user - just use empty array
+      
+      // Get current user's company ID
+      const companyId = currentUser?.companyId;
+      if (!companyId) {
+        console.warn('No company ID found for current user');
         setUsers([]);
+        return;
       }
+
+      console.log(`Fetching users for company ID: ${companyId}`);
+      
+      // Fetch users from the same company
+      const response = await api.get(`/api/users/company/${companyId}`);
+      console.log('Company users response:', response.data);
+      
+      setUsers(response.data || []);
+      
     } catch (err: any) {
-      console.error('Failed to load users:', err);
+      console.error('Failed to load company users:', err);
       setError('Failed to load users. Please try again.');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -115,15 +124,15 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       try {
         // Make the API call to assign the user
         console.log('Making API call to assign user:', selectedUser, 'to request:', request.REQUEST_ID);
-        const response = await api.post(`/api/requests/${request.REQUEST_ID}/assign`, { 
-          userId: selectedUser
+        const response = await api.put(`/api/requests/${request.REQUEST_ID}/assign`, { 
+          assignedUserId: selectedUser
         });
         console.log('User assignment API response:', response.data);
         
         // Find the assigned user (for logging purposes)
-        const assignedUser = users.find(u => (u.USER_ID || u.id) === parseInt(selectedUser));
+        const assignedUser = users.find(u => u.USER_ID === parseInt(selectedUser));
         console.log('Assigned user:', assignedUser ? 
-          `${assignedUser.FIRST_NAME || assignedUser.firstName} ${assignedUser.LAST_NAME || assignedUser.lastName}` : 
+          `${assignedUser.FIRST_NAME} ${assignedUser.LAST_NAME}` : 
           'Unknown user');
           
         // Refresh the requests list and close the modal
@@ -244,8 +253,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       >
                         <option value="">Select a user</option>
                         {users && users.map((user, index) => (
-                          <option key={user.id || (user as any).USER_ID || `user-${index}`} value={user.id || (user as any).USER_ID}>
-                            {user.firstName || (user as any).FIRST_NAME} {user.lastName || (user as any).LAST_NAME}
+                          <option key={user.USER_ID || `user-${index}`} value={user.USER_ID}>
+                            {user.FULL_NAME} ({user.ROLE_NAMES})
                           </option>
                         ))}
                       </Form.Select>

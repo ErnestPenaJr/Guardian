@@ -305,6 +305,167 @@ app.get('/api/requests', async (req, res) => {
     }
 });
 
+// Get all users (for backward compatibility)
+app.get('/api/users', async (req, res) => {
+    try {
+        console.log('👥 Fetching all users...');
+
+        // Get all active users
+        const users = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                u.CREATE_DATE,
+                STRING_AGG(r.NAME, ', ') as ROLE_NAMES
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.STATUS = 'A'
+            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID, u.CREATE_DATE
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        console.log(`✅ Found ${users.length} users`);
+
+        // Format users for compatibility
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            EMAIL: user.EMAIL,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            COMPANY_ID: user.COMPANY_ID,
+            STATUS: user.STATUS,
+            CREATE_DATE: user.CREATE_DATE,
+            ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
+            // Legacy format for compatibility
+            id: user.USER_ID,
+            firstName: user.FIRST_NAME,
+            lastName: user.LAST_NAME,
+            email: user.EMAIL,
+            companyId: user.COMPANY_ID,
+            status: user.STATUS,
+            createdAt: user.CREATE_DATE
+        }));
+
+        res.json({
+            success: true,
+            data: formattedUsers,
+            count: formattedUsers.length
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching users:', error);
+        res.status(500).json({
+            error: 'Failed to fetch users',
+            message: error.message
+        });
+    }
+});
+
+// Get users by company ID (for assignment dropdowns)
+app.get('/api/users/company/:companyId', async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        console.log(`👥 Fetching users for company ID: ${companyId}`);
+
+        if (!companyId || isNaN(companyId)) {
+            return res.status(400).json({
+                error: 'Valid company ID is required'
+            });
+        }
+
+        // Get users from the same company
+        const users = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                STRING_AGG(r.NAME, ', ') as ROLE_NAMES
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.COMPANY_ID = ${companyId} 
+            AND u.STATUS = 'A'
+            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        console.log(`✅ Found ${users.length} users for company ${companyId}`);
+
+        // Format users for dropdown
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            EMAIL: user.EMAIL,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            COMPANY_ID: user.COMPANY_ID,
+            ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
+            // For dropdown display
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`,
+            subtitle: user.ROLE_NAMES || 'No roles'
+        }));
+
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('❌ Error fetching company users:', error);
+        res.status(500).json({
+            error: 'Failed to fetch users',
+            message: error.message
+        });
+    }
+});
+
+// Update request assignment
+app.put('/api/requests/:requestId/assign', async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        const { assignedUserId } = req.body;
+
+        console.log(`📝 Assigning request ${requestId} to user ${assignedUserId}`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Update the request assignment
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS 
+            SET ASSIGNED_ID = ${assignedUserId || null}, 
+                UPDATE_DATE = GETDATE()
+            WHERE REQUEST_ID = ${requestId}
+        `;
+
+        console.log(`✅ Request ${requestId} assigned successfully`);
+
+        res.json({
+            success: true,
+            message: 'Request assigned successfully',
+            requestId: requestId,
+            assignedUserId: assignedUserId
+        });
+
+    } catch (error) {
+        console.error('❌ Error assigning request:', error);
+        res.status(500).json({
+            error: 'Failed to assign request',
+            message: error.message
+        });
+    }
+});
+
 // Serve React app for all other routes
 app.get('*', (req, res) => {
     const indexPath = path.join(__dirname, 'dist', 'index.html');
