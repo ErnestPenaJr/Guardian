@@ -32,10 +32,14 @@ steps:
 - script: |
     echo "Copying frontend build to deployment/dist"
     cp -r dist deployment/
+    echo "Copying frontend assets to root for direct IIS serving"
+    cp -r dist/assets deployment/
     echo "Copying server build to deployment"
     cp -r dist-server/* deployment/
     echo "Deployment directory contents:"
     ls -la deployment
+    echo "Assets in root:"
+    ls -la deployment/assets
   displayName: 'Copy build artifacts to deployment'
 
 - script: |
@@ -98,6 +102,13 @@ steps:
           <rules>
             <rule name="NodeInspector" patternSyntax="ECMAScript" stopProcessing="true">
               <match url="^server.js\/debug[\/]?" />
+            </rule>
+            <rule name="ServeAssets" stopProcessing="true">
+              <match url="^assets/(.*)$" />
+              <conditions>
+                <add input="{REQUEST_FILENAME}" matchType="IsFile" />
+              </conditions>
+              <action type="None" />
             </rule>
             <rule name="DynamicContent">
               <conditions>
