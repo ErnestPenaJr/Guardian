@@ -68,7 +68,7 @@ app.post('/api/login', async (req, res) => {
 
         // Query the database using raw SQL for GUARDIAN schema
         const users = await prisma.$queryRaw`
-            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS 
+            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID
             FROM GUARDIAN.USERS 
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
         `;
@@ -106,38 +106,56 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Get user roles
+        // Get user roles with role names
         const userRoles = await prisma.$queryRaw`
-            SELECT ROLE_ID FROM GUARDIAN.USER_ROLES 
-            WHERE USER_ID = ${user.USER_ID}
+            SELECT ur.ROLE_ID, r.ROLE_NAME, r.ROLE_DESCRIPTION
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${user.USER_ID}
         `;
+        
         const roleIds = userRoles.map(ur => ur.ROLE_ID);
+        const roleNames = userRoles.map(ur => ur.ROLE_NAME);
+        const roles = userRoles.map(ur => ({
+            id: ur.ROLE_ID,
+            name: ur.ROLE_NAME,
+            description: ur.ROLE_DESCRIPTION
+        }));
 
-        // Generate JWT token
+        // Generate JWT token with complete user data
         const token = jwt.sign(
             {
                 id: user.USER_ID,
+                userId: user.USER_ID,
                 email: user.EMAIL,
                 firstName: user.FIRST_NAME,
                 lastName: user.LAST_NAME,
-                roles: roleIds
+                companyId: user.COMPANY_ID,
+                roles: roleIds,
+                roleNames: roleNames
             },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        console.log(`✅ Login successful for: ${email}`);
+        console.log(`✅ Login successful for: ${email} (User ID: ${user.USER_ID}, Company: ${user.COMPANY_ID})`);
 
         res.json({
             success: true,
             token: token,
             user: {
                 id: user.USER_ID,
+                userId: user.USER_ID,
                 email: user.EMAIL,
                 firstName: user.FIRST_NAME,
                 lastName: user.LAST_NAME,
-                roles: roleIds,
-                role: roleIds.includes(1) ? 'admin' : 'user'
+                companyId: user.COMPANY_ID,
+                company: user.COMPANY_ID,
+                roles: roles, // Full role objects with id, name, description
+                roleIds: roleIds, // Just the IDs for backward compatibility
+                roleNames: roleNames, // Just the names
+                role: roleNames.length > 0 ? roleNames[0] : 'user', // Primary role name
+                isAdmin: roleNames.includes('Admin') || roleNames.includes('Administrator')
             }
         });
 
