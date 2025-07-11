@@ -60,6 +60,44 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+// Get test users endpoint
+app.get('/api/test-users', (req, res) => {
+    res.json({
+        message: 'Available test users',
+        users: [
+            {
+                email: 'admin@example.com',
+                password: 'password123',
+                role: 'admin'
+            },
+            {
+                email: 'user@example.com', 
+                password: 'password123',
+                role: 'user'
+            }
+        ]
+    });
+});
+
+// Simple requests endpoint (mock data)
+app.get('/api/requests', (req, res) => {
+    res.json({
+        success: true,
+        requests: [
+            {
+                id: 1,
+                name: 'Sample Request 1',
+                description: 'This is a test request',
+                status: 'Active',
+                submittedDate: new Date().toISOString(),
+                requestor: { name: 'Test User', email: 'test@example.com' }
+            }
+        ],
+        count: 1,
+        note: 'Using mock data for testing'
+    });
+});
+
 // Serve React app for all other routes
 app.get('*', (req, res) => {
     const indexPath = path.join(__dirname, 'dist', 'index.html');
