@@ -30,18 +30,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Set proper MIME types for ES modules
-app.use(express.static('dist', {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.js')) {
+// Serve static files with proper MIME types - this must come before any other routes
+app.use('/assets', express.static(path.join(__dirname, 'dist', 'assets'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js')) {
             res.setHeader('Content-Type', 'application/javascript');
-        } else if (path.endsWith('.mjs')) {
+        } else if (filePath.endsWith('.mjs')) {
             res.setHeader('Content-Type', 'application/javascript');
-        } else if (path.endsWith('.css')) {
+        } else if (filePath.endsWith('.css')) {
             res.setHeader('Content-Type', 'text/css');
         }
     }
 }));
+
+// Serve other static files (images, etc.)
+app.use(express.static('dist'));
 
 // Basic health check
 app.get('/api/health', (req, res) => {
@@ -466,20 +469,8 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
-// Serve React app for all other routes (excluding API and static assets)
+// Serve React app for all other routes  
 app.get('*', (req, res) => {
-    // Don't serve HTML for API routes or static assets
-    if (req.path.startsWith('/api/') || 
-        req.path.startsWith('/assets/') || 
-        req.path.includes('.js') || 
-        req.path.includes('.css') || 
-        req.path.includes('.png') || 
-        req.path.includes('.jpg') || 
-        req.path.includes('.svg') || 
-        req.path.includes('.ico')) {
-        return res.status(404).send('Not found');
-    }
-    
     const indexPath = path.join(__dirname, 'dist', 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
