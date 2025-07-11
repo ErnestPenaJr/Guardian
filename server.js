@@ -108,18 +108,19 @@ app.post('/api/login', async (req, res) => {
 
         // Get user roles with role names
         const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID, r.ROLE_NAME, r.ROLE_DESCRIPTION
+            SELECT ur.ROLE_ID, r.NAME, r.DISPLAY_NAME, r.DESCRIPTION
             FROM GUARDIAN.USER_ROLES ur
             JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
             WHERE ur.USER_ID = ${user.USER_ID}
         `;
         
         const roleIds = userRoles.map(ur => ur.ROLE_ID);
-        const roleNames = userRoles.map(ur => ur.ROLE_NAME);
+        const roleNames = userRoles.map(ur => ur.NAME);
         const roles = userRoles.map(ur => ({
             id: ur.ROLE_ID,
-            name: ur.ROLE_NAME,
-            description: ur.ROLE_DESCRIPTION
+            name: ur.NAME,
+            displayName: ur.DISPLAY_NAME,
+            description: ur.DESCRIPTION
         }));
 
         // Generate JWT token with complete user data
