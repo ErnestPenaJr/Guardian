@@ -220,24 +220,53 @@ app.get('/api/requests', async (req, res) => {
 
         console.log(`✅ Found ${requests.length} requests in database`);
 
+        // Status mapping
+        const getStatusName = (statusCode) => {
+            switch(statusCode) {
+                case 'A': return 'Active';
+                case 'P': return 'Pending';
+                case 'C': return 'Completed';
+                case 'D': return 'Draft';
+                case 'R': return 'Rejected';
+                default: return statusCode || 'Unknown';
+            }
+        };
+
         // Format the data for the frontend
         const formattedRequests = requests.map(req => ({
+            // Main fields that frontend expects
             id: req.REQUEST_ID,
-            name: req.REQUEST_NAME,
-            description: req.REQUEST_DESCRIPTION,
-            status: req.STATUS,
-            submittedDate: req.SUBMITTED_DATE,
-            createDate: req.CREATE_DATE,
-            trackingId: req.TRACKINGID,
-            companyId: req.COMPANY_ID,
-            requestor: req.REQUESTOR_FIRST_NAME ? {
-                name: `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}`,
-                email: req.REQUESTOR_EMAIL
-            } : null,
-            assignedUser: req.ASSIGNED_FIRST_NAME ? {
-                name: `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}`,
-                email: req.ASSIGNED_EMAIL
-            } : null
+            requestId: req.REQUEST_ID,
+            name: req.REQUEST_NAME || 'Untitled Request',
+            title: req.REQUEST_NAME || 'Untitled Request',
+            description: req.REQUEST_DESCRIPTION || '',
+            status: getStatusName(req.STATUS),
+            statusCode: req.STATUS,
+            
+            // Dates - properly formatted
+            date: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toLocaleDateString() : 'No Date',
+            submittedDate: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
+            createDate: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
+            
+            // Additional fields
+            trackingId: req.TRACKINGID || '',
+            companyId: req.COMPANY_ID ? Number(req.COMPANY_ID) : null,
+            
+            // User information
+            requestor: req.REQUESTOR_FIRST_NAME ? 
+                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
+                'Unknown',
+            requestorEmail: req.REQUESTOR_EMAIL || '',
+            assignedUser: req.ASSIGNED_FIRST_NAME ? 
+                `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}` : 
+                null,
+            assignedEmail: req.ASSIGNED_EMAIL || '',
+            
+            // Frontend compatibility fields
+            type: 'Request', // Default type
+            requestorName: req.REQUESTOR_FIRST_NAME ? 
+                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
+                'Unknown'
         }));
 
         // Return just the array (frontend expects array directly)
