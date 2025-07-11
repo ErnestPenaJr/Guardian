@@ -12,11 +12,17 @@ steps:
   displayName: 'Install Node.js'
 
 - script: |
-    npm install
+    echo "Installing dependencies..."
+    npm ci
+    echo "Building frontend..."
     npm run build
-    echo "Frontend build completed. Listing dist directory contents:"
+    echo "Building backend..."
+    npm run build:server
+    echo "Build completed. Listing dist directory contents:"
     ls -la dist
-  displayName: 'Install and build frontend'
+    echo "Server directory contents:"
+    ls -la dist-server
+  displayName: 'Install dependencies and build'
 
 - script: |
     mkdir -p deployment
@@ -26,15 +32,18 @@ steps:
 - script: |
     echo "Copying frontend build to deployment/dist"
     cp -r dist deployment/
-    ls -la deployment/dist
-  displayName: 'Copy frontend build to deployment'
+    echo "Copying server build to deployment"
+    cp -r dist-server/* deployment/
+    echo "Deployment directory contents:"
+    ls -la deployment
+  displayName: 'Copy build artifacts to deployment'
 
 - script: |
-    echo "Copying basic database server with no mock data"
-    cp basic-db-server.cjs deployment/server.js
-    echo "Simple login server copied to deployment"
+    echo "Copying main server file"
+    cp azure-server.cjs deployment/server.js
+    echo "Main server file copied to deployment"
     ls -la deployment/
-  displayName: 'Copy simple login server to deployment'
+  displayName: 'Copy main server file to deployment'
 
 - script: |
     echo "Copying diagnostic-package.json to deployment/package.json"
