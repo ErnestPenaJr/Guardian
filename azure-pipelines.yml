@@ -40,7 +40,7 @@ steps:
 
 - script: |
     echo "Copying main server file"
-    cp azure-server.cjs deployment/server.js
+    cp server.js deployment/server.js
     echo "Main server file copied to deployment"
     ls -la deployment/
   displayName: 'Copy main server file to deployment'
