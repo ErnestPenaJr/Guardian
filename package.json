@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist-server/index.js",
   "scripts": {
-    "start": "node azure-server.cjs",
+    "start": "node simple-fallback-server.cjs",
+    "postinstall": "npx prisma generate || echo 'Prisma generate failed, continuing...'",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
