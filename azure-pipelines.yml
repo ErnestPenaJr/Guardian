@@ -40,6 +40,10 @@ steps:
     ls -la deployment
     echo "Root level files (should include assets):"
     ls -la deployment/assets
+    echo "Checking actual file sizes:"
+    ls -lah deployment/assets/
+    echo "File types:"
+    file deployment/assets/*
   displayName: 'Copy build artifacts to deployment'
 
 - script: |
