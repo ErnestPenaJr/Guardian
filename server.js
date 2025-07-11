@@ -188,23 +188,68 @@ app.get('/api/test-users', (req, res) => {
     });
 });
 
-// Simple requests endpoint (mock data)
-app.get('/api/requests', (req, res) => {
-    res.json({
-        success: true,
-        requests: [
-            {
-                id: 1,
-                name: 'Sample Request 1',
-                description: 'This is a test request',
-                status: 'Active',
-                submittedDate: new Date().toISOString(),
-                requestor: { name: 'Test User', email: 'test@example.com' }
-            }
-        ],
-        count: 1,
-        note: 'Using mock data for testing'
-    });
+// Real requests endpoint with database query
+app.get('/api/requests', async (req, res) => {
+    try {
+        console.log('📋 Fetching requests from database...');
+
+        // Get requests from database with related user information
+        const requests = await prisma.$queryRaw`
+            SELECT 
+                r.REQUEST_ID,
+                r.REQUEST_NAME,
+                r.REQUEST_DESCRIPTION,
+                r.STATUS,
+                r.SUBMITTED_DATE,
+                r.CREATE_DATE,
+                r.TRACKINGID,
+                r.COMPANY_ID,
+                r.REQUESTOR_ID,
+                r.ASSIGNED_ID,
+                requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
+                requestor.LAST_NAME as REQUESTOR_LAST_NAME,
+                requestor.EMAIL as REQUESTOR_EMAIL,
+                assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
+                assigned.LAST_NAME as ASSIGNED_LAST_NAME,
+                assigned.EMAIL as ASSIGNED_EMAIL
+            FROM GUARDIAN.REQUESTS r
+            LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+            LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
+            ORDER BY r.CREATE_DATE DESC
+        `;
+
+        console.log(`✅ Found ${requests.length} requests in database`);
+
+        // Format the data for the frontend
+        const formattedRequests = requests.map(req => ({
+            id: req.REQUEST_ID,
+            name: req.REQUEST_NAME,
+            description: req.REQUEST_DESCRIPTION,
+            status: req.STATUS,
+            submittedDate: req.SUBMITTED_DATE,
+            createDate: req.CREATE_DATE,
+            trackingId: req.TRACKINGID,
+            companyId: req.COMPANY_ID,
+            requestor: req.REQUESTOR_FIRST_NAME ? {
+                name: `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}`,
+                email: req.REQUESTOR_EMAIL
+            } : null,
+            assignedUser: req.ASSIGNED_FIRST_NAME ? {
+                name: `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}`,
+                email: req.ASSIGNED_EMAIL
+            } : null
+        }));
+
+        // Return just the array (frontend expects array directly)
+        res.json(formattedRequests);
+
+    } catch (error) {
+        console.error('❌ Error fetching requests:', error);
+        res.status(500).json({
+            error: 'Failed to fetch requests',
+            message: error.message
+        });
+    }
 });
 
 // Serve React app for all other routes
