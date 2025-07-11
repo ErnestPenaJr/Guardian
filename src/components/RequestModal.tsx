@@ -54,7 +54,7 @@ interface Props {
 }
 
 const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: userLoading } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +73,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   
   // Load users for assignment
   useEffect(() => {
-    if (show) {
+    if (show && !userLoading && currentUser) {
       fetchUsers();
     }
-  }, [show]);
+  }, [show, userLoading, currentUser]);
   
   const fetchUsers = async () => {
     try {
@@ -92,6 +92,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       const companyId = currentUser?.companyId || currentUser?.company;
       if (!companyId) {
         console.warn('No company ID found for current user, currentUser:', currentUser);
+        setError('Unable to load users: Current user company not found');
         setUsers([]);
         return;
       }
@@ -253,10 +254,14 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       <Form.Select 
                         value={selectedUser} 
                         onChange={(e) => setSelectedUser(e.target.value)}
-                        disabled={loading}
+                        disabled={loading || userLoading}
                         className="form-select"
                       >
-                        <option value="">Select a user</option>
+                        <option value="">
+                          {userLoading ? 'Loading user data...' : 
+                           loading ? 'Loading users...' : 
+                           'Select a user'}
+                        </option>
                         {users && users.map((user, index) => (
                           <option key={user.USER_ID || `user-${index}`} value={user.USER_ID}>
                             {user.FULL_NAME} ({user.ROLE_NAMES})
