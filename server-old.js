@@ -30,21 +30,30 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// === STATIC FILE SERVING FIRST ===
-// Serve static files with proper MIME types - MUST be before API routes
-app.use(express.static(path.join(__dirname, 'dist'), {
-    setHeaders: (res, filepath) => {
-        if (filepath.endsWith('.js')) {
+// Serve static files with proper MIME types - this must come before any other routes
+app.use('/assets', express.static(path.join(__dirname, 'dist', 'assets'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js')) {
             res.setHeader('Content-Type', 'application/javascript');
-        } else if (filepath.endsWith('.mjs')) {
+        } else if (filePath.endsWith('.mjs')) {
             res.setHeader('Content-Type', 'application/javascript');
-        } else if (filepath.endsWith('.css')) {
+        } else if (filePath.endsWith('.css')) {
             res.setHeader('Content-Type', 'text/css');
         }
     }
 }));
 
-// === API ROUTES AFTER STATIC ===
+// Serve other static files (images, etc.)
+app.use(express.static('dist'));
+
+// Debug route to check what's happening
+app.get('/debug/assets/*', (req, res) => {
+    res.json({
+        path: req.path,
+        originalUrl: req.originalUrl,
+        message: 'Asset route reached'
+    });
+});
 
 // Basic health check
 app.get('/api/health', (req, res) => {
@@ -155,10 +164,10 @@ app.post('/api/login', async (req, res) => {
                 lastName: user.LAST_NAME,
                 companyId: user.COMPANY_ID,
                 company: user.COMPANY_ID,
-                roles: roles,
-                roleIds: roleIds,
-                roleNames: roleNames,
-                role: roleNames.length > 0 ? roleNames[0] : 'user',
+                roles: roles, // Full role objects with id, name, description
+                roleIds: roleIds, // Just the IDs for backward compatibility
+                roleNames: roleNames, // Just the names
+                role: roleNames.length > 0 ? roleNames[0] : 'user', // Primary role name
                 isAdmin: roleNames.includes('Admin') || roleNames.includes('Administrator')
             }
         });
@@ -170,6 +179,25 @@ app.post('/api/login', async (req, res) => {
             message: error.message
         });
     }
+});
+
+// Get test users endpoint
+app.get('/api/test-users', (req, res) => {
+    res.json({
+        message: 'Available test users',
+        users: [
+            {
+                email: 'admin@example.com',
+                password: 'password123',
+                role: 'admin'
+            },
+            {
+                email: 'user@example.com', 
+                password: 'password123',
+                role: 'user'
+            }
+        ]
+    });
 });
 
 // Real requests endpoint with database query
@@ -213,9 +241,27 @@ app.get('/api/requests', async (req, res) => {
         `;
 
         console.log(`✅ Found ${requests.length} requests in database`);
+        
+        // Debug: Log first request to see raw data structure
+        if (requests.length > 0) {
+            console.log('🔍 Sample raw request data:', JSON.stringify(requests[0], null, 2));
+        }
+
+        // Status mapping
+        const getStatusName = (statusCode) => {
+            switch(statusCode) {
+                case 'A': return 'Active';
+                case 'P': return 'Pending';
+                case 'C': return 'Completed';
+                case 'D': return 'Draft';
+                case 'R': return 'Rejected';
+                default: return statusCode || 'Unknown';
+            }
+        };
 
         // Format the data to match frontend expectations exactly
         const formattedRequests = requests.map(req => ({
+            // Exact field names that frontend expects
             REQUEST_ID: req.REQUEST_ID,
             REQUEST_NAME: req.REQUEST_NAME || 'Untitled Request',
             STATUS: req.STATUS,
@@ -230,6 +276,7 @@ app.get('/api/requests', async (req, res) => {
             TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
             EXTERNAL_USER: req.EXTERNAL_USER,
             
+            // User objects as expected by frontend
             requestor: req.REQUESTOR_FIRST_NAME ? {
                 FIRST_NAME: req.REQUESTOR_FIRST_NAME,
                 LAST_NAME: req.REQUESTOR_LAST_NAME,
@@ -242,6 +289,7 @@ app.get('/api/requests', async (req, res) => {
                 EMAIL: req.ASSIGNED_EMAIL || ''
             } : null,
             
+            // Computed fields for frontend
             requestorName: req.REQUESTOR_FIRST_NAME ? 
                 `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
                 'Unknown',
@@ -250,7 +298,14 @@ app.get('/api/requests', async (req, res) => {
                 null
         }));
 
+        // Debug: Log formatted data structure
+        if (formattedRequests.length > 0) {
+            console.log('🔍 Sample formatted request data:', JSON.stringify(formattedRequests[0], null, 2));
+        }
+
         console.log(`📤 Sending ${formattedRequests.length} formatted requests to frontend`);
+
+        // Return just the array (frontend expects array directly)
         res.json(formattedRequests);
 
     } catch (error) {
@@ -267,6 +322,7 @@ app.get('/api/users', async (req, res) => {
     try {
         console.log('👥 Fetching all users...');
 
+        // Get all active users
         const users = await prisma.$queryRaw`
             SELECT 
                 u.USER_ID,
@@ -287,6 +343,7 @@ app.get('/api/users', async (req, res) => {
 
         console.log(`✅ Found ${users.length} users`);
 
+        // Format users for compatibility
         const formattedUsers = users.map(user => ({
             USER_ID: user.USER_ID,
             EMAIL: user.EMAIL,
@@ -297,6 +354,7 @@ app.get('/api/users', async (req, res) => {
             STATUS: user.STATUS,
             CREATE_DATE: user.CREATE_DATE,
             ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
+            // Legacy format for compatibility
             id: user.USER_ID,
             firstName: user.FIRST_NAME,
             lastName: user.LAST_NAME,
@@ -333,6 +391,7 @@ app.get('/api/users/company/:companyId', async (req, res) => {
             });
         }
 
+        // Get users from the same company
         const users = await prisma.$queryRaw`
             SELECT 
                 u.USER_ID,
@@ -353,6 +412,7 @@ app.get('/api/users/company/:companyId', async (req, res) => {
 
         console.log(`✅ Found ${users.length} users for company ${companyId}`);
 
+        // Format users for dropdown
         const formattedUsers = users.map(user => ({
             USER_ID: user.USER_ID,
             EMAIL: user.EMAIL,
@@ -361,6 +421,7 @@ app.get('/api/users/company/:companyId', async (req, res) => {
             FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
             COMPANY_ID: user.COMPANY_ID,
             ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
+            // For dropdown display
             value: user.USER_ID,
             label: `${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`,
             subtitle: user.ROLE_NAMES || 'No roles'
@@ -391,6 +452,7 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
             });
         }
 
+        // Update the request assignment
         await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
             SET ASSIGNED_ID = ${assignedUserId || null}, 
@@ -416,25 +478,24 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
-// === CATCH-ALL ROUTE LAST ===
-// Serve React app for all other routes (MUST be last)
-app.get('*', (req, res) => {
-    const indexPath = path.join(__dirname, 'dist', 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send(`
-      <h1>Guardian MVP Server</h1>
-      <p>Server is running but frontend files not found.</p>
-      <p>Available endpoints:</p>
-      <ul>
-        <li><a href="/api/health">/api/health</a></li>
-        <li><a href="/api/test">/api/test</a></li>
-      </ul>
-      <p>Looking for: ${indexPath}</p>
-    `);
-    }
-});
+// Serve React app for all other routes (temporarily disabled for debugging)
+// app.get('*', (req, res) => {
+//     const indexPath = path.join(__dirname, 'dist', 'index.html');
+//     if (fs.existsSync(indexPath)) {
+//         res.sendFile(indexPath);
+//     } else {
+//         res.status(404).send(`
+//       <h1>Guardian MVP Server</h1>
+//       <p>Server is running but frontend files not found.</p>
+//       <p>Available endpoints:</p>
+//       <ul>
+//         <li><a href="/api/health">/api/health</a></li>
+//         <li><a href="/api/test">/api/test</a></li>
+//       </ul>
+//       <p>Looking for: ${indexPath}</p>
+//     `);
+//     }
+// });
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -446,6 +507,7 @@ const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📁 Static files: ${path.join(__dirname, 'dist')}`);
     console.log(`🌐 Health check: /api/health`);
+    console.log(`🧪 Test login: admin@example.com / password123`);
 });
 
 // Graceful shutdown
