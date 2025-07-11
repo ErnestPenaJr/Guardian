@@ -32,13 +32,13 @@ steps:
 - script: |
     echo "Copying frontend build to deployment/dist"
     cp -r dist deployment/
-    echo "Copying frontend assets to root for direct IIS serving"
-    cp -r dist/assets deployment/
+    echo "Copying frontend to root as wwwroot for direct serving"
+    cp -r dist/* deployment/
     echo "Copying server build to deployment"
     cp -r dist-server/* deployment/
     echo "Deployment directory contents:"
     ls -la deployment
-    echo "Assets in root:"
+    echo "Root level files (should include assets):"
     ls -la deployment/assets
   displayName: 'Copy build artifacts to deployment'
 
@@ -100,31 +100,20 @@ steps:
         </handlers>
         <rewrite>
           <rules>
-            <rule name="NodeInspector" patternSyntax="ECMAScript" stopProcessing="true">
-              <match url="^server.js\/debug[\/]?" />
+            <rule name="APIRoutes" stopProcessing="true">
+              <match url="^api/(.*)$" />
+              <action type="Rewrite" url="server.js"/>
             </rule>
-            <rule name="ServeAssets" stopProcessing="true">
-              <match url="^assets/(.*)$" />
+            <rule name="StaticFiles" stopProcessing="true">
+              <match url=".*" />
               <conditions>
                 <add input="{REQUEST_FILENAME}" matchType="IsFile" />
               </conditions>
               <action type="None" />
             </rule>
-            <rule name="ServeIndex" stopProcessing="true">
-              <match url="^$" />
-              <action type="Rewrite" url="dist/index.html" />
-            </rule>
-            <rule name="APIRoutes">
-              <match url="^api/(.*)$" />
-              <action type="Rewrite" url="server.js"/>
-            </rule>
             <rule name="SPAFallback">
               <match url=".*" />
-              <conditions>
-                <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
-                <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="True"/>
-              </conditions>
-              <action type="Rewrite" url="dist/index.html"/>
+              <action type="Rewrite" url="index.html"/>
             </rule>
           </rules>
         </rewrite>
