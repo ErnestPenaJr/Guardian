@@ -219,6 +219,11 @@ app.get('/api/requests', async (req, res) => {
         `;
 
         console.log(`✅ Found ${requests.length} requests in database`);
+        
+        // Debug: Log first request to see raw data structure
+        if (requests.length > 0) {
+            console.log('🔍 Sample raw request data:', JSON.stringify(requests[0], null, 2));
+        }
 
         // Status mapping
         const getStatusName = (statusCode) => {
@@ -232,42 +237,39 @@ app.get('/api/requests', async (req, res) => {
             }
         };
 
-        // Format the data for the frontend
+        // Format the data for the frontend (match original mock structure)
         const formattedRequests = requests.map(req => ({
-            // Main fields that frontend expects
             id: req.REQUEST_ID,
-            requestId: req.REQUEST_ID,
             name: req.REQUEST_NAME || 'Untitled Request',
-            title: req.REQUEST_NAME || 'Untitled Request',
-            description: req.REQUEST_DESCRIPTION || '',
+            description: req.REQUEST_DESCRIPTION || 'No description',
             status: getStatusName(req.STATUS),
-            statusCode: req.STATUS,
-            
-            // Dates - properly formatted
-            date: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toLocaleDateString() : 'No Date',
-            submittedDate: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
-            createDate: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
-            
-            // Additional fields
-            trackingId: req.TRACKINGID || '',
+            submittedDate: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : new Date().toISOString(),
+            createDate: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : new Date().toISOString(),
+            trackingId: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
             companyId: req.COMPANY_ID ? Number(req.COMPANY_ID) : null,
             
-            // User information
-            requestor: req.REQUESTOR_FIRST_NAME ? 
-                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
-                'Unknown',
-            requestorEmail: req.REQUESTOR_EMAIL || '',
-            assignedUser: req.ASSIGNED_FIRST_NAME ? 
-                `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}` : 
-                null,
-            assignedEmail: req.ASSIGNED_EMAIL || '',
+            // Requestor as object (like original mock structure)
+            requestor: req.REQUESTOR_FIRST_NAME ? {
+                name: `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}`,
+                email: req.REQUESTOR_EMAIL || ''
+            } : {
+                name: 'Unknown User',
+                email: ''
+            },
             
-            // Frontend compatibility fields
-            type: 'Request', // Default type
-            requestorName: req.REQUESTOR_FIRST_NAME ? 
-                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
-                'Unknown'
+            // Assigned user as object
+            assignedUser: req.ASSIGNED_FIRST_NAME ? {
+                name: `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}`,
+                email: req.ASSIGNED_EMAIL || ''
+            } : null
         }));
+
+        // Debug: Log formatted data structure
+        if (formattedRequests.length > 0) {
+            console.log('🔍 Sample formatted request data:', JSON.stringify(formattedRequests[0], null, 2));
+        }
+
+        console.log(`📤 Sending ${formattedRequests.length} formatted requests to frontend`);
 
         // Return just the array (frontend expects array directly)
         res.json(formattedRequests);
