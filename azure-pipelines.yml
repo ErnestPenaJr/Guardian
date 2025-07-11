@@ -110,11 +110,21 @@ steps:
               </conditions>
               <action type="None" />
             </rule>
-            <rule name="DynamicContent">
+            <rule name="ServeIndex" stopProcessing="true">
+              <match url="^$" />
+              <action type="Rewrite" url="dist/index.html" />
+            </rule>
+            <rule name="APIRoutes">
+              <match url="^api/(.*)$" />
+              <action type="Rewrite" url="server.js"/>
+            </rule>
+            <rule name="SPAFallback">
+              <match url=".*" />
               <conditions>
                 <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
+                <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="True"/>
               </conditions>
-              <action type="Rewrite" url="server.js"/>
+              <action type="Rewrite" url="dist/index.html"/>
             </rule>
           </rules>
         </rewrite>

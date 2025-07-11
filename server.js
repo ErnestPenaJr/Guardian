@@ -49,19 +49,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// === STATIC FILE SERVING FIRST ===
-// Serve static files with proper MIME types - MUST be before API routes
-app.use(express.static(path.join(__dirname, 'dist'), {
-    setHeaders: (res, filepath) => {
-        if (filepath.endsWith('.js')) {
-            res.setHeader('Content-Type', 'application/javascript');
-        } else if (filepath.endsWith('.mjs')) {
-            res.setHeader('Content-Type', 'application/javascript');
-        } else if (filepath.endsWith('.css')) {
-            res.setHeader('Content-Type', 'text/css');
-        }
-    }
-}));
+// === NO STATIC FILE SERVING IN EXPRESS ===
+// Let IIS handle static files directly via web.config rules
 
 // === API ROUTES AFTER STATIC ===
 
@@ -75,11 +64,6 @@ app.get('/api/health', (req, res) => {
         nodeVersion: process.version,
         uptime: process.uptime()
     });
-});
-
-// Simple test endpoint
-app.get('/api/simple-test', (req, res) => {
-    res.json({success: true, message: 'Server is responding', timestamp: new Date().toISOString()});
 });
 
 // Basic test endpoint
@@ -447,25 +431,8 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
-// === CATCH-ALL ROUTE LAST ===
-// Serve React app for all other routes (MUST be last)
-app.get('*', (req, res) => {
-    const indexPath = path.join(__dirname, 'dist', 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send(`
-      <h1>Guardian MVP Server</h1>
-      <p>Server is running but frontend files not found.</p>
-      <p>Available endpoints:</p>
-      <ul>
-        <li><a href="/api/health">/api/health</a></li>
-        <li><a href="/api/test">/api/test</a></li>
-      </ul>
-      <p>Looking for: ${indexPath}</p>
-    `);
-    }
-});
+// === NO CATCH-ALL ROUTE ===
+// IIS handles SPA routing via web.config
 
 // Error handling
 app.use((err, req, res, next) => {
