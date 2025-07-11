@@ -98,6 +98,11 @@ steps:
         <handlers>
           <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
         </handlers>
+        <staticContent>
+          <mimeMap fileExtension=".js" mimeType="application/javascript" />
+          <mimeMap fileExtension=".mjs" mimeType="application/javascript" />
+          <mimeMap fileExtension=".css" mimeType="text/css" />
+        </staticContent>
         <rewrite>
           <rules>
             <rule name="APIRoutes" stopProcessing="true">
