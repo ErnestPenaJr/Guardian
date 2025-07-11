@@ -6,19 +6,18 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: |
-    curl -fsSL https://bun.sh/install | bash
-    export PATH="$HOME/.bun/bin:$PATH"
-  displayName: 'Install Bun'
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
 
 - script: |
-    export PATH="$HOME/.bun/bin:$PATH"
     echo "Installing dependencies..."
-    bun install
+    npm ci
     echo "Building frontend..."
-    bun run build
+    npm run build
     echo "Building backend..."
-    bun run build:server
+    npm run build:server
     echo "Build completed. Listing dist directory contents:"
     ls -la dist
     echo "Server directory contents:"
@@ -124,15 +123,14 @@ steps:
   displayName: 'Create web.config'
 
 - script: |
-    export PATH="$HOME/.bun/bin:$PATH"
     cd deployment
-    bun install
+    npm install
     echo "Installed server dependencies in deployment directory"
     
     # Always generate Prisma client fresh during deployment
     if [ -f "prisma/schema.prisma" ]; then
       echo "Generating Prisma client for deployment..."
-      bunx prisma generate
+      npx prisma generate
       echo "Prisma client generated successfully"
       ls -la node_modules/.prisma/client/
     else
