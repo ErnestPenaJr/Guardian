@@ -1,24 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import api from '../utils/api';
 import { FaTrash } from 'react-icons/fa';
-import { Mail } from 'lucide-react';
 
 export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
-  const [inviteEmails, setInviteEmails] = useState([{ email: '', roleId: null }]);
+  interface InviteEmail {
+    email: string;
+    roleId: number | null;
+  }
+
+  const [inviteEmails, setInviteEmails] = useState<InviteEmail[]>([{ email: '', roleId: null }]);
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get('/api/roles')
-      .then(res => setRoles(res.data))
-      .catch(() => setRoles([]));
+    const fetchRoles = async () => {
+      try {
+        const response = await api.get('/api/roles');
+        // Handle the nested data structure from the API
+        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+          // Map the API response to the expected format
+          const formattedRoles = response.data.data.map((role: any) => ({
+            id: role.id,
+            name: role.displayName || role.name
+          }));
+          setRoles(formattedRoles);
+        } else {
+          setError('Invalid roles data received');
+          console.error('Invalid roles data format:', response.data);
+        }
+      } catch (err: any) {
+        setError('Failed to load roles. Please try again later.');
+        console.error('Error fetching roles:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRoles();
   }, []);
 
   const handleAddEmailField = () => setInviteEmails([...inviteEmails, { email: '', roleId: null }]);
   const handleRemoveEmailField = (idx: number) => setInviteEmails(inviteEmails.filter((_, i) => i !== idx));
-  const handleChangeEmail = (idx: number, value: string) => setInviteEmails(inviteEmails.map((v, i) => i === idx ? { ...v, email: value } : v));
-  const handleChangeRole = (idx: number, value: number) => setInviteEmails(inviteEmails.map((v, i) => i === idx ? { ...v, roleId: value } : v));
+  const handleChangeEmail = (idx: number, value: string) => 
+    setInviteEmails(inviteEmails.map((v, i) => i === idx ? { ...v, email: value } : v));
+  const handleChangeRole = (idx: number, value: string) => {
+    const roleId = value ? parseInt(value, 10) : null;
+    setInviteEmails(inviteEmails.map((v, i) => i === idx ? { ...v, roleId } : v));
+  };
 
   const handleSendInvites = async () => {
     setIsSending(true);
@@ -34,6 +65,24 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
       setIsSending(false);
     }
   };
+
+  if (isLoading) {
+    return <div className="p-4">Loading roles...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-600">
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -52,7 +101,7 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
           <select
             className="px-2 py-2 border rounded"
             value={item.roleId ?? ''}
-            onChange={e => handleChangeRole(idx, Number(e.target.value))}
+            onChange={e => handleChangeRole(idx, e.target.value)}
             required
           >
             <option value="" disabled>Select role</option>

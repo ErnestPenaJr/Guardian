@@ -23,3 +23,6 @@
 4:43:18 PM [vite] (client) page reload test2.html
 4:43:18 PM [vite] (client) page reload test2.html
 4:52:26 PM [vite] (client) page reload test2.html
+7:46:58 PM [vite] (client) hmr update /src/components/SendInvitesForm.tsx, /src/index.css
+7:47:16 PM [vite] (client) hmr update /src/components/SendInvitesForm.tsx, /src/index.css
+7:48:21 PM [vite] (client) hmr update /src/components/SendInvitesForm.tsx, /src/index.css
