@@ -83,10 +83,15 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setLoading(true);
       setError(null);
       
-      // Get current user's company ID
-      const companyId = currentUser?.companyId;
+      // Debug current user data
+      console.log('RequestModal - Current user object:', currentUser);
+      console.log('RequestModal - Current user companyId:', currentUser?.companyId);
+      console.log('RequestModal - Current user company:', currentUser?.company);
+      
+      // Get current user's company ID - try both companyId and company fields
+      const companyId = currentUser?.companyId || currentUser?.company;
       if (!companyId) {
-        console.warn('No company ID found for current user');
+        console.warn('No company ID found for current user, currentUser:', currentUser);
         setUsers([]);
         return;
       }
