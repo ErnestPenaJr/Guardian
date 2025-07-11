@@ -10,20 +10,39 @@ console.log('=== GUARDIAN SIMPLE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`Port: ${process.env.PORT || 3000}`);
+console.log(`Process PID: ${process.pid}`);
+console.log(`Current working directory: ${process.cwd()}`);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Prisma
-const prisma = new PrismaClient();
+console.log('📦 Creating Prisma client...');
+// Initialize Prisma with timeout
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
 
 // JWT Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'guardian-jwt-secret-key';
+console.log('🔑 JWT configured');
 
-// Test database connection
-prisma.$connect()
+// Test database connection with timeout
+console.log('🔌 Testing database connection...');
+const connectWithTimeout = () => {
+  return Promise.race([
+    prisma.$connect(),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database connection timeout after 10 seconds')), 10000)
+    )
+  ]);
+};
+
+connectWithTimeout()
   .then(() => console.log('✅ Database connected successfully'))
-  .catch(err => console.error('❌ Database connection failed:', err.message));
+  .catch(err => {
+    console.error('❌ Database connection failed:', err.message);
+    console.log('⚠️ Continuing without database connection...');
+  });
 
 // Basic middleware
 app.use(cors());
@@ -46,9 +65,21 @@ app.use(express.static(path.join(__dirname, 'dist'), {
 
 // === API ROUTES AFTER STATIC ===
 
-// Basic health check
+// Basic health check (no database required)
 app.get('/api/health', (req, res) => {
-    res.json({status: 'ok', timestamp: new Date().toISOString(), server: 'Guardian MVP Simple Server', port: PORT});
+    res.json({
+        status: 'ok', 
+        timestamp: new Date().toISOString(), 
+        server: 'Guardian MVP Simple Server', 
+        port: PORT,
+        nodeVersion: process.version,
+        uptime: process.uptime()
+    });
+});
+
+// Simple test endpoint
+app.get('/api/simple-test', (req, res) => {
+    res.json({success: true, message: 'Server is responding', timestamp: new Date().toISOString()});
 });
 
 // Basic test endpoint
@@ -442,10 +473,14 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
+// Start server immediately, don't wait for database
+console.log('🚀 Starting Express server...');
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📁 Static files: ${path.join(__dirname, 'dist')}`);
     console.log(`🌐 Health check: /api/health`);
+    console.log(`🧪 Simple test: /api/simple-test`);
+    console.log('🎉 Server startup complete!');
 });
 
 // Graceful shutdown
