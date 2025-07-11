@@ -247,54 +247,43 @@ app.get('/api/requests', async (req, res) => {
             }
         };
 
-        // Format the data for the frontend with all available fields
+        // Format the data to match frontend expectations exactly
         const formattedRequests = requests.map(req => ({
-            // Core request information
-            id: req.REQUEST_ID,
-            requestId: req.REQUEST_ID,
-            name: req.REQUEST_NAME || 'Untitled Request',
-            description: req.REQUEST_DESCRIPTION || 'No description provided',
-            status: getStatusName(req.STATUS),
-            statusCode: req.STATUS,
+            // Exact field names that frontend expects
+            REQUEST_ID: req.REQUEST_ID,
+            REQUEST_NAME: req.REQUEST_NAME || 'Untitled Request',
+            STATUS: req.STATUS,
+            FORM_ID: req.FORM_ID,
+            REQUESTOR_ID: req.REQUESTOR_ID,
+            ASSIGNED_ID: req.ASSIGNED_ID,
+            SUBMITTED_DATE: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
+            CREATE_DATE: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
+            UPDATE_DATE: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
+            CREATE_USER_ID: req.CREATE_USER_ID,
+            UPDATE_USER_ID: req.UPDATE_USER_ID,
+            TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
+            EXTERNAL_USER: req.EXTERNAL_USER,
             
-            // Dates
-            submittedDate: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
-            createDate: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
-            updateDate: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
-            
-            // Additional fields from REQUESTS table
-            externalUser: req.EXTERNAL_USER === 'Y',
-            trackingId: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
-            abbreviation: req.ABBREVIATION || '',
-            companyId: req.COMPANY_ID ? Number(req.COMPANY_ID) : null,
-            formId: req.FORM_ID || null,
-            
-            // User information as objects
+            // User objects as expected by frontend
             requestor: req.REQUESTOR_FIRST_NAME ? {
-                id: req.REQUESTOR_ID,
-                name: `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}`,
-                email: req.REQUESTOR_EMAIL || ''
-            } : {
-                id: null,
-                name: 'Unknown User',
-                email: ''
-            },
-            
-            assignedUser: req.ASSIGNED_FIRST_NAME ? {
-                id: req.ASSIGNED_ID,
-                name: `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}`,
-                email: req.ASSIGNED_EMAIL || ''
+                FIRST_NAME: req.REQUESTOR_FIRST_NAME,
+                LAST_NAME: req.REQUESTOR_LAST_NAME,
+                EMAIL: req.REQUESTOR_EMAIL || ''
             } : null,
             
-            creator: req.CREATOR_FIRST_NAME ? {
-                id: req.CREATE_USER_ID,
-                name: `${req.CREATOR_FIRST_NAME} ${req.CREATOR_LAST_NAME}`,
-                email: req.CREATOR_EMAIL || ''
+            assigned: req.ASSIGNED_FIRST_NAME ? {
+                FIRST_NAME: req.ASSIGNED_FIRST_NAME,
+                LAST_NAME: req.ASSIGNED_LAST_NAME,
+                EMAIL: req.ASSIGNED_EMAIL || ''
             } : null,
             
-            // Frontend compatibility
-            type: req.EXTERNAL_USER === 'Y' ? 'External Request' : 'Internal Request',
-            date: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toLocaleDateString() : 'No Date'
+            // Computed fields for frontend
+            requestorName: req.REQUESTOR_FIRST_NAME ? 
+                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
+                'Unknown',
+            assignedName: req.ASSIGNED_FIRST_NAME ? 
+                `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}` : 
+                null
         }));
 
         // Debug: Log formatted data structure
