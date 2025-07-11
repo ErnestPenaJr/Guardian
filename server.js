@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { PrismaClient } = require('@prisma/client');
 
 console.log('=== GUARDIAN SIMPLE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
@@ -10,6 +13,17 @@ console.log(`Port: ${process.env.PORT || 3000}`);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize Prisma
+const prisma = new PrismaClient();
+
+// JWT Configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'guardian-jwt-secret-key';
+
+// Test database connection
+prisma.$connect()
+  .then(() => console.log('✅ Database connected successfully'))
+  .catch(err => console.error('❌ Database connection failed:', err.message));
 
 // Basic middleware
 app.use(cors());
@@ -39,24 +53,100 @@ app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
 });
 
-// Test users for login
-app.post('/api/login', (req, res) => {
-    const {email, password} = req.body;
+// Real database authentication
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-    // Simple test credentials
-    if (email === 'admin@example.com' && password === 'password123') {
+        console.log(`🔐 Login attempt for: ${email}`);
+
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Email and password are required'
+            });
+        }
+
+        // Query the database using raw SQL for GUARDIAN schema
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS 
+            FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        if (users.length === 0) {
+            console.log(`❌ User not found: ${email}`);
+            return res.status(401).json({
+                error: 'Invalid email or password'
+            });
+        }
+
+        const user = users[0];
+
+        // Check if user is active
+        if (user.STATUS !== 'A') {
+            console.log(`❌ User not active: ${email}`);
+            return res.status(401).json({
+                error: 'Account is not active. Please contact support.'
+            });
+        }
+
+        // Verify password
+        if (!user.PASSWORD_HASH) {
+            console.log(`❌ No password hash for user: ${email}`);
+            return res.status(401).json({
+                error: 'Password not set for this account. Please use password reset.'
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.PASSWORD_HASH);
+        if (!isPasswordValid) {
+            console.log(`❌ Invalid password for user: ${email}`);
+            return res.status(401).json({
+                error: 'Invalid email or password'
+            });
+        }
+
+        // Get user roles
+        const userRoles = await prisma.$queryRaw`
+            SELECT ROLE_ID FROM GUARDIAN.USER_ROLES 
+            WHERE USER_ID = ${user.USER_ID}
+        `;
+        const roleIds = userRoles.map(ur => ur.ROLE_ID);
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                id: user.USER_ID,
+                email: user.EMAIL,
+                firstName: user.FIRST_NAME,
+                lastName: user.LAST_NAME,
+                roles: roleIds
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        console.log(`✅ Login successful for: ${email}`);
+
         res.json({
             success: true,
-            token: 'test-token-12345',
+            token: token,
             user: {
-                id: 1,
-                email: 'admin@example.com',
-                firstName: 'Admin',
-                lastName: 'User'
+                id: user.USER_ID,
+                email: user.EMAIL,
+                firstName: user.FIRST_NAME,
+                lastName: user.LAST_NAME,
+                roles: roleIds,
+                role: roleIds.includes(1) ? 'admin' : 'user'
             }
         });
-    } else {
-        res.status(401).json({error: 'Invalid credentials'});
+
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        res.status(500).json({
+            error: 'Server error during login',
+            message: error.message
+        });
     }
 });
 
