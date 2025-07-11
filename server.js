@@ -46,6 +46,15 @@ app.use('/assets', express.static(path.join(__dirname, 'dist', 'assets'), {
 // Serve other static files (images, etc.)
 app.use(express.static('dist'));
 
+// Debug route to check what's happening
+app.get('/debug/assets/*', (req, res) => {
+    res.json({
+        path: req.path,
+        originalUrl: req.originalUrl,
+        message: 'Asset route reached'
+    });
+});
+
 // Basic health check
 app.get('/api/health', (req, res) => {
     res.json({status: 'ok', timestamp: new Date().toISOString(), server: 'Guardian MVP Simple Server', port: PORT});
@@ -469,24 +478,24 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
-// Serve React app for all other routes  
-app.get('*', (req, res) => {
-    const indexPath = path.join(__dirname, 'dist', 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send(`
-      <h1>Guardian MVP Server</h1>
-      <p>Server is running but frontend files not found.</p>
-      <p>Available endpoints:</p>
-      <ul>
-        <li><a href="/api/health">/api/health</a></li>
-        <li><a href="/api/test">/api/test</a></li>
-      </ul>
-      <p>Looking for: ${indexPath}</p>
-    `);
-    }
-});
+// Serve React app for all other routes (temporarily disabled for debugging)
+// app.get('*', (req, res) => {
+//     const indexPath = path.join(__dirname, 'dist', 'index.html');
+//     if (fs.existsSync(indexPath)) {
+//         res.sendFile(indexPath);
+//     } else {
+//         res.status(404).send(`
+//       <h1>Guardian MVP Server</h1>
+//       <p>Server is running but frontend files not found.</p>
+//       <p>Available endpoints:</p>
+//       <ul>
+//         <li><a href="/api/health">/api/health</a></li>
+//         <li><a href="/api/test">/api/test</a></li>
+//       </ul>
+//       <p>Looking for: ${indexPath}</p>
+//     `);
+//     }
+// });
 
 // Error handling
 app.use((err, req, res, next) => {
