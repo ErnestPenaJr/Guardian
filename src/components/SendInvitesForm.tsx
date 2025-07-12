@@ -15,31 +15,65 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const response = await api.get('/api/roles');
-        // Handle the nested data structure from the API
-        if (response.data && response.data.success && Array.isArray(response.data.data)) {
-          // Map the API response to the expected format
-          const formattedRoles = response.data.data.map((role: any) => ({
-            id: role.id,
-            name: role.displayName || role.name
-          }));
-          setRoles(formattedRoles);
-        } else {
-          setError('Invalid roles data received');
-          console.error('Invalid roles data format:', response.data);
-        }
-      } catch (err: any) {
-        setError('Failed to load roles. Please try again later.');
-        console.error('Error fetching roles:', err);
-      } finally {
-        setIsLoading(false);
+  const fetchRoles = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('[SendInvitesForm] Fetching roles from /api/roles');
+      const response = await api.get('/api/roles');
+      
+      // Log the complete response for debugging
+      console.group('Roles API Response');
+      console.log('Complete response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data keys:', Object.keys(response.data));
+      
+      if (response.data && Array.isArray(response.data)) {
+        console.log('Response is direct array, first item:', response.data[0]);
+        const formattedRoles = response.data.map((role: any) => ({
+          id: role.id || role.ROLE_ID,
+          name: role.displayName || role.name || role.DISPLAY_NAME || role.NAME,
+          displayName: role.displayName || role.DISPLAY_NAME || role.name || role.NAME
+        }));
+        console.log('Formatted roles:', formattedRoles);
+        setRoles(formattedRoles);
       }
-    };
+      else if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        console.log('Response has success flag with data array, first item:', response.data.data[0]);
+        const formattedRoles = response.data.data.map((role: any) => ({
+          id: role.id || role.ROLE_ID,
+          name: role.displayName || role.name || role.DISPLAY_NAME || role.NAME,
+          displayName: role.displayName || role.DISPLAY_NAME || role.name || role.NAME
+        }));
+        console.log('Formatted roles:', formattedRoles);
+        setRoles(formattedRoles);
+      } else {
+        console.error('Unexpected roles data format:', response.data);
+        throw new Error('Invalid roles data format received from server');
+      }
+      
+      console.groupEnd();
+      
+      if (roles.length === 0) {
+        console.warn('No roles found in the response');
+        throw new Error('No roles available');
+      }
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.error || 'Failed to load roles. Please try again.';
+      setError(errorMessage);
+      console.error('Error fetching roles:', err);
+      // Re-throw to allow error boundary to catch it if needed
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchRoles();
+  useEffect(() => {
+    fetchRoles().catch(() => {
+      // Error is already handled in fetchRoles
+    });
   }, []);
 
   const handleAddEmailField = () => setInviteEmails([...inviteEmails, { email: '', roleId: null }]);
@@ -72,13 +106,14 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
 
   if (error) {
     return (
-      <div className="p-4 text-red-600">
-        <p>{error}</p>
+      <div className="p-4">
+        <div className="text-red-600 mb-4">{error}</div>
         <button 
-          onClick={() => window.location.reload()} 
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          onClick={() => fetchRoles().catch(() => {})}
+          disabled={isLoading}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Retry
+          {isLoading ? 'Loading...' : 'Retry'}
         </button>
       </div>
     );
