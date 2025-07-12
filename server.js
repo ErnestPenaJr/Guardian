@@ -473,7 +473,11 @@ app.get('/api/roles', async (req, res) => {
         }));
 
         console.log(`📤 Sending ${formattedRoles.length} formatted roles to frontend`);
-        res.json(formattedRoles);
+        res.json({
+            success: true,
+            data: formattedRoles,
+            count: formattedRoles.length
+        });
 
     } catch (error) {
         console.error('❌ Error fetching roles:', error);
