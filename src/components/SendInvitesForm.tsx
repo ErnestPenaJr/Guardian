@@ -54,11 +54,6 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
       }
       
       console.groupEnd();
-      
-      if (roles.length === 0) {
-        console.warn('No roles found in the response');
-        throw new Error('No roles available');
-      }
     } catch (err: any) {
       const errorMessage = err?.response?.data?.error || 'Failed to load roles. Please try again.';
       setError(errorMessage);

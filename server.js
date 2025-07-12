@@ -488,6 +488,389 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 
+// Registration endpoints
+
+// Start registration process
+app.post('/api/register', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`📝 Registration request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'User with this email already exists'
+            });
+        }
+
+        // Generate 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Set expiration to 30 minutes from now
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+        // Store verification data in a temp table or cache
+        // For now, we'll use a simple in-memory store (you might want to use Redis or database)
+        global.verificationCodes = global.verificationCodes || {};
+        global.verificationCodes[email] = {
+            code: verificationCode,
+            expiresAt: expiresAt,
+            verified: false
+        };
+
+        console.log(`✅ Verification code generated for ${email}: ${verificationCode} (expires: ${expiresAt})`);
+
+        // TODO: Send actual email with verification code
+        // For now, just log it (in production, integrate with SendGrid/Nodemailer)
+        console.log(`📧 Email would be sent to ${email} with code: ${verificationCode}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code sent to your email',
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { verificationCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Registration error:', error);
+        res.status(500).json({
+            error: 'Failed to start registration',
+            message: error.message
+        });
+    }
+});
+
+// Verify email with code
+app.post('/api/verify-email', async (req, res) => {
+    try {
+        const { email, verificationCode } = req.body;
+        console.log(`🔍 Email verification attempt for: ${email}`);
+
+        if (!email || !verificationCode) {
+            return res.status(400).json({
+                error: 'Email and verification code are required'
+            });
+        }
+
+        // Check verification code
+        global.verificationCodes = global.verificationCodes || {};
+        const storedData = global.verificationCodes[email];
+
+        if (!storedData) {
+            return res.status(400).json({
+                error: 'No verification code found for this email'
+            });
+        }
+
+        if (new Date() > storedData.expiresAt) {
+            delete global.verificationCodes[email];
+            return res.status(400).json({
+                error: 'Verification code has expired'
+            });
+        }
+
+        if (storedData.code !== verificationCode) {
+            return res.status(400).json({
+                error: 'Invalid verification code'
+            });
+        }
+
+        // Mark as verified
+        storedData.verified = true;
+        console.log(`✅ Email verified successfully for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Email verified successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Email verification error:', error);
+        res.status(500).json({
+            error: 'Failed to verify email',
+            message: error.message
+        });
+    }
+});
+
+// Resend verification email
+app.post('/api/send-verification-email', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`📧 Resend verification code request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Generate new 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Set expiration to 30 minutes from now
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+        // Update verification data
+        global.verificationCodes = global.verificationCodes || {};
+        global.verificationCodes[email] = {
+            code: verificationCode,
+            expiresAt: expiresAt,
+            verified: false
+        };
+
+        console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
+
+        // TODO: Send actual email with verification code
+        console.log(`📧 Email would be resent to ${email} with code: ${verificationCode}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code resent to your email',
+            expiryTime: expiresAt.toISOString(),
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { code: verificationCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Resend verification error:', error);
+        res.status(500).json({
+            error: 'Failed to resend verification code',
+            message: error.message
+        });
+    }
+});
+
+// Complete registration after email verification
+app.post('/api/complete-registration', async (req, res) => {
+    try {
+        const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
+        console.log(`👤 Completing registration for: ${email}`);
+
+        // Validate required fields
+        if (!email || !password || !fullName || !workspaceName) {
+            return res.status(400).json({
+                error: 'Email, password, full name, and workspace name are required'
+            });
+        }
+
+        // Check if email was verified
+        global.verificationCodes = global.verificationCodes || {};
+        const storedData = global.verificationCodes[email];
+
+        if (!storedData || !storedData.verified) {
+            return res.status(400).json({
+                error: 'Email must be verified before completing registration'
+            });
+        }
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'User with this email already exists'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Split full name into first and last name
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        // Get an existing company ID (use the first available company)
+        const companies = await prisma.$queryRaw`
+            SELECT TOP 1 COMPANY_ID FROM GUARDIAN.COMPANY
+        `;
+        let companyId = companies.length > 0 ? companies[0].COMPANY_ID : 31; // Fallback to 31
+        
+        // TODO: You might want to create a company based on workspace name
+        // For now, we'll use a default company ID
+
+        // Create user record
+        const result = await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
+                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${email}, ${hashedPassword}, ${firstName}, ${lastName},
+                'A', ${companyId}, GETDATE(), GETDATE()
+            )
+        `;
+
+        // Get the newly created user ID
+        const newUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        const userId = newUser[0].USER_ID;
+
+        // Assign default role (General User = role ID 2, adjust as needed)
+        const defaultRoleId = 2;
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, ${defaultRoleId}, GETDATE(), GETDATE())
+        `;
+
+        // Store company info if provided
+        if (role || teamSize || companySize) {
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.COMPANY_INFO (
+                    COMPANY_ID, USER_ID, WORKSPACE_NAME, ROLE, TEAM_SIZE, COMPANY_SIZE, CREATED_AT, UPDATED_AT
+                )
+                VALUES (
+                    ${companyId}, ${userId}, ${workspaceName}, ${role || null}, 
+                    ${teamSize || null}, ${companySize || null}, GETDATE(), GETDATE()
+                )
+            `;
+        }
+
+        // Clean up verification code
+        delete global.verificationCodes[email];
+
+        console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
+
+        res.json({
+            success: true,
+            message: 'Registration completed successfully',
+            user: {
+                id: userId,
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                companyId: companyId
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Complete registration error:', error);
+        res.status(500).json({
+            error: 'Failed to complete registration',
+            message: error.message
+        });
+    }
+});
+
+// Accept invite
+app.post('/api/invite/accept', async (req, res) => {
+    try {
+        const { token, firstName, lastName, password } = req.body;
+        console.log(`📩 Processing invite acceptance with token: ${token}`);
+
+        if (!token || !firstName || !lastName || !password) {
+            return res.status(400).json({
+                error: 'Token, first name, last name, and password are required'
+            });
+        }
+
+        // Find and validate invite
+        const invites = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, ROLE_ID, COMPANY_ID, STATUS, EXPIRES_AT
+            FROM GUARDIAN.INVITES 
+            WHERE TOKEN = ${token} AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+        `;
+
+        if (invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invalid or expired invite token'
+            });
+        }
+
+        const invite = invites[0];
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'User with this email already exists'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Create user account
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
+                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${invite.EMAIL}, ${hashedPassword}, ${firstName}, ${lastName},
+                'A', ${invite.COMPANY_ID}, GETDATE(), GETDATE()
+            )
+        `;
+
+        // Get the newly created user ID
+        const newUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        const userId = newUser[0].USER_ID;
+
+        // Assign the role from the invite
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, ${invite.ROLE_ID}, GETDATE(), GETDATE())
+        `;
+
+        // Mark invite as used
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.INVITES 
+            SET STATUS = 'U', USED_AT = GETDATE()
+            WHERE INVITE_ID = ${invite.INVITE_ID}
+        `;
+
+        console.log(`✅ Invite accepted successfully for: ${invite.EMAIL} (User ID: ${userId})`);
+
+        res.json({
+            success: true,
+            message: 'Invite accepted successfully. You can now log in.',
+            user: {
+                id: userId,
+                email: invite.EMAIL,
+                firstName: firstName,
+                lastName: lastName,
+                companyId: invite.COMPANY_ID,
+                roleId: invite.ROLE_ID
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Invite acceptance error:', error);
+        res.status(500).json({
+            error: 'Failed to accept invite',
+            message: error.message
+        });
+    }
+});
+
 // Send invites endpoint
 app.post('/invites/send', async (req, res) => {
     try {
