@@ -49,10 +49,19 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// === NO STATIC FILE SERVING IN EXPRESS ===
-// Let IIS handle static files directly via web.config rules
+// === STATIC FILE SERVING ===
+// Serve static files from current directory (where dist contents are deployed)
+app.use(express.static('.', {
+  index: 'index.html',
+  setHeaders: (res, path) => {
+    // Set proper MIME types for JavaScript modules
+    if (path.endsWith('.js') || path.endsWith('.mjs')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
 
-// === API ROUTES AFTER STATIC ===
+// === API ROUTES ===
 
 // Basic health check (no database required)
 app.get('/api/health', (req, res) => {
@@ -442,6 +451,12 @@ app.use((err, req, res, next) => {
 
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
+// === SPA FALLBACK ROUTE ===
+// Handle all non-API routes for React Router (must be last!)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📁 Static files: ${path.join(__dirname, 'dist')}`);

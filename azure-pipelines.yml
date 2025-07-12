@@ -95,47 +95,9 @@ steps:
 
 - script: |
     cd deployment
-    echo '<?xml version="1.0" encoding="utf-8"?>
-    <configuration>
-      <system.webServer>
-        <handlers>
-          <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
-        </handlers>
-        <staticContent>
-          <mimeMap fileExtension=".js" mimeType="application/javascript" />
-          <mimeMap fileExtension=".mjs" mimeType="application/javascript" />
-          <mimeMap fileExtension=".css" mimeType="text/css" />
-        </staticContent>
-        <rewrite>
-          <rules>
-            <rule name="APIRoutes" stopProcessing="true">
-              <match url="^api/(.*)$" />
-              <action type="Rewrite" url="server.js"/>
-            </rule>
-            <rule name="StaticFiles" stopProcessing="true">
-              <match url=".*" />
-              <conditions>
-                <add input="{REQUEST_FILENAME}" matchType="IsFile" />
-              </conditions>
-              <action type="None" />
-            </rule>
-            <rule name="SPAFallback">
-              <match url=".*" />
-              <action type="Rewrite" url="index.html"/>
-            </rule>
-          </rules>
-        </rewrite>
-        <security>
-          <requestFiltering>
-            <hiddenSegments>
-              <remove segment="bin"/>
-            </hiddenSegments>
-          </requestFiltering>
-        </security>
-        <httpErrors existingResponse="PassThrough" />
-      </system.webServer>
-    </configuration>' > web.config
-  displayName: 'Create web.config'
+    echo "Pure Node.js deployment - no web.config needed"
+    echo "Express server will handle all static files and routing"
+  displayName: 'Pure Node.js deployment configuration'
 
 - script: |
     cd deployment
