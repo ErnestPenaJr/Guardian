@@ -93,24 +93,26 @@ steps:
     cd deployment
     echo "Configuring pure Node.js deployment"
     echo '[config]
-SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
+    SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
     echo "Creating web.config to force all requests to Node.js"
-    echo '<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
-    </handlers>
-    <rewrite>
-      <rules>
-        <rule name="DynamicContent">
-          <match url="/*" />
-          <action type="Rewrite" url="server.js"/>
-        </rule>
-      </rules>
-    </rewrite>
-  </system.webServer>
-</configuration>' > web.config
+    cat > web.config << 'EOF'
+    <?xml version="1.0" encoding="utf-8"?>
+    <configuration>
+      <system.webServer>
+        <handlers>
+          <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
+        </handlers>
+        <rewrite>
+          <rules>
+            <rule name="DynamicContent">
+              <match url="/*" />
+              <action type="Rewrite" url="server.js"/>
+            </rule>
+          </rules>
+        </rewrite>
+      </system.webServer>
+    </configuration>
+    EOF
     echo "Configuration complete - all requests will go to Node.js"
   displayName: 'Force all requests to Node.js'
 
