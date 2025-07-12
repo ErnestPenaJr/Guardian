@@ -90,16 +90,29 @@ steps:
   displayName: 'Copy Prisma files'
 
 - script: |
-    echo '[config]
-    SCM_DO_BUILD_DURING_DEPLOYMENT=true' > deployment/.deployment
-    cat deployment/.deployment
-  displayName: 'Create .deployment file'
-
-- script: |
     cd deployment
-    echo "Pure Node.js deployment - no web.config needed"
-    echo "Express server will handle all static files and routing"
-  displayName: 'Pure Node.js deployment configuration'
+    echo "Configuring pure Node.js deployment"
+    echo '[config]
+SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
+    echo "Creating web.config to force all requests to Node.js"
+    echo '<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
+    </handlers>
+    <rewrite>
+      <rules>
+        <rule name="DynamicContent">
+          <match url="/*" />
+          <action type="Rewrite" url="server.js"/>
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>' > web.config
+    echo "Configuration complete - all requests will go to Node.js"
+  displayName: 'Force all requests to Node.js'
 
 - script: |
     cd deployment
