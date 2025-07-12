@@ -1,10 +1,14 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('=== GUARDIAN SIMPLE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
@@ -476,4 +480,4 @@ process.on('SIGINT', () => {
     server.close(() => process.exit(0));
 });
 
-module.exports = app;
+export default app;

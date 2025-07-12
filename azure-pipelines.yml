@@ -48,17 +48,21 @@ steps:
   displayName: 'Copy build artifacts to deployment'
 
 - script: |
-    echo "Copying main server file"
-    cp server.js deployment/server.js
-    echo "Main server file copied to deployment"
+    echo "Copying production server file (CommonJS)"
+    cp server.cjs deployment/server.js
+    echo "Production server file (CommonJS) copied to deployment as server.js"
+    echo "Server file type:"
+    head -1 deployment/server.js
     ls -la deployment/
-  displayName: 'Copy main server file to deployment'
+  displayName: 'Copy production server file to deployment'
 
 - script: |
-    echo "Copying main package.json to deployment"
-    cp package.json deployment/package.json
-    echo "Package.json copied"
-  displayName: 'Copy package.json'
+    echo "Copying production package.json to deployment"
+    cp package.production.json deployment/package.json
+    echo "Production package.json (CommonJS) copied for Azure compatibility"
+    echo "Package type:"
+    grep '"type"' deployment/package.json
+  displayName: 'Copy production package.json'
 
 - script: |
     echo "Copying production .env file to deployment"

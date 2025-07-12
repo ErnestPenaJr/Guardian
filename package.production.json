@@ -2,7 +2,7 @@
   "name": "Guardian",
   "private": true,
   "version": "2.5.0",
-  "type": "module",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -17,7 +17,7 @@
     "backend": "npm run build:server && PORT=3001 npm run start:server",
     "add-templates": "ts-node scripts/add_standard_templates.ts",
     "prisma:generate": "prisma generate",
-    "postinstall": "prisma generate && npm run build:all"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
