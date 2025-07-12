@@ -444,6 +444,151 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
+// Get roles endpoint for invite forms
+app.get('/api/roles', async (req, res) => {
+    try {
+        console.log('🎭 Fetching roles from database...');
+
+        const roles = await prisma.$queryRaw`
+            SELECT ROLE_ID, NAME, DISPLAY_NAME, DESCRIPTION, STATUS
+            FROM GUARDIAN.ROLES 
+            WHERE STATUS = 'A'
+            ORDER BY DISPLAY_NAME
+        `;
+
+        console.log(`✅ Found ${roles.length} roles in database`);
+
+        // Format the data to match frontend expectations
+        const formattedRoles = roles.map(role => ({
+            id: role.ROLE_ID,
+            ROLE_ID: role.ROLE_ID,
+            name: role.NAME,
+            NAME: role.NAME,
+            displayName: role.DISPLAY_NAME,
+            DISPLAY_NAME: role.DISPLAY_NAME,
+            description: role.DESCRIPTION,
+            DESCRIPTION: role.DESCRIPTION,
+            status: role.STATUS,
+            STATUS: role.STATUS
+        }));
+
+        console.log(`📤 Sending ${formattedRoles.length} formatted roles to frontend`);
+        res.json(formattedRoles);
+
+    } catch (error) {
+        console.error('❌ Error fetching roles:', error);
+        res.status(500).json({
+            error: 'Failed to fetch roles',
+            message: error.message
+        });
+    }
+});
+
+// Send invites endpoint
+app.post('/invites/send', async (req, res) => {
+    try {
+        const { invites } = req.body;
+        console.log(`📧 Processing ${invites?.length || 0} invite requests`);
+
+        if (!invites || !Array.isArray(invites) || invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invites array is required and must not be empty'
+            });
+        }
+
+        const results = [];
+        const errors = [];
+
+        for (const invite of invites) {
+            try {
+                const { email, roleId } = invite;
+
+                if (!email || !roleId) {
+                    errors.push(`Invalid invite data: email and roleId required`);
+                    continue;
+                }
+
+                // Check if user already exists
+                const existingUser = await prisma.$queryRaw`
+                    SELECT USER_ID FROM GUARDIAN.USERS 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                `;
+
+                if (existingUser.length > 0) {
+                    errors.push(`User with email ${email} already exists`);
+                    continue;
+                }
+
+                // Check if there's already a pending invite
+                const existingInvite = await prisma.$queryRaw`
+                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
+                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+                `;
+
+                if (existingInvite.length > 0) {
+                    errors.push(`Active invite already exists for ${email}`);
+                    continue;
+                }
+
+                // Generate unique token
+                const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+                
+                // Set expiration to 7 days from now
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+
+                // For now, default to company ID 1 - you may want to get this from the authenticated user
+                const companyId = 1;
+
+                // Insert invite record
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
+                    VALUES (${email}, ${roleId}, ${companyId}, ${token}, 'P', ${expiresAt})
+                `;
+
+                console.log(`✅ Invite created for ${email} with role ${roleId}`);
+                results.push({
+                    email: email,
+                    status: 'sent',
+                    token: token,
+                    expiresAt: expiresAt.toISOString()
+                });
+
+                // TODO: Send actual email with invite link
+                // For now, just log the invite details
+                console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+
+            } catch (inviteError) {
+                console.error(`❌ Error processing invite for ${invite?.email}:`, inviteError);
+                errors.push(`Failed to process invite for ${invite?.email}: ${inviteError.message}`);
+            }
+        }
+
+        const response = {
+            success: results.length > 0,
+            message: `Processed ${invites.length} invite(s). ${results.length} sent, ${errors.length} failed.`,
+            results: results,
+            errors: errors.length > 0 ? errors : undefined
+        };
+
+        console.log(`📤 Invite processing complete:`, response);
+
+        if (results.length === 0 && errors.length > 0) {
+            return res.status(400).json(response);
+        }
+
+        res.json(response);
+
+    } catch (error) {
+        console.error('❌ Error in invite endpoint:', error);
+        res.status(500).json({
+            error: 'Failed to process invites',
+            message: error.message
+        });
+    }
+});
+
 // === NO CATCH-ALL ROUTE ===
 // IIS handles SPA routing via web.config
 
