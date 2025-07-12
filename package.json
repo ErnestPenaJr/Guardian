@@ -2,7 +2,7 @@
   "name": "Guardian",
   "private": true,
   "version": "2.5.0",
-  "type": "module",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
