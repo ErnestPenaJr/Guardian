@@ -13,13 +13,15 @@ steps:
 
 - script: |
     echo "Installing dependencies..."
-    npm ci
+    npm install
     echo "Building frontend..."
     npm run build
     echo "Building backend..."
     npm run build:server
     echo "Build completed. Listing dist directory contents:"
     ls -la dist
+    echo "Assets directory:"
+    ls -la dist/assets
     echo "Server directory contents:"
     ls -la dist-server
   displayName: 'Install dependencies and build'
