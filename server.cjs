@@ -5,7 +5,25 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
-const { sendVerificationEmail, sendInviteEmail } = require('./src/utils/resend-email.cjs');
+
+// Try to import email utilities (optional for production compatibility)
+let sendVerificationEmail, sendInviteEmail;
+try {
+    const emailUtils = require('./src/utils/resend-email.cjs');
+    sendVerificationEmail = emailUtils.sendVerificationEmail;
+    sendInviteEmail = emailUtils.sendInviteEmail;
+    console.log('✅ Email utilities loaded successfully');
+} catch (error) {
+    console.log('⚠️ Email utilities not available, using fallback mode');
+    sendVerificationEmail = async (email, code) => {
+        console.log(`📧 [FALLBACK] Would send verification email to ${email} with code: ${code}`);
+        return false; // Return false to indicate email not sent
+    };
+    sendInviteEmail = async (email, token, role) => {
+        console.log(`📧 [FALLBACK] Would send invite email to ${email} with token: ${token}`);
+        return false; // Return false to indicate email not sent
+    };
+}
 
 console.log('=== GUARDIAN SIMPLE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);

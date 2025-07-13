@@ -6,7 +6,25 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { fileURLToPath } from 'url';
-import { sendVerificationEmail, sendInviteEmail } from './src/utils/resend-email.js';
+
+// Try to import email utilities (optional for production compatibility)
+let sendVerificationEmail, sendInviteEmail;
+try {
+    const emailUtils = await import('./src/utils/resend-email.js');
+    sendVerificationEmail = emailUtils.sendVerificationEmail;
+    sendInviteEmail = emailUtils.sendInviteEmail;
+    console.log('✅ Email utilities loaded successfully');
+} catch (error) {
+    console.log('⚠️ Email utilities not available, using fallback mode');
+    sendVerificationEmail = async (email, code) => {
+        console.log(`📧 [FALLBACK] Would send verification email to ${email} with code: ${code}`);
+        return false; // Return false to indicate email not sent
+    };
+    sendInviteEmail = async (email, token, role) => {
+        console.log(`📧 [FALLBACK] Would send invite email to ${email} with token: ${token}`);
+        return false; // Return false to indicate email not sent
+    };
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
