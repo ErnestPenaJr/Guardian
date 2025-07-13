@@ -441,6 +441,61 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
     }
 });
 
+// Email validation endpoint (for frontend compatibility)
+app.post('/api/validate-email', async (req, res) => {
+    try {
+        const { email, purpose = 'register' } = req.body;
+        console.log(`📧 Email validation request for: ${email} (purpose: ${purpose})`);
+
+        if (!email) {
+            return res.status(400).json({
+                valid: false,
+                reason: 'Email is required'
+            });
+        }
+
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isValidFormat = emailRegex.test(email);
+
+        if (!isValidFormat) {
+            return res.json({
+                valid: false,
+                reason: 'Invalid email format'
+            });
+        }
+
+        // For registration, check if user already exists
+        if (purpose === 'register') {
+            const existingUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            `;
+
+            if (existingUser.length > 0) {
+                return res.json({
+                    valid: false,
+                    reason: 'User with this email already exists'
+                });
+            }
+        }
+
+        // Email is valid
+        res.json({
+            valid: true,
+            reason: 'Email is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Email validation error:', error);
+        res.status(500).json({
+            valid: false,
+            reason: 'Server error during email validation',
+            message: error.message
+        });
+    }
+});
+
 // Get roles endpoint for invite forms
 app.get('/api/roles', async (req, res) => {
     try {
