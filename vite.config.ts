@@ -11,6 +11,7 @@ export default defineConfig({
     port: 5175,
     proxy: {
       '/api': 'http://localhost:3001',
+      '/logout': 'http://localhost:3001',
     },
   },
 })

@@ -63,6 +63,12 @@ const VerifyEmail = () => {
         
         setTimeLeft(Math.floor(timeRemaining / 1000));
       }
+      
+      // Auto-fill verification code in development mode
+      if (data.verificationCode && process.env.NODE_ENV === 'development') {
+        console.log('%c Development Mode - Auto-filling verification code:', 'background: #FF9800; color: #fff; font-size: 14px;', data.verificationCode);
+        setVerificationCode(data.verificationCode);
+      }
     } catch (error) {
       console.error('%c Error parsing registration data:', 'background: #F44336; color: #fff', error);
       navigate('/register');

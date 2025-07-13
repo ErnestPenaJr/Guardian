@@ -101,7 +101,20 @@ function Register() {
       showToast.success(`Verification code sent to ${email}`);
       // Persist registration data for verification page
       const expiryTime = new Date(Date.now() + 1000 * 60 * 30).toISOString();
-      localStorage.setItem('registrationData', JSON.stringify({ email, expiryTime }));
+      const registrationData = { 
+        email, 
+        expiryTime,
+        // Include verification code if provided (development mode)
+        ...(response.data.verificationCode && { verificationCode: response.data.verificationCode })
+      };
+      localStorage.setItem('registrationData', JSON.stringify(registrationData));
+      
+      // Show verification code in development mode
+      if (response.data.verificationCode) {
+        console.log('%c Development Mode - Verification Code:', 'background: #FF9800; color: #fff; font-size: 16px; font-weight: bold;', response.data.verificationCode);
+        showToast.success(`Verification code sent to ${email} (Dev: ${response.data.verificationCode})`);
+      }
+      
       navigate('/verify-email', { state: { email } });
     } catch (error: any) {
       if (error.response && error.response.data && error.response.data.error) {

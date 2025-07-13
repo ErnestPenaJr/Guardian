@@ -484,6 +484,29 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 
+// Logout endpoint
+app.post('/logout', async (req, res) => {
+    try {
+        console.log('🚪 Logout request received');
+        
+        // Since we're using JWT tokens (stateless), logout is mainly handled client-side
+        // The client should remove the token from localStorage/sessionStorage
+        // Here we can log the logout event or perform any server-side cleanup if needed
+        
+        res.json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        res.status(500).json({
+            error: 'Failed to logout',
+            message: error.message
+        });
+    }
+});
+
 // Registration endpoints
 
 // Start registration process

@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { fileURLToPath } from 'url';
+import { sendVerificationEmail, sendInviteEmail } from './src/utils/resend-email.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -488,6 +489,29 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 
+// Logout endpoint
+app.post('/logout', async (req, res) => {
+    try {
+        console.log('🚪 Logout request received');
+        
+        // Since we're using JWT tokens (stateless), logout is mainly handled client-side
+        // The client should remove the token from localStorage/sessionStorage
+        // Here we can log the logout event or perform any server-side cleanup if needed
+        
+        res.json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        res.status(500).json({
+            error: 'Failed to logout',
+            message: error.message
+        });
+    }
+});
+
 // Registration endpoints
 
 // Start registration process
@@ -532,9 +556,11 @@ app.post('/api/register', async (req, res) => {
 
         console.log(`✅ Verification code generated for ${email}: ${verificationCode} (expires: ${expiresAt})`);
 
-        // TODO: Send actual email with verification code
-        // For now, just log it (in production, integrate with SendGrid/Nodemailer)
-        console.log(`📧 Email would be sent to ${email} with code: ${verificationCode}`);
+        // Send actual email with verification code using Resend
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to send email to ${email}, but continuing (code available in dev mode)`);
+        }
 
         res.json({
             success: true,
@@ -634,8 +660,11 @@ app.post('/api/send-verification-email', async (req, res) => {
 
         console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
 
-        // TODO: Send actual email with verification code
-        console.log(`📧 Email would be resent to ${email} with code: ${verificationCode}`);
+        // Send actual email with verification code using Resend
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to resend email to ${email}, but continuing (code available in dev mode)`);
+        }
 
         res.json({
             success: true,
@@ -935,16 +964,23 @@ app.post('/invites/send', async (req, res) => {
                 `;
 
                 console.log(`✅ Invite created for ${email} with role ${roleId}`);
+                
+                // Send actual invite email using Resend
+                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
+                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
+                
                 results.push({
                     email: email,
-                    status: 'sent',
+                    status: status,
                     token: token,
-                    expiresAt: expiresAt.toISOString()
+                    expiresAt: expiresAt.toISOString(),
+                    emailSent: emailSent
                 });
 
-                // TODO: Send actual email with invite link
-                // For now, just log the invite details
-                console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                if (!emailSent) {
+                    console.log(`⚠️ Failed to send invite email to ${email}, but invite record created`);
+                    console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                }
 
             } catch (inviteError) {
                 console.error(`❌ Error processing invite for ${invite?.email}:`, inviteError);
