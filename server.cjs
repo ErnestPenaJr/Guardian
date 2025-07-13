@@ -5,6 +5,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const { sendVerificationEmail, sendInviteEmail } = require('./src/utils/resend-email.cjs');
 
 console.log('=== GUARDIAN SIMPLE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
@@ -551,9 +552,11 @@ app.post('/api/register', async (req, res) => {
 
         console.log(`✅ Verification code generated for ${email}: ${verificationCode} (expires: ${expiresAt})`);
 
-        // TODO: Send actual email with verification code
-        // For now, just log it (in production, integrate with SendGrid/Nodemailer)
-        console.log(`📧 Email would be sent to ${email} with code: ${verificationCode}`);
+        // Send actual email with verification code using Resend
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to send email to ${email}, but continuing (code available in dev mode)`);
+        }
 
         res.json({
             success: true,
@@ -653,8 +656,11 @@ app.post('/api/send-verification-email', async (req, res) => {
 
         console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
 
-        // TODO: Send actual email with verification code
-        console.log(`📧 Email would be resent to ${email} with code: ${verificationCode}`);
+        // Send actual email with verification code using Resend
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to resend email to ${email}, but continuing (code available in dev mode)`);
+        }
 
         res.json({
             success: true,
@@ -954,16 +960,23 @@ app.post('/invites/send', async (req, res) => {
                 `;
 
                 console.log(`✅ Invite created for ${email} with role ${roleId}`);
+                
+                // Send actual invite email using Resend
+                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
+                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
+                
                 results.push({
                     email: email,
-                    status: 'sent',
+                    status: status,
                     token: token,
-                    expiresAt: expiresAt.toISOString()
+                    expiresAt: expiresAt.toISOString(),
+                    emailSent: emailSent
                 });
 
-                // TODO: Send actual email with invite link
-                // For now, just log the invite details
-                console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                if (!emailSent) {
+                    console.log(`⚠️ Failed to send invite email to ${email}, but invite record created`);
+                    console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                }
 
             } catch (inviteError) {
                 console.error(`❌ Error processing invite for ${invite?.email}:`, inviteError);
