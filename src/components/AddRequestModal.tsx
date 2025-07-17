@@ -222,65 +222,25 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         userId: authUser?.id || 1036 // Get user ID from authenticated user or default to Ernest Pena (1036)
       };
       
-      // Use the standard endpoint directly which now uses transactions and proper ID handling
-      let requestResult;
-      try {
-        console.log('Using standard endpoint with transaction support...');
-        console.log('Request data being sent:', requestData);
-        
-        // Ensure name is not empty
-        if (!requestData.name || requestData.name.trim() === '') {
-          throw new Error('Request name is required');
-        }
-        
-        requestResult = await requestService.createRequest(requestData);
-        console.log('Standard endpoint success:', requestResult);
-        
-        // Verify that we have both a request and form instance
-        if (!requestResult.request || !requestResult.formInstance) {
-          throw new Error('Incomplete response: missing request or form instance data');
-        }
-        
-        // Log the relationship between request and form instance
-        console.log(`Successfully created request ${requestResult.request.REQUEST_ID} with form instance ${requestResult.formInstance.FORM_INSTANCE_ID}`);
-      } catch (error) {
-        console.error('Standard endpoint failed:', error);
-        
-        // If standard endpoint fails, try the SQL endpoint as fallback
-        try {
-          console.log('Attempting to use SQL endpoint as fallback...');
-          const sqlData = {
-            name: requestName,
-            abbreviation,
-            description,
-            templateId: formId
-          };
-          requestResult = await requestService.sqlCreateRequest(sqlData);
-          console.log('SQL endpoint success:', requestResult);
-        } catch (sqlError) {
-          console.error('SQL endpoint failed:', sqlError);
-          toast.error('SQL endpoint failed. Trying simple endpoint...');
-          
-          // Try the simple endpoint as last resort
-          try {
-            console.log('Attempting to use simple endpoint as last resort...');
-            const simpleData = {
-              name: requestName,
-              abbreviation,
-              description
-            };
-            requestResult = await requestService.simpleCreateRequest(simpleData);
-            console.log('Simple endpoint success:', requestResult);
-          } catch (simpleError) {
-            console.error('Simple endpoint failed:', simpleError);
-            throw simpleError; // Re-throw to be caught by the outer catch block
-          }
-        }
+      // Use only the main endpoint to avoid duplicate creation
+      console.log('Creating request using main endpoint...');
+      console.log('Request data being sent:', requestData);
+      
+      // Ensure name is not empty
+      if (!requestData.name || requestData.name.trim() === '') {
+        throw new Error('Request name is required');
       }
       
-      if (!requestResult) {
-        throw new Error('Request creation failed - no result returned');
+      const requestResult = await requestService.createRequest(requestData);
+      console.log('Request creation successful:', requestResult);
+      
+      // Verify that we have both a request and form instance
+      if (!requestResult.request || !requestResult.formInstance) {
+        throw new Error('Incomplete response: missing request or form instance data');
       }
+      
+      // Log the relationship between request and form instance
+      console.log(`Successfully created request ${requestResult.request.REQUEST_ID} with form instance ${requestResult.formInstance.FORM_INSTANCE_ID}`);
       
       console.log('Request created successfully:', requestResult);
       
