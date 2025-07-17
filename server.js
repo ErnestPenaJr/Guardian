@@ -614,25 +614,87 @@ app.post('/api/register', async (req, res) => {
         // Generate 6-digit verification code
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Set expiration to 30 minutes from now
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+        // Hash the verification code for secure storage
+        const crypto = await import('crypto');
+        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+        const passwordHash = crypto.createHash('sha256').update('').digest('hex');
+        
+        // Get name parts from email
+        const firstName = email.split('@')[0].split('.')[0];
+        const lastName = email.split('@')[0].split('.')[1] || '';
 
-        // Store verification data in a temp table or cache
-        // For now, we'll use a simple in-memory store (you might want to use Redis or database)
-        global.verificationCodes = global.verificationCodes || {};
-        global.verificationCodes[email] = {
-            code: verificationCode,
-            expiresAt: expiresAt,
-            verified: false
-        };
+        // Extract domain for company name
+        let companyNameToUse = 'Default Company';
+        if (email && email.includes('@')) {
+          const emailDomain = email.split('@')[1];
+          if (emailDomain) {
+            const domainParts = emailDomain.split('.');
+            if (domainParts.length > 0 && domainParts[0].length > 0) {
+              companyNameToUse = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+              
+              // Handle common domains
+              if (emailDomain.includes('gmail.com')) {
+                companyNameToUse = 'Gmail';
+              } else if (emailDomain.includes('outlook.com') || emailDomain.includes('hotmail.com')) {
+                companyNameToUse = 'Microsoft';
+              } else if (emailDomain.includes('yahoo.com')) {
+                companyNameToUse = 'Yahoo';
+              } else if (emailDomain.includes('icloud.com') || emailDomain.includes('me.com') || emailDomain.includes('mac.com')) {
+                companyNameToUse = 'Apple';
+              }
+            }
+          }
+        }
 
-        console.log(`✅ Verification code generated for ${email}: ${verificationCode} (expires: ${expiresAt})`);
+        // Create company
+        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
+        if (!company) {
+          company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
+        }
+
+        // Create user in database
+        const user = await prisma.uSERS.create({
+          data: {
+            EMAIL: email,
+            PASSWORD_HASH: passwordHash,
+            EMAIL_VALIDATION_TOKEN: hashedCode,
+            EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+            EMAIL_VALIDATED: false,
+            STATUS: 'P',
+            CREATE_DATE: new Date(),
+            UPDATE_DATE: new Date(),
+            FIRST_NAME: firstName,
+            LAST_NAME: lastName,
+            COMPANY_ID: company.COMPANY_ID
+          }
+        });
+
+        // Create company_info entry
+        await prisma.cOMPANY_INFO.create({
+          data: {
+            USER_ID: user.USER_ID,
+            COMPANY_ID: company.COMPANY_ID,
+          }
+        });
+
+        // Assign Admin role
+        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+        if (!adminRole) {
+          adminRole = await prisma.rOLES.create({ 
+            data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } 
+          });
+        }
+        await prisma.uSER_ROLES.create({ 
+          data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } 
+        });
+
+        console.log(`✅ User created in database with ID: ${user.USER_ID}, verification code: ${verificationCode}`);
 
         // Send actual email with verification code using Resend
         const emailSent = await sendVerificationEmail(email, verificationCode);
         if (!emailSent) {
-            console.log(`⚠️ Failed to send email to ${email}, but continuing (code available in dev mode)`);
+            console.log(`⚠️ Failed to send email to ${email}, but user created in database (code available in dev mode)`);
         }
 
         res.json({
