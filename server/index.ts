@@ -622,7 +622,11 @@ app.post('/api/register', async (req, res) => {
     }
     
     // Generic error for production security
-    return res.status(500).json({ error: 'Registration failed. Please try again later.' });
+    return res.status(500).json({ 
+      error: 'Registration failed. Please try again later.',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      code: process.env.NODE_ENV === 'development' ? err.code : undefined
+    });
   }
 });
 
