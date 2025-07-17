@@ -271,6 +271,128 @@ async function initializeServer() {
 
     console.log('✅ Login endpoint configured');
 
+    // POST /api/register
+    app.post('/api/register', async (req, res) => {
+      try {
+        console.log('[REGISTER] Registration request received:', req.body);
+        
+        const registerSchema = z.object({
+          email: z.string().email(),
+          companyName: z.string().optional()
+        });
+        
+        const parseResult = registerSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          return res.status(400).json({ error: 'Invalid input', details: parseResult.error.errors });
+        }
+
+        const { email } = parseResult.data;
+        
+        // Check if user already exists
+        const existingUser = await prisma.uSERS.findFirst({ where: { EMAIL: email } });
+        if (existingUser) {
+          return res.status(409).json({ error: 'An account with this email already exists.' });
+        }
+
+        // Generate a 6-digit numeric verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Import crypto module
+        const crypto = await import('crypto');
+        
+        // Hash the verification code for secure storage
+        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+        const passwordHash = crypto.createHash('sha256').update('').digest('hex');
+        
+        // Get name parts from email
+        const firstName = email.split('@')[0].split('.')[0];
+        const lastName = email.split('@')[0].split('.')[1] || '';
+
+        // Extract domain for company name
+        let companyNameToUse = 'Default Company';
+        if (email && email.includes('@')) {
+          const emailDomain = email.split('@')[1];
+          if (emailDomain) {
+            const domainParts = emailDomain.split('.');
+            if (domainParts.length > 0 && domainParts[0].length > 0) {
+              companyNameToUse = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+              
+              // Handle common domains
+              if (emailDomain.includes('gmail.com')) {
+                companyNameToUse = 'Gmail';
+              } else if (emailDomain.includes('outlook.com') || emailDomain.includes('hotmail.com')) {
+                companyNameToUse = 'Microsoft';
+              } else if (emailDomain.includes('yahoo.com')) {
+                companyNameToUse = 'Yahoo';
+              } else if (emailDomain.includes('icloud.com') || emailDomain.includes('me.com') || emailDomain.includes('mac.com')) {
+                companyNameToUse = 'Apple';
+              }
+            }
+          }
+        }
+
+        // Create company
+        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
+        if (!company) {
+          company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
+        }
+
+        // Create user
+        const user = await prisma.uSERS.create({
+          data: {
+            EMAIL: email,
+            PASSWORD_HASH: passwordHash,
+            EMAIL_VALIDATION_TOKEN: hashedCode,
+            EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+            EMAIL_VALIDATED: false,
+            STATUS: 'P',
+            CREATE_DATE: new Date(),
+            UPDATE_DATE: new Date(),
+            FIRST_NAME: firstName,
+            LAST_NAME: lastName,
+            COMPANY_ID: company.COMPANY_ID
+          }
+        });
+
+        // Create company_info entry
+        await prisma.cOMPANY_INFO.create({
+          data: {
+            USER_ID: user.USER_ID,
+            COMPANY_ID: company.COMPANY_ID,
+          }
+        });
+
+        // Assign Admin role
+        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+        if (!adminRole) {
+          adminRole = await prisma.rOLES.create({ 
+            data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } 
+          });
+        }
+        await prisma.uSER_ROLES.create({ 
+          data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } 
+        });
+
+        // Send verification email (basic implementation for now)
+        console.log('[REGISTER] Verification code for', email, ':', verificationCode);
+        
+        return res.status(201).json({ 
+          message: 'Registration successful. Please check your email for verification.', 
+          userId: user.USER_ID 
+        });
+
+      } catch (error) {
+        console.error('[REGISTER] Error:', error);
+        return res.status(500).json({ 
+          error: 'Registration failed', 
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
+      }
+    });
+
+    console.log('✅ Registration endpoint configured');
+
   } catch (importError) {
     console.error('❌ Failed to import ES modules:', importError);
     
