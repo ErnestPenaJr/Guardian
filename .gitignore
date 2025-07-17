@@ -24,3 +24,7 @@ yarn-error.log*
 
 # windsurf rules
 .windsurfrules
+
+# deployment artifacts
+manual-deploy.zip
+simple-deploy/

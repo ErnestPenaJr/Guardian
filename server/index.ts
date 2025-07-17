@@ -595,9 +595,34 @@ app.post('/api/register', async (req, res) => {
       await sendVerificationEmail(email, verificationCode);
       return res.status(201).json({ message: 'Registration successful. Please check your email for verification.', userId: user.USER_ID });
     }
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Internal server error' });
+  } catch (err: any) {
+    console.error('[REGISTRATION ERROR]', {
+      error: err.message,
+      code: err.code,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      timestamp: new Date().toISOString(),
+      email: req.body.email
+    });
+    
+    // More specific error messages based on error type
+    if (err.code === 'P1000' || err.message.includes('Authentication failed')) {
+      return res.status(503).json({ error: 'Database authentication failed. Please try again later.' });
+    }
+    
+    if (err.message.includes('Cannot open server') || err.message.includes('IP address')) {
+      return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
+    }
+    
+    if (err.code === 'P2002' || err.message.includes('Unique constraint')) {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+    
+    if (err.message.includes('timeout') || err.code === 'ETIMEDOUT') {
+      return res.status(503).json({ error: 'Database timeout. Please try again.' });
+    }
+    
+    // Generic error for production security
+    return res.status(500).json({ error: 'Registration failed. Please try again later.' });
   }
 });
 

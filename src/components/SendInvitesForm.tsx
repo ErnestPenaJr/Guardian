@@ -84,12 +84,55 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
     setIsSending(true);
     try {
       const invites = inviteEmails.filter(e => e.email && e.roleId);
-      await api.post('/invites/send', { invites });
-      Swal.fire({ icon: 'success', title: 'Invites Sent', text: 'Invitations have been sent.' });
-      onClose();
-      setInviteEmails([{ email: '', roleId: null }]);
+      
+      if (invites.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'No Valid Invites', text: 'Please add at least one email with a role selected.' });
+        return;
+      }
+
+      console.log('[SendInvitesForm] Sending invites:', invites);
+      
+      // Fix: Use correct API endpoint
+      const response = await api.post('/api/invites/send', { invites });
+      
+      console.log('[SendInvitesForm] API Response:', response.data);
+      
+      // Check if response indicates success
+      if (response.status === 200 || response.status === 201) {
+        Swal.fire({ 
+          icon: 'success', 
+          title: 'Invites Sent', 
+          text: `Successfully sent ${invites.length} invitation${invites.length > 1 ? 's' : ''}.` 
+        });
+        onClose();
+        setInviteEmails([{ email: '', roleId: null }]);
+      } else {
+        throw new Error('Unexpected response from server');
+      }
     } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.error || 'Failed to send invites.' });
+      console.error('[SendInvitesForm] Error sending invites:', err);
+      
+      // More detailed error messages
+      let errorMessage = 'Failed to send invites.';
+      
+      if (err?.response?.status === 401) {
+        errorMessage = 'You are not authorized to send invites. Please log in again.';
+      } else if (err?.response?.status === 403) {
+        errorMessage = 'You do not have permission to send invites.';
+      } else if (err?.response?.status === 500) {
+        errorMessage = 'Server error. This might be due to network connectivity issues.';
+      } else if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      Swal.fire({ 
+        icon: 'error', 
+        title: 'Error Sending Invites', 
+        text: errorMessage,
+        footer: 'Check your network connection and try again.'
+      });
     } finally {
       setIsSending(false);
     }

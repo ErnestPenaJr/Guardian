@@ -97,33 +97,56 @@ function Register() {
       
       console.log('%c Registration API Response', 'background: #2196F3; color: #fff', response.data);
       
-      // Success: proceed to verification
-      showToast.success(`Verification code sent to ${email}`);
-      // Persist registration data for verification page
-      const expiryTime = new Date(Date.now() + 1000 * 60 * 30).toISOString();
-      const registrationData = { 
-        email, 
-        expiryTime,
-        // Include verification code if provided (development mode)
-        ...(response.data.verificationCode && { verificationCode: response.data.verificationCode })
-      };
-      localStorage.setItem('registrationData', JSON.stringify(registrationData));
-      
-      // Show verification code in development mode
-      if (response.data.verificationCode) {
-        console.log('%c Development Mode - Verification Code:', 'background: #FF9800; color: #fff; font-size: 16px; font-weight: bold;', response.data.verificationCode);
-        showToast.success(`Verification code sent to ${email} (Dev: ${response.data.verificationCode})`);
-      }
-      
-      navigate('/verify-email', { state: { email } });
-    } catch (error: any) {
-      if (error.response && error.response.data && error.response.data.error) {
-        setError(error.response.data.error);
-        showToast.error(error.response.data.error);
+      // Check if registration actually succeeded
+      if (response.status === 201 && response.data.message) {
+        // Success: proceed to verification
+        showToast.success(`Verification code sent to ${email}`);
+        // Persist registration data for verification page
+        const expiryTime = new Date(Date.now() + 1000 * 60 * 30).toISOString();
+        const registrationData = { 
+          email, 
+          expiryTime,
+          // Include verification code if provided (development mode)
+          ...(response.data.verificationCode && { verificationCode: response.data.verificationCode })
+        };
+        localStorage.setItem('registrationData', JSON.stringify(registrationData));
+        
+        // Show verification code in development mode
+        if (response.data.verificationCode) {
+          console.log('%c Development Mode - Verification Code:', 'background: #FF9800; color: #fff; font-size: 16px; font-weight: bold;', response.data.verificationCode);
+          showToast.success(`Verification code sent to ${email} (Dev: ${response.data.verificationCode})`);
+        }
+        
+        navigate('/verify-email', { state: { email } });
       } else {
-        setError('An error occurred during registration. Please try again.');
-        showToast.error('An error occurred during registration. Please try again.');
+        throw new Error('Registration failed - unexpected response from server');
       }
+    } catch (error: any) {
+      console.error('[Registration] Error:', error);
+      
+      let errorMessage = 'An error occurred during registration. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        if (error.response.status === 409) {
+          errorMessage = 'An account with this email already exists.';
+        } else if (error.response.status === 503) {
+          errorMessage = 'Database connection failed. Please try again later.';
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else {
+          errorMessage = `Server error (${error.response.status}). Please try again.`;
+        }
+      } else if (error.request) {
+        // Network error - no response received
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else {
+        // Other errors (including our custom "unexpected response" error)
+        errorMessage = error.message || 'Registration failed. Please try again.';
+      }
+      
+      setError(errorMessage);
+      showToast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
