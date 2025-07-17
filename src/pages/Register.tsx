@@ -98,7 +98,8 @@ function Register() {
       console.log('%c Registration API Response', 'background: #2196F3; color: #fff', response.data);
       
       // Check if registration actually succeeded
-      if (response.status === 201 && response.data.message) {
+      if ((response.status === 201 && response.data.message) || 
+          (response.status === 200 && response.data.success && response.data.message)) {
         // Success: proceed to verification
         showToast.success(`Verification code sent to ${email}`);
         // Persist registration data for verification page
