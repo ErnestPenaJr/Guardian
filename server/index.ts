@@ -1075,28 +1075,34 @@ async function sendPasswordResetEmail(email: string, code: string) {
 }
 
 // --- Send Verification Email Helper ---
-async function sendVerificationEmail(email: string, verificationToken: string) {
-  const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+async function sendVerificationEmail(email: string, verificationCode: string) {
+  const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationCode}&email=${encodeURIComponent(email)}`;
   
   try {
     await resend.emails.send({
       from: `Shieldlytics <${EMAIL_FROM}>`,
       to: email,
       subject: 'Verify Your Email Address',
-      text: `Thank you for registering with Guardian. Please verify your email by clicking the following link: ${verificationUrl}`,
+      text: `Thank you for registering with Guardian. Your verification code is: ${verificationCode}. You can also verify by clicking this link: ${verificationUrl}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
           <div style="text-align: center; margin-bottom: 20px;">
             <h2>Verify Your Email Address</h2>
           </div>
           <p>Hello,</p>
-          <p>Thank you for registering with Guardian. Please verify your email address by clicking the button below:</p>
+          <p>Thank you for registering with Guardian. Use the verification code below to verify your email address:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="display: inline-block; background-color: #f5f5f5; padding: 15px 25px; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 3px; color: #333;">
+              ${verificationCode}
+            </div>
+          </div>
+          <p>Or click the button below to verify automatically:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationUrl}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
               Verify Email
             </a>
           </div>
-          <p>If you did not create an account, you can safely ignore this email.</p>
+          <p>This code will expire in 15 minutes. If you did not create an account, you can safely ignore this email.</p>
           <p>Best regards,<br>The Guardian Team</p>
           <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
           <p style="font-size: 12px; color: #777; text-align: center;">
