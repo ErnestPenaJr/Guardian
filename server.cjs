@@ -681,6 +681,89 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 
+// Get field types endpoint
+app.get('/api/field-types', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('🔧 Fetching field types from database...');
+
+        const fieldTypes = await prisma.$queryRaw`
+            SELECT FIELD_TYPE_ID, FIELD_TYPE_DESC, SORT_ORDER
+            FROM GUARDIAN.FIELD_TYPE 
+            ORDER BY SORT_ORDER, FIELD_TYPE_DESC
+        `;
+
+        console.log(`✅ Found ${fieldTypes.length} field types`);
+
+        // Format the data to match frontend expectations
+        const formattedFieldTypes = fieldTypes.map(fieldType => ({
+            FIELD_TYPE_ID: fieldType.FIELD_TYPE_ID,
+            FIELD_TYPE_DESC: fieldType.FIELD_TYPE_DESC,
+            SORT_ORDER: fieldType.SORT_ORDER
+        }));
+
+        console.log(`📤 Sending ${formattedFieldTypes.length} field types to frontend`);
+        res.json(formattedFieldTypes);
+
+    } catch (error) {
+        console.error('❌ Error fetching field types:', error);
+        res.status(500).json({
+            error: 'Failed to fetch field types',
+            message: error.message
+        });
+    }
+});
+
+// Get fields endpoint
+app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('📝 Fetching fields from database for company:', req.companyId);
+
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
+                   ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE f.ORGANIZATION_ID = ${req.companyId}
+            ORDER BY f.SORT_ORDER, f.FIELD_NAME
+        `;
+
+        console.log(`✅ Found ${fields.length} fields for company ${req.companyId}`);
+
+        // Format the data to match frontend expectations
+        const formattedFields = fields.map(field => ({
+            FIELD_ID: field.FIELD_ID,
+            FIELD_NAME: field.FIELD_NAME,
+            FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+            DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+            HAS_LOOKUP: field.HAS_LOOKUP,
+            IS_PUBLIC: field.IS_PUBLIC,
+            IS_ACTIVE: field.IS_ACTIVE,
+            IS_DELETED: field.IS_DELETED,
+            IS_REQUIRED: field.IS_REQUIRED,
+            IS_SENSITIVE: field.IS_SENSITIVE,
+            CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE,
+            ORGANIZATION_ID: field.ORGANIZATION_ID,
+            SORT_ORDER: field.SORT_ORDER,
+            FIELD_TYPE: {
+                FIELD_TYPE_DESC: field.FIELD_TYPE_DESC,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID
+            }
+        }));
+
+        console.log(`📤 Sending ${formattedFields.length} fields to frontend`);
+        res.json(formattedFields);
+
+    } catch (error) {
+        console.error('❌ Error fetching fields:', error);
+        res.status(500).json({
+            error: 'Failed to fetch fields',
+            message: error.message
+        });
+    }
+});
+
 // Get forms endpoint for templates
 app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     try {
