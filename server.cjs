@@ -1013,15 +1013,17 @@ app.post('/api/complete-registration', async (req, res) => {
         }
 
         // Update company info if provided
+        console.log(`📝 Updating company info for user ${userId}`);
         if (role || teamSize || companySize || workspaceName) {
             const existingCompanyInfo = await prisma.cOMPANY_INFO.findFirst({
                 where: { USER_ID: userId }
             });
 
             if (existingCompanyInfo) {
-                // Update existing record
+                console.log(`✅ Found existing company info record with ID: ${existingCompanyInfo.COMPANY_INFO_ID}`);
+                // Update existing record using the unique COMPANY_INFO_ID
                 await prisma.cOMPANY_INFO.update({
-                    where: { USER_ID: userId },
+                    where: { COMPANY_INFO_ID: existingCompanyInfo.COMPANY_INFO_ID },
                     data: {
                         ...(workspaceName && { WORKSPACE_NAME: workspaceName }),
                         ...(role && { ROLE: role }),
@@ -1030,6 +1032,9 @@ app.post('/api/complete-registration', async (req, res) => {
                         UPDATED_AT: new Date()
                     }
                 });
+                console.log(`✅ Company info updated successfully`);
+            } else {
+                console.log(`❌ No existing company info found for user ${userId}`);
             }
         }
 
