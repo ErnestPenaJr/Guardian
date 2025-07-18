@@ -1048,7 +1048,7 @@ app.post('/api/complete-registration', async (req, res) => {
                 email: email,
                 firstName: firstName,
                 lastName: lastName,
-                companyId: companyId
+                companyId: existingUser.COMPANY_ID
             }
         });
 
