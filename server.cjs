@@ -1040,6 +1040,73 @@ app.post('/api/request-password-reset', async (req, res) => {
     }
 });
 
+// Verify reset code (just validation, doesn't reset password)
+app.post('/api/verify-reset-code', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        console.log(`🔍 Verifying reset code for: ${email}`);
+
+        if (!email || !code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Email and verification code are required'
+            });
+        }
+
+        // Find user
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: email }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid reset request'
+            });
+        }
+
+        if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            return res.status(400).json({
+                success: false,
+                error: 'No active password reset request found'
+            });
+        }
+
+        if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            return res.status(400).json({
+                success: false,
+                error: 'Verification code has expired'
+            });
+        }
+
+        // Verify reset code
+        const crypto = require('crypto');
+        const hashedProvidedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+        if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid verification code'
+            });
+        }
+
+        console.log(`✅ Reset code verified successfully for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Reset code verification error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to verify reset code',
+            message: error.message
+        });
+    }
+});
+
 // Reset password with code
 app.post('/api/reset-password', async (req, res) => {
     try {
