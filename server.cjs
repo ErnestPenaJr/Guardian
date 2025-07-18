@@ -517,6 +517,67 @@ app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req
     }
 });
 
+// Get invites endpoint
+app.get('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📧 Fetching invites for company ID: ${req.companyId}`);
+
+        const invites = await prisma.$queryRaw`
+            SELECT 
+                i.INVITE_ID,
+                i.EMAIL,
+                i.ROLE_ID,
+                i.COMPANY_ID,
+                i.TOKEN,
+                i.STATUS,
+                i.EXPIRES_AT,
+                i.USED_AT,
+                i.CREATED_AT,
+                r.NAME as ROLE_NAME,
+                r.DISPLAY_NAME as ROLE_DISPLAY_NAME
+            FROM GUARDIAN.INVITES i
+            LEFT JOIN GUARDIAN.ROLES r ON i.ROLE_ID = r.ROLE_ID
+            WHERE i.COMPANY_ID = ${req.companyId}
+            ORDER BY i.CREATED_AT DESC
+        `;
+
+        console.log(`✅ Found ${invites.length} invites`);
+
+        const formattedInvites = invites.map(invite => ({
+            INVITE_ID: invite.INVITE_ID,
+            EMAIL: invite.EMAIL,
+            ROLE_ID: invite.ROLE_ID,
+            COMPANY_ID: invite.COMPANY_ID,
+            TOKEN: invite.TOKEN,
+            STATUS: invite.STATUS,
+            EXPIRES_AT: invite.EXPIRES_AT,
+            USED_AT: invite.USED_AT,
+            CREATED_AT: invite.CREATED_AT,
+            ROLE_NAME: invite.ROLE_NAME,
+            ROLE_DISPLAY_NAME: invite.ROLE_DISPLAY_NAME,
+            // Add frontend-friendly aliases
+            id: invite.INVITE_ID,
+            email: invite.EMAIL,
+            roleId: invite.ROLE_ID,
+            roleName: invite.ROLE_DISPLAY_NAME || invite.ROLE_NAME,
+            status: invite.STATUS,
+            expiresAt: invite.EXPIRES_AT,
+            usedAt: invite.USED_AT,
+            createdAt: invite.CREATED_AT,
+            companyId: invite.COMPANY_ID
+        }));
+
+        res.json(formattedInvites);
+
+    } catch (error) {
+        console.error('❌ Error fetching invites:', error);
+        res.status(500).json({
+            error: 'Failed to fetch invites',
+            message: error.message
+        });
+    }
+});
+
 // Update request assignment
 app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (req, res) => {
     try {
