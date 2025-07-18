@@ -973,6 +973,148 @@ app.post('/api/send-verification-email', async (req, res) => {
     }
 });
 
+// Request password reset
+app.post('/api/request-password-reset', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`🔄 Password reset request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Check if user exists
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: email }
+        });
+
+        if (!user) {
+            // Don't reveal if email exists or not for security
+            return res.json({
+                success: true,
+                message: 'If an account with this email exists, you will receive a password reset link.'
+            });
+        }
+
+        // Generate a 6-digit reset code
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Hash the reset code for secure storage
+        const crypto = require('crypto');
+        const hashedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+        const resetExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+
+        // Store reset code in user record
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                EMAIL_VALIDATION_TOKEN: hashedCode,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: resetExpiry,
+                UPDATE_DATE: new Date()
+            }
+        });
+
+        // Send reset email
+        const emailSent = await sendVerificationEmail(email, resetCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to send reset email to ${email}, but continuing (code available in dev mode)`);
+        }
+
+        console.log(`✅ Password reset code generated for ${email}: ${resetCode}`);
+
+        res.json({
+            success: true,
+            message: 'If an account with this email exists, you will receive a password reset link.',
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { resetCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Password reset request error:', error);
+        res.status(500).json({
+            error: 'Failed to process password reset request',
+            message: error.message
+        });
+    }
+});
+
+// Reset password with code
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { email, resetCode, newPassword } = req.body;
+        console.log(`🔒 Password reset attempt for: ${email}`);
+
+        if (!email || !resetCode || !newPassword) {
+            return res.status(400).json({
+                error: 'Email, reset code, and new password are required'
+            });
+        }
+
+        // Find user
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: email }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                error: 'Invalid reset request'
+            });
+        }
+
+        if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            return res.status(400).json({
+                error: 'No active password reset request found'
+            });
+        }
+
+        if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            return res.status(400).json({
+                error: 'Password reset code has expired'
+            });
+        }
+
+        // Verify reset code
+        const crypto = require('crypto');
+        const hashedProvidedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+
+        if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
+            return res.status(400).json({
+                error: 'Invalid reset code'
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        // Update password and clear reset token
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                PASSWORD_HASH: hashedPassword,
+                EMAIL_VALIDATION_TOKEN: null,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: null,
+                UPDATE_DATE: new Date()
+            }
+        });
+
+        console.log(`✅ Password reset successful for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Password has been reset successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Password reset error:', error);
+        res.status(500).json({
+            error: 'Failed to reset password',
+            message: error.message
+        });
+    }
+});
+
 // Complete registration after email verification
 app.post('/api/complete-registration', async (req, res) => {
     try {
