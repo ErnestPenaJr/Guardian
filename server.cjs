@@ -1027,7 +1027,7 @@ app.post('/api/complete-registration', async (req, res) => {
                         ...(role && { ROLE: role }),
                         ...(teamSize && { TEAM_SIZE: teamSize }),
                         ...(companySize && { COMPANY_SIZE: companySize }),
-                        UPDATE_DATE: new Date()
+                        UPDATED_AT: new Date()
                     }
                 });
             }
