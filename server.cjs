@@ -1110,10 +1110,12 @@ app.post('/api/verify-reset-code', async (req, res) => {
 // Reset password with code
 app.post('/api/reset-password', async (req, res) => {
     try {
-        const { email, resetCode, newPassword } = req.body;
+        const { email, code, resetCode, newPassword } = req.body;
+        // Support both 'code' and 'resetCode' parameter names
+        const verificationCode = code || resetCode;
         console.log(`🔒 Password reset attempt for: ${email}`);
 
-        if (!email || !resetCode || !newPassword) {
+        if (!email || !verificationCode || !newPassword) {
             return res.status(400).json({
                 error: 'Email, reset code, and new password are required'
             });
@@ -1144,7 +1146,7 @@ app.post('/api/reset-password', async (req, res) => {
 
         // Verify reset code
         const crypto = require('crypto');
-        const hashedProvidedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+        const hashedProvidedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
 
         if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
             return res.status(400).json({
