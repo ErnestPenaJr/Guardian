@@ -905,25 +905,26 @@ app.post('/api/complete-registration', async (req, res) => {
             });
         }
 
-        // Check if email was verified
-        global.verificationCodes = global.verificationCodes || {};
-        const storedData = global.verificationCodes[email];
+        // Check if user exists and email was verified
+        const existingUser = await prisma.uSERS.findFirst({
+            where: { EMAIL: email }
+        });
 
-        if (!storedData || !storedData.verified) {
+        if (!existingUser) {
+            return res.status(400).json({
+                error: 'User not found. Please register first.'
+            });
+        }
+
+        if (!existingUser.EMAIL_VALIDATED) {
             return res.status(400).json({
                 error: 'Email must be verified before completing registration'
             });
         }
 
-        // Check if user already exists
-        const existingUser = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-        `;
-
-        if (existingUser.length > 0) {
+        if (existingUser.PASSWORD_HASH && existingUser.PASSWORD_HASH !== '') {
             return res.status(400).json({
-                error: 'User with this email already exists'
+                error: 'Registration already completed for this email'
             });
         }
 
@@ -935,57 +936,55 @@ app.post('/api/complete-registration', async (req, res) => {
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        // Get an existing company ID (use the first available company)
-        const companies = await prisma.$queryRaw`
-            SELECT TOP 1 COMPANY_ID FROM GUARDIAN.COMPANY
-        `;
-        let companyId = companies.length > 0 ? companies[0].COMPANY_ID : 31; // Fallback to 31
-        
-        // TODO: You might want to create a company based on workspace name
-        // For now, we'll use a default company ID
+        // Update the existing user with password and name
+        await prisma.uSERS.update({
+            where: { USER_ID: existingUser.USER_ID },
+            data: {
+                PASSWORD_HASH: hashedPassword,
+                FIRST_NAME: firstName,
+                LAST_NAME: lastName,
+                STATUS: 'A', // Active
+                UPDATE_DATE: new Date()
+            }
+        });
 
-        // Create user record
-        const result = await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USERS (
-                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
-                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
-            )
-            VALUES (
-                ${email}, ${hashedPassword}, ${firstName}, ${lastName},
-                'A', ${companyId}, GETDATE(), GETDATE()
-            )
-        `;
+        const userId = existingUser.USER_ID;
 
-        // Get the newly created user ID
-        const newUser = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-        `;
+        // Check if user already has roles, if not assign Admin role (they already have it from registration)
+        const existingRoles = await prisma.uSER_ROLES.findMany({
+            where: { USER_ID: userId }
+        });
 
-        const userId = newUser[0].USER_ID;
-
-        // Assign default role (General User = role ID 2, adjust as needed)
-        const defaultRoleId = 2;
-        await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
-            VALUES (${userId}, ${defaultRoleId}, GETDATE(), GETDATE())
-        `;
-
-        // Store company info if provided
-        if (role || teamSize || companySize) {
-            await prisma.$executeRaw`
-                INSERT INTO GUARDIAN.COMPANY_INFO (
-                    COMPANY_ID, USER_ID, WORKSPACE_NAME, ROLE, TEAM_SIZE, COMPANY_SIZE, CREATED_AT, UPDATED_AT
-                )
-                VALUES (
-                    ${companyId}, ${userId}, ${workspaceName}, ${role || null}, 
-                    ${teamSize || null}, ${companySize || null}, GETDATE(), GETDATE()
-                )
-            `;
+        if (existingRoles.length === 0) {
+            // Assign Admin role if no roles exist
+            let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+            if (adminRole) {
+                await prisma.uSER_ROLES.create({
+                    data: { USER_ID: userId, ROLE_ID: adminRole.ROLE_ID }
+                });
+            }
         }
 
-        // Clean up verification code
-        delete global.verificationCodes[email];
+        // Update company info if provided
+        if (role || teamSize || companySize || workspaceName) {
+            const existingCompanyInfo = await prisma.cOMPANY_INFO.findFirst({
+                where: { USER_ID: userId }
+            });
+
+            if (existingCompanyInfo) {
+                // Update existing record
+                await prisma.cOMPANY_INFO.update({
+                    where: { USER_ID: userId },
+                    data: {
+                        ...(workspaceName && { WORKSPACE_NAME: workspaceName }),
+                        ...(role && { ROLE: role }),
+                        ...(teamSize && { TEAM_SIZE: teamSize }),
+                        ...(companySize && { COMPANY_SIZE: companySize }),
+                        UPDATE_DATE: new Date()
+                    }
+                });
+            }
+        }
 
         console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
 
