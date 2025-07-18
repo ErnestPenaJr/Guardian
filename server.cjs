@@ -773,31 +773,41 @@ app.post('/api/verify-email', async (req, res) => {
     try {
         const { email, verificationCode } = req.body;
         console.log(`🔍 Email verification attempt for: ${email}`);
+        console.log(`📧 Request body:`, JSON.stringify(req.body, null, 2));
 
         if (!email || !verificationCode) {
+            console.log(`❌ Missing required fields - email: ${!!email}, verificationCode: ${!!verificationCode}`);
             return res.status(400).json({
                 error: 'Email and verification code are required'
             });
         }
 
         // Look up user in database
+        console.log(`🔍 Looking up user in database for email: ${email}`);
         const user = await prisma.uSERS.findFirst({
             where: { EMAIL: email }
         });
 
         if (!user) {
+            console.log(`❌ No user found with email: ${email}`);
             return res.status(400).json({
                 error: 'No user found with this email'
             });
         }
 
+        console.log(`✅ User found - ID: ${user.USER_ID}, Email Validated: ${user.EMAIL_VALIDATED}`);
+        console.log(`🔑 Has validation token: ${!!user.EMAIL_VALIDATION_TOKEN}`);
+        console.log(`⏰ Token expiry: ${user.EMAIL_VALIDATION_TOKEN_EXPIRY}`);
+
         if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            console.log(`❌ No verification code found for email: ${email}`);
             return res.status(400).json({
                 error: 'No verification code found for this email'
             });
         }
 
         if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            console.log(`❌ Verification code expired for ${email}. Expired at: ${user.EMAIL_VALIDATION_TOKEN_EXPIRY}`);
             return res.status(400).json({
                 error: 'Verification code has expired'
             });
@@ -806,8 +816,15 @@ app.post('/api/verify-email', async (req, res) => {
         // Hash the provided code and compare with stored hash
         const crypto = require('crypto');
         const hashedProvidedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        
+        console.log(`🔍 Comparing codes for ${email}:`);
+        console.log(`📥 Provided code: ${verificationCode}`);
+        console.log(`🔐 Hashed provided: ${hashedProvidedCode}`);
+        console.log(`💾 Stored hash: ${user.EMAIL_VALIDATION_TOKEN}`);
+        console.log(`✅ Codes match: ${user.EMAIL_VALIDATION_TOKEN === hashedProvidedCode}`);
 
         if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
+            console.log(`❌ Invalid verification code for ${email}`);
             return res.status(400).json({
                 error: 'Invalid verification code'
             });
