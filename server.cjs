@@ -780,31 +780,50 @@ app.post('/api/verify-email', async (req, res) => {
             });
         }
 
-        // Check verification code
-        global.verificationCodes = global.verificationCodes || {};
-        const storedData = global.verificationCodes[email];
+        // Look up user in database
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: email }
+        });
 
-        if (!storedData) {
+        if (!user) {
+            return res.status(400).json({
+                error: 'No user found with this email'
+            });
+        }
+
+        if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
             return res.status(400).json({
                 error: 'No verification code found for this email'
             });
         }
 
-        if (new Date() > storedData.expiresAt) {
-            delete global.verificationCodes[email];
+        if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
             return res.status(400).json({
                 error: 'Verification code has expired'
             });
         }
 
-        if (storedData.code !== verificationCode) {
+        // Hash the provided code and compare with stored hash
+        const crypto = require('crypto');
+        const hashedProvidedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+        if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
             return res.status(400).json({
                 error: 'Invalid verification code'
             });
         }
 
-        // Mark as verified
-        storedData.verified = true;
+        // Mark user as verified in database
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                EMAIL_VALIDATED: true,
+                EMAIL_VALIDATION_TOKEN: null,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: null,
+                STATUS: 'A', // Active
+                UPDATE_DATE: new Date()
+            }
+        });
         console.log(`✅ Email verified successfully for: ${email}`);
 
         res.json({
