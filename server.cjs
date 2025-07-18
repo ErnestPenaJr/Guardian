@@ -941,33 +941,50 @@ app.post('/api/complete-registration', async (req, res) => {
             });
         }
 
+        console.log(`🔍 Checking user existence for: ${email}`);
         if (!existingUser) {
+            console.log(`❌ No user found for email: ${email}`);
             return res.status(400).json({
                 error: 'User not found. Please register first.'
             });
         }
 
+        console.log(`✅ User found - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}`);
+        console.log(`📧 Email validated: ${existingUser.EMAIL_VALIDATED}`);
+        console.log(`🔐 Has password: ${!!existingUser.PASSWORD_HASH}`);
+
         if (!existingUser.EMAIL_VALIDATED) {
+            console.log(`❌ Email not validated for: ${email}`);
             return res.status(400).json({
                 error: 'Email must be verified before completing registration'
             });
         }
 
+        console.log(`✅ Email validation check passed`);
+
         if (existingUser.PASSWORD_HASH && existingUser.PASSWORD_HASH !== '') {
+            console.log(`❌ Registration already completed for: ${email}`);
             return res.status(400).json({
                 error: 'Registration already completed for this email'
             });
         }
 
+        console.log(`✅ Password check passed - ready to update user`);
+        
         // Hash password
+        console.log(`🔐 Starting password hashing process`);
         const hashedPassword = await bcrypt.hash(password, 12);
+        console.log(`✅ Password hashed successfully`);
 
         // Split full name into first and last name
+        console.log(`📝 Processing name: ${fullName}`);
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(' ') || '';
+        console.log(`✅ Name parsed - First: ${firstName}, Last: ${lastName}`);
 
         // Update the existing user with password and name
+        console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
         await prisma.uSERS.update({
             where: { USER_ID: existingUser.USER_ID },
             data: {
@@ -978,6 +995,7 @@ app.post('/api/complete-registration', async (req, res) => {
                 UPDATE_DATE: new Date()
             }
         });
+        console.log(`✅ User updated successfully in database`);
 
         const userId = existingUser.USER_ID;
 
