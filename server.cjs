@@ -962,11 +962,9 @@ app.post('/api/complete-registration', async (req, res) => {
 
         console.log(`✅ Email validation check passed`);
 
+        // Allow profile updates even if user already has a password
         if (existingUser.PASSWORD_HASH && existingUser.PASSWORD_HASH !== '') {
-            console.log(`❌ Registration already completed for: ${email}`);
-            return res.status(400).json({
-                error: 'Registration already completed for this email'
-            });
+            console.log(`ℹ️ User already has password, will update profile information for: ${email}`);
         }
 
         console.log(`✅ Password check passed - ready to update user`);
