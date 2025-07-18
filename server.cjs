@@ -681,6 +681,43 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 
+// Get forms endpoint for templates
+app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('📋 Fetching forms from database for company:', req.companyId);
+
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            FROM GUARDIAN.FORMS 
+            WHERE ORGANIZATION_ID = ${req.companyId}
+            ORDER BY FORM_NAME
+        `;
+
+        console.log(`✅ Found ${forms.length} forms for company ${req.companyId}`);
+
+        // Format the data to match frontend expectations
+        const formattedForms = forms.map(form => ({
+            FORM_ID: form.FORM_ID,
+            FORM_NAME: form.FORM_NAME,
+            FORM_DESCRIPTION: form.FORM_DESCRIPTION,
+            IS_ACTIVE: form.IS_ACTIVE,
+            IS_PUBLIC: form.IS_PUBLIC,
+            IS_DELETED: form.IS_DELETED,
+            ORGANIZATION_ID: form.ORGANIZATION_ID
+        }));
+
+        console.log(`📤 Sending ${formattedForms.length} formatted forms to frontend`);
+        res.json(formattedForms);
+
+    } catch (error) {
+        console.error('❌ Error fetching forms:', error);
+        res.status(500).json({
+            error: 'Failed to fetch forms',
+            message: error.message
+        });
+    }
+});
+
 // Logout endpoint
 app.post('/logout', async (req, res) => {
     try {
