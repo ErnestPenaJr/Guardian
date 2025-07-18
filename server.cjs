@@ -914,9 +914,12 @@ app.post('/api/complete-registration', async (req, res) => {
     try {
         const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
         console.log(`👤 Completing registration for: ${email}`);
+        console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
 
         // Validate required fields
+        console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
         if (!email || !password || !fullName || !workspaceName) {
+            console.log(`❌ Missing required fields for complete-registration`);
             return res.status(400).json({
                 error: 'Email, password, full name, and workspace name are required'
             });
