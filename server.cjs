@@ -926,9 +926,20 @@ app.post('/api/complete-registration', async (req, res) => {
         }
 
         // Check if user exists and email was verified
-        const existingUser = await prisma.uSERS.findFirst({
-            where: { EMAIL: email }
-        });
+        console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
+        let existingUser;
+        try {
+            existingUser = await prisma.uSERS.findFirst({
+                where: { EMAIL: email }
+            });
+            console.log(`✅ Database query successful for user lookup`);
+        } catch (dbError) {
+            console.error(`❌ Database error during user lookup:`, dbError);
+            return res.status(500).json({
+                error: 'Database connection error',
+                details: dbError.message
+            });
+        }
 
         if (!existingUser) {
             return res.status(400).json({
