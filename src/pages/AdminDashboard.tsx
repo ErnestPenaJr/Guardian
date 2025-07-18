@@ -118,8 +118,8 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           </ul>
         </a>
 
-        {/* Users Card - triggers callback to show user management - only visible to JAFAR (role 6) */}
-        {((user.roles && user.roles.some((role: any) => role.id === 6)) || user.role === '6') && (
+        {/* Users Card - triggers callback to show user management - visible to admin (role 1) and JAFAR (role 6) */}
+        {((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') && (
           <a
             href="#"
             className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
