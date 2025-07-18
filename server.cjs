@@ -6,15 +6,74 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 
-// Try to import email utilities (optional for production compatibility)
+// Email service using Resend
 let sendVerificationEmail, sendInviteEmail;
+
 try {
-    const emailUtils = require('./src/utils/resend-email.cjs');
-    sendVerificationEmail = emailUtils.sendVerificationEmail;
-    sendInviteEmail = emailUtils.sendInviteEmail;
-    console.log('✅ Email utilities loaded successfully');
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.SMTP_PASSWORD); // Resend API key
+    const FROM_EMAIL = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+
+    sendVerificationEmail = async (email, verificationCode) => {
+        try {
+            console.log(`📧 Sending verification email to: ${email}`);
+            
+            const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: [email],
+                subject: 'Verify Your Guardian Account',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #0D9488; margin: 0;">Guardian</h1>
+                        </div>
+                        
+                        <h2 style="color: #333; text-align: center;">Verify Your Email Address</h2>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                            Thank you for registering with Guardian. Please use the following verification code to complete your registration:
+                        </p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <div style="display: inline-block; background-color: #f5f5f5; padding: 15px 25px; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 3px; color: #333;">
+                                ${verificationCode}
+                            </div>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                            This code will expire in 15 minutes. If you didn't request this verification, please ignore this email.
+                        </p>
+                        
+                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <p style="color: #999; font-size: 12px;">
+                                © 2024 Guardian. All rights reserved.
+                            </p>
+                        </div>
+                    </div>
+                `
+            });
+
+            if (error) {
+                console.error('❌ Resend error:', error);
+                return false;
+            }
+
+            console.log('✅ Verification email sent successfully:', data?.id);
+            return true;
+        } catch (error) {
+            console.error('❌ Email sending failed:', error);
+            return false;
+        }
+    };
+
+    sendInviteEmail = async (email, token, role) => {
+        console.log(`📧 [PLACEHOLDER] Would send invite email to ${email} with token: ${token}`);
+        return false;
+    };
+
+    console.log('✅ Email service initialized with Resend');
 } catch (error) {
-    console.log('⚠️ Email utilities not available, using fallback mode');
+    console.log('⚠️ Resend not available, using fallback mode:', error.message);
     sendVerificationEmail = async (email, code) => {
         console.log(`📧 [FALLBACK] Would send verification email to ${email} with code: ${code}`);
         return false; // Return false to indicate email not sent
