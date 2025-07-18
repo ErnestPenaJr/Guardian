@@ -158,6 +158,36 @@ app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
 });
 
+// Middleware to get authenticated user's company ID
+const getAuthenticatedUserCompany = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No valid authentication token provided' });
+        }
+
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        
+        // Get user's company ID from database
+        const user = await prisma.uSERS.findFirst({
+            where: { USER_ID: decoded.userId },
+            select: { USER_ID: true, COMPANY_ID: true, EMAIL: true }
+        });
+
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+
+        req.user = user;
+        req.companyId = user.COMPANY_ID;
+        next();
+    } catch (error) {
+        console.error('Authentication error:', error);
+        return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+};
+
 // Real database authentication
 app.post('/api/login', async (req, res) => {
     try {
@@ -275,11 +305,11 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Real requests endpoint with database query
-app.get('/api/requests', async (req, res) => {
+app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log('📋 Fetching requests from database...');
+        console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
 
-        // Get requests from database with all fields and related user information
+        // Get requests from database filtered by company ID
         const requests = await prisma.$queryRaw`
             SELECT 
                 r.REQUEST_ID,
@@ -311,6 +341,7 @@ app.get('/api/requests', async (req, res) => {
             LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
             LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
             LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID
+            WHERE r.COMPANY_ID = ${req.companyId}
             ORDER BY r.CREATE_DATE DESC
         `;
 
@@ -365,9 +396,9 @@ app.get('/api/requests', async (req, res) => {
 });
 
 // Get all users (for backward compatibility)
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log('👥 Fetching all users...');
+        console.log(`👥 Fetching users for company ID: ${req.companyId}`);
 
         const users = await prisma.$queryRaw`
             SELECT 
@@ -382,7 +413,7 @@ app.get('/api/users', async (req, res) => {
             FROM GUARDIAN.USERS u
             LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
             LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-            WHERE u.STATUS = 'A'
+            WHERE u.STATUS = 'A' AND u.COMPANY_ID = ${req.companyId}
             GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID, u.CREATE_DATE
             ORDER BY u.LAST_NAME, u.FIRST_NAME
         `;
@@ -424,10 +455,17 @@ app.get('/api/users', async (req, res) => {
 });
 
 // Get users by company ID (for assignment dropdowns)
-app.get('/api/users/company/:companyId', async (req, res) => {
+app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const companyId = parseInt(req.params.companyId);
         console.log(`👥 Fetching users for company ID: ${companyId}`);
+
+        // Security check: users can only access their own company's users
+        if (companyId !== req.companyId) {
+            return res.status(403).json({
+                error: 'Access denied: You can only view users from your own company'
+            });
+        }
 
         if (!companyId || isNaN(companyId)) {
             return res.status(400).json({
@@ -480,12 +518,12 @@ app.get('/api/users/company/:companyId', async (req, res) => {
 });
 
 // Update request assignment
-app.put('/api/requests/:requestId/assign', async (req, res) => {
+app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const requestId = parseInt(req.params.requestId);
         const { assignedUserId } = req.body;
 
-        console.log(`📝 Assigning request ${requestId} to user ${assignedUserId}`);
+        console.log(`📝 Assigning request ${requestId} to user ${assignedUserId} (Company: ${req.companyId})`);
 
         if (!requestId || isNaN(requestId)) {
             return res.status(400).json({
@@ -493,11 +531,37 @@ app.put('/api/requests/:requestId/assign', async (req, res) => {
             });
         }
 
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // If assigning to someone, verify they're in the same company
+        if (assignedUserId) {
+            const userExists = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS 
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+            `;
+
+            if (!userExists.length) {
+                return res.status(400).json({
+                    error: 'Cannot assign to user outside your company'
+                });
+            }
+        }
+
         await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
             SET ASSIGNED_ID = ${assignedUserId || null}, 
                 UPDATE_DATE = GETDATE()
-            WHERE REQUEST_ID = ${requestId}
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 
         console.log(`✅ Request ${requestId} assigned successfully`);
