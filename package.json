@@ -16,6 +16,7 @@
     "dev:server": "ts-node --esm server/index.ts",
     "backend": "npm run build:server && PORT=3001 npm run start:server",
     "add-templates": "ts-node scripts/add_standard_templates.ts",
+    "populate-field-types": "node scripts/populate-field-types.js",
     "prisma:generate": "prisma generate",
     "postinstall": "prisma generate && npm run build:all"
   },
