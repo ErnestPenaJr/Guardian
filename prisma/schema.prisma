@@ -31,6 +31,7 @@ model COMPANY {
   PHONE        String?        @db.NVarChar(50)
   CREATED_AT   DateTime       @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
   COMPANY_INFO COMPANY_INFO[]
+  FORMS        FORMS[]
 
   @@schema("GUARDIAN")
 }
@@ -119,6 +120,7 @@ model FORMS {
   FORM_NAME        String           @db.VarChar(50)
   FORM_DESCRIPTION String           @db.VarChar(255)
   ORGANIZATION_ID  Int?
+  COMPANY_ID       Int?
   IS_PUBLIC        Boolean          @default(false, map: "DF__FORMS__IS_PUBLIC__66EA454A")
   IS_ACTIVE        Boolean          @default(false, map: "DF__FORMS__IS_ACTIVE__67DE6983")
   IS_DELETED       Boolean          @default(false, map: "DF__FORMS__IS_DELETE__68D28DBC")
@@ -129,6 +131,7 @@ model FORMS {
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
+  COMPANY          COMPANY?         @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, map: "FK__FORMS__COMPANY")
   FORMS_INSTANCE   FORMS_INSTANCE[]
 
   @@schema("GUARDIAN")

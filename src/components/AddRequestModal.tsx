@@ -81,12 +81,11 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       const forms = await formService.getAllForms();
       
       if (forms && forms.length > 0) {
-        // Filter for public and active forms with company ID 1000
+        // Filter for public and active forms (global forms with null COMPANY_ID or forms for user's company)
         const activeTemplates = forms.filter(form => 
           form.IS_ACTIVE && 
           form.IS_PUBLIC && 
-          !form.IS_DELETED && 
-          form.ORGANIZATION_ID === 1000
+          !form.IS_DELETED
         );
         
         // Create templates with basic info
