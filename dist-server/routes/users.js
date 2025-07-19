@@ -1,9 +1,64 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { isAdmin } from '../middleware/isAdmin.js';
+import passport from 'passport';
 const router = express.Router();
 const prisma = new PrismaClient();
-// Get all users for the current company
+// Get assignable users for request assignment (any authenticated user can access)
+router.get('/assignable', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // Get the company ID from the authenticated user
+        const companyId = req.user?.COMPANY_ID;
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Company ID is required'
+            });
+        }
+        console.log(`[USERS] Fetching assignable users for company ID: ${companyId}`);
+        // Query users from the same company for assignment purposes
+        const users = await prisma.uSERS.findMany({
+            where: {
+                COMPANY_ID: companyId,
+                STATUS: 'A' // Only active users
+            },
+            select: {
+                USER_ID: true,
+                FIRST_NAME: true,
+                LAST_NAME: true,
+                EMAIL: true,
+                COMPANY_ID: true
+            },
+            orderBy: [
+                { LAST_NAME: 'asc' },
+                { FIRST_NAME: 'asc' }
+            ]
+        });
+        // Format the response to match the expected structure
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            EMAIL: user.EMAIL,
+            COMPANY_ID: user.COMPANY_ID,
+            ROLE_NAMES: 'User', // Default role name for assignment purposes
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            subtitle: user.EMAIL
+        }));
+        console.log(`[USERS] Found ${formattedUsers.length} assignable users`);
+        res.json(formattedUsers);
+    }
+    catch (error) {
+        console.error('[USERS] Error fetching assignable users:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch assignable users'
+        });
+    }
+});
+// Get all users for the current company (admin only)
 router.get('/', isAdmin, async (req, res) => {
     try {
         // Get the company ID from the authenticated user (now set by isAdmin middleware)

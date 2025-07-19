@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import requestService from '../services/requestService';
+import formService from '../services/formService';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import TextArea from '../components/ui/TextArea';
 import Select from '../components/ui/Select';
+import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/Modal';
-import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText } from 'lucide-react';
 
 interface Request {
   REQUEST_ID: number;
@@ -49,6 +52,13 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
+  
+  // Form handling state
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [formData, setFormData] = useState<any>(null);
+  const [formFields, setFormFields] = useState<any[]>([]);
+  const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const [formLoading, setFormLoading] = useState(false);
 
   useEffect(() => {
     fetchAssignedRequests();
@@ -146,6 +156,44 @@ const RequestFulfillmentDashboard: React.FC = () => {
     }
   };
 
+  // Form handling functions
+  const loadRequestForm = async (request: Request) => {
+    try {
+      setFormLoading(true);
+      const response = await formService.getRequestForm(request.REQUEST_ID);
+      
+      setFormData(response);
+      setFormFields(response.fields || []);
+      setFormValues(response.values || {});
+      setSelectedRequest(request);
+      setShowFormModal(true);
+    } catch (error) {
+      console.error('Error loading form:', error);
+      toast.error('Failed to load form data');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const saveFormData = async () => {
+    if (!selectedRequest || !formData) return;
+    
+    try {
+      setActionLoading(true);
+      
+      await formService.submitForm(selectedRequest.REQUEST_ID, formValues);
+      
+      toast.success('Form data saved successfully');
+      setShowFormModal(false);
+      fetchAssignedRequests(); // Refresh the list
+    } catch (error) {
+      console.error('Error saving form:', error);
+      toast.error('Failed to save form data');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'P':
@@ -198,6 +246,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
     
     if (request.STATUS === 'P' || request.STATUS === 'A') {
       actions.push({ type: 'progress', label: 'Add Progress', icon: MessageCircle, variant: 'secondary' });
+      actions.push({ type: 'form', label: 'Fill Form', icon: FileText, variant: 'primary' });
     }
     
     return actions;
@@ -322,10 +371,14 @@ const RequestFulfillmentDashboard: React.FC = () => {
                     size="small"
                     variant={action.variant as any}
                     onClick={() => {
-                      setSelectedRequest(request);
-                      setActionType(action.type as any);
-                      setNotes('');
-                      setShowActionModal(true);
+                      if (action.type === 'form') {
+                        loadRequestForm(request);
+                      } else {
+                        setSelectedRequest(request);
+                        setActionType(action.type as any);
+                        setNotes('');
+                        setShowActionModal(true);
+                      }
                     }}
                   >
                     <action.icon className="w-4 h-4 mr-1" />
@@ -478,6 +531,102 @@ const RequestFulfillmentDashboard: React.FC = () => {
             <Button variant="secondary" onClick={() => setShowMilestones(false)}>
               Close
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Form Modal */}
+      <Modal
+        isOpen={showFormModal}
+        onClose={() => setShowFormModal(false)}
+        title={`Fill Request Form - ${selectedRequest?.REQUEST_NAME}`}
+        size="lg"
+      >
+        <div className="p-6 space-y-8">
+          {formData && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+              <h4 className="text-lg font-semibold text-blue-900 mb-2">
+                {formData.form.FORM_NAME} Template
+              </h4>
+              <p className="text-sm text-blue-700 leading-relaxed">
+                {formData.form.FORM_DESCRIPTION}
+              </p>
+            </div>
+          )}
+          
+          {formLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              <span className="ml-3 text-gray-600">Loading form...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {formFields.map((field, index) => (
+                <div key={field.FIELD_ID} className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    {field.FIELD_NAME}
+                    {field.IS_REQUIRED && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  
+                  {field.FIELD_TYPE_ID === 3 ? (
+                    // Date field
+                    <Input
+                      type="date"
+                      value={formValues[field.FIELD_ID] || ''}
+                      onChange={(e) => setFormValues(prev => ({
+                        ...prev,
+                        [field.FIELD_ID]: e.target.value
+                      }))}
+                      required={field.IS_REQUIRED}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  ) : (
+                    // Text field
+                    <Input
+                      type="text"
+                      value={formValues[field.FIELD_ID] || ''}
+                      onChange={(e) => setFormValues(prev => ({
+                        ...prev,
+                        [field.FIELD_ID]: e.target.value
+                      }))}
+                      placeholder={`Enter ${field.FIELD_NAME.toLowerCase()}...`}
+                      required={field.IS_REQUIRED}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  )}
+                  
+                  {index < formFields.length - 1 && (
+                    <div className="border-b border-gray-100 mt-4"></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 mt-8">
+            <button
+              type="button"
+              onClick={() => setShowFormModal(false)}
+              disabled={actionLoading}
+              className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveFormData}
+              disabled={actionLoading || formLoading}
+              className="px-6 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {actionLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                'Save Form Data'
+              )}
+            </button>
           </div>
         </div>
       </Modal>

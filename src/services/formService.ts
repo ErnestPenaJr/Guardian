@@ -274,6 +274,33 @@ const formService = {
         dbFieldId: field.FIELD_ID
       };
     });
+  },
+
+  // Get form for a specific request
+  getRequestForm: async (requestId: number): Promise<{
+    request: any;
+    form: any;
+    fields: any[];
+    values: Record<string, any>;
+    formInstanceId: number;
+  }> => {
+    try {
+      const response = await api.get(`/api/requests/${requestId}/form`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching request form:', error);
+      throw error;
+    }
+  },
+
+  // Submit form data
+  submitForm: async (requestId: number, fieldValues: Record<string, any>): Promise<void> => {
+    try {
+      await api.post(`/api/requests/${requestId}/form/submit`, { fieldValues });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      throw error;
+    }
   }
 };
 

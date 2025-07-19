@@ -99,16 +99,23 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
 
       console.log(`Fetching users for company ID: ${companyId}`);
       
-      // Fetch users from the same company
-      const response = await api.get(`/api/users/company/${companyId}`);
-      console.log('Company users response:', response.data);
+      // Fetch assignable users from the same company
+      const response = await api.get(`/api/users/assignable`);
+      console.log('Users response:', response.data);
       
-      setUsers(response.data || []);
+      // Ensure we always set an array
+      const userData = response.data;
+      if (Array.isArray(userData)) {
+        setUsers(userData);
+      } else {
+        console.warn('API response is not an array:', userData);
+        setUsers([]);
+      }
       
     } catch (err: any) {
       console.error('Failed to load company users:', err);
       setError('Failed to load users. Please try again.');
-      setUsers([]);
+      setUsers([]); // Ensure users is always an array
     } finally {
       setLoading(false);
     }
@@ -262,7 +269,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                            loading ? 'Loading users...' : 
                            'Select a user'}
                         </option>
-                        {users && users.map((user, index) => (
+                        {Array.isArray(users) && users.map((user, index) => (
                           <option key={user.USER_ID || `user-${index}`} value={user.USER_ID}>
                             {user.FULL_NAME} ({user.ROLE_NAMES})
                           </option>

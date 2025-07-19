@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { requireAuth } from '../auth.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -1583,6 +1584,170 @@ router.put('/:id/progress', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error updating request progress:', error);
     res.status(500).json({ error: 'Error updating request progress' });
+  }
+});
+
+// Get form instance and fields for a specific assigned request
+router.get('/:id/form', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const requestId = parseInt(req.params.id);
+    const userInfo = getUserInfoFromRequest(req);
+    
+    console.log('[GET FORM] Request ID:', requestId);
+    console.log('[GET FORM] User info:', userInfo);
+    
+    if (!requestId || isNaN(requestId)) {
+      return res.status(400).json({ error: 'Invalid request ID' });
+    }
+    
+    // Get the request and verify it's assigned to current user
+    const request = await prisma.$queryRawUnsafe(`
+      SELECT r.*
+      FROM GUARDIAN.REQUESTS r
+      WHERE r.REQUEST_ID = ${requestId} 
+      AND r.ASSIGNED_ID = ${userInfo.userId}
+    `) as any[];
+    
+    if (!request || request.length === 0) {
+      return res.status(404).json({ error: 'Request not found or not assigned to you' });
+    }
+    
+    const requestData = request[0];
+    const formId = requestData.FORM_ID;
+    
+    if (!formId) {
+      return res.status(404).json({ error: 'No form associated with this request' });
+    }
+    
+    // Get form details
+    const form = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GUARDIAN.FORMS WHERE FORM_ID = ${formId}
+    `) as any[];
+    
+    if (!form || form.length === 0) {
+      return res.status(404).json({ error: 'Form template not found' });
+    }
+    
+    // Get form fields based on the form template
+    let fields: any[] = [];
+    
+    // Map form templates to their field definitions
+    if (form[0].FORM_NAME === 'SUBJECT') {
+      fields = [
+        { FIELD_ID: 1, FIELD_NAME: 'First Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+        { FIELD_ID: 2, FIELD_NAME: 'Middle Name', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
+        { FIELD_ID: 3, FIELD_NAME: 'Last Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 },
+        { FIELD_ID: 4, FIELD_NAME: 'DOB', FIELD_TYPE_ID: 3, IS_REQUIRED: true, SEQUENCE: 4 },
+        { FIELD_ID: 5, FIELD_NAME: 'SSN', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 5 }
+      ];
+    } else if (form[0].FORM_NAME === 'FINANCIAL') {
+      fields = [
+        { FIELD_ID: 6, FIELD_NAME: 'Bank Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+        { FIELD_ID: 7, FIELD_NAME: 'Account #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 2 },
+        { FIELD_ID: 8, FIELD_NAME: 'Routing #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 }
+      ];
+    } else if (form[0].FORM_NAME === 'ADDRESS') {
+      fields = [
+        { FIELD_ID: 9, FIELD_NAME: 'Address Line 1', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+        { FIELD_ID: 10, FIELD_NAME: 'Address Line 2', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
+        { FIELD_ID: 11, FIELD_NAME: 'City', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 },
+        { FIELD_ID: 12, FIELD_NAME: 'State', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 4 },
+        { FIELD_ID: 13, FIELD_NAME: 'ZIP Code', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 5 }
+      ];
+    }
+    
+    // For now, return empty values since we're focusing on getting the correct form template
+    const valueMap = {};
+    
+    res.json({
+      request: requestData,
+      form: form[0],
+      fields: fields,
+      values: valueMap,
+      formInstanceId: null
+    });
+    
+  } catch (error) {
+    console.error('Error fetching request form:', error);
+    res.status(500).json({ error: 'Failed to fetch form data' });
+  }
+});
+
+// Save form field values for a request
+router.post('/:id/form/submit', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const requestId = parseInt(req.params.id);
+    const userInfo = getUserInfoFromRequest(req);
+    const { fieldValues } = req.body; // { fieldId: value, ... }
+    
+    if (!requestId || isNaN(requestId)) {
+      return res.status(400).json({ error: 'Invalid request ID' });
+    }
+    
+    // Verify request is assigned to current user and get form instance
+    const request = await prisma.$queryRawUnsafe(`
+      SELECT r.*, fi.FORM_INSTANCE_ID
+      FROM GUARDIAN.REQUESTS r
+      LEFT JOIN GUARDIAN.FORMS_INSTANCE fi ON fi.ASSIGNED_ID = r.ASSIGNED_ID
+      WHERE r.REQUEST_ID = ${requestId} 
+      AND r.ASSIGNED_ID = ${userInfo.userId}
+    `) as any[];
+    
+    if (!request || request.length === 0) {
+      return res.status(404).json({ error: 'Request not found or not assigned to you' });
+    }
+    
+    const formInstanceId = request[0].FORM_INSTANCE_ID;
+    
+    if (!formInstanceId) {
+      return res.status(400).json({ error: 'No form instance found for this request' });
+    }
+    
+    // Save/update field values
+    for (const [fieldId, value] of Object.entries(fieldValues)) {
+      if (value !== null && value !== undefined && value !== '') {
+        await prisma.$executeRawUnsafe(`
+          IF EXISTS (
+            SELECT 1 FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+            WHERE FORM_INSTANCE_ID = ${formInstanceId} 
+            AND FIELD_ID = ${fieldId}
+          )
+          BEGIN
+            UPDATE GUARDIAN.FORMS_INSTANCE_VALUES 
+            SET VALUE = '${String(value).replace(/'/g, "''")}', 
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${userInfo.userId}
+            WHERE FORM_INSTANCE_ID = ${formInstanceId} 
+            AND FIELD_ID = ${fieldId}
+          END
+          ELSE
+          BEGIN
+            INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES 
+            (FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID)
+            VALUES (${formInstanceId}, ${fieldId}, '${String(value).replace(/'/g, "''")}', GETDATE(), GETDATE(), ${userInfo.userId}, ${userInfo.userId})
+          END
+        `);
+      }
+    }
+    
+    // Update form instance submitted date
+    await prisma.$executeRawUnsafe(`
+      UPDATE GUARDIAN.FORMS_INSTANCE 
+      SET SUBMITTED_DATE = GETDATE(),
+          UPDATE_DATE = GETDATE(),
+          UPDATE_USER_ID = ${userInfo.userId}
+      WHERE FORM_INSTANCE_ID = ${formInstanceId}
+    `);
+    
+    res.json({ 
+      success: true, 
+      message: 'Form data saved successfully',
+      formInstanceId 
+    });
+    
+  } catch (error) {
+    console.error('Error saving form data:', error);
+    res.status(500).json({ error: 'Failed to save form data' });
   }
 });
 
