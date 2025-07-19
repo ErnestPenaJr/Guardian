@@ -1,0 +1,488 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import requestService from '../services/requestService';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import TextArea from '../components/ui/TextArea';
+import Select from '../components/ui/Select';
+import Badge from '../components/ui/Badge';
+import Modal from '../components/Modal';
+import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle } from 'lucide-react';
+
+interface Request {
+  REQUEST_ID: number;
+  REQUEST_NAME: string;
+  REQUEST_DESCRIPTION: string;
+  STATUS: string;
+  SUBMITTED_DATE: string;
+  TRACKINGID: string;
+  requestor?: {
+    FIRST_NAME: string;
+    LAST_NAME: string;
+    EMAIL: string;
+  };
+  requestorName?: string;
+  progressPercentage?: number;
+  milestones?: Milestone[];
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  estimatedDuration?: number;
+  actualDuration?: number;
+}
+
+interface Milestone {
+  id: string;
+  title: string;
+  description?: string;
+  completed: boolean;
+  dueDate?: string;
+  completedDate?: string;
+}
+
+const RequestFulfillmentDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [actionType, setActionType] = useState<'start' | 'complete' | 'progress' | 'milestone'>('start');
+  const [notes, setNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showMilestones, setShowMilestones] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
+
+  useEffect(() => {
+    fetchAssignedRequests();
+  }, [statusFilter]);
+
+  const fetchAssignedRequests = async () => {
+    try {
+      setLoading(true);
+      const params = statusFilter !== 'all' ? { status: statusFilter } : {};
+      const response = await requestService.getAssignedRequests(params);
+      
+      const enhancedRequests = response.map((request: Request) => ({
+        ...request,
+        progressPercentage: calculateProgress(request),
+        priority: determinePriority(request),
+        milestones: generateMockMilestones(request),
+        estimatedDuration: 8,
+        actualDuration: request.STATUS === 'C' ? 6 : undefined
+      }));
+      
+      setRequests(enhancedRequests);
+    } catch (error) {
+      console.error('Error fetching assigned requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateProgress = (request: Request): number => {
+    switch (request.STATUS) {
+      case 'P': return 10;
+      case 'A': return 50;
+      case 'C': return 100;
+      case 'R': return 0;
+      default: return 0;
+    }
+  };
+
+  const determinePriority = (request: Request): 'low' | 'medium' | 'high' | 'urgent' => {
+    const daysSinceSubmitted = Math.floor(
+      (new Date().getTime() - new Date(request.SUBMITTED_DATE).getTime()) / (1000 * 3600 * 24)
+    );
+    
+    if (daysSinceSubmitted > 7) return 'urgent';
+    if (daysSinceSubmitted > 3) return 'high';
+    if (daysSinceSubmitted > 1) return 'medium';
+    return 'low';
+  };
+
+  const generateMockMilestones = (request: Request): Milestone[] => {
+    const baseMilestones = [
+      { id: '1', title: 'Requirements Analysis', description: 'Analyze and understand request requirements' },
+      { id: '2', title: 'Initial Assessment', description: 'Perform initial technical assessment' },
+      { id: '3', title: 'Implementation', description: 'Execute the main work' },
+      { id: '4', title: 'Testing & Validation', description: 'Test and validate the solution' },
+      { id: '5', title: 'Documentation', description: 'Document the completed work' }
+    ];
+
+    return baseMilestones.map((milestone, index) => ({
+      ...milestone,
+      completed: request.STATUS === 'C' || (request.STATUS === 'A' && index < 2),
+      dueDate: new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toISOString(),
+      completedDate: (request.STATUS === 'C' || (request.STATUS === 'A' && index < 2)) 
+        ? new Date(Date.now() - (5 - index) * 24 * 60 * 60 * 1000).toISOString() 
+        : undefined
+    }));
+  };
+
+  const handleAction = async () => {
+    if (!selectedRequest) return;
+
+    try {
+      setActionLoading(true);
+      
+      switch (actionType) {
+        case 'start':
+          await requestService.startRequest(selectedRequest.REQUEST_ID);
+          break;
+        case 'complete':
+          await requestService.completeRequest(selectedRequest.REQUEST_ID, { completionNotes: notes });
+          break;
+        case 'progress':
+          await requestService.updateProgress(selectedRequest.REQUEST_ID, { progressNotes: notes });
+          break;
+      }
+      
+      setSelectedRequest(null);
+      setNotes('');
+      setShowActionModal(false);
+      await fetchAssignedRequests();
+    } catch (error) {
+      console.error('Error performing action:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'P':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'A':
+        return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
+      case 'C':
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'R':
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: 'low' | 'medium' | 'high' | 'urgent') => {
+    const priorityColors = {
+      low: 'bg-gray-100 text-gray-800',
+      medium: 'bg-blue-100 text-blue-800',
+      high: 'bg-orange-100 text-orange-800',
+      urgent: 'bg-red-100 text-red-800'
+    };
+    
+    return (
+      <Badge className={priorityColors[priority]}>
+        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+      </Badge>
+    );
+  };
+
+  const ProgressBar: React.FC<{ percentage: number }> = ({ percentage }) => (
+    <div className="w-full bg-gray-200 rounded-full h-2">
+      <div 
+        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+        style={{ width: `${percentage}%` }}
+      />
+    </div>
+  );
+
+  const getAvailableActions = (request: Request) => {
+    const actions = [];
+    
+    if (request.STATUS === 'P') {
+      actions.push({ type: 'start', label: 'Start Work', icon: Play, variant: 'primary' });
+    }
+    
+    if (request.STATUS === 'A') {
+      actions.push({ type: 'complete', label: 'Complete', icon: CheckCircle, variant: 'primary' });
+    }
+    
+    if (request.STATUS === 'P' || request.STATUS === 'A') {
+      actions.push({ type: 'progress', label: 'Add Progress', icon: MessageCircle, variant: 'secondary' });
+    }
+    
+    return actions;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">My Assigned Requests</h1>
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="w-48"
+        >
+          <option value="all">All Requests</option>
+          <option value="P">Pending</option>
+          <option value="A">In Progress</option>
+          <option value="C">Completed</option>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {requests.map((request) => (
+          <Card key={request.REQUEST_ID} className="hover:shadow-lg transition-shadow">
+            <div className="space-y-4">
+              <div className="flex justify-between items-start">
+                <h3 className="text-lg font-semibold">{request.REQUEST_NAME}</h3>
+                {getStatusBadge(request.STATUS)}
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                ID: {request.REQUEST_ID}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-sm text-gray-600">
+                  <User className="w-4 h-4 mr-2" />
+                  <span>{request.requestorName || 'Unknown Requestor'}</span>
+                </div>
+                {request.priority && getPriorityBadge(request.priority)}
+              </div>
+              
+              <div className="flex items-center text-sm text-gray-600">
+                <Calendar className="w-4 h-4 mr-2" />
+                <span>{formatDate(request.SUBMITTED_DATE)}</span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Progress</span>
+                  <span className="font-medium">{request.progressPercentage || 0}%</span>
+                </div>
+                <ProgressBar percentage={request.progressPercentage || 0} />
+              </div>
+
+              {request.estimatedDuration && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span>
+                    Est: {request.estimatedDuration}h
+                    {request.actualDuration && ` | Actual: ${request.actualDuration}h`}
+                  </span>
+                </div>
+              )}
+              
+              {request.REQUEST_DESCRIPTION && (
+                <p className="text-sm text-gray-700 line-clamp-2">
+                  {request.REQUEST_DESCRIPTION}
+                </p>
+              )}
+
+              {request.milestones && request.milestones.length > 0 && (
+                <div className="border-t pt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Milestones</span>
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowMilestones(true);
+                      }}
+                    >
+                      <Target className="w-4 h-4 mr-1" />
+                      View All
+                    </Button>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {request.milestones.filter(m => m.completed).length} of {request.milestones.length} completed
+                  </div>
+                </div>
+              )}
+              
+              {request.TRACKINGID && (
+                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                  <strong>Notes:</strong> {request.TRACKINGID}
+                </div>
+              )}
+              
+              <div className="flex gap-2 pt-2">
+                {getAvailableActions(request).map((action) => (
+                  <Button
+                    key={action.type}
+                    size="small"
+                    variant={action.variant as any}
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setActionType(action.type as any);
+                      setNotes('');
+                      setShowActionModal(true);
+                    }}
+                  >
+                    <action.icon className="w-4 h-4 mr-1" />
+                    {action.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {requests.length === 0 && (
+        <div className="text-center py-12">
+          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
+          <p className="text-gray-500">
+            {statusFilter === 'all' 
+              ? 'You have no assigned requests at this time.' 
+              : `You have no ${statusFilter === 'P' ? 'pending' : statusFilter === 'A' ? 'in progress' : 'completed'} requests.`
+            }
+          </p>
+        </div>
+      )}
+
+      {/* Action Modal */}
+      <Modal
+        isOpen={showActionModal}
+        onClose={() => setShowActionModal(false)}
+        title={`${actionType === 'start' ? 'Start' : actionType === 'complete' ? 'Complete' : 'Update Progress'} - ${selectedRequest?.REQUEST_NAME}`}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="text-sm text-gray-600">
+            <strong>Request ID:</strong> {selectedRequest?.REQUEST_ID}
+          </div>
+          <div className="text-sm text-gray-600">
+            <strong>Requestor:</strong> {selectedRequest?.requestorName || 'Unknown'}
+          </div>
+          
+          {(actionType === 'complete' || actionType === 'progress') && (
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {actionType === 'complete' ? 'Completion Notes' : 'Progress Notes'}
+              </label>
+              <TextArea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={
+                  actionType === 'complete' 
+                    ? 'Describe how the request was completed...' 
+                    : 'Add progress update...'
+                }
+                rows={4}
+              />
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowActionModal(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAction}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Processing...' : (actionType === 'start' ? 'Start' : actionType === 'complete' ? 'Complete' : 'Update')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Milestones Modal */}
+      <Modal
+        isOpen={showMilestones}
+        onClose={() => setShowMilestones(false)}
+        title={`Milestones - ${selectedRequest?.REQUEST_NAME}`}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="text-sm text-gray-600">
+            <strong>Request ID:</strong> {selectedRequest?.REQUEST_ID}
+          </div>
+          
+          {selectedRequest?.milestones && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Project Milestones</h3>
+                <div className="text-sm text-gray-600">
+                  {selectedRequest.milestones.filter(m => m.completed).length} of{' '}
+                  {selectedRequest.milestones.length} completed
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {selectedRequest.milestones.map((milestone, index) => (
+                  <div 
+                    key={milestone.id} 
+                    className={`flex items-start gap-3 p-3 rounded-lg border ${
+                      milestone.completed 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex-shrink-0 mt-1">
+                      {milestone.completed ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <div className="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                          <span className="text-xs text-gray-500">{index + 1}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h4 className={`font-medium ${
+                        milestone.completed ? 'text-green-800' : 'text-gray-800'
+                      }`}>
+                        {milestone.title}
+                      </h4>
+                      
+                      {milestone.description && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {milestone.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        {milestone.dueDate && (
+                          <span>Due: {new Date(milestone.dueDate).toLocaleDateString()}</span>
+                        )}
+                        {milestone.completedDate && (
+                          <span className="text-green-600">
+                            Completed: {new Date(milestone.completedDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setShowMilestones(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default RequestFulfillmentDashboard;

@@ -9,10 +9,10 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const fields = await prisma.fIELDS.findMany({
-      include: {
-        FIELD_TYPE: true,
-        FIELD_LOOKUP_DISPLAY_TYPE: true
-      },
+      // include: {
+      //   FIELD_TYPE: true,
+      //   FIELD_LOOKUP_DISPLAY_TYPE: true
+      // },
       orderBy: {
         FIELD_NAME: 'asc'
       }
@@ -33,11 +33,11 @@ router.get('/:id', async (req, res) => {
     const field = await prisma.fIELDS.findUnique({
       where: {
         FIELD_ID: parseInt(id)
-      },
-      include: {
-        FIELD_TYPE: true,
-        FIELD_LOOKUP_DISPLAY_TYPE: true
       }
+      // include: {
+      //   FIELD_TYPE: true,
+      //   FIELD_LOOKUP_DISPLAY_TYPE: true
+      // }
     });
     
     if (!field) {

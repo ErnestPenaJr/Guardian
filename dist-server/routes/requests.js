@@ -1181,4 +1181,189 @@ router.post('/:id/assign', async (req, res) => {
         });
     }
 });
+// Request fulfillment endpoints
+// Start fulfillment (change status from P to A)
+router.post('/:id/start', async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const userInfo = getUserInfoFromRequest(req);
+        const currentDate = new Date();
+        // Validate request ID
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({ error: 'Invalid request ID' });
+        }
+        // Check if request exists and is assigned to current user
+        const request = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GUARDIAN.REQUESTS 
+      WHERE REQUEST_ID = ${requestId} 
+      AND ASSIGNED_ID = ${userInfo.userId}
+      AND STATUS = 'P'
+    `);
+        if (!request || request.length === 0) {
+            return res.status(404).json({ error: 'Request not found or not assigned to you' });
+        }
+        // Update status to In Progress (A)
+        await prisma.$executeRawUnsafe(`
+      UPDATE GUARDIAN.REQUESTS 
+      SET STATUS = 'A',
+          UPDATE_USER_ID = ${userInfo.userId},
+          UPDATE_DATE = GETDATE()
+      WHERE REQUEST_ID = ${requestId}
+    `);
+        res.json({ message: 'Request fulfillment started', requestId });
+    }
+    catch (error) {
+        console.error('Error starting request fulfillment:', error);
+        res.status(500).json({ error: 'Error starting request fulfillment' });
+    }
+});
+// Complete fulfillment (change status from A to C)
+router.post('/:id/complete', async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const userInfo = getUserInfoFromRequest(req);
+        const { completionNotes } = req.body;
+        const currentDate = new Date();
+        // Validate request ID
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({ error: 'Invalid request ID' });
+        }
+        // Check if request exists and is assigned to current user
+        const request = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GUARDIAN.REQUESTS 
+      WHERE REQUEST_ID = ${requestId} 
+      AND ASSIGNED_ID = ${userInfo.userId}
+      AND STATUS = 'A'
+    `);
+        if (!request || request.length === 0) {
+            return res.status(404).json({ error: 'Request not found or not in progress' });
+        }
+        // Update status to Completed (C)
+        await prisma.$executeRawUnsafe(`
+      UPDATE GUARDIAN.REQUESTS 
+      SET STATUS = 'C',
+          UPDATE_USER_ID = ${userInfo.userId},
+          UPDATE_DATE = GETDATE(),
+          TRACKINGID = COALESCE(TRACKINGID, '') + CHAR(13) + CHAR(10) + 'Completed: ' + '${completionNotes || 'No notes provided'}'
+      WHERE REQUEST_ID = ${requestId}
+    `);
+        // Send notification email to requestor if available
+        if (resend && request[0].REQUESTOR_ID) {
+            try {
+                const requestorQuery = await prisma.$queryRawUnsafe(`
+          SELECT EMAIL, FIRST_NAME, LAST_NAME 
+          FROM GUARDIAN.USERS 
+          WHERE USER_ID = ${request[0].REQUESTOR_ID}
+        `);
+                if (requestorQuery.length > 0) {
+                    const requestor = requestorQuery[0];
+                    const trackingId = request[0].TRACKINGID || `REQ-${request[0].REQUEST_ID}`;
+                    const requestName = request[0].REQUEST_NAME || 'Unnamed Request';
+                    await resend.emails.send({
+                        from: `Shieldlytics <${EMAIL_FROM}>`,
+                        to: [requestor.EMAIL],
+                        subject: `Request Completed: ${trackingId}`,
+                        html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Request Completion Notification</h2>
+                <p>Hello ${requestor.FIRST_NAME},</p>
+                <p>Your request has been completed:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <p><strong>Request ID:</strong> ${trackingId}</p>
+                  <p><strong>Request Name:</strong> ${requestName}</p>
+                  <p><strong>Completion Date:</strong> ${new Date().toLocaleString()}</p>
+                  ${completionNotes ? `<p><strong>Notes:</strong> ${completionNotes}</p>` : ''}
+                </div>
+                <p>Thank you for using Shieldlytics.</p>
+              </div>
+            `
+                    });
+                }
+            }
+            catch (emailError) {
+                console.error('Error sending completion notification:', emailError);
+            }
+        }
+        res.json({ message: 'Request completed successfully', requestId });
+    }
+    catch (error) {
+        console.error('Error completing request:', error);
+        res.status(500).json({ error: 'Error completing request' });
+    }
+});
+// Get assigned requests for current user
+router.get('/assigned/me', async (req, res) => {
+    try {
+        const userInfo = getUserInfoFromRequest(req);
+        const { status } = req.query;
+        let whereClause = `WHERE r.ASSIGNED_ID = ${userInfo.userId} AND r.STATUS <> 'D'`;
+        if (status) {
+            whereClause += ` AND r.STATUS = '${status}'`;
+        }
+        const requests = await prisma.$queryRawUnsafe(`
+      SELECT r.*, 
+        requestor.FIRST_NAME as requestor_first_name,
+        requestor.LAST_NAME as requestor_last_name,
+        requestor.EMAIL as requestor_email
+      FROM GUARDIAN.REQUESTS r
+      LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+      ${whereClause}
+      ORDER BY r.CREATE_DATE DESC
+    `);
+        // Transform the results
+        const transformedRequests = requests.map((req) => ({
+            ...req,
+            requestor: req.requestor_first_name ? {
+                FIRST_NAME: req.requestor_first_name,
+                LAST_NAME: req.requestor_last_name,
+                EMAIL: req.requestor_email
+            } : null,
+            requestorName: req.requestor_first_name ? `${req.requestor_first_name} ${req.requestor_last_name}` : null
+        }));
+        res.json(transformedRequests);
+    }
+    catch (error) {
+        console.error('Error fetching assigned requests:', error);
+        res.status(500).json({ error: 'Error fetching assigned requests' });
+    }
+});
+// Update request progress
+router.put('/:id/progress', async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const userInfo = getUserInfoFromRequest(req);
+        const { progressNotes } = req.body;
+        // Validate request ID
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({ error: 'Invalid request ID' });
+        }
+        // Check if request exists and is assigned to current user
+        const request = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GUARDIAN.REQUESTS 
+      WHERE REQUEST_ID = ${requestId} 
+      AND ASSIGNED_ID = ${userInfo.userId}
+      AND STATUS IN ('P', 'A')
+    `);
+        if (!request || request.length === 0) {
+            return res.status(404).json({ error: 'Request not found or not assigned to you' });
+        }
+        // Add progress note to tracking ID
+        const currentTracking = request[0].TRACKINGID || '';
+        const newTracking = currentTracking +
+            (currentTracking ? '\n' : '') +
+            `Progress Update (${new Date().toLocaleString()}): ${progressNotes}`;
+        await prisma.$executeRawUnsafe(`
+      UPDATE GUARDIAN.REQUESTS 
+      SET TRACKINGID = '${newTracking.replace(/'/g, "''")}',
+          UPDATE_USER_ID = ${userInfo.userId},
+          UPDATE_DATE = GETDATE()
+      WHERE REQUEST_ID = ${requestId}
+    `);
+        res.json({ message: 'Progress updated successfully', requestId });
+    }
+    catch (error) {
+        console.error('Error updating request progress:', error);
+        res.status(500).json({ error: 'Error updating request progress' });
+    }
+});
 export default router;

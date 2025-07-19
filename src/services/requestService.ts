@@ -143,6 +143,64 @@ const requestService = {
       console.error(`Error deleting request ${requestId}:`, error);
       throw error;
     }
+  },
+
+  // Request fulfillment methods
+  
+  // Get assigned requests for current user
+  getAssignedRequests: async (params?: { status?: string }): Promise<DbRequest[]> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.status) {
+        queryParams.append('status', params.status);
+      }
+      
+      const response = await api.get(`/api/requests/assigned/me?${queryParams}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching assigned requests:', error);
+      throw error;
+    }
+  },
+
+  // Start working on a request (change status from P to A)
+  startRequest: async (requestId: number): Promise<void> => {
+    try {
+      await api.post(`/api/requests/${requestId}/start`);
+    } catch (error) {
+      console.error(`Error starting request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  // Complete a request (change status from A to C)
+  completeRequest: async (requestId: number, data: { completionNotes?: string }): Promise<void> => {
+    try {
+      await api.post(`/api/requests/${requestId}/complete`, data);
+    } catch (error) {
+      console.error(`Error completing request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  // Update progress on a request
+  updateProgress: async (requestId: number, data: { progressNotes: string }): Promise<void> => {
+    try {
+      await api.put(`/api/requests/${requestId}/progress`, data);
+    } catch (error) {
+      console.error(`Error updating progress for request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  // Assign a request to a user
+  assignRequest: async (requestId: number, userId: number): Promise<void> => {
+    try {
+      await api.post(`/api/requests/${requestId}/assign`, { userId });
+    } catch (error) {
+      console.error(`Error assigning request ${requestId}:`, error);
+      throw error;
+    }
   }
 };
 

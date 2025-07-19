@@ -21,6 +21,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import SendInvitesForm from '../components/SendInvitesForm';
 import RequestDashboard from './RequestDashboard';
+import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import { Pie } from 'react-chartjs-2';
@@ -73,7 +74,7 @@ interface Request {
 function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'admin' | 'adminUserManagement' | 'apiManager'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [notifOpen, setNotifOpen] = useState(false);
   const [isNavExpanded, setIsNavExpanded] = useState(true);
@@ -269,9 +270,15 @@ function Home() {
     },*/
     {
       icon: <FileText className="w-6 h-6" />,
-      label: 'My Requests',
+      label: 'All Requests',
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
+    },
+    {
+      icon: <CheckCircle className="w-6 h-6" />,
+      label: 'My Assignments',
+      onClick: () => setSelectedSection('myRequests'),
+      active: selectedSection === 'myRequests',
     },
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
       {
@@ -1092,6 +1099,10 @@ function Home() {
           selectedSection === 'workorder' ? (
             <div className="mt-4 md:mt-6">
               <RequestDashboard />
+            </div>
+          ) : selectedSection === 'myRequests' ? (
+            <div className="mt-4 md:mt-6">
+              <RequestFulfillmentDashboard />
             </div>
           ) : selectedSection === 'admin' && user && ((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') ? (
             <div className="mt-4 md:mt-6">
