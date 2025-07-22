@@ -230,26 +230,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         throw new Error('Request name is required');
       }
       
-      const requestResult = await requestService.createRequest(requestData);
-      console.log('Request creation successful:', requestResult);
-      
-      // Verify that we have both a request and form instance
-      if (!requestResult.request || !requestResult.formInstance) {
-        throw new Error('Incomplete response: missing request or form instance data');
-      }
-      
-      // Log the relationship between request and form instance
-      console.log(`Successfully created request ${requestResult.request.REQUEST_ID} with form instance ${requestResult.formInstance.FORM_INSTANCE_ID}`);
-      
-      console.log('Request created successfully:', requestResult);
-      
-      // Call the original onSubmit callback with the result
-      // This will trigger the fetchRequests() in RequestDashboard to refresh the datatable
-      const submissionResult = await onSubmit({
-        ...requestData,
-        id: requestResult.requestId || requestResult.request?.REQUEST_ID || 0,
-        formInstanceId: requestResult.formInstance?.FORM_INSTANCE_ID || 0
-      });
+      // Only call the parent onSubmit callback - don't create the request twice
+      // The parent component (RequestDashboard) handles the actual request creation
+      const submissionResult = await onSubmit(requestData);
       
       // Reset form
       resetForm();

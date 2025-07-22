@@ -11,6 +11,7 @@ import Badge from '../components/ui/Badge';
 import Modal from '../components/Modal';
 import { toast } from 'react-toastify';
 import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText } from 'lucide-react';
+import './RequestFulfillmentDashboard.css';
 
 interface Request {
   REQUEST_ID: number;
@@ -286,109 +287,100 @@ const RequestFulfillmentDashboard: React.FC = () => {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {requests.map((request) => (
-          <Card key={request.REQUEST_ID} className="hover:shadow-lg transition-shadow">
-            <div className="space-y-4">
-              <div className="flex justify-between items-start">
-                <h3 className="text-lg font-semibold">{request.REQUEST_NAME}</h3>
-                {getStatusBadge(request.STATUS)}
-              </div>
-              
-              <div className="text-sm text-gray-600">
-                ID: {request.REQUEST_ID}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-sm text-gray-600">
-                  <User className="w-4 h-4 mr-2" />
-                  <span>{request.requestorName || 'Unknown Requestor'}</span>
-                </div>
-                {request.priority && getPriorityBadge(request.priority)}
-              </div>
-              
-              <div className="flex items-center text-sm text-gray-600">
-                <Calendar className="w-4 h-4 mr-2" />
-                <span>{formatDate(request.SUBMITTED_DATE)}</span>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Progress</span>
-                  <span className="font-medium">{request.progressPercentage || 0}%</span>
-                </div>
-                <ProgressBar percentage={request.progressPercentage || 0} />
-              </div>
-
-              {request.estimatedDuration && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Clock className="w-4 h-4 mr-2" />
-                  <span>
-                    Est: {request.estimatedDuration}h
-                    {request.actualDuration && ` | Actual: ${request.actualDuration}h`}
-                  </span>
-                </div>
-              )}
-              
-              {request.REQUEST_DESCRIPTION && (
-                <p className="text-sm text-gray-700 line-clamp-2">
-                  {request.REQUEST_DESCRIPTION}
-                </p>
-              )}
-
-              {request.milestones && request.milestones.length > 0 && (
-                <div className="border-t pt-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Milestones</span>
-                    <Button
-                      variant="secondary"
-                      size="small"
-                      onClick={() => {
-                        setSelectedRequest(request);
-                        setShowMilestones(true);
-                      }}
-                    >
-                      <Target className="w-4 h-4 mr-1" />
-                      View All
-                    </Button>
+      <div className="requests-table-container">
+        <table className="requests-table">
+          <thead>
+            <tr>
+              <th>Request</th>
+              <th>Status</th>
+              <th>Requestor</th>
+              <th>Priority</th>
+              <th>Progress</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.map((request) => (
+              <tr key={request.REQUEST_ID} className="request-row">
+                <td className="request-info-cell">
+                  <div className="request-info">
+                    <div className="request-icon">📋</div>
+                    <div className="request-details">
+                      <div className="request-title">{request.REQUEST_NAME}</div>
+                      <div className="request-id">ID: {request.REQUEST_ID}</div>
+                      {request.REQUEST_DESCRIPTION && (
+                        <div className="request-description">{request.REQUEST_DESCRIPTION.substring(0, 60)}...</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {request.milestones.filter(m => m.completed).length} of {request.milestones.length} completed
+                </td>
+                <td className="status-cell">
+                  {getStatusBadge(request.STATUS)}
+                </td>
+                <td className="requestor-cell">
+                  <div className="requestor-info">
+                    <User className="requestor-icon" />
+                    <span>{request.requestorName || 'Unknown'}</span>
                   </div>
-                </div>
-              )}
-              
-              {request.TRACKINGID && (
-                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                  <strong>Notes:</strong> {request.TRACKINGID}
-                </div>
-              )}
-              
-              <div className="flex gap-2 pt-2">
-                {getAvailableActions(request).map((action) => (
-                  <Button
-                    key={action.type}
-                    size="small"
-                    variant={action.variant as any}
-                    onClick={() => {
-                      if (action.type === 'form') {
-                        loadRequestForm(request);
-                      } else {
-                        setSelectedRequest(request);
-                        setActionType(action.type as any);
-                        setNotes('');
-                        setShowActionModal(true);
-                      }
-                    }}
-                  >
-                    <action.icon className="w-4 h-4 mr-1" />
-                    {action.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </Card>
-        ))}
+                </td>
+                <td className="priority-cell">
+                  {request.priority && getPriorityBadge(request.priority)}
+                </td>
+                <td className="progress-cell">
+                  <div className="progress-container">
+                    <div className="progress-info">
+                      <span className="progress-text">{request.progressPercentage || 0}%</span>
+                    </div>
+                    <div className="progress-bar-wrapper">
+                      <ProgressBar percentage={request.progressPercentage || 0} />
+                    </div>
+                    {request.milestones && request.milestones.length > 0 && (
+                      <div className="milestone-summary">
+                        {request.milestones.filter(m => m.completed).length}/{request.milestones.length} milestones
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="date-cell">
+                  <div className="date-info">
+                    <Calendar className="date-icon" />
+                    <div className="date-details">
+                      <div>{formatDate(request.SUBMITTED_DATE)}</div>
+                      {request.estimatedDuration && (
+                        <div className="duration-info">Est: {request.estimatedDuration}h</div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="actions-cell">
+                  <div className="action-buttons">
+                    {getAvailableActions(request).map((action) => (
+                      <button
+                        key={action.type}
+                        className={`action-btn ${action.variant === 'primary' ? 'primary' : 'secondary'}`}
+                        onClick={() => {
+                          if (action.type === 'form') {
+                            loadRequestForm(request);
+                          } else {
+                            setSelectedRequest(request);
+                            setActionType(action.type as any);
+                            setNotes('');
+                            setShowActionModal(true);
+                          }
+                        }}
+                        title={action.label}
+                      >
+                        <action.icon className="action-icon" />
+                        <span className="action-text">{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {requests.length === 0 && (

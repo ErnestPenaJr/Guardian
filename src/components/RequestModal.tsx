@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import formService, { DbForm } from '../services/formService';
 import './RequestModal.css';
 
 interface User {
@@ -44,6 +45,10 @@ interface Request {
   requestorName?: string;
   assignedName?: string;
   DESCRIPTION?: string;
+  REQUEST_DESCRIPTION?: string;
+  // Form information
+  formName?: string;
+  formDescription?: string;
 }
 
 interface Props {
@@ -59,6 +64,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const [formInfo, setFormInfo] = useState<DbForm | null>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
   
   // Format the status display
   const getStatusDisplay = (status: string) => {
@@ -71,12 +78,61 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
   
-  // Load users for assignment
+  // Load users for assignment and form information
   useEffect(() => {
     if (show && !userLoading && currentUser) {
       fetchUsers();
+      if (request.FORM_ID) {
+        fetchFormInfo(request.FORM_ID);
+      }
     }
-  }, [show, userLoading, currentUser]);
+  }, [show, userLoading, currentUser, request.FORM_ID]);
+
+  // Initialize selectedUser with currently assigned user when request changes
+  useEffect(() => {
+    if (request && request.ASSIGNED_ID) {
+      console.log('[RequestModal] Setting selected user to:', request.ASSIGNED_ID);
+      setSelectedUser(request.ASSIGNED_ID.toString());
+    } else {
+      console.log('[RequestModal] No assigned user found, clearing selection');
+      setSelectedUser('');
+    }
+  }, [request]);
+  
+  // Get form name fallback based on common form IDs
+  const getFormNameFallback = (formId: number): string => {
+    const commonForms: Record<number, string> = {
+      1: 'SUBJECT',
+      2: 'FINANCIAL', 
+      3: 'ADDRESS',
+      4: 'EMPLOYMENT',
+      5: 'MEDICAL',
+      6: 'EDUCATION'
+    };
+    return commonForms[formId] || `Form #${formId}`;
+  };
+  
+  // Fetch form information
+  const fetchFormInfo = async (formId: number) => {
+    try {
+      setFormLoading(true);
+      const response = await formService.getFormById(formId);
+      setFormInfo(response.form);
+    } catch (err) {
+      console.error('Failed to load form information:', err);
+      // Use fallback form name if API fails
+      setFormInfo({
+        FORM_ID: formId,
+        FORM_NAME: getFormNameFallback(formId),
+        FORM_DESCRIPTION: null,
+        IS_PUBLIC: true,
+        IS_ACTIVE: true,
+        IS_DELETED: false
+      });
+    } finally {
+      setFormLoading(false);
+    }
+  };
   
   const fetchUsers = async () => {
     try {
@@ -174,107 +230,166 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
   
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered dialogClassName="request-modal">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <span className="me-2">📋</span>
-          Request Details - {request.TRACKINGID || `REQ-${request.REQUEST_ID}`}
+    <Modal show={show} onHide={onHide} size="lg" centered dialogClassName="request-modal-improved">
+      <Modal.Header closeButton className="border-bottom">
+        <Modal.Title className="d-flex align-items-center w-100">
+          <div className="d-flex align-items-center flex-grow-1">
+            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style={{ width: '40px', height: '40px', fontSize: '18px' }}>
+              📋
+            </div>
+            <div>
+              <h5 className="mb-1 fw-bold">{request.REQUEST_NAME}</h5>
+              <small className="text-muted">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</small>
+            </div>
+          </div>
+          <div className="ms-auto">
+            {getStatusDisplay(request.STATUS)}
+          </div>
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-2">
+      
+      <Modal.Body className="p-3">
         {error && (
-          <Alert variant="danger" className="mb-2">
+          <Alert variant="danger" className="mb-3">
             <span className="me-2">⚠️</span>
             {error}
           </Alert>
         )}
         
-        <div className="container-fluid px-0">
-          <div className="row mx-0 g-1">
-            <div className="col-lg-6 mb-2">
-              <div className="card shadow-sm request-card">
-                <div className="card-header bg-light py-1">
-                  <span className="me-2">📄</span>
-                  <strong>Request Information</strong>
+        {/* Request Details Section */}
+        <div className="mb-4">
+          <h6 className="mb-3 d-flex align-items-center text-primary">
+            <span className="me-2">ℹ️</span>
+            Request Details
+          </h6>
+          
+          {/* Compact Information Cards */}
+          <div className="row g-2 mb-3">
+            {/* Form Type Card - Featured */}
+            <div className="col-12 mb-2">
+              <div className="card border-0 bg-light h-100">
+                <div className="card-body p-3">
+                  {formLoading ? (
+                    <div className="d-flex align-items-center">
+                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                      <span className="text-muted">Loading form information...</span>
+                    </div>
+                  ) : formInfo && formInfo.FORM_NAME ? (
+                    <>
+                      <div className="fw-bold text-dark h6 mb-2">{formInfo.FORM_NAME} Template</div>
+                      {formInfo.FORM_DESCRIPTION && (
+                        <div className="text-primary fw-medium">
+                          {formInfo.FORM_DESCRIPTION}
+                        </div>
+                      )}
+                    </>
+                  ) : request.FORM_ID ? (
+                    <>
+                      <div className="fw-bold text-dark h6 mb-2">Form #{request.FORM_ID} Template</div>
+                      <div className="text-muted">Form details not available</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="fw-bold text-muted h6 mb-2">No Form Template</div>
+                      <div className="text-muted">No form assigned to this request</div>
+                    </>
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Secondary Information Cards */}
+          <div className="row g-2 mb-3">
+            {/* Request ID Card */}
+            <div className="col-6 col-md-3">
+              <div className="card border-0 bg-light h-100">
                 <div className="card-body p-2">
-                  <div className="mb-2">
-                    <div className="fw-bold">Request ID</div>
-                    <div>{request.REQUEST_ID}</div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">Tracking ID</div>
-                    <div>{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">Request Name</div>
-                    <div>{request.REQUEST_NAME}</div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">Status</div>
-                    <div>{getStatusDisplay(request.STATUS)}</div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">Created</div>
-                    <div>{request.CREATE_DATE ? new Date(request.CREATE_DATE).toLocaleString() : 'N/A'}</div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">Updated</div>
-                    <div>{request.UPDATE_DATE ? new Date(request.UPDATE_DATE).toLocaleString() : 'N/A'}</div>
+                  <div className="d-flex align-items-center">
+                    <div className="bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                         style={{ width: '24px', height: '24px', fontSize: '12px' }}>📋</div>
+                    <div className="flex-fill">
+                      <div className="text-muted small fw-bold mb-1">ID</div>
+                      <div className="fw-bold text-dark">{request.REQUEST_ID}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="col-lg-5 mb-3">
-              <div className="card shadow-sm request-card">
-                <div className="card-header bg-light py-2">
-                  <span className="me-2">👤</span>
-                  <strong>User Information</strong>
-                </div>
-                <div className="card-body">
-                  <div className="mb-2">
-                    <div className="fw-bold">Requestor</div>
-                    <div>{request.requestorName || 'N/A'}</div>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">Assigned To</div>
-                    <div className={request.assignedName ? '' : 'text-warning'}>
-                      {request.assignedName || 'Unassigned'}
+            {/* Status Card */}
+            <div className="col-6 col-md-3">
+              <div className="card border-0 bg-light h-100">
+                <div className="card-body p-2">
+                  <div className="d-flex align-items-center">
+                    <div className="bg-info text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                         style={{ width: '24px', height: '24px', fontSize: '12px' }}>📊</div>
+                    <div className="flex-fill">
+                      <div className="text-muted small fw-bold mb-1">STATUS</div>
+                      <div>{getStatusDisplay(request.STATUS)}</div>
                     </div>
                   </div>
-                  
-                  <div className="mb-2">
-                    <div className="fw-bold">External User</div>
-                    <div>N</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Created Date Card */}
+            <div className="col-6 col-md-3">
+              <div className="card border-0 bg-light h-100">
+                <div className="card-body p-2">
+                  <div className="d-flex align-items-center">
+                    <div className="bg-success text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                         style={{ width: '24px', height: '24px', fontSize: '12px' }}>📅</div>
+                    <div className="flex-fill">
+                      <div className="text-muted small fw-bold mb-1">CREATED</div>
+                      <div className="fw-bold text-dark small">
+                        {request.CREATE_DATE ? (
+                          <>
+                            <div>{new Date(request.CREATE_DATE).toLocaleDateString('en-US', {
+                              month: 'short', 
+                              day: 'numeric'
+                            })}</div>
+                            <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              {new Date(request.CREATE_DATE).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </>
+                        ) : 'N/A'}
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="mt-4">
-                    <div className="fw-bold mb-2">Assign to User</div>
-                    <div className="dropdown">
-                      <Form.Select 
-                        value={selectedUser} 
-                        onChange={(e) => setSelectedUser(e.target.value)}
-                        disabled={loading || userLoading}
-                        className="form-select"
-                      >
-                        <option value="">
-                          {userLoading ? 'Loading user data...' : 
-                           loading ? 'Loading users...' : 
-                           'Select a user'}
-                        </option>
-                        {Array.isArray(users) && users.map((user, index) => (
-                          <option key={user.USER_ID || `user-${index}`} value={user.USER_ID}>
-                            {user.FULL_NAME} ({user.ROLE_NAMES})
-                          </option>
-                        ))}
-                      </Form.Select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Last Updated Card */}
+            <div className="col-6 col-md-3">
+              <div className="card border-0 bg-light h-100">
+                <div className="card-body p-2">
+                  <div className="d-flex align-items-center">
+                    <div className="bg-warning text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                         style={{ width: '24px', height: '24px', fontSize: '12px' }}>🔄</div>
+                    <div className="flex-fill">
+                      <div className="text-muted small fw-bold mb-1">UPDATED</div>
+                      <div className="fw-bold text-dark small">
+                        {request.UPDATE_DATE ? (
+                          <>
+                            <div>{new Date(request.UPDATE_DATE).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric'
+                            })}</div>
+                            <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              {new Date(request.UPDATE_DATE).toLocaleTimeString('en-US', {
+                                hour: '2-digit', 
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </>
+                        ) : 'N/A'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -282,31 +397,151 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             </div>
           </div>
           
-          <div className="row mx-0">
-            <div className="col-12">
-              <div className="card shadow-sm request-card">
-                <div className="card-header bg-light py-2">
-                  <span className="me-2">📝</span>
-                  <strong>Request Description</strong>
+          {/* Requestor Information */}
+          <div className="mb-3">
+            <div className="card border-0 bg-light">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center">
+                  <div className="bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                       style={{ width: '40px', height: '40px', fontSize: '16px' }}>👤</div>
+                  <div className="flex-fill">
+                    <div className="text-muted small fw-bold mb-1">REQUESTOR</div>
+                    <div className="fw-bold text-dark h6 mb-0">{request.requestorName || 'N/A'}</div>
+                    {request.EXTERNAL_USER && (
+                      <div className="text-muted small">External User: {request.EXTERNAL_USER}</div>
+                    )}
+                  </div>
                 </div>
-                <div className="card-body">
-                  <p>{request.DESCRIPTION || 'No description available.'}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Description */}
+          <div className="mb-3">
+            <div className="card border-0 bg-light">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-start">
+                  <div className="bg-secondary text-white rounded-circle me-3 d-flex align-items-center justify-content-center flex-shrink-0" 
+                       style={{ width: '32px', height: '32px', fontSize: '14px' }}>📝</div>
+                  <div className="flex-fill">
+                    <div className="text-muted small fw-bold mb-2">DESCRIPTION</div>
+                    <div className="text-dark">
+                      {request.DESCRIPTION || request.REQUEST_DESCRIPTION || (
+                        <span className="text-muted fst-italic">No description provided for this request.</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        
+        {/* Assignment Section */}
+        <div>
+          <h6 className="mb-3 d-flex align-items-center text-success">
+            <span className="me-2">👥</span>
+            Assignment
+          </h6>
+          
+          {/* Current Assignment */}
+          <div className="mb-3">
+            <div className="card border-0 bg-light">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center">
+                  {request.assignedName ? (
+                    <>
+                      <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                           style={{ width: '40px', height: '40px', fontSize: '14px' }}>
+                        {request.assignedName.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div className="flex-fill">
+                        <div className="text-muted small fw-bold mb-1">CURRENTLY ASSIGNED TO</div>
+                        <div className="fw-bold text-dark h6 mb-0">{request.assignedName}</div>
+                        <small className="text-muted">Assigned User</small>
+                      </div>
+                      <div className="badge bg-success ms-2">
+                        <span className="me-1">✓</span>Assigned
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                           style={{ width: '40px', height: '40px', fontSize: '16px' }}>⚠️</div>
+                      <div className="flex-fill">
+                        <div className="text-muted small fw-bold mb-1">ASSIGNMENT STATUS</div>
+                        <div className="fw-bold text-warning h6 mb-0">Unassigned</div>
+                        <small className="text-muted">No user currently assigned</small>
+                      </div>
+                      <div className="badge bg-warning text-dark ms-2">
+                        <span className="me-1">⚠️</span>Pending
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Assignment Form */}
+          <div className="card border-0 bg-light">
+            <div className="card-body p-3">
+              <div className="d-flex align-items-center mb-3">
+                <div className="bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                     style={{ width: '32px', height: '32px', fontSize: '14px' }}>🔄</div>
+                <div>
+                  <div className="text-muted small fw-bold mb-1">REASSIGN REQUEST</div>
+                  <div className="text-dark fw-semibold">Select a new assignee</div>
+                </div>
+              </div>
+              
+              <Form.Select 
+                value={selectedUser} 
+                onChange={(e) => setSelectedUser(e.target.value)}
+                disabled={loading || userLoading}
+                className="form-select mb-3"
+                size="sm"
+              >
+                <option value="">
+                  {userLoading ? 'Loading user data...' : 
+                   loading ? 'Loading users...' : 
+                   'Select a user to assign'}
+                </option>
+                {Array.isArray(users) && users.map((user, index) => (
+                  <option key={user.USER_ID || `user-${index}`} value={user.USER_ID}>
+                    {user.FULL_NAME} ({user.ROLE_NAMES})
+                  </option>
+                ))}
+              </Form.Select>
+              
+              <Button 
+                variant="success" 
+                onClick={handleAssignUser}
+                disabled={!selectedUser || loading}
+                className="w-100"
+                size="sm"
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    Assigning Request...
+                  </>
+                ) : (
+                  <>
+                    <span className="me-2">✅</span>
+                    Assign to Selected User
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
+      
+      <Modal.Footer className="border-top">
+        <Button variant="outline-secondary" onClick={onHide}>
+          <span className="me-2">✖️</span>
           Close
-        </Button>
-        <Button 
-          variant="primary" 
-          onClick={handleAssignUser}
-          disabled={!selectedUser || loading}
-        >
-          Assign User
         </Button>
       </Modal.Footer>
     </Modal>

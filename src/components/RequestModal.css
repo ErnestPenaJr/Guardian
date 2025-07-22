@@ -1,121 +1,328 @@
-/* RequestModal.css */
-.request-modal .modal-content {
+/* Improved RequestModal Design */
+.request-modal-improved .modal-content {
   border-radius: 0.5rem;
-  border: none;
+  border: 1px solid #dee2e6;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow: hidden;
 }
 
-.request-modal .modal-header {
-  border-bottom: 1px solid #e9ecef;
-  padding: 0.6rem 1rem;
-  background-color: #fff;
-}
-
-.request-modal .modal-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-}
-
-.request-modal .modal-body {
-  padding: 0.75rem;
-}
-
-/* Row styling for equal height cards */
-.request-modal .row {
-  display: flex;
-  flex-wrap: wrap;
-  margin-left: 0;
-  margin-right: 0;
-  justify-content: space-between;
-}
-
-.request-modal .mb-2 {
-  margin: 0px 0px 6px 0px;
-}
-
-.request-modal .mb-3 {
-  margin-bottom: 0.75rem !important;
-}
-
-/* Make the cards the same height */
-.request-modal .request-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #e9ecef;
-  border-radius: 0.375rem;
-  margin-bottom: 0.5rem;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-.request-modal .card-header {
+.request-modal-improved .modal-header {
+  padding: 1rem 1.5rem;
   background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  display: flex;
-  align-items: center;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.request-modal .fw-bold {
+.request-modal-improved .modal-title h5 {
+  font-weight: 600;
+  color: #212529;
+  margin: 0;
+}
+
+.request-modal-improved .modal-body {
+  padding: 1rem 1.5rem;
+  background-color: #fff;
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
+}
+
+/* Form Labels and Text */
+.request-modal-improved .form-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+  color: #6c757d;
+}
+
+.request-modal-improved .fw-semibold {
+  font-weight: 600;
   color: #212529;
   font-size: 0.9rem;
-  margin: 0;
   line-height: 1.4;
 }
 
-.request-modal .card-body {
-  padding: 0.5rem;
-  background-color: #fff;
-  flex: 1 1 auto;
+.request-modal-improved h6 {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 1rem;
+  font-size: 1rem;
 }
 
-/* Badge styling */
-.request-modal .badge {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+/* Status Badges */
+.request-modal-improved .badge {
+  padding: 0.35em 0.65em;
   font-weight: 500;
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.75em;
 }
 
-/* Form select styling */
-.request-modal .dropdown {
-  width: 100%;
+/* Avatar Styling */
+.request-modal-improved .bg-success.rounded-circle {
+  font-weight: 700;
+  font-size: 12px;
 }
 
-.request-modal .form-select {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.9rem;
-  border-radius: 0.25rem;
+/* Section Backgrounds */
+.request-modal-improved .bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+}
+
+/* Form Controls */
+.request-modal-improved .form-select {
+  border-radius: 0.375rem;
   border: 1px solid #ced4da;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-/* Footer styling */
-.request-modal .modal-footer {
+.request-modal-improved .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Buttons */
+.request-modal-improved .btn {
+  border-radius: 0.375rem;
+  font-weight: 500;
   padding: 0.5rem 1rem;
-  border-top: 1px solid #e9ecef;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  transition: all 0.15s ease-in-out;
 }
 
-/* Fix column spacing */
-.request-modal .col-lg-5 {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+.request-modal-improved .btn-success {
+  background-color: #198754;
+  border-color: #198754;
 }
 
-/* Reduce vertical spacing between elements */
-.request-modal .col-lg-6 {
-  padding-bottom: 0;
-  margin-bottom: 0;
+.request-modal-improved .btn-success:hover {
+  background-color: #157347;
+  border-color: #146c43;
 }
 
-/* Adjust card spacing */
-.request-modal .container-fluid {
-  margin-bottom: 0;
-  padding-bottom: 0;
+/* Footer */
+.request-modal-improved .modal-footer {
+  padding: 1rem 1.5rem;
+  background-color: #fff;
+  border-top: 1px solid #dee2e6;
 }
 
+/* Text Colors */
+.request-modal-improved .text-warning {
+  color: #fd7e14 !important;
+}
+
+.request-modal-improved .text-primary {
+  color: #0d6efd !important;
+}
+
+.request-modal-improved .text-success {
+  color: #198754 !important;
+}
+
+/* Spacing Improvements */
+.request-modal-improved .mb-3 {
+  margin-bottom: 1rem !important;
+}
+
+.request-modal-improved .mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+
+/* Compact Information Cards */
+.request-modal-improved .card {
+  border-radius: 0.375rem;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.request-modal-improved .card:hover {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.request-modal-improved .card.bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+}
+
+.request-modal-improved .card-body {
+  padding: 0.75rem;
+}
+
+/* Compact card styling for info cards */
+.request-modal-improved .card-body.p-2 {
+  padding: 0.5rem !important;
+}
+
+.request-modal-improved .card-body.p-3 {
+  padding: 0.75rem !important;
+}
+
+/* Icon circles */
+.request-modal-improved .rounded-circle {
+  flex-shrink: 0;
+}
+
+/* Small text improvements */
+.request-modal-improved .small {
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+/* Badge positioning in cards */
+.request-modal-improved .card .badge {
+  font-size: 0.7rem;
+  padding: 0.25em 0.5em;
+}
+
+/* Enhanced card hover effects */
+.request-modal-improved .card.bg-light:hover {
+  background-color: #e9ecef !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease-in-out;
+}
+
+/* Info card specific styling */
+.request-modal-improved .row.g-2 .card {
+  border: 1px solid #dee2e6;
+}
+
+.request-modal-improved .row.g-2 .card:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Assignment card specific styling */
+.request-modal-improved .card .badge.bg-success {
+  background-color: #198754 !important;
+}
+
+.request-modal-improved .card .badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+
+/* Better text contrast in cards */
+.request-modal-improved .card .text-dark {
+  color: #212529 !important;
+}
+
+.request-modal-improved .card .fw-bold {
+  font-weight: 600 !important;
+}
+
+/* Form improvements in cards */
+.request-modal-improved .card .form-select {
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.request-modal-improved .card .btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Form Type Card Styling - Clean Light Theme */
+.request-modal-improved .card.bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.request-modal-improved .card.bg-light:hover {
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  border-color: #dee2e6 !important;
+}
+
+/* Form type card text styling */
+.request-modal-improved .card.bg-light .text-dark {
+  color: #212529 !important;
+}
+
+.request-modal-improved .card.bg-light .text-primary {
+  color: #0d6efd !important;
+  font-size: 0.95rem;
+}
+
+.request-modal-improved .card.bg-light .fw-medium {
+  font-weight: 500;
+}
+
+.request-modal-improved .card.bg-light .h6 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .request-modal-improved .modal-content {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+  
+  .request-modal-improved .modal-body {
+    padding: 0.75rem 1rem;
+    max-height: calc(95vh - 120px);
+  }
+  
+  .request-modal-improved .modal-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .request-modal-improved .modal-footer {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Mobile card adjustments */
+  .request-modal-improved .col-6.col-md-3 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .request-modal-improved .card-body.p-2 {
+    padding: 0.4rem !important;
+  }
+  
+  .request-modal-improved .rounded-circle {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+  }
+  
+  .request-modal-improved .small {
+    font-size: 0.8rem;
+  }
+  
+  /* Stack cards vertically on mobile */
+  .request-modal-improved .row.g-2 {
+    gap: 0.5rem;
+  }
+  
+  .request-modal-improved .col-6.col-md-3 {
+    flex: 0 0 calc(50% - 0.25rem);
+    max-width: calc(50% - 0.25rem);
+  }
+  
+  /* Mobile form type card adjustments */
+  .request-modal-improved .card.bg-light .card-body {
+    padding: 1rem !important;
+  }
+  
+  .request-modal-improved .card.bg-light .h6 {
+    font-size: 1rem;
+  }
+  
+  .request-modal-improved .card.bg-light .text-primary {
+    font-size: 0.9rem;
+  }
+}
+
+/* Legacy styles - kept for backwards compatibility with other modals */
 .request-modal .badge {
   font-weight: 500;
   font-size: 0.8rem;
@@ -141,23 +348,4 @@
   border-top: 1px solid #e9ecef;
   padding: 0.75rem 1rem;
   background-color: #fff;
-}
-
-/* Specific styling for the status badges */
-.request-modal .badge.bg-primary {
-  background-color: #0d6efd !important;
-  border-radius: 0.25rem;
-}
-
-/* Styling for the user dropdown */
-.request-modal .dropdown .form-select {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Adjust spacing for mobile */
-@media (max-width: 768px) {
-  .request-modal .card {
-    margin-bottom: 1rem;
-  }
 }

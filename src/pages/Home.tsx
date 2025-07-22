@@ -57,6 +57,8 @@ interface Request {
   CREATE_USER_ID: number | null;
   UPDATE_USER_ID: number | null;
   TRACKINGID: string;
+  ABBREVIATION?: string;
+  REQUEST_DESCRIPTION?: string;
   requestorName: string;
   assignedName: string;
   requestor?: {
@@ -510,6 +512,133 @@ function Home() {
     }
     
     return false;
+  };
+
+  // Function to handle processing selected requests
+  const handleProcessRequests = async () => {
+    if (selectedRows.length === 0) {
+      toast.warning('Please select requests to process');
+      return;
+    }
+
+    try {
+      const result = await MySwal.fire({
+        title: 'Process Requests',
+        text: `Are you sure you want to process ${selectedRows.length} request(s)? This will update their status to "In Progress".`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, process them!'
+      });
+
+      if (result.isConfirmed) {
+        const authToken = localStorage.getItem('token');
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Process each selected request
+        for (const request of selectedRows) {
+          try {
+            await axios.put(
+              `/api/requests/${request.REQUEST_ID}`,
+              {
+                status: 'P', // Set status to 'P' for In Progress
+                name: request.REQUEST_NAME,
+                abbreviation: request.ABBREVIATION,
+                description: request.REQUEST_DESCRIPTION || '',
+                assignedId: request.ASSIGNED_ID
+              },
+              {
+                headers: {
+                  'Authorization': `Bearer ${authToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            successCount++;
+          } catch (error) {
+            console.error(`Error processing request ${request.REQUEST_ID}:`, error);
+            errorCount++;
+          }
+        }
+
+        // Show results
+        if (successCount > 0) {
+          toast.success(`Successfully processed ${successCount} request(s)`);
+        }
+        if (errorCount > 0) {
+          toast.error(`Failed to process ${errorCount} request(s)`);
+        }
+
+        // Clear selection and refresh data
+        setToggleCleared(!toggleCleared);
+        fetchRequests();
+      }
+    } catch (error) {
+      console.error('Error in handleProcessRequests:', error);
+      toast.error('Failed to process requests. Please try again.');
+    }
+  };
+
+  // Function to handle deleting selected requests
+  const handleDeleteRequests = async () => {
+    if (selectedRows.length === 0) {
+      toast.warning('Please select requests to delete');
+      return;
+    }
+
+    try {
+      const result = await MySwal.fire({
+        title: 'Delete Requests',
+        text: `Are you sure you want to delete ${selectedRows.length} request(s)? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete them!'
+      });
+
+      if (result.isConfirmed) {
+        const authToken = localStorage.getItem('token');
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Delete each selected request
+        for (const request of selectedRows) {
+          try {
+            await axios.delete(
+              `/api/requests/${request.REQUEST_ID}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${authToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            successCount++;
+          } catch (error) {
+            console.error(`Error deleting request ${request.REQUEST_ID}:`, error);
+            errorCount++;
+          }
+        }
+
+        // Show results
+        if (successCount > 0) {
+          toast.success(`Successfully deleted ${successCount} request(s)`);
+        }
+        if (errorCount > 0) {
+          toast.error(`Failed to delete ${errorCount} request(s)`);
+        }
+
+        // Clear selection and refresh data
+        setToggleCleared(!toggleCleared);
+        fetchRequests();
+      }
+    } catch (error) {
+      console.error('Error in handleDeleteRequests:', error);
+      toast.error('Failed to delete requests. Please try again.');
+    }
   };
   
   // Function to fetch requests and prepare chart data
@@ -1051,17 +1180,15 @@ function Home() {
                           <div className="flex gap-2">
                             <button 
                               className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                              onClick={() => {
-                                console.log('Process selected', selectedRows);
-                              }}
+                              onClick={handleProcessRequests}
+                              disabled={selectedRows.length === 0}
                             >
                               Process
                             </button>
                             <button 
                               className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-                              onClick={() => {
-                                console.log('Delete selected', selectedRows);
-                              }}
+                              onClick={handleDeleteRequests}
+                              disabled={selectedRows.length === 0}
                             >
                               Delete
                             </button>
