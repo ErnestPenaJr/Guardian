@@ -8,17 +8,20 @@ interface AdminFormsGroupsModalProps {
 }
 
 const AdminFormsGroupsModal: React.FC<AdminFormsGroupsModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  
   // Prevent body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
     }
+    
     return () => {
       document.body.style.overflow = 'auto';
     };
   }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -34,7 +37,9 @@ const AdminFormsGroupsModal: React.FC<AdminFormsGroupsModalProps> = ({ isOpen, o
           </button>
         </div>
         <div className="flex-grow overflow-auto p-4">
-          <AdminFormsGroups isInModal={true} onModalClose={onClose} />
+          <div className="h-full">
+            <AdminFormsGroups isInModal={true} onModalClose={onClose} />
+          </div>
         </div>
       </div>
     </div>

@@ -260,10 +260,20 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
       console.log('Fetched groups:', response.data);
       setGroups(response.data);
       setFilteredGroups(response.data);
-      setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching groups:', error);
-      toast.error('Failed to load groups. Please try again.');
+      
+      // Set empty state to prevent crashes
+      setGroups([]);
+      setFilteredGroups([]);
+      
+      if (error.response?.status === 500) {
+        console.warn('Server error - the forms-groups endpoint may not be implemented yet');
+        toast.warn('Form groups feature is not yet available. Please check with your administrator.');
+      } else {
+        toast.error('Failed to load groups. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
     }
   }, [authHeaders]);
@@ -401,7 +411,14 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
   // Fetch data when component mounts or auth headers change
   useEffect(() => {
     if (Object.keys(authHeaders).length > 0) {
-      fetchGroups();
+      // Temporarily disable API call until server endpoint is fixed
+      console.warn('Forms groups API disabled due to server 500 error');
+      setGroups([]);
+      setFilteredGroups([]);
+      setIsLoading(false);
+      
+      // Uncomment when server endpoint is working:
+      // fetchGroups();
     }
   }, [authHeaders, fetchGroups]);
 
@@ -472,6 +489,22 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
           </div>
         )}
         
+        {/* Development Notice */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Development Notice:</strong> The Form Groups feature is currently under development. The server endpoint needs to be configured before this feature can be used.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* AG Grid for displaying groups */}
         <div 
           className="ag-theme-alpine w-full" 
@@ -484,6 +517,7 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
           ) : (
             <AgGridReact
               ref={gridRef}
+              theme="legacy"
               rowData={filteredGroups}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}

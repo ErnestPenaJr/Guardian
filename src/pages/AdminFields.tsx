@@ -747,6 +747,7 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
               }}>
                 <AgGridReact
                   ref={gridRef}
+                  theme="legacy"
                   pagination={true}
                   paginationPageSize={10}
                   paginationAutoPageSize={false}
