@@ -348,7 +348,7 @@ function Home() {
     setShowRequestModal(true);
     
     if (request.ASSIGNED_ID) {
-      setSelectedUser({ id: request.ASSIGNED_ID, firstName: request.assignedName?.split(' ')[0] || '', lastName: request.assignedName?.split(' ')[1] || '' });
+      setSelectedUser({ id: request.ASSIGNED_ID, firstName: request.assignedName?.split(' ')[0] || '', lastName: request.assignedName?.split(' ')[1] || '', email: '', status: '', createdAt: '', companyId: 0, roles: [] });
     } else {
       setSelectedUser(null);
     }
