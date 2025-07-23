@@ -26,6 +26,7 @@ interface Request {
     EMAIL: string;
   };
   requestorName?: string;
+  assignedTo?: string;
   progressPercentage?: number;
   milestones?: Milestone[];
   priority?: 'low' | 'medium' | 'high' | 'urgent';
@@ -53,6 +54,8 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
+  const [sortField, setSortField] = useState<string>('SUBMITTED_DATE');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   // Form handling state
   const [showFormModal, setShowFormModal] = useState(false);
@@ -73,6 +76,9 @@ const RequestFulfillmentDashboard: React.FC = () => {
       
       const enhancedRequests = response.map((request: Request) => ({
         ...request,
+        assignedTo: user?.firstName && user?.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user?.email || 'Assigned to Me',
         progressPercentage: calculateProgress(request),
         priority: determinePriority(request),
         milestones: generateMockMilestones(request),
@@ -202,9 +208,9 @@ const RequestFulfillmentDashboard: React.FC = () => {
       case 'A':
         return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
       case 'C':
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge className="bg-green-100 text-green-800">Complete</Badge>;
       case 'R':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-red-100 text-red-800">Canceled</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -237,31 +243,57 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const getAvailableActions = (request: Request) => {
     const actions = [];
     
-    if (request.STATUS === 'P') {
-      actions.push({ type: 'start', label: 'Start Work', icon: Play, variant: 'primary' });
-    }
-    
     if (request.STATUS === 'A') {
       actions.push({ type: 'complete', label: 'Complete', icon: CheckCircle, variant: 'primary' });
     }
     
     if (request.STATUS === 'P' || request.STATUS === 'A') {
-      actions.push({ type: 'progress', label: 'Add Progress', icon: MessageCircle, variant: 'secondary' });
-      actions.push({ type: 'form', label: 'Fill Form', icon: FileText, variant: 'primary' });
+      actions.push({ type: 'form', label: 'Start Assignment', icon: FileText, variant: 'primary' });
     }
     
     return actions;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return new Date(dateString).toISOString().split('T')[0];
   };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const clearFiltersAndSort = () => {
+    setStatusFilter('all');
+    setSortField('SUBMITTED_DATE');
+    setSortDirection('desc');
+  };
+
+  const sortedRequests = [...requests].sort((a, b) => {
+    let aValue = a[sortField as keyof Request];
+    let bValue = b[sortField as keyof Request];
+    
+    if (sortField === 'SUBMITTED_DATE') {
+      aValue = new Date(a.SUBMITTED_DATE).getTime();
+      bValue = new Date(b.SUBMITTED_DATE).getTime();
+    }
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+    
+    return 0;
+  });
 
   if (loading) {
     return (
@@ -275,90 +307,103 @@ const RequestFulfillmentDashboard: React.FC = () => {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Assigned Requests</h1>
-        <Select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-48"
-        >
-          <option value="all">All Requests</option>
-          <option value="P">Pending</option>
-          <option value="A">In Progress</option>
-          <option value="C">Completed</option>
-        </Select>
+        <div className="flex gap-3 items-center">
+          <Button 
+            onClick={clearFiltersAndSort} 
+            variant="secondary"
+            className="rounded-md whitespace-nowrap"
+          >
+            Clear Filters
+          </Button>
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-48"
+          >
+            <option value="all">All Requests</option>
+            <option value="P">Pending</option>
+            <option value="A">In Progress</option>
+            <option value="C">Complete</option>
+            <option value="R">Canceled</option>
+          </Select>
+        </div>
       </div>
+
 
       <div className="requests-table-container">
         <table className="requests-table">
           <thead>
             <tr>
-              <th>Request</th>
-              <th>Status</th>
-              <th>Requestor</th>
-              <th>Priority</th>
-              <th>Progress</th>
-              <th>Submitted</th>
+              <th 
+                className="cursor-pointer hover:bg-gray-50" 
+                onClick={() => handleSort('TRACKINGID')}
+              >
+                ID {sortField === 'TRACKINGID' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="cursor-pointer hover:bg-gray-50" 
+                onClick={() => handleSort('SUBMITTED_DATE')}
+              >
+                Submitted Date {sortField === 'SUBMITTED_DATE' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="cursor-pointer hover:bg-gray-50" 
+                onClick={() => handleSort('REQUEST_NAME')}
+              >
+                Request {sortField === 'REQUEST_NAME' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="cursor-pointer hover:bg-gray-50" 
+                onClick={() => handleSort('STATUS')}
+              >
+                Status {sortField === 'STATUS' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
+              <th 
+                className="cursor-pointer hover:bg-gray-50" 
+                onClick={() => handleSort('assignedTo')}
+              >
+                Assigned {sortField === 'assignedTo' && (sortDirection === 'asc' ? '↑' : '↓')}
+              </th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {requests.map((request) => (
-              <tr key={request.REQUEST_ID} className="request-row">
-                <td className="request-info-cell">
-                  <div className="request-info">
-                    <div className="request-icon">📋</div>
-                    <div className="request-details">
-                      <div className="request-title">{request.REQUEST_NAME}</div>
-                      <div className="request-id">ID: {request.REQUEST_ID}</div>
-                      {request.REQUEST_DESCRIPTION && (
-                        <div className="request-description">{request.REQUEST_DESCRIPTION.substring(0, 60)}...</div>
-                      )}
-                    </div>
+            {sortedRequests.map((request) => (
+              <tr 
+                key={request.REQUEST_ID} 
+                className="request-row cursor-pointer hover:bg-gray-50" 
+                onClick={() => {
+                  setSelectedRequest(request);
+                  setShowActionModal(true);
+                }}
+              >
+                <td className="px-4 py-3 text-center">
+                  {request.TRACKINGID}
+                </td>
+                <td className="px-4 py-3">
+                  {formatDate(request.SUBMITTED_DATE)}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="font-medium">
+                    {request.REQUEST_NAME}
                   </div>
                 </td>
-                <td className="status-cell">
+                <td className="px-4 py-3">
                   {getStatusBadge(request.STATUS)}
                 </td>
-                <td className="requestor-cell">
-                  <div className="requestor-info">
-                    <User className="requestor-icon" />
-                    <span>{request.requestorName || 'Unknown'}</span>
-                  </div>
+                <td className="px-4 py-3">
+                  {request.assignedTo}
                 </td>
-                <td className="priority-cell">
-                  {request.priority && getPriorityBadge(request.priority)}
-                </td>
-                <td className="progress-cell">
-                  <div className="progress-container">
-                    <div className="progress-info">
-                      <span className="progress-text">{request.progressPercentage || 0}%</span>
-                    </div>
-                    <div className="progress-bar-wrapper">
-                      <ProgressBar percentage={request.progressPercentage || 0} />
-                    </div>
-                    {request.milestones && request.milestones.length > 0 && (
-                      <div className="milestone-summary">
-                        {request.milestones.filter(m => m.completed).length}/{request.milestones.length} milestones
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="date-cell">
-                  <div className="date-info">
-                    <Calendar className="date-icon" />
-                    <div className="date-details">
-                      <div>{formatDate(request.SUBMITTED_DATE)}</div>
-                      {request.estimatedDuration && (
-                        <div className="duration-info">Est: {request.estimatedDuration}h</div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="actions-cell">
-                  <div className="action-buttons">
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-2">
                     {getAvailableActions(request).map((action) => (
                       <button
                         key={action.type}
-                        className={`action-btn ${action.variant === 'primary' ? 'primary' : 'secondary'}`}
+                        className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                          action.variant === 'primary' 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                        }`}
                         onClick={() => {
                           if (action.type === 'form') {
                             loadRequestForm(request);
@@ -371,8 +416,8 @@ const RequestFulfillmentDashboard: React.FC = () => {
                         }}
                         title={action.label}
                       >
-                        <action.icon className="action-icon" />
-                        <span className="action-text">{action.label}</span>
+                        <action.icon className="w-3 h-3 inline mr-1" />
+                        {action.label}
                       </button>
                     ))}
                   </div>
