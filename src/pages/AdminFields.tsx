@@ -17,7 +17,11 @@ import '../styles/ag-grid-custom.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const AdminFields: React.FC = () => {
+interface AdminFieldsProps {
+  isModal?: boolean;
+}
+
+const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -679,23 +683,25 @@ const AdminFields: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className={isModal ? "h-full bg-white" : "min-h-screen bg-gray-50 pt-16 pb-12"}>
+      <div className={isModal ? "h-full px-4" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
         {/* Header */}
-        <div className="flex justify-between items-center py-6">
-          <div className="flex items-center">
-            <button
-              onClick={() => navigate('/admin')}
-              className="mr-4 p-2 rounded-full hover:bg-gray-200 transition"
-            >
-              <FaArrowLeft className="text-gray-600" />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">Field Management</h1>
+        {!isModal && (
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <button
+                onClick={() => navigate('/admin')}
+                className="mr-4 p-2 rounded-full hover:bg-gray-200 transition"
+              >
+                <FaArrowLeft className="text-gray-600" />
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900">Field Management</h1>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className={isModal ? "h-full p-4" : "bg-white shadow rounded-lg p-6"}>
           {/* Grid header with search filter and Add button */}
           <div className="flex items-center mb-6 gap-4">
             {/* Left side: Header */}
@@ -749,7 +755,7 @@ const AdminFields: React.FC = () => {
               <p>No fields found. Add your first field to get started.</p>
             </div>
           ) : (
-            <div className="ag-theme-alpine w-full" style={{ height: '600px' }}>
+            <div className="ag-theme-alpine w-full" style={{ height: isModal ? 'calc(100vh - 220px)' : '600px' }}>
               <AgGridReact
                 ref={gridRef}
                 pagination={true}

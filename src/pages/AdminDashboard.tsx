@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
-import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaTimes } from 'react-icons/fa';
-import Modal from 'react-modal';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { FaUsers, FaCog, FaPalette, FaProjectDiagram } from 'react-icons/fa';
+import ReactModal from 'react-modal';
+import Modal from '../components/Modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
 import NewRequestModal from '../pages/NewRequestModal';
 import AdminFormsGroupsModal from '../components/AdminFormsGroupsModal';
+import AdminFields from '../pages/AdminFields';
 import formService from '../services/formService';
 import { toast } from 'react-toastify';
 
-// Set the app element for accessibility
-Modal.setAppElement('#root');
+// Set the app element for accessibility for react-modal
+ReactModal.setAppElement('#root');
 
 const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onShowUserManagement }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   
   // State for modals
   const [enhancedFormBuilderModalOpen, setEnhancedFormBuilderModalOpen] = useState(false);
   const [enhancedFormFields, setEnhancedFormFields] = useState<any[]>([]);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [formsGroupsModalOpen, setFormsGroupsModalOpen] = useState(false);
+  const [adminFieldsModalOpen, setAdminFieldsModalOpen] = useState(false);
   
   // Handle enhanced form field changes
   const handleEnhancedFormFieldsChange = (updatedFields: any) => {
@@ -100,7 +104,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               className="cursor-pointer hover:text-secondary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = '/admin-fields';
+                setAdminFieldsModalOpen(true);
               }}
             >
               Manage Fields
@@ -144,7 +148,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
           onClick={e => {
             e.preventDefault();
-            window.location.href = '/style-guide';
+            navigate('/style-guide');
           }}
         >
           <FaPalette className="h-12 w-12 text-secondary mb-4" />
@@ -179,46 +183,11 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
       {/* Enhanced Form Builder Modal */}
       <Modal
         isOpen={enhancedFormBuilderModalOpen}
-        onRequestClose={() => setEnhancedFormBuilderModalOpen(false)}
-        contentLabel="Field Type Manager"
-        className="modal-content xl-modal"
-        overlayClassName="modal-overlay"
-        style={{
-          content: {
-            width: '90%',
-            maxWidth: '1400px',
-            height: '90%',
-            margin: 'auto',
-            padding: '20px',
-            borderRadius: '8px',
-            backgroundColor: '#fff',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            border: 'none',
-            overflow: 'auto',
-            position: 'relative' as 'relative'
-          },
-          overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            position: 'fixed' as 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0
-          }
-        }}
+        onClose={() => setEnhancedFormBuilderModalOpen(false)}
+        title="Field Type Manager"
+        size="xl"
       >
-        <div className="relative">
-          <button
-            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 bg-transparent border-none p-2 rounded-full hover:bg-gray-100 transition"
-            onClick={() => setEnhancedFormBuilderModalOpen(false)}
-          >
-            <FaTimes size={20} />
-          </button>
-          <h2 className="text-2xl font-bold mb-4">Field Type Manager</h2>
+        <div className="h-[80vh] overflow-auto">
           <EnhancedFormBuilder
             formFields={enhancedFormFields}
             onChange={handleEnhancedFormFieldsChange}
@@ -238,6 +207,19 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         isOpen={formsGroupsModalOpen}
         onClose={() => setFormsGroupsModalOpen(false)}
       />
+      
+      {/* Admin Fields Modal */}
+      <Modal
+        isOpen={adminFieldsModalOpen}
+        onClose={() => setAdminFieldsModalOpen(false)}
+        title="Field Management"
+        size="full"
+        className="h-[90vh]"
+      >
+        <div className="h-full overflow-auto">
+          <AdminFields isModal={true} />
+        </div>
+      </Modal>
     </div>
   );
 };
