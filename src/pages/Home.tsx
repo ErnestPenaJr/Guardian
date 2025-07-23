@@ -272,13 +272,13 @@ function Home() {
     },*/
     {
       icon: <FileText className="w-6 h-6" />,
-      label: 'All Requests',
+      label: 'My Requests',
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
     },
     {
       icon: <CheckCircle className="w-6 h-6" />,
-      label: 'My Assignments',
+      label: 'Assignments',
       onClick: () => setSelectedSection('myRequests'),
       active: selectedSection === 'myRequests',
     },
