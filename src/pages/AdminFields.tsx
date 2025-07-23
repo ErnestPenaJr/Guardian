@@ -545,7 +545,6 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
     if (authToken) {
       fetchFields();
       fetchFieldTypes();
-      fetchLookupDisplayTypes();
     }
   }, [authToken]);
 
@@ -582,31 +581,17 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
     }
   };
 
-  // Fetch lookup display types from API
-  const fetchLookupDisplayTypes = async () => {
-    try {
-      if (!authToken) {
-        console.error('No authentication token found');
-        return;
-      }
-
-      const response = await axios.get('/api/field-lookup-display-types', { headers: authHeaders });
-
-      if (response.data && response.data.length > 0) {
-        setLookupDisplayTypes(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching lookup display types:', error);
-      // Fallback to default options if API fails
-      setLookupDisplayTypes([
-        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 1, DISPLAY_TYPE_DESC: 'Dropdown List' },
-        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 2, DISPLAY_TYPE_DESC: 'Radio Buttons' },
-        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 3, DISPLAY_TYPE_DESC: 'Checkboxes' },
-        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 4, DISPLAY_TYPE_DESC: 'Multi-select List' },
-        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 5, DISPLAY_TYPE_DESC: 'Button Group' }
-      ]);
-    }
-  };
+  // Initialize lookup display types with fallback data
+  useEffect(() => {
+    // Set default lookup display types since API endpoint doesn't exist yet
+    setLookupDisplayTypes([
+      { FIELD_LOOKUP_DISPLAY_TYPE_ID: 1, DISPLAY_TYPE_DESC: 'Dropdown List' },
+      { FIELD_LOOKUP_DISPLAY_TYPE_ID: 2, DISPLAY_TYPE_DESC: 'Radio Buttons' },
+      { FIELD_LOOKUP_DISPLAY_TYPE_ID: 3, DISPLAY_TYPE_DESC: 'Checkboxes' },
+      { FIELD_LOOKUP_DISPLAY_TYPE_ID: 4, DISPLAY_TYPE_DESC: 'Multi-select List' },
+      { FIELD_LOOKUP_DISPLAY_TYPE_ID: 5, DISPLAY_TYPE_DESC: 'Button Group' }
+    ]);
+  }, []);
 
   const fetchFields = async () => {
     setIsLoading(true);
