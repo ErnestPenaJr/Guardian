@@ -85,6 +85,14 @@ const RequestDashboard: React.FC = () => {
   const [showSelectFormModal, setShowSelectFormModal] = useState(false);
   const [showAddRequestModal, setShowAddRequestModal] = useState(false);
   const [formData, setFormData] = useState<any>(null);
+  
+  // Form fulfillment state
+  const [showFormFulfillmentModal, setShowFormFulfillmentModal] = useState(false);
+  const [fulfillmentFormData, setFulfillmentFormData] = useState<any>(null);
+  const [fulfillmentFormFields, setFulfillmentFormFields] = useState<any[]>([]);
+  const [fulfillmentFormValues, setFulfillmentFormValues] = useState<Record<string, any>>({});
+  const [fulfillmentFormLoading, setFulfillmentFormLoading] = useState(false);
+  const [fulfillmentActionLoading, setFulfillmentActionLoading] = useState(false);
 
   // Fetch requests on component mount
   useEffect(() => {
@@ -264,9 +272,22 @@ const RequestDashboard: React.FC = () => {
           >
             View
           </button>
+          <button 
+            className="btn btn-sm btn-outline-success"
+            onClick={() => {
+              // Start assignment action - load the form for fulfillment
+              if (row.FORM_ID) {
+                loadRequestFormForFulfillment(row);
+              } else {
+                toast.error('No form template assigned to this request');
+              }
+            }}
+          >
+            Start Assignment
+          </button>
         </div>
       ),
-      width: '120px',
+      width: '220px',
       ignoreRowClick: true,
       sortable: false,
       selector: _ => ''
@@ -336,6 +357,45 @@ const RequestDashboard: React.FC = () => {
       console.error('Error saving form:', error);
       toast.error(error.response?.data?.error || error.message || 'Failed to save form');
       throw error;
+    }
+  };
+
+  // Load request form for fulfillment
+  const loadRequestFormForFulfillment = async (request: Request) => {
+    try {
+      setFulfillmentFormLoading(true);
+      const response = await formService.getRequestForm(request.REQUEST_ID);
+      
+      setFulfillmentFormData(response);
+      setFulfillmentFormFields(response.fields || []);
+      setFulfillmentFormValues(response.values || {});
+      setSelectedRequest(request);
+      setShowFormFulfillmentModal(true);
+    } catch (error) {
+      console.error('Error loading form:', error);
+      toast.error('Failed to load form data');
+    } finally {
+      setFulfillmentFormLoading(false);
+    }
+  };
+
+  // Save form fulfillment data
+  const saveFulfillmentFormData = async () => {
+    if (!selectedRequest || !fulfillmentFormData) return;
+    
+    try {
+      setFulfillmentActionLoading(true);
+      
+      await formService.submitForm(selectedRequest.REQUEST_ID, fulfillmentFormValues);
+      
+      toast.success('Form data saved successfully');
+      setShowFormFulfillmentModal(false);
+      fetchRequests(); // Refresh the list
+    } catch (error) {
+      console.error('Error saving form:', error);
+      toast.error('Failed to save form data');
+    } finally {
+      setFulfillmentActionLoading(false);
     }
   };
 
@@ -584,6 +644,114 @@ const RequestDashboard: React.FC = () => {
             fetchRequests();
           }}
         />
+      )}
+      
+      {/* Form Fulfillment Modal */}
+      {showFormFulfillmentModal && (
+        <div className="modal show d-block" tabIndex={-1} style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  Fill Request Form - {selectedRequest?.REQUEST_NAME}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowFormFulfillmentModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body p-4">
+                {fulfillmentFormData && (
+                  <div className="bg-light p-4 rounded mb-4">
+                    <h6 className="text-primary mb-2">
+                      {fulfillmentFormData.form.FORM_NAME} Template
+                    </h6>
+                    <p className="text-muted small">
+                      {fulfillmentFormData.form.FORM_DESCRIPTION}
+                    </p>
+                  </div>
+                )}
+                
+                {fulfillmentFormLoading ? (
+                  <div className="text-center py-5">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading form...</span>
+                    </div>
+                    <p className="mt-2 text-muted">Loading form...</p>
+                  </div>
+                ) : (
+                  <div className="row g-3">
+                    {fulfillmentFormFields.map((field, index) => (
+                      <div key={field.FIELD_ID} className="col-12">
+                        <label className="form-label fw-semibold">
+                          {field.FIELD_NAME}
+                          {field.IS_REQUIRED && <span className="text-danger ms-1">*</span>}
+                        </label>
+                        
+                        {field.FIELD_TYPE_ID === 3 ? (
+                          // Date field
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={fulfillmentFormValues[field.FIELD_ID] || ''}
+                            onChange={(e) => setFulfillmentFormValues(prev => ({
+                              ...prev,
+                              [field.FIELD_ID]: e.target.value
+                            }))}
+                            required={field.IS_REQUIRED}
+                          />
+                        ) : (
+                          // Text field
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={fulfillmentFormValues[field.FIELD_ID] || ''}
+                            onChange={(e) => setFulfillmentFormValues(prev => ({
+                              ...prev,
+                              [field.FIELD_ID]: e.target.value
+                            }))}
+                            placeholder={`Enter ${field.FIELD_NAME.toLowerCase()}...`}
+                            required={field.IS_REQUIRED}
+                          />
+                        )}
+                        
+                        {index < fulfillmentFormFields.length - 1 && (
+                          <hr className="my-3" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowFormFulfillmentModal(false)}
+                  disabled={fulfillmentActionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={saveFulfillmentFormData}
+                  disabled={fulfillmentActionLoading || fulfillmentFormLoading}
+                >
+                  {fulfillmentActionLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Form Data'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
