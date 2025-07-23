@@ -25,6 +25,7 @@ const AdminFields: React.FC = () => {
   const [fields, setFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dynamicFieldTypes, setDynamicFieldTypes] = useState<any[]>([]);
+  const [lookupDisplayTypes, setLookupDisplayTypes] = useState<any[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [authHeaders, setAuthHeaders] = useState<{[key: string]: string}>({});
   
@@ -44,6 +45,7 @@ const AdminFields: React.FC = () => {
     FIELD_TYPE_ID: '',
     REQUIRED: false,
     IS_ACTIVE: true,
+    IS_DELETED: false,
     HAS_LOOKUP: false,
     DISPLAY_FORMAT: '',
     IS_PUBLIC: false,
@@ -239,6 +241,29 @@ const AdminFields: React.FC = () => {
       }
     },
     {
+      field: 'IS_DELETED',
+      headerName: 'Deleted',
+      sortable: true,
+      filter: true,
+      width: 120,
+      cellRenderer: (params: any) => {
+        return (
+          <div className="flex justify-center items-center h-full">
+            {params.value ?
+              <FaTimes className="text-red-500" /> :
+              <FaCheck className="text-green-500" />
+            }
+          </div>
+        );
+      },
+      headerClass: 'ag-header-cell-centered',
+      cellClass: 'ag-cell-centered',
+      filterParams: {
+        buttons: ['reset', 'apply'],
+        closeOnApply: true
+      }
+    },
+    {
       headerName: 'Actions',
       cellRenderer: ActionsCellRenderer,
       sortable: false,
@@ -268,6 +293,7 @@ const AdminFields: React.FC = () => {
       FIELD_TYPE_ID: defaultFieldType,
       REQUIRED: false,
       IS_ACTIVE: true,
+      IS_DELETED: false,
       HAS_LOOKUP: false,
       DISPLAY_FORMAT: '',
       IS_PUBLIC: false,
@@ -298,6 +324,7 @@ const AdminFields: React.FC = () => {
       FIELD_TYPE_ID: fieldTypeId,
       REQUIRED: field.REQUIRED || field.IS_REQUIRED || false,
       IS_ACTIVE: field.IS_ACTIVE !== undefined ? field.IS_ACTIVE : true,
+      IS_DELETED: field.IS_DELETED || false,
       HAS_LOOKUP: hasLookup,
       DISPLAY_FORMAT: field.DISPLAY_FORMAT || '',
       IS_PUBLIC: field.IS_PUBLIC || false,
@@ -514,6 +541,7 @@ const AdminFields: React.FC = () => {
     if (authToken) {
       fetchFields();
       fetchFieldTypes();
+      fetchLookupDisplayTypes();
     }
   }, [authToken]);
 
@@ -547,6 +575,32 @@ const AdminFields: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching field types:', error);
+    }
+  };
+
+  // Fetch lookup display types from API
+  const fetchLookupDisplayTypes = async () => {
+    try {
+      if (!authToken) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      const response = await axios.get('/api/field-lookup-display-types', { headers: authHeaders });
+
+      if (response.data && response.data.length > 0) {
+        setLookupDisplayTypes(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching lookup display types:', error);
+      // Fallback to default options if API fails
+      setLookupDisplayTypes([
+        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 1, DISPLAY_TYPE_DESC: 'Dropdown List' },
+        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 2, DISPLAY_TYPE_DESC: 'Radio Buttons' },
+        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 3, DISPLAY_TYPE_DESC: 'Checkboxes' },
+        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 4, DISPLAY_TYPE_DESC: 'Multi-select List' },
+        { FIELD_LOOKUP_DISPLAY_TYPE_ID: 5, DISPLAY_TYPE_DESC: 'Button Group' }
+      ]);
     }
   };
 
@@ -813,6 +867,27 @@ const AdminFields: React.FC = () => {
                             placeholder="e.g., MM/DD/YYYY for dates"
                           />
                         </div>
+
+                        {/* Lookup Display Type - only show when HAS_LOOKUP is true */}
+                        {formData.HAS_LOOKUP && (
+                          <div>
+                            <label htmlFor="lookupDisplayType" className="block text-sm font-medium text-gray-700 mb-1">Lookup Display Type</label>
+                            <select
+                              id="lookupDisplayType"
+                              name="FIELD_LOOKUP_DISPLAY_TYPE_ID"
+                              value={formData.FIELD_LOOKUP_DISPLAY_TYPE_ID || ''}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">Select display type</option>
+                              {lookupDisplayTypes.map((type) => (
+                                <option key={type.FIELD_LOOKUP_DISPLAY_TYPE_ID} value={type.FIELD_LOOKUP_DISPLAY_TYPE_ID}>
+                                  {type.DISPLAY_TYPE_DESC}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
 
                       {/* Checkboxes */}
@@ -863,6 +938,18 @@ const AdminFields: React.FC = () => {
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                           />
                           <span className="ml-2 text-sm text-gray-700">Sensitive Data</span>
+                        </label>
+
+                        <label htmlFor="isDeleted" className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            id="isDeleted"
+                            name="IS_DELETED"
+                            checked={formData.IS_DELETED}
+                            onChange={handleInputChange}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Mark as Deleted</span>
                         </label>
 
                         <label htmlFor="hasLookup" className="flex items-center cursor-pointer">
