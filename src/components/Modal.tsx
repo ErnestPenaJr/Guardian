@@ -35,11 +35,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
   }[size];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[1000] overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
         <div 
-          className="fixed inset-0 transition-opacity" 
+          className="fixed inset-0 transition-opacity z-[1001]" 
           aria-hidden="true"
           onClick={onClose}
         >
@@ -48,7 +48,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
 
         {/* Modal panel */}
         <div 
-          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle ${modalSizeClasses} w-full ${className}`}
+          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle ${modalSizeClasses} w-full ${className} z-[1002] relative`}
           role="dialog" 
           aria-modal="true" 
           aria-labelledby="modal-headline"

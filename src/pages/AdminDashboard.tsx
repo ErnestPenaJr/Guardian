@@ -214,9 +214,9 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         onClose={() => setAdminFieldsModalOpen(false)}
         title="Field Management"
         size="full"
-        className="h-[90vh]"
+        className="h-auto max-h-[90vh]"
       >
-        <div className="h-full overflow-auto">
+        <div className="p-4">
           <AdminFields isModal={true} />
         </div>
       </Modal>

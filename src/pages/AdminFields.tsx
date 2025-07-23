@@ -525,7 +525,7 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
   // Handle grid ready event
   const onGridReady = useCallback((params: GridReadyEvent) => {
     setGridApi(params.api);
-    params.api.sizeColumnsToFit();
+    // Don't auto-fit columns - let them use natural widths
   }, []);
 
   // Initialize auth token once when component mounts
@@ -740,26 +740,31 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
               <p>No fields found. Add your first field to get started.</p>
             </div>
           ) : (
-            <div className="ag-theme-alpine w-full" style={{ height: isModal ? 'calc(100vh - 220px)' : '600px' }}>
-              <AgGridReact
-                ref={gridRef}
-                pagination={true}
-                paginationPageSize={10}
-                paginationAutoPageSize={false}
-                paginationPageSizeSelector={[10, 25, 50, 100]}
-                headerHeight={48}
-                rowHeight={40}
-                rowData={filteredFields.length > 0 || searchTerm ? filteredFields : fields}
-                columnDefs={columnDefs}
-                defaultColDef={{
-                  flex: 1,
-                  minWidth: 100,
-                  filter: true,
-                  sortable: true,
-                  resizable: true
-                }}
-                onGridReady={onGridReady}
-              />
+            <div className="flex justify-center w-full">
+              <div className="ag-theme-alpine w-full" style={{ 
+                height: 'calc(40px * 10 + 48px + 16px)', // 10 rows * 40px + header + padding
+                width: '100%' 
+              }}>
+                <AgGridReact
+                  ref={gridRef}
+                  pagination={true}
+                  paginationPageSize={10}
+                  paginationAutoPageSize={false}
+                  paginationPageSizeSelector={[10, 25, 50, 100]}
+                  headerHeight={48}
+                  rowHeight={40}
+                  rowData={filteredFields.length > 0 || searchTerm ? filteredFields : fields}
+                  columnDefs={columnDefs}
+                  defaultColDef={{
+                    flex: 1,
+                    minWidth: 100,
+                    filter: true,
+                    sortable: true,
+                    resizable: true
+                  }}
+                  onGridReady={onGridReady}
+                />
+              </div>
             </div>
           )}
         </div>
