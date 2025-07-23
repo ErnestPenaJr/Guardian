@@ -276,12 +276,6 @@ function Home() {
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
     },
-    {
-      icon: <CheckCircle className="w-6 h-6" />,
-      label: 'Assignments',
-      onClick: () => setSelectedSection('myRequests'),
-      active: selectedSection === 'myRequests',
-    },
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
       {
         icon: <Sliders className="w-6 h-6" />,
