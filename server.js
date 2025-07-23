@@ -71,6 +71,17 @@ app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
 });
 
+// Debug endpoint to check server version
+app.get('/api/debug/endpoints', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Server running latest code with /api/invites endpoint',
+        timestamp: new Date().toISOString(),
+        version: '1.1.0',
+        endpoints: ['/api/invites', '/api/invites/send (missing)', '/api/roles', '/api/users']
+    });
+});
+
 // Debug forms endpoint (temporary)
 app.get('/api/debug/forms', async (req, res) => {
     try {
