@@ -374,6 +374,18 @@ const RequestDashboard: React.FC = () => {
         throw new Error('No response received from API');
       }
       
+      // Check if we received HTML instead of JSON (routing issue)
+      if (typeof response === 'string' && (response as string).includes('<!doctype html>')) {
+        console.error('[FULFILLMENT] Received HTML instead of JSON - API routing issue');
+        throw new Error('API endpoint returned HTML page instead of JSON data. This indicates a routing or deployment issue.');
+      }
+      
+      // Ensure response is an object
+      if (typeof response !== 'object') {
+        console.error('[FULFILLMENT] Invalid response type:', typeof response);
+        throw new Error(`Expected object response, got ${typeof response}`);
+      }
+      
       if (!response.form) {
         console.warn('[FULFILLMENT] No form data in response, using fallback');
         // Create a fallback form structure

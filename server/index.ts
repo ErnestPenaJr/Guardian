@@ -66,6 +66,8 @@ app.use(express.static(frontendDistPath));
 
 // API response middleware - ensures all API responses are JSON
 app.use('/api', (req, res, next) => {
+  console.log(`[API REQUEST] ${req.method} ${req.path} - User-Agent: ${req.get('User-Agent')}`);
+  console.log(`[API REQUEST] Headers:`, req.headers);
   res.setHeader('Content-Type', 'application/json');
   next();
 });
@@ -73,6 +75,17 @@ app.use('/api', (req, res, next) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API routing test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API routing is working correctly',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    path: req.path,
+    method: req.method
+  });
 });
 
 // Register API routes

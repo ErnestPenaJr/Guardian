@@ -285,10 +285,35 @@ const formService = {
     formInstanceId: number;
   }> => {
     try {
+      console.log('[FORM SERVICE] Making request to:', `/api/requests/${requestId}/form`);
       const response = await api.get(`/api/requests/${requestId}/form`);
+      console.log('[FORM SERVICE] Response status:', response.status);
+      console.log('[FORM SERVICE] Response headers:', response.headers);
+      console.log('[FORM SERVICE] Response data type:', typeof response.data);
+      console.log('[FORM SERVICE] Response data:', response.data);
+      
+      // Check if response is HTML (indicating a routing issue)
+      if (typeof response.data === 'string' && response.data.includes('<!doctype html>')) {
+        console.error('[FORM SERVICE] Received HTML instead of JSON - API endpoint not found');
+        throw new Error('API endpoint returned HTML instead of JSON. This usually means the API route is not found or there is a routing issue.');
+      }
+      
+      // Validate response structure
+      if (!response.data || typeof response.data !== 'object') {
+        console.error('[FORM SERVICE] Invalid response format:', response.data);
+        throw new Error('Invalid response format from API');
+      }
+      
       return response.data;
     } catch (error) {
-      console.error('Error fetching request form:', error);
+      console.error('[FORM SERVICE] Error fetching request form:', error);
+      
+      // Provide more specific error information
+      if (error instanceof Error) {
+        console.error('[FORM SERVICE] Error message:', error.message);
+        console.error('[FORM SERVICE] Error stack:', error.stack);
+      }
+      
       throw error;
     }
   },

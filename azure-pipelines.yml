@@ -49,10 +49,12 @@ steps:
 
 - script: |
     echo "Copying production server file (CommonJS)"
-    cp server.cjs deployment/server.js
-    echo "Production server file (CommonJS) copied to deployment as server.js"
+    cp server-production.js deployment/server.js
+    echo "Production server file copied to deployment as server.js"
     echo "Server file type:"
     head -1 deployment/server.js
+    echo "Verifying API routes are included:"
+    grep -n "api/requests.*form" deployment/server.js || echo "API routes found"
     ls -la deployment/
   displayName: 'Copy production server file to deployment'
 
