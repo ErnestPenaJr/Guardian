@@ -107,7 +107,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
                 setAdminFieldsModalOpen(true);
               }}
             >
-              Manage Fields
+              Manage Fields List
             </li>
             <li 
               data-component-name="AdminDashboard"

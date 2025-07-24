@@ -133,8 +133,8 @@ router.post('/', async (req, res) => {
             });
             // Create the form-field association
             await prisma.$executeRaw `
-        INSERT INTO FORMS_FIELDS (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER, CREATE_USER_ID, UPDATE_USER_ID)
-        VALUES (${createdForm.FORM_ID}, ${createdField.FIELD_ID}, ${field.IS_REQUIRED}, ${field.SEQUENCE}, ${req.user?.id || undefined}, ${req.user?.id || undefined})
+        INSERT INTO GUARDIAN.FORMS_FIELDS (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER, CREATE_USER_ID, UPDATE_USER_ID)
+        VALUES (${createdForm.FORM_ID}, ${createdField.FIELD_ID}, ${field.IS_REQUIRED}, ${field.SEQUENCE || 0}, ${req.user?.id || null}, ${req.user?.id || null})
       `;
             // If the field has lookup values (dropdown/radio options), create them
             if (field.OPTIONS) {

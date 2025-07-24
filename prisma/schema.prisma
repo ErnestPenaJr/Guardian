@@ -96,6 +96,7 @@ model FIELDS {
   FIELDS_LOOKUP                FIELDS_LOOKUP[]
   FORMS_INSTANCE_VALUES        FORMS_INSTANCE_VALUES[]
   FORMS_GROUPS_FIELDS          FORMS_GROUPS_FIELDS[]
+  FORMS_FIELDS                 FORMS_FIELDS[]
 
   @@schema("GUARDIAN")
 }
@@ -133,7 +134,24 @@ model FORMS {
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
   COMPANY          COMPANY?         @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, map: "FK__FORMS__COMPANY")
   FORMS_INSTANCE   FORMS_INSTANCE[]
+  FORMS_FIELDS     FORMS_FIELDS[]
 
+  @@schema("GUARDIAN")
+}
+
+model FORMS_FIELDS {
+  FORM_ID        Int
+  FIELD_ID       Int
+  IS_REQUIRED    Boolean  @default(false, map: "DF__FORMS_FIE__IS_RE__64CCF2AE")
+  SORT_ORDER     Int?
+  CREATE_USER_ID Int?
+  UPDATE_USER_ID Int?
+  CREATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__CREAT__65C116E7") @db.DateTime
+  UPDATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__UPDAT__66B53B20") @db.DateTime
+  FIELDS         FIELDS   @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FORMS_FIE__FIELD__689D8392")
+  FORMS          FORMS    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, map: "FK__FORMS_FIE__UPDAT__67A95F59")
+
+  @@id([FORM_ID, FIELD_ID], map: "PK_FORMS_FIELDS")
   @@schema("GUARDIAN")
 }
 

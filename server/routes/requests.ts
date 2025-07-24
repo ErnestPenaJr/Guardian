@@ -50,7 +50,7 @@ const getUserInfoFromRequest = (req: Request) => {
       
       return {
         userId: user.id || defaults.userId,
-        companyId: user.company?.id || defaults.companyId,
+        companyId: (user as any).COMPANY_ID || user.company?.id || defaults.companyId,
         formId: defaults.formId,
         status: defaults.status
       };
@@ -1595,33 +1595,87 @@ router.get('/:id/form', requireAuth, async (req: Request, res: Response) => {
     
     console.log('[GET FORM] Request ID:', requestId);
     console.log('[GET FORM] User info:', userInfo);
+    console.log('[GET FORM] Request user:', req.user);
     
     if (!requestId || isNaN(requestId)) {
       return res.status(400).json({ error: 'Invalid request ID' });
     }
     
-    // Get the request and verify it's assigned to current user
+    // Get the request first
     const request = await prisma.$queryRawUnsafe(`
       SELECT r.*
       FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId} 
-      AND r.ASSIGNED_ID = ${userInfo.userId}
+      WHERE r.REQUEST_ID = ${requestId}
     `) as any[];
     
     if (!request || request.length === 0) {
-      return res.status(404).json({ error: 'Request not found or not assigned to you' });
+      console.log('[GET FORM] No request found');
+      return res.status(404).json({ error: 'Request not found' });
     }
     
     const requestData = request[0];
-    const formId = requestData.FORM_ID;
     
+    // For unassigned requests, we need to determine the form based on the request type
+    // For now, let's use a default form or create a form instance
+    let formId: number | null = null;
+    let formInstanceId: number | null = null;
+    
+    // Try to find existing form instance
+    if (requestData.ASSIGNED_ID) {
+      const formInstance = await prisma.$queryRawUnsafe(`
+        SELECT fi.FORM_ID, fi.FORM_INSTANCE_ID
+        FROM GUARDIAN.FORMS_INSTANCE fi
+        WHERE fi.ASSIGNED_ID = ${requestData.ASSIGNED_ID}
+      `) as any[];
+      
+      if (formInstance && formInstance.length > 0) {
+        formId = formInstance[0].FORM_ID;
+        formInstanceId = formInstance[0].FORM_INSTANCE_ID;
+      }
+    }
+    
+    // If no form found, determine form based on request type/name
     if (!formId) {
+      const requestName = requestData.REQUEST_NAME?.toLowerCase() || '';
+      const requestDescription = requestData.REQUEST_DESCRIPTION?.toLowerCase() || '';
+      
+      // Match request to appropriate form template
+      if (requestName.includes('vehicle') || requestDescription.includes('vehicle')) {
+        formId = 1013; // VEHICLE form
+      } else if (requestName.includes('financial') || requestName.includes('bank') || requestDescription.includes('financial')) {
+        formId = 1006; // FINANCIAL form
+      } else if (requestName.includes('address') || requestDescription.includes('address')) {
+        formId = 1007; // ADDRESS form
+      } else {
+        formId = 1005; // SUBJECT form as default
+      }
+      
+      console.log(`[GET FORM] Matched request "${requestData.REQUEST_NAME}" to form ID ${formId}`);
+    }
+    
+    const requestWithForm = [{ ...requestData, FORM_ID: formId, FORM_INSTANCE_ID: formInstanceId }];
+    
+    console.log('[GET FORM] Query result:', requestWithForm);
+    
+    if (!requestWithForm || requestWithForm.length === 0) {
+      console.log('[GET FORM] No request found');
+      return res.status(404).json({ error: 'Request not found' });
+    }
+    
+    const finalRequestData = requestWithForm[0];
+    const finalFormId = finalRequestData.FORM_ID;
+    
+    console.log('[GET FORM] Request data:', finalRequestData);
+    console.log('[GET FORM] Form ID:', finalFormId);
+    
+    if (!finalFormId) {
+      console.log('[GET FORM] No form ID found');
       return res.status(404).json({ error: 'No form associated with this request' });
     }
     
     // Get form details
     const form = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GUARDIAN.FORMS WHERE FORM_ID = ${formId}
+      SELECT * FROM GUARDIAN.FORMS WHERE FORM_ID = ${finalFormId}
     `) as any[];
     
     if (!form || form.length === 0) {
@@ -1660,11 +1714,11 @@ router.get('/:id/form', requireAuth, async (req: Request, res: Response) => {
     const valueMap = {};
     
     res.json({
-      request: requestData,
+      request: finalRequestData,
       form: form[0],
       fields: fields,
       values: valueMap,
-      formInstanceId: null
+      formInstanceId: finalRequestData.FORM_INSTANCE_ID
     });
     
   } catch (error) {
