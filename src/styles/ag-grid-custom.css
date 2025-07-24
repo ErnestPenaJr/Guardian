@@ -73,7 +73,7 @@
 /* Enhanced header styling */
 .ag-theme-alpine .ag-header-cell {
   font-weight: 700; /* Bold as per StyleGuide */
-  color: #1f2937;
+  color: #ffffff !important; /* White text for visibility against dark background */
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 14px; /* Small Text Bold from StyleGuide */
@@ -83,6 +83,19 @@
 
 .ag-theme-alpine .ag-header-cell:hover {
   background-color: #043434; /* Slightly lighter than primary for hover */
+}
+
+/* Additional specific rules for header text visibility */
+.ag-theme-alpine .ag-header-cell-label {
+  color: #ffffff !important;
+}
+
+.ag-theme-alpine .ag-header-cell-text {
+  color: #ffffff !important;
+}
+
+.ag-theme-alpine .ag-header-cell-resize {
+  color: #ffffff !important;
 }
 
 /* Row styling */
