@@ -305,9 +305,9 @@ const RequestDashboard: React.FC = () => {
         // Convert DB fields to form fields
         const formFields = formService.convertDbFieldsToFormFields(formTemplate.fields);
         
-        // Set form data
+        // Set form data with null checks
         setFormData({
-          name: formTemplate.form.FORM_NAME,
+          name: formTemplate.form.FORM_NAME || 'Form Template',
           description: formTemplate.form.FORM_DESCRIPTION || '',
           formType: 'request', // Default to request type
           formFields: formFields
@@ -364,7 +364,25 @@ const RequestDashboard: React.FC = () => {
   const loadRequestFormForFulfillment = async (request: Request) => {
     try {
       setFulfillmentFormLoading(true);
+      console.log('[FULFILLMENT] Loading form for request ID:', request.REQUEST_ID);
+      
       const response = await formService.getRequestForm(request.REQUEST_ID);
+      console.log('[FULFILLMENT] API response:', response);
+      
+      // Validate response structure
+      if (!response) {
+        throw new Error('No response received from API');
+      }
+      
+      if (!response.form) {
+        console.warn('[FULFILLMENT] No form data in response, using fallback');
+        // Create a fallback form structure
+        response.form = {
+          FORM_ID: 0,
+          FORM_NAME: 'Default Form',
+          FORM_DESCRIPTION: 'Form template for request fulfillment'
+        };
+      }
       
       setFulfillmentFormData(response);
       setFulfillmentFormFields(response.fields || []);
@@ -372,8 +390,9 @@ const RequestDashboard: React.FC = () => {
       setSelectedRequest(request);
       setShowFormFulfillmentModal(true);
     } catch (error) {
-      console.error('Error loading form:', error);
-      toast.error('Failed to load form data');
+      console.error('[FULFILLMENT] Error loading form:', error);
+      console.error('[FULFILLMENT] Request details:', request);
+      toast.error(`Failed to load form data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setFulfillmentFormLoading(false);
     }
@@ -541,21 +560,23 @@ const RequestDashboard: React.FC = () => {
             let formType = formData.templateType || 'Request';
             
             // If templateType is not provided, try to detect from form name
-            if (!formData.templateType) {
-              if (formData.form.FORM_NAME.includes('SUBJECT')) {
+            if (!formData.templateType && formData.form && formData.form.FORM_NAME) {
+              const formName = formData.form.FORM_NAME.toUpperCase();
+              if (formName.includes('SUBJECT')) {
                 formType = 'subject';
-              } else if (formData.form.FORM_NAME.includes('FINANCIAL')) {
+              } else if (formName.includes('FINANCIAL')) {
                 formType = 'financial';
-              } else if (formData.form.FORM_NAME.includes('ADDRESS')) {
+              } else if (formName.includes('ADDRESS')) {
                 formType = 'address';
               }
             }
             
-            console.log(`Setting form type to: ${formType} for form: ${formData.form.FORM_NAME}`);
+            const formName = formData.form?.FORM_NAME || 'Unknown Form';
+            console.log(`Setting form type to: ${formType} for form: ${formName}`);
             
             setFormData({
-              name: formData.form.FORM_NAME,
-              description: formData.form.FORM_DESCRIPTION || '',
+              name: formName,
+              description: formData.form?.FORM_DESCRIPTION || '',
               formType: formType, // Use the explicit template type
               formFields: formFields
             });
@@ -662,13 +683,13 @@ const RequestDashboard: React.FC = () => {
                 ></button>
               </div>
               <div className="modal-body p-4">
-                {fulfillmentFormData && (
+                {fulfillmentFormData && fulfillmentFormData.form && (
                   <div className="bg-light p-4 rounded mb-4">
                     <h6 className="text-primary mb-2">
-                      {fulfillmentFormData.form.FORM_NAME} Template
+                      {fulfillmentFormData.form.FORM_NAME || 'Form'} Template
                     </h6>
                     <p className="text-muted small">
-                      {fulfillmentFormData.form.FORM_DESCRIPTION}
+                      {fulfillmentFormData.form.FORM_DESCRIPTION || 'No description available'}
                     </p>
                   </div>
                 )}
