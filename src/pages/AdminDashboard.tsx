@@ -142,7 +142,8 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           </a>
         )}
 
-        {/* Style Guide Card */}
+        {/* Style Guide Card - Hidden */}
+        {/*
         <a
           href="/style-guide"
           className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
@@ -159,6 +160,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             <li>Brand guidelines</li>
           </ul>
         </a>
+        */}
 
         {/* System Settings Card */}
         <a
