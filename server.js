@@ -609,6 +609,321 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Create a new form with fields
+app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { form, fields } = req.body;
+        console.log('📝 Creating new form with fields for company:', req.companyId);
+
+        if (!form || !form.FORM_NAME) {
+            return res.status(400).json({
+                error: 'Form name is required'
+            });
+        }
+
+        // Insert the form first
+        const formResult = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.FORMS (
+                FORM_NAME, FORM_DESCRIPTION, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+            )
+            OUTPUT INSERTED.FORM_ID
+            VALUES (
+                ${form.FORM_NAME}, 
+                ${form.FORM_DESCRIPTION || ''}, 
+                ${req.companyId}, 
+                ${form.IS_PUBLIC || false}, 
+                ${form.IS_ACTIVE !== false}, 
+                ${false},
+                GETDATE(), 
+                GETDATE(), 
+                ${req.user.userId}, 
+                ${req.user.userId}
+            )
+        `;
+
+        const formId = formResult[0].FORM_ID;
+        console.log(`✅ Created form with ID: ${formId}`);
+
+        // Insert fields if provided
+        const createdFields = [];
+        if (fields && Array.isArray(fields) && fields.length > 0) {
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                
+                const fieldResult = await prisma.$queryRaw`
+                    INSERT INTO GUARDIAN.FORM_FIELDS (
+                        FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
+                        IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                    )
+                    OUTPUT INSERTED.FIELD_ID
+                    VALUES (
+                        ${formId},
+                        ${field.FIELD_NAME},
+                        ${field.FIELD_TYPE_ID},
+                        ${field.IS_REQUIRED || false},
+                        ${field.OPTIONS || null},
+                        ${field.SEQUENCE || i + 1},
+                        ${field.IS_ACTIVE !== false},
+                        ${false},
+                        GETDATE(),
+                        GETDATE(),
+                        ${req.user.userId},
+                        ${req.user.userId}
+                    )
+                `;
+
+                createdFields.push({
+                    ...field,
+                    FIELD_ID: fieldResult[0].FIELD_ID,
+                    FORM_ID: formId
+                });
+            }
+        }
+
+        console.log(`✅ Created ${createdFields.length} fields for form ${formId}`);
+
+        res.json({
+            success: true,
+            form: {
+                ...form,
+                FORM_ID: formId,
+                ORGANIZATION_ID: req.companyId
+            },
+            fields: createdFields
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating form:', error);
+        res.status(500).json({
+            error: 'Failed to create form',
+            message: error.message
+        });
+    }
+});
+
+// Update an existing form with fields
+app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        const { form, fields } = req.body;
+        console.log(`📝 Updating form ${formId} with fields for company:`, req.companyId);
+
+        if (!form || !form.FORM_NAME) {
+            return res.status(400).json({
+                error: 'Form name is required'
+            });
+        }
+
+        // Verify form belongs to the user's company
+        const existingForm = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
+        `;
+
+        if (existingForm.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Update the form
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET 
+                FORM_NAME = ${form.FORM_NAME},
+                FORM_DESCRIPTION = ${form.FORM_DESCRIPTION || ''},
+                IS_PUBLIC = ${form.IS_PUBLIC || false},
+                IS_ACTIVE = ${form.IS_ACTIVE !== false},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        console.log(`✅ Updated form ${formId}`);
+
+        // Handle fields if provided
+        const updatedFields = [];
+        if (fields && Array.isArray(fields)) {
+            // First, mark all existing fields as deleted
+            await prisma.$queryRaw`
+                UPDATE GUARDIAN.FORM_FIELDS 
+                SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+                WHERE FORM_ID = ${formId}
+            `;
+
+            // Then insert/update the new fields
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                
+                if (field.FIELD_ID) {
+                    // Update existing field
+                    await prisma.$queryRaw`
+                        UPDATE GUARDIAN.FORM_FIELDS 
+                        SET 
+                            FIELD_NAME = ${field.FIELD_NAME},
+                            FIELD_TYPE_ID = ${field.FIELD_TYPE_ID},
+                            IS_REQUIRED = ${field.IS_REQUIRED || false},
+                            OPTIONS = ${field.OPTIONS || null},
+                            SEQUENCE = ${field.SEQUENCE || i + 1},
+                            IS_ACTIVE = ${field.IS_ACTIVE !== false},
+                            IS_DELETED = ${false},
+                            UPDATE_DATE = GETDATE(),
+                            UPDATE_USER_ID = ${req.user.userId}
+                        WHERE FIELD_ID = ${field.FIELD_ID} AND FORM_ID = ${formId}
+                    `;
+
+                    updatedFields.push({
+                        ...field,
+                        FORM_ID: formId
+                    });
+                } else {
+                    // Insert new field
+                    const fieldResult = await prisma.$queryRaw`
+                        INSERT INTO GUARDIAN.FORM_FIELDS (
+                            FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
+                            IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                        )
+                        OUTPUT INSERTED.FIELD_ID
+                        VALUES (
+                            ${formId},
+                            ${field.FIELD_NAME},
+                            ${field.FIELD_TYPE_ID},
+                            ${field.IS_REQUIRED || false},
+                            ${field.OPTIONS || null},
+                            ${field.SEQUENCE || i + 1},
+                            ${field.IS_ACTIVE !== false},
+                            ${false},
+                            GETDATE(),
+                            GETDATE(),
+                            ${req.user.userId},
+                            ${req.user.userId}
+                        )
+                    `;
+
+                    updatedFields.push({
+                        ...field,
+                        FIELD_ID: fieldResult[0].FIELD_ID,
+                        FORM_ID: formId
+                    });
+                }
+            }
+        }
+
+        console.log(`✅ Updated ${updatedFields.length} fields for form ${formId}`);
+
+        res.json({
+            success: true,
+            form: {
+                ...form,
+                FORM_ID: formId,
+                ORGANIZATION_ID: req.companyId
+            },
+            fields: updatedFields
+        });
+
+    } catch (error) {
+        console.error(`❌ Error updating form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to update form',
+            message: error.message
+        });
+    }
+});
+
+// Get a specific form by ID with its fields
+app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`📋 Fetching form ${formId} for company:`, req.companyId);
+
+        // Get the form
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId} AND IS_DELETED = ${false}
+        `;
+
+        if (forms.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found'
+            });
+        }
+
+        // Get the form fields
+        const fields = await prisma.$queryRaw`
+            SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
+                   ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FORM_FIELDS ff
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
+            ORDER BY ff.SEQUENCE, ff.FIELD_ID
+        `;
+
+        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
+
+        res.json({
+            success: true,
+            form: forms[0],
+            fields: fields
+        });
+
+    } catch (error) {
+        console.error(`❌ Error fetching form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch form',
+            message: error.message
+        });
+    }
+});
+
+// Delete a form (soft delete)
+app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`🗑️ Deleting form ${formId} for company:`, req.companyId);
+
+        // Verify form belongs to the user's company
+        const existingForm = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
+        `;
+
+        if (existingForm.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Soft delete the form and its fields
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORM_FIELDS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        console.log(`✅ Deleted form ${formId} and its fields`);
+
+        res.json({
+            success: true,
+            message: 'Form deleted successfully'
+        });
+
+    } catch (error) {
+        console.error(`❌ Error deleting form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to delete form',
+            message: error.message
+        });
+    }
+});
+
 // Registration endpoints for Azure production
 
 // Start registration process
