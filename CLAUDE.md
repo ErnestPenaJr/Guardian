@@ -153,11 +153,64 @@ bun run build  # Build React app to dist/
 - Static files served by Express
 - Email service requires Resend API key
 
-### Production
-- Deploy `server.js` to IIS
+### Production (Azure App Service)
+- Deploy via Azure DevOps pipeline
+- Pipeline deploys `server-production.js` (renamed to `server.js` during deployment)
 - Configure web.config for static files and SPA routing
 - Ensure database connection string is configured
 - JWT_SECRET environment variable required
+
+## Critical Deployment Information
+
+⚠️ **IMPORTANT: Pipeline Configuration** ⚠️
+
+The Azure DevOps pipeline (`azure-pipelines.yml`) has a **specific file mapping** that must be maintained:
+
+```yaml
+# Line 52 in azure-pipelines.yml
+cp server-production.js deployment/server.js
+```
+
+**This means:**
+- **Development server**: `server.cjs` (for local development)
+- **Production source**: `server-production.js` (source file with all endpoints)
+- **Production deployed**: `server.js` (what actually runs on Azure)
+
+### Why This Matters
+
+1. **When updating API endpoints**, you MUST update `server-production.js`, not just `server.js`
+2. **The pipeline copies `server-production.js` → `server.js` during deployment**
+3. **If you only update `server.js`, your changes will NOT be deployed to production**
+
+### Endpoint Synchronization Checklist
+
+When adding/modifying API endpoints, ensure they exist in ALL THREE files:
+- ✅ `server.cjs` (development)
+- ✅ `server-production.js` (production source) 
+- ✅ `server.js` (for local production testing)
+
+### Common Pitfall Prevention
+
+**Symptom:** "Pipeline runs successfully but endpoints return 404 in production"
+**Cause:** Updated `server.js` but not `server-production.js`
+**Fix:** Copy changes from `server.js` to `server-production.js` and redeploy
+
+**Command to sync:**
+```bash
+cp server.js server-production.js
+git add server-production.js
+git commit -m "sync: update server-production.js with latest endpoints"
+git push origin main
+```
+
+### Verification Steps
+
+After any server changes:
+1. **Local testing**: Run `bun server.js` to test production code locally
+2. **Update production source**: Ensure `server-production.js` has your changes
+3. **Deploy**: Push to trigger pipeline 
+4. **Verify**: Test endpoints on `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net`
+5. **Debug endpoint**: Check `/api/debug/endpoints` for confirmation
 
 ## Technology Stack
 
