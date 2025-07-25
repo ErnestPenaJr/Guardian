@@ -53,27 +53,34 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
+        console.log(`[FORMS GET] Fetching form with ID: ${id}`);
         const form = await prisma.fORMS.findUnique({
             where: {
                 FORM_ID: parseInt(id),
             },
         });
+        console.log(`[FORMS GET] Form ${id} found:`, form ? 'YES' : 'NO');
         if (!form) {
             return res.status(404).json({ error: 'Form not found' });
         }
+        console.log(`[FORMS GET] Fetching fields for form ${id}...`);
         // Get the fields associated with this form
         const formFields = await prisma.$queryRaw `
       SELECT f.* 
-      FROM FIELDS f
-      JOIN FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+      FROM GUARDIAN.FIELDS f
+      JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
       WHERE ff.FORM_ID = ${parseInt(id)}
       ORDER BY ff.SORT_ORDER
     `;
+        console.log(`[FORMS GET] Fields query result for form ${id}: ${Array.isArray(formFields) ? formFields.length : 'ERROR'} fields`);
         // Type assertion for formFields
         const typedFormFields = formFields;
+        console.log(`[FORMS GET] Processing ${typedFormFields.length} fields for lookups...`);
         // For fields with lookups, get their lookup values
         for (const field of typedFormFields) {
+            console.log(`[FORMS GET] Processing field ${field.FIELD_ID}, HAS_LOOKUP: ${field.HAS_LOOKUP}`);
             if (field.HAS_LOOKUP) {
+                console.log(`[FORMS GET] Fetching lookups for field ${field.FIELD_ID}...`);
                 const lookups = await prisma.fIELDS_LOOKUP.findMany({
                     where: {
                         FIELD_ID: field.FIELD_ID,
@@ -82,15 +89,24 @@ router.get('/:id', async (req, res) => {
                         SORT_ORDER: 'asc',
                     },
                 });
+                console.log(`[FORMS GET] Found ${lookups.length} lookups for field ${field.FIELD_ID}`);
                 // Convert lookups to comma-separated string for frontend
                 field.OPTIONS = lookups.map((lookup) => lookup.LOOKUP_DESCRIPTION).join(',');
             }
         }
+        console.log(`[FORMS GET] Successfully returning form ${id} with ${typedFormFields.length} fields`);
         res.json({ form, fields: typedFormFields });
     }
     catch (error) {
-        console.error('Error fetching form:', error);
-        res.status(500).json({ error: 'Failed to fetch form' });
+        console.error(`[FORMS GET] Error fetching form ${id}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        res.status(500).json({
+            error: 'Failed to fetch form',
+            details: errorMessage,
+            stack: errorStack,
+            formId: id
+        });
     }
 });
 // Create a new form

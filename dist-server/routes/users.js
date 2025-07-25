@@ -1,9 +1,196 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { isAdmin } from '../middleware/isAdmin.js';
+import { requireAuth } from '../auth.js';
+import { Resend } from 'resend';
+import bcrypt from 'bcryptjs';
 import passport from 'passport';
 const router = express.Router();
 const prisma = new PrismaClient();
+// Initialize Resend client
+const RESEND_API_KEY = process.env.SMTP_PASSWORD;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+const resend = new Resend(RESEND_API_KEY);
+// Create a new user (admin only)
+router.post('/', requireAuth, isAdmin, async (req, res) => {
+    try {
+        const { firstName, lastName, email, roleId, companyId } = req.body;
+        // Get the admin user's information from the JWT
+        const adminUser = req.user;
+        // Validate input
+        if (!firstName || !lastName || !email || !roleId) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        // Check if user already exists
+        const existingUser = await prisma.uSERS.findFirst({
+            where: { EMAIL: email }
+        });
+        if (existingUser) {
+            return res.status(400).json({ error: 'User with this email already exists' });
+        }
+        // Generate a random temporary password
+        const generateSimplePassword = () => {
+            // Define character sets
+            const uppercaseChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed confusing chars like I, O
+            const lowercaseChars = 'abcdefghijkmnpqrstuvwxyz'; // Removed confusing chars like l, o
+            const numberChars = '23456789'; // Removed confusing chars like 0, 1
+            // Ensure at least one character from each set
+            let password = '';
+            password += uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length));
+            password += lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length));
+            password += numberChars.charAt(Math.floor(Math.random() * numberChars.length));
+            // Fill the rest with random characters from all sets
+            const allChars = uppercaseChars + lowercaseChars + numberChars;
+            for (let i = password.length; i < 8; i++) {
+                password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+            }
+            // Shuffle the password
+            return password.split('').sort(() => 0.5 - Math.random()).join('');
+        };
+        const tempPassword = generateSimplePassword();
+        console.log(`[ADD USER] Generated temporary password for ${email}: ${tempPassword}`);
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        // Determine the company ID to use
+        // First try the company ID from the request, then from the admin user, then null as last resort
+        const userCompanyId = companyId || adminUser.COMPANY_ID || null;
+        console.log('[ADD USER] Using company ID:', userCompanyId, 'Admin user:', adminUser.id);
+        // Create user in transaction
+        const result = await prisma.$transaction(async (prisma) => {
+            // Create user
+            const newUser = await prisma.uSERS.create({
+                data: {
+                    FIRST_NAME: firstName,
+                    LAST_NAME: lastName,
+                    EMAIL: email,
+                    PASSWORD_HASH: hashedPassword,
+                    STATUS: 'A', // Active
+                    COMPANY_ID: userCompanyId,
+                    CREATE_DATE: new Date()
+                }
+            });
+            // Assign role
+            await prisma.uSER_ROLES.create({
+                data: {
+                    USER_ID: newUser.USER_ID,
+                    ROLE_ID: Number(roleId)
+                }
+            });
+            return newUser;
+        });
+        // Send invitation email with temporary password
+        try {
+            console.log(`[ADD USER] Sending welcome email to ${email}`);
+            // Get company information if available
+            let companyName = "Guardian";
+            if (userCompanyId) {
+                try {
+                    const company = await prisma.cOMPANY.findUnique({
+                        where: { COMPANY_ID: userCompanyId }
+                    });
+                    if (company && company.NAME) {
+                        companyName = company.NAME;
+                    }
+                }
+                catch (companyErr) {
+                    console.error('[ADD USER] Error fetching company:', companyErr);
+                }
+            }
+            // Get role name
+            let roleName = "User";
+            try {
+                const role = await prisma.rOLES.findUnique({
+                    where: { ROLE_ID: Number(roleId) }
+                });
+                if (role && role.NAME) {
+                    roleName = role.NAME;
+                }
+            }
+            catch (roleErr) {
+                console.error('[ADD USER] Error fetching role:', roleErr);
+            }
+            // Create login URL
+            const loginUrl = process.env.NODE_ENV === 'production'
+                ? `${req.protocol}://${req.get('host')}`
+                : 'http://localhost:5175';
+            // Only try to send email if Resend is configured
+            if (resend) {
+                try {
+                    const { data, error } = await resend.emails.send({
+                        from: `Shieldlytics <${EMAIL_FROM}>`,
+                        to: [email],
+                        subject: `Welcome to ${companyName} on Guardian - Your Account Details`,
+                        html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height: 38px; margin-bottom: 18px;">
+                </div>
+                <h2 style="color: #333; text-align: center;">Welcome to ${companyName} on Guardian!</h2>
+                
+                <p>Hello ${firstName.toLowerCase()} ${lastName.toLowerCase()},</p>
+                
+                <p>You have been added to <strong>${companyName}</strong> on the Guardian platform as a <strong>${roleName}</strong>.</p>
+                
+                <div style="border-left: 4px solid #007bff; padding: 0 0 0 15px; margin: 20px 0;">
+                  <p style="margin: 0; font-weight: bold;">Your Account Details:</p>
+                  <p style="margin: 10px 0 0;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #007bff;">${email}</a></p>
+                  <p style="margin: 5px 0 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
+                </div>
+                
+                <p>Please <a href="${loginUrl}" style="color: #007bff;">login</a> and change your password immediately for security reasons.</p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                <p style="font-size: 13px; color: #666;">
+                  If you have any questions, please contact your administrator.<br>
+                  &copy; ${new Date().getFullYear()} Guardian by Shieldlytics. All rights reserved.
+                </p>
+              </div>
+            `,
+                    });
+                    if (error) {
+                        console.error('[RESEND] Error sending email:', error);
+                        throw error;
+                    }
+                    console.log('[RESEND] Email sent successfully:', data);
+                }
+                catch (emailErr) {
+                    console.error('[ADD USER] Failed to send email:', emailErr);
+                    if (emailErr && typeof emailErr === 'object' && 'message' in emailErr) {
+                        console.error('[ADD USER] Error details:', emailErr.message);
+                    }
+                    // Continue execution even if email fails
+                }
+            }
+            else {
+                console.log('[ADD USER] Email not sent - Resend API key not configured');
+                console.log('[ADD USER] Would have sent temporary password:', tempPassword);
+            }
+        }
+        catch (emailError) {
+            console.error('[ADD USER] Error during email sending:', emailError);
+            // Continue with the response even if email sending fails
+        }
+        res.status(201).json({
+            success: true,
+            user: {
+                id: result.USER_ID,
+                firstName: result.FIRST_NAME,
+                lastName: result.LAST_NAME,
+                email: result.EMAIL,
+                role: roleId,
+                companyId: userCompanyId,
+                tempPassword: process.env.NODE_ENV === 'development' ? tempPassword : undefined
+            },
+            message: RESEND_API_KEY
+                ? 'User added successfully. An email with login details has been sent.'
+                : 'User added successfully. Email notification is disabled.'
+        });
+    }
+    catch (err) {
+        console.error('[ADD USER]', err);
+        res.status(500).json({ error: 'Failed to add user' });
+    }
+});
 // Get assignable users for request assignment (any authenticated user can access)
 router.get('/assignable', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {
@@ -294,6 +481,43 @@ router.put('/:id', isAdmin, async (req, res) => {
             message: 'Failed to update user',
             error: errorMessage
         });
+    }
+});
+// Delete user endpoint
+router.delete('/:id', requireAuth, isAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+        // Check if user exists
+        const user = await prisma.uSERS.findUnique({
+            where: { USER_ID: userId }
+        });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        // Don't allow admins to delete themselves
+        const adminUser = req.user;
+        if (adminUser.id === userId) {
+            return res.status(403).json({ error: 'You cannot delete your own account' });
+        }
+        // Delete user in transaction to ensure all related data is removed
+        await prisma.$transaction(async (prisma) => {
+            // First delete user roles
+            await prisma.uSER_ROLES.deleteMany({
+                where: { USER_ID: userId }
+            });
+            // Then delete the user
+            await prisma.uSERS.delete({
+                where: { USER_ID: userId }
+            });
+        });
+        res.json({ success: true, message: 'User deleted successfully' });
+    }
+    catch (err) {
+        console.error('[DELETE USER]', err);
+        res.status(500).json({ error: 'Failed to delete user' });
     }
 });
 export default router;

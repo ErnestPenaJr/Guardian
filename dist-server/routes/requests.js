@@ -766,6 +766,7 @@ router.post('/', async (req, res) => {
             companyId: numericCompanyId,
             userId: numericUserId
         });
+        console.log('[REQUEST CREATION] FORM_ID being stored:', numericTemplateId);
         // Use a transaction to ensure both operations succeed or fail together
         const result = await prisma.$transaction(async (tx) => {
             // Create the request directly without template validation
@@ -810,6 +811,7 @@ router.post('/', async (req, res) => {
                 ? requestResults[0]
                 : { REQUEST_ID: 0 };
             console.log('Created request:', request);
+            console.log('[REQUEST CREATION] Stored FORM_ID in database:', request.FORM_ID);
             // Get the request ID for linking to form instance
             let requestId = request.REQUEST_ID;
             if (!requestId) {
@@ -953,6 +955,14 @@ router.get('/', async (req, res) => {
             return request;
         });
         console.log(`Returning ${requests.length} requests with user details`);
+        // Log FORM_ID for debugging
+        if (requests.length > 0) {
+            console.log('[REQUEST LIST] Sample request FORM_IDs:', requests.slice(0, 3).map(r => ({
+                REQUEST_ID: r.REQUEST_ID,
+                REQUEST_NAME: r.REQUEST_NAME,
+                FORM_ID: r.FORM_ID
+            })));
+        }
         res.json(requests);
     }
     catch (error) {
@@ -1389,10 +1399,16 @@ router.get('/:id/form', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'Request not found' });
         }
         const requestData = request[0];
-        // For unassigned requests, we need to determine the form based on the request type
-        // For now, let's use a default form or create a form instance
-        let formId = null;
+        console.log(`[GET FORM] Retrieved request data:`, {
+            REQUEST_ID: requestData.REQUEST_ID,
+            REQUEST_NAME: requestData.REQUEST_NAME,
+            FORM_ID: requestData.FORM_ID,
+            STATUS: requestData.STATUS
+        });
+        // Use the FORM_ID that was stored when the request was created
+        let formId = requestData.FORM_ID;
         let formInstanceId = null;
+        console.log(`[GET FORM] Using FORM_ID: ${formId}`);
         // Try to find existing form instance
         if (requestData.ASSIGNED_ID) {
             const formInstance = await prisma.$queryRawUnsafe(`
@@ -1401,12 +1417,17 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         WHERE fi.ASSIGNED_ID = ${requestData.ASSIGNED_ID}
       `);
             if (formInstance && formInstance.length > 0) {
-                formId = formInstance[0].FORM_ID;
+                // Use the form instance's form ID if it exists, otherwise keep the request's form ID
                 formInstanceId = formInstance[0].FORM_INSTANCE_ID;
+                if (formInstance[0].FORM_ID) {
+                    formId = formInstance[0].FORM_ID;
+                }
+                console.log(`[GET FORM] Found existing form instance ${formInstanceId} with form ID ${formId}`);
             }
         }
-        // If no form found, determine form based on request type/name
+        // If no form ID found in the request, fall back to pattern matching (legacy behavior)
         if (!formId) {
+            console.log('[GET FORM] No FORM_ID in request, using legacy pattern matching');
             const requestName = requestData.REQUEST_NAME?.toLowerCase() || '';
             const requestDescription = requestData.REQUEST_DESCRIPTION?.toLowerCase() || '';
             // Match request to appropriate form template
@@ -1422,7 +1443,10 @@ router.get('/:id/form', requireAuth, async (req, res) => {
             else {
                 formId = 1005; // SUBJECT form as default
             }
-            console.log(`[GET FORM] Matched request "${requestData.REQUEST_NAME}" to form ID ${formId}`);
+            console.log(`[GET FORM] Legacy pattern matching: "${requestData.REQUEST_NAME}" -> form ID ${formId}`);
+        }
+        else {
+            console.log(`[GET FORM] Using stored FORM_ID: ${formId}`);
         }
         const requestWithForm = [{ ...requestData, FORM_ID: formId, FORM_INSTANCE_ID: formInstanceId }];
         console.log('[GET FORM] Query result:', requestWithForm);
@@ -1442,7 +1466,17 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         const form = await prisma.$queryRawUnsafe(`
       SELECT * FROM GUARDIAN.FORMS WHERE FORM_ID = ${finalFormId}
     `);
-        console.log('[GET FORM] Form query result:', form);
+        console.log(`[GET FORM] Form query for ID ${finalFormId}:`, form);
+        if (form && form.length > 0) {
+            console.log(`[GET FORM] Found form:`, {
+                FORM_ID: form[0].FORM_ID,
+                FORM_NAME: form[0].FORM_NAME,
+                FORM_DESCRIPTION: form[0].FORM_DESCRIPTION
+            });
+        }
+        else {
+            console.log(`[GET FORM] No form found with ID ${finalFormId}`);
+        }
         if (!form || form.length === 0) {
             console.warn(`[GET FORM] Form template not found for ID ${finalFormId}, creating fallback`);
             // Create a fallback form instead of returning 404
@@ -1465,32 +1499,67 @@ router.get('/:id/form', requireAuth, async (req, res) => {
                 formInstanceId: finalRequestData.FORM_INSTANCE_ID
             });
         }
-        // Get form fields based on the form template
+        // Get form fields from the database
         let fields = [];
-        // Map form templates to their field definitions
-        if (form[0].FORM_NAME === 'SUBJECT') {
-            fields = [
-                { FIELD_ID: 1, FIELD_NAME: 'First Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
-                { FIELD_ID: 2, FIELD_NAME: 'Middle Name', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
-                { FIELD_ID: 3, FIELD_NAME: 'Last Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 },
-                { FIELD_ID: 4, FIELD_NAME: 'DOB', FIELD_TYPE_ID: 3, IS_REQUIRED: true, SEQUENCE: 4 },
-                { FIELD_ID: 5, FIELD_NAME: 'SSN', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 5 }
-            ];
+        try {
+            const formFields = await prisma.$queryRawUnsafe(`
+        SELECT 
+          ff.FORM_ID,
+          ff.FIELD_ID,
+          ff.IS_REQUIRED,
+          ff.SORT_ORDER as SEQUENCE,
+          f.FIELD_NAME,
+          f.FIELD_TYPE_ID
+        FROM GUARDIAN.FORMS_FIELDS ff
+        JOIN GUARDIAN.FIELDS f ON ff.FIELD_ID = f.FIELD_ID
+        WHERE ff.FORM_ID = ${finalFormId}
+        ORDER BY ff.SORT_ORDER ASC
+      `);
+            console.log(`[GET FORM] Found ${formFields.length} fields for form ${finalFormId}:`, formFields);
+            if (formFields.length > 0) {
+                fields = formFields;
+            }
+            else {
+                console.log(`[GET FORM] No fields found for form ${finalFormId}, using fallback based on form name`);
+                // Fallback to hardcoded fields if no fields found in database
+                if (form[0].FORM_NAME === 'SUBJECT') {
+                    fields = [
+                        { FIELD_ID: 1, FIELD_NAME: 'First Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+                        { FIELD_ID: 2, FIELD_NAME: 'Middle Name', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
+                        { FIELD_ID: 3, FIELD_NAME: 'Last Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 },
+                        { FIELD_ID: 4, FIELD_NAME: 'DOB', FIELD_TYPE_ID: 3, IS_REQUIRED: true, SEQUENCE: 4 },
+                        { FIELD_ID: 5, FIELD_NAME: 'SSN', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 5 }
+                    ];
+                }
+                else if (form[0].FORM_NAME === 'FINANCIAL') {
+                    fields = [
+                        { FIELD_ID: 6, FIELD_NAME: 'Bank Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+                        { FIELD_ID: 7, FIELD_NAME: 'Account #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 2 },
+                        { FIELD_ID: 8, FIELD_NAME: 'Routing #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 }
+                    ];
+                }
+                else if (form[0].FORM_NAME === 'ADDRESS') {
+                    fields = [
+                        { FIELD_ID: 9, FIELD_NAME: 'Address Line 1', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+                        { FIELD_ID: 10, FIELD_NAME: 'Address Line 2', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
+                        { FIELD_ID: 11, FIELD_NAME: 'City', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 },
+                        { FIELD_ID: 12, FIELD_NAME: 'State', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 4 },
+                        { FIELD_ID: 13, FIELD_NAME: 'ZIP Code', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 5 }
+                    ];
+                }
+                else {
+                    // Default fallback fields for unknown forms
+                    fields = [
+                        { FIELD_ID: 1, FIELD_NAME: 'Notes', FIELD_TYPE_ID: 2, IS_REQUIRED: false, SEQUENCE: 1 }
+                    ];
+                }
+            }
         }
-        else if (form[0].FORM_NAME === 'FINANCIAL') {
+        catch (fieldsError) {
+            console.error(`[GET FORM] Error loading fields for form ${finalFormId}:`, fieldsError);
+            // Ultra fallback - just provide a simple notes field
             fields = [
-                { FIELD_ID: 6, FIELD_NAME: 'Bank Name', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
-                { FIELD_ID: 7, FIELD_NAME: 'Account #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 2 },
-                { FIELD_ID: 8, FIELD_NAME: 'Routing #', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 }
-            ];
-        }
-        else if (form[0].FORM_NAME === 'ADDRESS') {
-            fields = [
-                { FIELD_ID: 9, FIELD_NAME: 'Address Line 1', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
-                { FIELD_ID: 10, FIELD_NAME: 'Address Line 2', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
-                { FIELD_ID: 11, FIELD_NAME: 'City', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 3 },
-                { FIELD_ID: 12, FIELD_NAME: 'State', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 4 },
-                { FIELD_ID: 13, FIELD_NAME: 'ZIP Code', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 5 }
+                { FIELD_ID: 1, FIELD_NAME: 'Notes', FIELD_TYPE_ID: 2, IS_REQUIRED: false, SEQUENCE: 1 }
             ];
         }
         // For now, return empty values since we're focusing on getting the correct form template
