@@ -44,10 +44,6 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
-// Serve static files from the frontend dist directory
-const frontendDistPath = path.resolve(process.cwd(), 'dist');
-console.log(`[STATIC FILES] Serving static files from: ${frontendDistPath}`);
-app.use(express.static(frontendDistPath));
 // API response middleware - ensures all API responses are JSON
 app.use('/api', (req, res, next) => {
     console.log(`[API REQUEST] ${req.method} ${req.path} - User-Agent: ${req.get('User-Agent')}`);
@@ -70,7 +66,9 @@ app.get('/api/test', (req, res) => {
     });
 });
 // Register API routes
+console.log('[ROUTES] Registering API routes...');
 app.use('/api/forms', formsRoutes);
+console.log('[ROUTES] ✓ Forms routes registered at /api/forms');
 app.use('/api/external', externalRoutes);
 app.use('/api/endpoint-viewer', endpointViewerRoutes);
 app.use('/api/fields', fieldsRoutes);
@@ -78,9 +76,15 @@ app.use('/api/field-types', fieldTypesRoutes);
 app.use('/api/requests', requestsRoutes);
 app.use('/api/forms-groups', groupsRoutes);
 app.use('/api/users', usersRoutes); // Users routes
+console.log('[ROUTES] ✓ Users routes registered at /api/users');
 app.use('/api/roles', rolesRoutes); // Roles routes
 app.use('/api/invites', invitesRoutes); // Invites routes
 app.use('/api/field-lookups', fieldLookupsRoutes);
+console.log('[ROUTES] ✓ All API routes registered successfully');
+// Serve static files from the frontend dist directory (after API routes)
+const frontendDistPath = path.resolve(process.cwd(), 'dist');
+console.log(`[STATIC FILES] Serving static files from: ${frontendDistPath}`);
+app.use(express.static(frontendDistPath));
 // Create a rate limiter for login attempts
 // 5 failed attempts per 15 minutes per IP
 const loginRateLimiter = rateLimit({
@@ -1148,9 +1152,7 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
         }
     }
 });
-app.use('/api/external', externalRoutes);
-// Register requests routes
-app.use('/api/requests', requestsRoutes);
+// External and requests routes already registered above
 // For all non-API routes, serve the index.html file (for SPA routing)
 app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/')) {
