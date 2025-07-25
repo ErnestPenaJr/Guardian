@@ -462,20 +462,32 @@ const RequestDashboard: React.FC = () => {
     try {
       setFulfillmentActionLoading(true);
       
+      // Get the status from the form values
+      const newStatus = fulfillmentFormValues['status'] || selectedRequest.STATUS || 'A';
+      
       // Try to submit the form
       try {
         await formService.submitForm(selectedRequest.REQUEST_ID, fulfillmentFormValues);
-        toast.success('Form data saved successfully');
+        
+        // Update request status if it has changed
+        if (newStatus !== selectedRequest.STATUS) {
+          await api.put(`/api/requests/${selectedRequest.REQUEST_ID}`, {
+            status: newStatus,
+            assignedId: selectedRequest.ASSIGNED_ID
+          });
+        }
+        
+        toast.success('Form data and status saved successfully');
       } catch (submitError) {
         console.error('Primary form submission failed:', submitError);
         
-        // Production fallback: if form submission fails, still close modal and update status
+        // Production fallback: if form submission fails, still try to update status
         console.log('[FULFILLMENT] Using fallback form submission');
         
         // Try to update request status directly if form submission fails
         try {
           await api.put(`/api/requests/${selectedRequest.REQUEST_ID}`, {
-            status: 'A', // Mark as in progress
+            status: newStatus,
             assignedId: selectedRequest.ASSIGNED_ID
           });
           toast.success('Request status updated successfully (fallback mode)');
@@ -830,6 +842,33 @@ const RequestDashboard: React.FC = () => {
                         )}
                       </div>
                     ))}
+                    
+                    {/* Status Field */}
+                    {fulfillmentFormFields.length > 0 && <hr className="my-3" />}
+                    <div className="col-12">
+                      <label className="form-label fw-semibold">
+                        Request Status
+                        <span className="text-danger ms-1">*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={fulfillmentFormValues['status'] || selectedRequest?.STATUS || 'P'}
+                        onChange={(e) => setFulfillmentFormValues(prev => ({
+                          ...prev,
+                          'status': e.target.value
+                        }))}
+                        required
+                      >
+                        <option value="P">Pending</option>
+                        <option value="A">In Progress</option>
+                        <option value="C">Completed</option>
+                        <option value="H">On Hold</option>
+                        <option value="R">Rejected</option>
+                      </select>
+                      <div className="form-text text-muted">
+                        Update the status of this request based on your progress
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
