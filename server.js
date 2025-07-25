@@ -726,65 +726,32 @@ app.put('/api/requests/:id/progress', async (req, res) => {
 
 // === FORMS API ENDPOINTS ===
 
-// Get all forms for a company
-app.get('/api/forms', async (req, res) => {
+// Get forms endpoint for templates
+app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Authorization token required' });
-        }
-
-        const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const companyId = decoded.companyId;
-
-        console.log(`📋 Fetching forms from database for company: ${companyId}`);
-        
-        // First check if any forms exist at all
-        const allForms = await prisma.$queryRaw`
-            SELECT COUNT(*) as total_forms FROM GUARDIAN.FORMS 
-            WHERE IS_DELETED = 0 AND IS_ACTIVE = 1
-        `;
-        console.log(`📊 Total active forms in database: ${allForms[0]?.total_forms || 0}`);
-        
-        // Check global forms specifically
-        const globalForms = await prisma.$queryRaw`
-            SELECT COUNT(*) as global_forms FROM GUARDIAN.FORMS 
-            WHERE COMPANY_ID IS NULL AND IS_DELETED = 0 AND IS_ACTIVE = 1
-        `;
-        console.log(`🌍 Global forms (COMPANY_ID IS NULL): ${globalForms[0]?.global_forms || 0}`);
+        console.log('📋 Fetching forms from database for company:', req.companyId);
 
         const forms = await prisma.$queryRaw`
-            SELECT f.* 
-            FROM GUARDIAN.FORMS f
-            WHERE (f.COMPANY_ID = ${companyId} OR f.COMPANY_ID IS NULL)
-            AND f.IS_DELETED = 0
-            AND f.IS_ACTIVE = 1
-            ORDER BY f.FORM_NAME
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            FROM GUARDIAN.FORMS 
+            WHERE ORGANIZATION_ID = ${req.companyId}
+            ORDER BY FORM_NAME
         `;
 
-        console.log(`✅ Found ${forms.length} forms for company ${companyId}`);
+        console.log(`✅ Found ${forms.length} forms for company ${req.companyId}`);
 
+        // Format the data to match frontend expectations
         const formattedForms = forms.map(form => ({
             FORM_ID: form.FORM_ID,
             FORM_NAME: form.FORM_NAME,
             FORM_DESCRIPTION: form.FORM_DESCRIPTION,
-            IS_PUBLIC: form.IS_PUBLIC,
             IS_ACTIVE: form.IS_ACTIVE,
+            IS_PUBLIC: form.IS_PUBLIC,
             IS_DELETED: form.IS_DELETED,
-            CREATE_DATE: form.CREATE_DATE,
-            UPDATE_DATE: form.UPDATE_DATE
+            ORGANIZATION_ID: form.ORGANIZATION_ID
         }));
 
         console.log(`📤 Sending ${formattedForms.length} formatted forms to frontend`);
-        
-        // Prevent caching to ensure fresh data
-        res.set({
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-        });
-        
         res.json(formattedForms);
 
     } catch (error) {
@@ -842,18 +809,27 @@ app.get('/api/forms/:id', async (req, res) => {
 // === FIELD TYPES API ENDPOINTS ===
 
 // Get all field types
-app.get('/api/field-types', async (req, res) => {
+app.get('/api/field-types', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log('📊 Fetching field types from database...');
+        console.log('🔧 Fetching field types from database...');
 
         const fieldTypes = await prisma.$queryRaw`
-            SELECT * FROM GUARDIAN.FIELD_TYPE 
-            ORDER BY SORT_ORDER
+            SELECT FIELD_TYPE_ID, FIELD_TYPE_DESC, SORT_ORDER
+            FROM GUARDIAN.FIELD_TYPE 
+            ORDER BY SORT_ORDER, FIELD_TYPE_DESC
         `;
 
         console.log(`✅ Found ${fieldTypes.length} field types`);
 
-        res.json(fieldTypes);
+        // Format the data to match frontend expectations
+        const formattedFieldTypes = fieldTypes.map(fieldType => ({
+            FIELD_TYPE_ID: fieldType.FIELD_TYPE_ID,
+            FIELD_TYPE_DESC: fieldType.FIELD_TYPE_DESC,
+            SORT_ORDER: fieldType.SORT_ORDER
+        }));
+
+        console.log(`📤 Sending ${formattedFieldTypes.length} field types to frontend`);
+        res.json(formattedFieldTypes);
 
     } catch (error) {
         console.error('❌ Error fetching field types:', error);
@@ -867,19 +843,46 @@ app.get('/api/field-types', async (req, res) => {
 // === FIELDS API ENDPOINTS ===
 
 // Get all fields
-app.get('/api/fields', async (req, res) => {
+app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log('🔗 Fetching fields from database...');
+        console.log('📝 Fetching fields from database for company:', req.companyId);
 
         const fields = await prisma.$queryRaw`
-            SELECT * FROM GUARDIAN.FIELDS 
-            WHERE IS_DELETED = 0
-            ORDER BY FIELD_NAME
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
+                   ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE f.ORGANIZATION_ID = ${req.companyId}
+            ORDER BY f.SORT_ORDER, f.FIELD_NAME
         `;
 
-        console.log(`✅ Found ${fields.length} fields`);
+        console.log(`✅ Found ${fields.length} fields for company ${req.companyId}`);
 
-        res.json(fields);
+        // Format the data to match frontend expectations
+        const formattedFields = fields.map(field => ({
+            FIELD_ID: field.FIELD_ID,
+            FIELD_NAME: field.FIELD_NAME,
+            FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+            DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+            HAS_LOOKUP: field.HAS_LOOKUP,
+            IS_PUBLIC: field.IS_PUBLIC,
+            IS_ACTIVE: field.IS_ACTIVE,
+            IS_DELETED: field.IS_DELETED,
+            IS_REQUIRED: field.IS_REQUIRED,
+            IS_SENSITIVE: field.IS_SENSITIVE,
+            CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE,
+            ORGANIZATION_ID: field.ORGANIZATION_ID,
+            SORT_ORDER: field.SORT_ORDER,
+            FIELD_TYPE: {
+                FIELD_TYPE_DESC: field.FIELD_TYPE_DESC,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID
+            }
+        }));
+
+        console.log(`📤 Sending ${formattedFields.length} fields to frontend`);
+        res.json(formattedFields);
 
     } catch (error) {
         console.error('❌ Error fetching fields:', error);
@@ -969,6 +972,67 @@ app.post('/api/requests', async (req, res) => {
     }
 });
 
+// Get invites endpoint
+app.get('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📧 Fetching invites for company ID: ${req.companyId}`);
+
+        const invites = await prisma.$queryRaw`
+            SELECT 
+                i.INVITE_ID,
+                i.EMAIL,
+                i.ROLE_ID,
+                i.COMPANY_ID,
+                i.TOKEN,
+                i.STATUS,
+                i.EXPIRES_AT,
+                i.USED_AT,
+                i.CREATED_AT,
+                r.NAME as ROLE_NAME,
+                r.DISPLAY_NAME as ROLE_DISPLAY_NAME
+            FROM GUARDIAN.INVITES i
+            LEFT JOIN GUARDIAN.ROLES r ON i.ROLE_ID = r.ROLE_ID
+            WHERE i.COMPANY_ID = ${req.companyId}
+            ORDER BY i.CREATED_AT DESC
+        `;
+
+        console.log(`✅ Found ${invites.length} invites`);
+
+        const formattedInvites = invites.map(invite => ({
+            INVITE_ID: invite.INVITE_ID,
+            EMAIL: invite.EMAIL,
+            ROLE_ID: invite.ROLE_ID,
+            COMPANY_ID: invite.COMPANY_ID,
+            TOKEN: invite.TOKEN,
+            STATUS: invite.STATUS,
+            EXPIRES_AT: invite.EXPIRES_AT,
+            USED_AT: invite.USED_AT,
+            CREATED_AT: invite.CREATED_AT,
+            ROLE_NAME: invite.ROLE_NAME,
+            ROLE_DISPLAY_NAME: invite.ROLE_DISPLAY_NAME,
+            // Add frontend-friendly aliases
+            id: invite.INVITE_ID,
+            email: invite.EMAIL,
+            roleId: invite.ROLE_ID,
+            roleName: invite.ROLE_DISPLAY_NAME || invite.ROLE_NAME,
+            status: invite.STATUS,
+            expiresAt: invite.EXPIRES_AT,
+            usedAt: invite.USED_AT,
+            createdAt: invite.CREATED_AT,
+            companyId: invite.COMPANY_ID
+        }));
+
+        res.json(formattedInvites);
+
+    } catch (error) {
+        console.error('❌ Error fetching invites:', error);
+        res.status(500).json({
+            error: 'Failed to fetch invites',
+            message: error.message
+        });
+    }
+});
+
 // Get roles endpoint
 app.get('/api/roles', async (req, res) => {
     try {
@@ -1006,6 +1070,61 @@ app.get('/api/roles', async (req, res) => {
         console.error('❌ Error fetching roles:', error);
         res.status(500).json({
             error: 'Failed to fetch roles',
+            message: error.message
+        });
+    }
+});
+
+// Email validation endpoint (for frontend compatibility)
+app.post('/api/validate-email', async (req, res) => {
+    try {
+        const { email, purpose = 'register' } = req.body;
+        console.log(`📧 Email validation request for: ${email} (purpose: ${purpose})`);
+
+        if (!email) {
+            return res.status(400).json({
+                valid: false,
+                reason: 'Email is required'
+            });
+        }
+
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isValidFormat = emailRegex.test(email);
+
+        if (!isValidFormat) {
+            return res.json({
+                valid: false,
+                reason: 'Invalid email format'
+            });
+        }
+
+        // For registration, check if user already exists
+        if (purpose === 'register') {
+            const existingUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            `;
+
+            if (existingUser.length > 0) {
+                return res.json({
+                    valid: false,
+                    reason: 'User with this email already exists'
+                });
+            }
+        }
+
+        // Email is valid
+        res.json({
+            valid: true,
+            reason: 'Email is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Email validation error:', error);
+        res.status(500).json({
+            valid: false,
+            reason: 'Server error during email validation',
             message: error.message
         });
     }
@@ -1095,6 +1214,512 @@ app.post('/api/invites', async (req, res) => {
         console.error('❌ Error in invite endpoint:', error);
         res.status(500).json({
             error: 'Failed to process invites',
+            message: error.message
+        });
+    }
+});
+
+// Registration endpoints
+
+// Start registration process
+app.post('/api/register', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`📝 Registration request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'User with this email already exists'
+            });
+        }
+
+        // Generate 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // For production, we'll store the code in memory temporarily
+        // In development server.cjs, this uses database storage
+        global.verificationCodes = global.verificationCodes || {};
+        global.verificationCodes[email] = {
+            code: verificationCode,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+            verified: false
+        };
+
+        console.log(`✅ Verification code generated for ${email}: ${verificationCode}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code sent to your email',
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { verificationCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Registration error:', error);
+        res.status(500).json({
+            error: 'Failed to start registration',
+            message: error.message
+        });
+    }
+});
+
+// Verify email with code
+app.post('/api/verify-email', async (req, res) => {
+    try {
+        const { email, verificationCode } = req.body;
+        console.log(`🔍 Email verification attempt for: ${email}`);
+
+        if (!email || !verificationCode) {
+            return res.status(400).json({
+                error: 'Email and verification code are required'
+            });
+        }
+
+        // Check verification code from memory
+        global.verificationCodes = global.verificationCodes || {};
+        const storedData = global.verificationCodes[email];
+
+        if (!storedData) {
+            return res.status(400).json({
+                error: 'No verification code found for this email'
+            });
+        }
+
+        if (new Date() > storedData.expiresAt) {
+            delete global.verificationCodes[email];
+            return res.status(400).json({
+                error: 'Verification code has expired'
+            });
+        }
+
+        if (storedData.code !== verificationCode) {
+            return res.status(400).json({
+                error: 'Invalid verification code'
+            });
+        }
+
+        // Mark as verified
+        storedData.verified = true;
+        console.log(`✅ Email verified successfully for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Email verified successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Email verification error:', error);
+        res.status(500).json({
+            error: 'Failed to verify email',
+            message: error.message
+        });
+    }
+});
+
+// Complete registration after email verification
+app.post('/api/complete-registration', async (req, res) => {
+    try {
+        const { email, password, fullName, workspaceName } = req.body;
+        console.log(`👤 Completing registration for: ${email}`);
+
+        if (!email || !password || !fullName) {
+            return res.status(400).json({
+                error: 'Email, password, and full name are required'
+            });
+        }
+
+        // Check if email was verified
+        global.verificationCodes = global.verificationCodes || {};
+        const storedData = global.verificationCodes[email];
+
+        if (!storedData || !storedData.verified) {
+            return res.status(400).json({
+                error: 'Email must be verified before completing registration'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Split full name
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        // Create user
+        const result = await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
+                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${email}, ${hashedPassword}, ${firstName}, ${lastName},
+                'A', 1, GETDATE(), GETDATE()
+            )
+        `;
+
+        // Clean up verification code
+        delete global.verificationCodes[email];
+
+        console.log(`✅ Registration completed successfully for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Registration completed successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Complete registration error:', error);
+        res.status(500).json({
+            error: 'Failed to complete registration',
+            message: error.message
+        });
+    }
+});
+
+// Accept invite
+app.post('/api/invite/accept', async (req, res) => {
+    try {
+        const { token, firstName, lastName, password } = req.body;
+        console.log(`📩 Processing invite acceptance with token: ${token}`);
+
+        if (!token || !firstName || !lastName || !password) {
+            return res.status(400).json({
+                error: 'Token, first name, last name, and password are required'
+            });
+        }
+
+        // Find and validate invite
+        const invites = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, ROLE_ID, COMPANY_ID, STATUS, EXPIRES_AT
+            FROM GUARDIAN.INVITES 
+            WHERE TOKEN = ${token} AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+        `;
+
+        if (invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invalid or expired invite token'
+            });
+        }
+
+        const invite = invites[0];
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'User with this email already exists'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Create user account
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
+                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${invite.EMAIL}, ${hashedPassword}, ${firstName}, ${lastName},
+                'A', ${invite.COMPANY_ID}, GETDATE(), GETDATE()
+            )
+        `;
+
+        // Get the newly created user ID
+        const newUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        const userId = newUser[0].USER_ID;
+
+        // Assign the role from the invite
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, ${invite.ROLE_ID}, GETDATE(), GETDATE())
+        `;
+
+        // Mark invite as used
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.INVITES 
+            SET STATUS = 'U', USED_AT = GETDATE()
+            WHERE INVITE_ID = ${invite.INVITE_ID}
+        `;
+
+        console.log(`✅ Invite accepted successfully for: ${invite.EMAIL} (User ID: ${userId})`);
+
+        res.json({
+            success: true,
+            message: 'Invite accepted successfully. You can now log in.'
+        });
+
+    } catch (error) {
+        console.error('❌ Invite acceptance error:', error);
+        res.status(500).json({
+            error: 'Failed to accept invite',
+            message: error.message
+        });
+    }
+});
+
+// Request password reset
+app.post('/api/request-password-reset', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`🔄 Password reset request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Check if user exists
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        if (users.length === 0) {
+            // Don't reveal if email exists or not for security
+            return res.json({
+                success: true,
+                message: 'If an account with this email exists, you will receive a password reset link.'
+            });
+        }
+
+        // Generate a 6-digit reset code
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Store reset code in memory
+        global.passwordResetCodes = global.passwordResetCodes || {};
+        global.passwordResetCodes[email] = {
+            code: resetCode,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 15) // 15 minutes
+        };
+
+        console.log(`✅ Password reset code generated for ${email}: ${resetCode}`);
+
+        res.json({
+            success: true,
+            message: 'If an account with this email exists, you will receive a password reset link.',
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { resetCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Password reset request error:', error);
+        res.status(500).json({
+            error: 'Failed to process password reset request',
+            message: error.message
+        });
+    }
+});
+
+// Verify reset code (just validation, doesn't reset password)
+app.post('/api/verify-reset-code', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        console.log(`🔍 Verifying reset code for: ${email}`);
+
+        if (!email || !code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Email and verification code are required'
+            });
+        }
+
+        // Check reset code from memory
+        global.passwordResetCodes = global.passwordResetCodes || {};
+        const storedData = global.passwordResetCodes[email];
+
+        if (!storedData) {
+            return res.status(400).json({
+                success: false,
+                error: 'No active password reset request found'
+            });
+        }
+
+        if (new Date() > storedData.expiresAt) {
+            delete global.passwordResetCodes[email];
+            return res.status(400).json({
+                success: false,
+                error: 'Verification code has expired'
+            });
+        }
+
+        if (storedData.code !== code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid verification code'
+            });
+        }
+
+        console.log(`✅ Reset code verified successfully for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Reset code verification error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to verify reset code',
+            message: error.message
+        });
+    }
+});
+
+// Reset password with code
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { email, code, resetCode, newPassword } = req.body;
+        // Support both 'code' and 'resetCode' parameter names
+        const verificationCode = code || resetCode;
+        console.log(`🔒 Password reset attempt for: ${email}`);
+
+        if (!email || !verificationCode || !newPassword) {
+            return res.status(400).json({
+                error: 'Email, reset code, and new password are required'
+            });
+        }
+
+        // Check reset code from memory
+        global.passwordResetCodes = global.passwordResetCodes || {};
+        const storedData = global.passwordResetCodes[email];
+
+        if (!storedData) {
+            return res.status(400).json({
+                error: 'No active password reset request found'
+            });
+        }
+
+        if (new Date() > storedData.expiresAt) {
+            delete global.passwordResetCodes[email];
+            return res.status(400).json({
+                error: 'Password reset code has expired'
+            });
+        }
+
+        if (storedData.code !== verificationCode) {
+            return res.status(400).json({
+                error: 'Invalid reset code'
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        // Update password
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET PASSWORD_HASH = ${hashedPassword}, UPDATE_DATE = GETDATE()
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        // Clean up reset code
+        delete global.passwordResetCodes[email];
+
+        console.log(`✅ Password reset successful for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Password has been reset successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Password reset error:', error);
+        res.status(500).json({
+            error: 'Failed to reset password',
+            message: error.message
+        });
+    }
+});
+
+// Resend verification email
+app.post('/api/send-verification-email', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`📧 Resend verification code request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Generate new 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Set expiration to 30 minutes from now
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+        // Update verification data
+        global.verificationCodes = global.verificationCodes || {};
+        global.verificationCodes[email] = {
+            code: verificationCode,
+            expiresAt: expiresAt,
+            verified: false
+        };
+
+        console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code resent to your email',
+            expiryTime: expiresAt.toISOString(),
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { code: verificationCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Resend verification error:', error);
+        res.status(500).json({
+            error: 'Failed to resend verification code',
+            message: error.message
+        });
+    }
+});
+
+// Logout endpoint
+app.post('/logout', async (req, res) => {
+    try {
+        console.log('🚪 Logout request received');
+        
+        // Since we're using JWT tokens (stateless), logout is mainly handled client-side
+        // The client should remove the token from localStorage/sessionStorage
+        // Here we can log the logout event or perform any server-side cleanup if needed
+        
+        res.json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        res.status(500).json({
+            error: 'Failed to logout',
             message: error.message
         });
     }
