@@ -82,6 +82,12 @@ Both environments support the same complete set of API endpoints:
 - `GET /api/field-types` - Get field types
 - `GET /api/roles` - Get roles
 
+### Notifications (New - 2025-07-26)
+- `GET /api/notifications` - Get user notifications (company-filtered)
+- `GET /api/notifications/count` - Get unread notification count
+- `PUT /api/notifications/:id/read` - Mark notification as read
+- `PUT /api/notifications/read-all` - Mark all notifications as read
+
 ### System
 - `GET /api/health` - Health check
 - `GET /api/test` - API test endpoint
@@ -115,6 +121,7 @@ The application uses these key tables:
 - `GUARDIAN.FORMS` - Form templates (by ORGANIZATION_ID)
 - `GUARDIAN.FIELDS` - Form fields (by ORGANIZATION_ID)
 - `GUARDIAN.FIELD_TYPE` - Field type definitions
+- `GUARDIAN.NOTIFICATIONS` - User notifications with read tracking (Added 2025-07-26)
 
 ## Development Commands
 
@@ -123,8 +130,10 @@ The application uses these key tables:
 # Standard way (may have database connection issues)
 bun server.cjs  # or node server.cjs
 
-# If database connection fails, use explicit DATABASE_URL:
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN@guardian-dev-db;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+# IMPORTANT: Password character escaping required (Fixed 2025-07-26)
+# The $ character in passwords must be escaped as \$ in .env files
+# Correct format in .env.development:
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;schema=GUARDIAN"
 ```
 
 **Production Testing:**
@@ -253,3 +262,31 @@ DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUA
 - Log shows "✅ Database connected successfully"
 - Login attempts work (queries database for user validation)
 - API endpoints return data instead of authentication errors
+
+## Recent Fixes (2025-07-26)
+
+### Notification System Implementation
+- ✅ **Added complete notification system** for user assignments
+- ✅ **Database schema**: Added `GUARDIAN.NOTIFICATIONS` table with `READ_DATE` column
+- ✅ **API endpoints**: Full CRUD operations for notifications
+- ✅ **Frontend component**: `NotificationDropdown.tsx` with real-time updates
+- ✅ **Integration**: Notifications created automatically when requests are assigned
+
+### Database Connection Issues Resolved
+- ✅ **Password escaping fix**: Special characters (`$`) in passwords must be escaped as `\$` in .env files
+- ✅ **Environment variable loading**: Fixed Bun environment variable processing
+- ✅ **Connection string format**: Verified correct Azure SQL connection parameters
+
+### Admin Role Support
+- ✅ **Role-based access**: Users with role IDs 1,3,4,6 can see all company data
+- ✅ **Form instance access**: Admin users can access all form instances
+- ✅ **Enhanced authentication**: Middleware now includes user roles in JWT tokens
+
+### API Completeness
+- ✅ **Added missing endpoints**: POST /api/invites across all server files
+- ✅ **Request modal fixes**: User dropdown API response parsing corrected
+- ✅ **Prisma query fixes**: Replaced invalid `prisma.Prisma.raw` with `prisma.$queryRawUnsafe`
+
+### Production Deployment Sync
+- ✅ **Server file synchronization**: All endpoints added to development, production, and production-source files
+- ✅ **Pipeline compatibility**: Changes applied to `server-production.js` for proper Azure deployment
