@@ -159,8 +159,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       const response = await api.get(`/api/users`);
       console.log('Users response:', response.data);
       
-      // Ensure we always set an array
-      const userData = response.data;
+      // Handle wrapped response format {success: true, data: Array, count: number}
+      const userData = response.data?.data || response.data;
       if (Array.isArray(userData)) {
         setUsers(userData);
       } else {

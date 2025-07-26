@@ -20,6 +20,7 @@ import DataTable from 'react-data-table-component';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import SendInvitesForm from '../components/SendInvitesForm';
+import NotificationDropdown from '../components/NotificationDropdown';
 import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
@@ -78,18 +79,7 @@ function Home() {
   const { user } = useAuth();
   const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
-  const [notifOpen, setNotifOpen] = useState(false);
   const [isNavExpanded, setIsNavExpanded] = useState(true);
-  const notifications = [
-    { id: 1, message: 'New user registered.', icon: <UserPlus className="w-5 h-5 text-primary" /> },
-    { id: 2, message: 'System update available.', icon: <RefreshCw className="w-5 h-5 text-blue-500" /> },
-    { id: 3, message: 'Password changed successfully.', icon: <KeyRound className="w-5 h-5 text-green-600" /> },
-    { id: 4, message: 'New comment on your post.', icon: <MessageCircle className="w-5 h-5 text-yellow-500" /> },
-    { id: 5, message: 'Access request approved.', icon: <CheckCircle className="w-5 h-5 text-green-700" /> },
-    { id: 6, message: 'Weekly report is ready.', icon: <FileText className="w-5 h-5 text-indigo-500" /> },
-    { id: 7, message: 'New device signed in.', icon: <Monitor className="w-5 h-5 text-orange-500" /> },
-    { id: 8, message: 'Subscription renewed.', icon: <CreditCard className="w-5 h-5 text-pink-500" /> },
-  ];
 
   // Get user role
   const getUserRole = () => {
@@ -749,36 +739,7 @@ function Home() {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
-          <div className="relative mr-4 px-2 py-1">
-            <div
-              className="bg-white rounded-lg shadow-sm flex items-center justify-center cursor-pointer border border-gray-200"
-              style={{ width: '42px', height: '42px' }}
-              onClick={() => setNotifOpen((open) => !open)}
-              tabIndex={0}
-              aria-label="Show notifications"
-            >
-              <Bell className="w-6 h-6 text-gray-900" />
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full px-1.5 border-2 border-white" style={{minWidth:'1.2em',textAlign:'center'}}>{notifications.length}</span>
-            </div>
-            {/* Dropdown */}
-            {notifOpen && (
-              <div className="absolute z-50 right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden" style={{ maxHeight: '320px', minWidth: '260px' }}>
-                <div className="border-b px-4 py-3 bg-gray-50 font-semibold text-gray-700 text-xs tracking-widest">NOTIFICATIONS</div>
-                <div className="py-2 max-h-80 overflow-y-auto" style={{ maxHeight: '288px' }}>
-                  {notifications.length === 0 ? (
-                    <div className="text-center text-gray-500 py-8">No notifications</div>
-                  ) : (
-                    notifications.map((notif) => (
-                      <div key={notif.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 border-b last:border-b-0 text-gray-800 text-sm">
-                        {notif.icon}
-                        <span>{notif.message}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <NotificationDropdown className="mr-4" />
           <div className="flex items-center gap-2 md:gap-3 relative cursor-pointer border border-gray-200 rounded-lg px-2 mr-4" onClick={() => setProfileMenuOpen(v => !v)} tabIndex={0} role="button" aria-haspopup="true" aria-expanded={profileMenuOpen}>
             {/* Profile */}
            

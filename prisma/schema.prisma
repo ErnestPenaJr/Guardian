@@ -361,3 +361,17 @@ model USERS {
   @@map("USERS")
   @@schema("GUARDIAN")
 }
+
+model NOTIFICATIONS {
+  NOTIFICATION_ID Int      @id(map: "PK_NOTIFICATIONS") @default(autoincrement())
+  USER_ID         Int
+  COMPANY_ID      Int
+  TYPE            String   @db.VarChar(50)
+  TITLE           String   @db.VarChar(255)
+  MESSAGE         String   @db.VarChar(1000)
+  RELATED_ID      Int?
+  IS_READ         Boolean  @default(false)
+  CREATED_DATE    DateTime @default(now()) @db.DateTime
+  
+  @@schema("GUARDIAN")
+}

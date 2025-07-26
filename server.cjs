@@ -182,6 +182,7 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         }
 
         req.user = user;
+        req.userId = user.USER_ID;
         req.companyId = user.COMPANY_ID;
         next();
     } catch (error) {
@@ -189,6 +190,162 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid authentication token' });
     }
 };
+
+// === NOTIFICATION ENDPOINTS ===
+
+// Get user notifications
+app.get('/api/notifications', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { limit = 50, offset = 0, unreadOnly = false } = req.query;
+
+        console.log(`🔔 Fetching notifications for user ${userId} (Company: ${req.companyId})`);
+
+        let whereClause = `WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId}`;
+        if (unreadOnly === 'true') {
+            whereClause += ` AND IS_READ = 0`;
+        }
+
+        const notifications = await prisma.$queryRaw`
+            SELECT 
+                NOTIFICATION_ID,
+                TYPE,
+                TITLE,
+                MESSAGE,
+                RELATED_ID,
+                IS_READ,
+                CREATED_DATE
+            FROM GUARDIAN.NOTIFICATIONS
+            ${prisma.Prisma.raw(whereClause)}
+            ORDER BY CREATED_DATE DESC
+            OFFSET ${parseInt(offset)} ROWS
+            FETCH NEXT ${parseInt(limit)} ROWS ONLY
+        `;
+
+        console.log(`✅ Found ${notifications.length} notifications`);
+
+        res.json({
+            success: true,
+            data: notifications,
+            count: notifications.length
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching notifications:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notifications',
+            message: error.message
+        });
+    }
+});
+
+// Get notification count (unread)
+app.get('/api/notifications/count', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        console.log(`🔢 Getting notification count for user ${userId}`);
+
+        const result = await prisma.$queryRaw`
+            SELECT COUNT(*) as unread_count
+            FROM GUARDIAN.NOTIFICATIONS
+            WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId} AND IS_READ = 0
+        `;
+
+        const unreadCount = parseInt(result[0].unread_count) || 0;
+
+        console.log(`✅ User has ${unreadCount} unread notifications`);
+
+        res.json({
+            success: true,
+            unreadCount: unreadCount
+        });
+
+    } catch (error) {
+        console.error('❌ Error getting notification count:', error);
+        res.status(500).json({
+            error: 'Failed to get notification count',
+            message: error.message
+        });
+    }
+});
+
+// Mark notification as read
+app.put('/api/notifications/:notificationId/read', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const notificationId = parseInt(req.params.notificationId);
+        const userId = req.userId;
+
+        console.log(`📖 Marking notification ${notificationId} as read for user ${userId}`);
+
+        if (!notificationId || isNaN(notificationId)) {
+            return res.status(400).json({
+                error: 'Valid notification ID is required'
+            });
+        }
+
+        // Verify notification belongs to user
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTIFICATIONS
+            SET IS_READ = 1, READ_DATE = GETDATE()
+            WHERE NOTIFICATION_ID = ${notificationId} 
+            AND USER_ID = ${userId} 
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (result === 0) {
+            return res.status(404).json({
+                error: 'Notification not found or access denied'
+            });
+        }
+
+        console.log(`✅ Notification ${notificationId} marked as read`);
+
+        res.json({
+            success: true,
+            message: 'Notification marked as read'
+        });
+
+    } catch (error) {
+        console.error('❌ Error marking notification as read:', error);
+        res.status(500).json({
+            error: 'Failed to mark notification as read',
+            message: error.message
+        });
+    }
+});
+
+// Mark all notifications as read
+app.put('/api/notifications/read-all', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        console.log(`📖 Marking all notifications as read for user ${userId}`);
+
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTIFICATIONS
+            SET IS_READ = 1, READ_DATE = GETDATE()
+            WHERE USER_ID = ${userId} 
+            AND COMPANY_ID = ${req.companyId}
+            AND IS_READ = 0
+        `;
+
+        console.log(`✅ Marked ${result} notifications as read`);
+
+        res.json({
+            success: true,
+            message: `Marked ${result} notifications as read`,
+            updatedCount: result
+        });
+
+    } catch (error) {
+        console.error('❌ Error marking all notifications as read:', error);
+        res.status(500).json({
+            error: 'Failed to mark notifications as read',
+            message: error.message
+        });
+    }
+});
 
 // Real database authentication
 app.post('/api/login', async (req, res) => {
@@ -626,6 +783,47 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                 UPDATE_DATE = GETDATE()
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
+
+        // Create notification if assigning to someone
+        if (assignedUserId) {
+            try {
+                // Get request details for notification
+                const requestDetails = await prisma.$queryRaw`
+                    SELECT REQUEST_NAME, REQUEST_DESCRIPTION, TRACKINGID 
+                    FROM GUARDIAN.REQUESTS 
+                    WHERE REQUEST_ID = ${requestId}
+                `;
+
+                if (requestDetails.length > 0) {
+                    const request = requestDetails[0];
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.NOTIFICATIONS (
+                            USER_ID, 
+                            TYPE, 
+                            TITLE, 
+                            MESSAGE, 
+                            RELATED_ID, 
+                            COMPANY_ID, 
+                            CREATED_DATE, 
+                            IS_READ
+                        ) VALUES (
+                            ${assignedUserId},
+                            'assignment',
+                            'New Request Assigned',
+                            'You have been assigned to request: ' + ${request.REQUEST_NAME} + ' (ID: ' + ${request.TRACKINGID} + ')',
+                            ${requestId},
+                            ${req.companyId},
+                            GETDATE(),
+                            0
+                        )
+                    `;
+                    console.log(`🔔 Notification created for user ${assignedUserId} about request assignment`);
+                }
+            } catch (notificationError) {
+                console.error('⚠️ Failed to create notification:', notificationError);
+                // Don't fail the assignment if notification creation fails
+            }
+        }
 
         console.log(`✅ Request ${requestId} assigned successfully`);
 
