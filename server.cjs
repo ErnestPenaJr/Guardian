@@ -169,11 +169,13 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         
-        // Get user's company ID from database
-        const user = await prisma.uSERS.findFirst({
-            where: { USER_ID: decoded.userId },
-            select: { USER_ID: true, COMPANY_ID: true, EMAIL: true }
-        });
+        // Get user's company ID from database using raw SQL
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID, COMPANY_ID, EMAIL 
+            FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${decoded.userId}
+        `;
+        const user = users.length > 0 ? users[0] : null;
 
         if (!user) {
             return res.status(401).json({ error: 'User not found' });
@@ -643,6 +645,429 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
     }
 });
 
+// Get form for a specific request (for form fulfillment)
+app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        console.log(`📋 Fetching form for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Get the request details
+        console.log(`🔍 Querying for request ${requestId} in company ${req.companyId}`);
+        const requests = await prisma.$queryRaw`
+            SELECT r.REQUEST_ID, r.REQUEST_NAME, r.FORM_ID, r.STATUS, r.REQUESTOR_ID, r.ASSIGNED_ID,
+                   r.CREATE_DATE, r.UPDATE_DATE, r.COMPANY_ID, r.REQUEST_DESCRIPTION
+            FROM GUARDIAN.REQUESTS r
+            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`🔍 Found ${requests.length} requests matching criteria`);
+        if (!requests.length) {
+            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        const request = requests[0];
+        console.log(`✅ Found request with FORM_ID: ${request.FORM_ID}`);
+
+        if (!request.FORM_ID) {
+            console.log(`❌ Request ${requestId} has no form associated`);
+            return res.status(404).json({
+                error: 'No form associated with this request'
+            });
+        }
+
+        // Get the form details (check both company-specific and global forms)
+        console.log(`🔍 Querying for form ${request.FORM_ID} (company-specific or global)`);
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${request.FORM_ID} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        `;
+
+        console.log(`🔍 Found ${forms.length} forms matching criteria`);
+        if (!forms.length) {
+            console.log(`❌ Form ${request.FORM_ID} not found for organization ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Form template not found or access denied',
+                details: `Request ${requestId} references form ${request.FORM_ID} which is not available for your organization`,
+                requestId: requestId,
+                formId: request.FORM_ID,
+                companyId: req.companyId
+            });
+        }
+
+        const form = forms[0];
+
+        // Get fields specific to this form using the FORMS_FIELDS junction table
+        console.log(`🔍 Querying fields for form ${request.FORM_ID} using junction table`);
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
+                   ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${request.FORM_ID}
+            AND (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
+            AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
+        `;
+        console.log(`✅ Found ${fields.length} form-specific fields for form ${request.FORM_ID}`);
+
+        // Check for existing form instance and values
+        console.log(`🔍 Checking for existing form instance for request ${requestId}`);
+        const existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE
+            FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+            ORDER BY CREATE_DATE DESC
+        `;
+
+        let existingValues = {};
+        let formInstanceId = null;
+        let formStatus = 'new'; // new, in_progress, completed
+
+        if (existingInstances.length > 0) {
+            formInstanceId = existingInstances[0].FORM_INSTANCE_ID;
+            const submittedDate = existingInstances[0].SUBMITTED_DATE;
+            
+            console.log(`📋 Found existing form instance: ${formInstanceId}`);
+            
+            // Get existing field values
+            const savedValues = await prisma.$queryRaw`
+                SELECT FIELD_ID, VALUE
+                FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+                WHERE FORM_INSTANCE_ID = ${formInstanceId}
+            `;
+            
+            // Convert to object with field IDs as keys
+            existingValues = savedValues.reduce((acc, value) => {
+                acc[value.FIELD_ID] = value.VALUE;
+                return acc;
+            }, {});
+            
+            console.log(`📊 Found ${savedValues.length} existing field values`);
+            
+            // Determine form completion status
+            const requiredFields = fields.filter(f => f.FORM_IS_REQUIRED || f.IS_REQUIRED);
+            const filledRequiredFields = requiredFields.filter(f => 
+                existingValues[f.FIELD_ID] && existingValues[f.FIELD_ID].trim() !== ''
+            );
+            
+            if (submittedDate && filledRequiredFields.length === requiredFields.length) {
+                formStatus = 'completed';
+            } else if (savedValues.length > 0) {
+                formStatus = 'in_progress';
+            }
+            
+            console.log(`📈 Form status: ${formStatus} (${filledRequiredFields.length}/${requiredFields.length} required fields filled)`);
+        } else {
+            console.log(`📝 No existing form instance found - new form`);
+        }
+
+        console.log(`✅ Found request ${requestId} with form ${request.FORM_ID} containing ${fields.length} fields`);
+
+        // Prepare response in expected format
+        const response = {
+            request: {
+                REQUEST_ID: request.REQUEST_ID,
+                REQUEST_NAME: request.REQUEST_NAME,
+                STATUS: request.STATUS,
+                FORM_ID: request.FORM_ID,
+                REQUESTOR_ID: request.REQUESTOR_ID,
+                ASSIGNED_ID: request.ASSIGNED_ID,
+                CREATE_DATE: request.CREATE_DATE,
+                UPDATE_DATE: request.UPDATE_DATE,
+                REQUEST_DESCRIPTION: request.REQUEST_DESCRIPTION
+            },
+            form: {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
+                IS_ACTIVE: form.IS_ACTIVE,
+                IS_PUBLIC: form.IS_PUBLIC,
+                IS_DELETED: form.IS_DELETED
+            },
+            fields: fields.map(field => ({
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.FORM_IS_REQUIRED || field.IS_REQUIRED, // Use form-specific requirement
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                SORT_ORDER: field.SORT_ORDER,
+                CREATE_DATE: field.CREATE_DATE,
+                UPDATE_DATE: field.UPDATE_DATE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID
+            })),
+            values: existingValues, // Include existing values for form pre-filling
+            formInstanceId: formInstanceId,
+            formStatus: formStatus, // new, in_progress, completed
+            isCompleted: formStatus === 'completed',
+            hasExistingData: Object.keys(existingValues).length > 0
+        };
+
+        console.log(`📤 Sending form data for request ${requestId} to frontend`);
+        res.json(response);
+
+    } catch (error) {
+        console.error(`❌ Error fetching form for request ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch request form',
+            message: error.message
+        });
+    }
+});
+
+// Submit form data for a specific request
+app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const { fieldValues, isComplete = false, isDraft = false } = req.body;
+
+        console.log(`📝 Submitting form data for request ${requestId} (Company: ${req.companyId})`);
+        console.log(`📋 Field values:`, JSON.stringify(fieldValues, null, 2));
+        console.log(`📊 Submission type: ${isComplete ? 'Complete' : isDraft ? 'Draft' : 'Auto-save'}`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        if (!fieldValues || typeof fieldValues !== 'object') {
+            return res.status(400).json({
+                error: 'Field values are required'
+            });
+        }
+
+        // Get the request details to verify ownership and get form ID
+        const requests = await prisma.$queryRaw`
+            SELECT r.REQUEST_ID, r.FORM_ID, r.ASSIGNED_ID, r.COMPANY_ID
+            FROM GUARDIAN.REQUESTS r
+            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requests.length) {
+            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        const request = requests[0];
+        
+        if (!request.FORM_ID) {
+            return res.status(400).json({
+                error: 'No form associated with this request'
+            });
+        }
+
+        // Check if form instance already exists for this request
+        const existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+        `;
+
+        let formInstanceId;
+
+        if (existingInstances.length > 0) {
+            formInstanceId = existingInstances[0].FORM_INSTANCE_ID;
+            console.log(`📋 Using existing form instance: ${formInstanceId}`);
+            
+            // Update the existing instance with appropriate submitted date
+            if (isComplete) {
+                // Set submitted date for completed forms
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.FORMS_INSTANCE 
+                    SET SUBMITTED_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+                    WHERE FORM_INSTANCE_ID = ${formInstanceId}
+                `;
+                console.log(`✅ Marked form instance as completed`);
+            } else {
+                // For drafts/in-progress, update timestamp but keep submitted_date NULL
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.FORMS_INSTANCE 
+                    SET UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+                    WHERE FORM_INSTANCE_ID = ${formInstanceId}
+                `;
+                console.log(`📝 Updated form instance as in-progress`);
+            }
+        } else {
+            // Create new form instance
+            if (isComplete) {
+                // Complete submission
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
+                        FORM_ID, ASSIGNED_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${request.FORM_ID}, ${request.ASSIGNED_ID}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                console.log(`📋 Created new completed form instance`);
+            } else {
+                // Draft/in-progress submission (no submitted date)
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
+                        FORM_ID, ASSIGNED_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${request.FORM_ID}, ${request.ASSIGNED_ID}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                console.log(`📋 Created new draft form instance`);
+            }
+
+            // Get the new instance ID
+            const newInstances = await prisma.$queryRaw`
+                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+                ORDER BY CREATE_DATE DESC
+            `;
+            
+            formInstanceId = newInstances[0].FORM_INSTANCE_ID;
+        }
+
+        // Delete existing field values for this instance
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+            WHERE FORM_INSTANCE_ID = ${formInstanceId}
+        `;
+
+        // Insert new field values
+        let savedCount = 0;
+        for (const [fieldId, value] of Object.entries(fieldValues)) {
+            if (value !== null && value !== undefined && value !== '') {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
+                        FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${formInstanceId}, ${parseInt(fieldId)}, ${String(value)}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                savedCount++;
+            }
+        }
+
+        // Determine the final status
+        const finalStatus = isComplete ? 'completed' : (savedCount > 0 ? 'in_progress' : 'new');
+        const statusMessage = isComplete ? 'Form completed successfully' : 
+                            isDraft ? 'Draft saved successfully' : 
+                            'Form data saved successfully';
+
+        console.log(`✅ Form submitted successfully for request ${requestId}: ${savedCount} field values saved (Status: ${finalStatus})`);
+
+        res.json({
+            success: true,
+            message: statusMessage,
+            formInstanceId: formInstanceId,
+            savedFieldCount: savedCount,
+            formStatus: finalStatus,
+            isComplete: isComplete,
+            isDraft: isDraft
+        });
+
+    } catch (error) {
+        console.error(`❌ Error submitting form for request ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to submit form data',
+            message: error.message
+        });
+    }
+});
+
+// Get specific form by ID
+app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        console.log(`📋 Fetching form ${formId} from database for company:`, req.companyId);
+
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({
+                error: 'Valid form ID is required'
+            });
+        }
+
+        // Get the form details (check both company-specific and global forms)
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        `;
+
+        if (!forms.length) {
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        const form = forms[0];
+
+        // Get the form fields - simplified query for now  
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID
+            FROM GUARDIAN.FIELDS f
+            WHERE (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
+            AND f.IS_DELETED = 0
+            ORDER BY f.FIELD_ID
+        `;
+
+        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
+
+        const response = {
+            form: {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
+                IS_ACTIVE: form.IS_ACTIVE,
+                IS_PUBLIC: form.IS_PUBLIC,
+                IS_DELETED: form.IS_DELETED
+            },
+            fields: fields.map(field => ({
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.IS_REQUIRED,
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                SORT_ORDER: field.SORT_ORDER,
+                CREATE_DATE: field.CREATE_DATE,
+                UPDATE_DATE: field.UPDATE_DATE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID
+            }))
+        };
+
+        console.log(`📤 Sending form ${formId} data to frontend`);
+        res.json(response);
+
+    } catch (error) {
+        console.error(`❌ Error fetching form ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch form',
+            message: error.message
+        });
+    }
+});
+
 // Email validation endpoint (for frontend compatibility)
 app.post('/api/validate-email', async (req, res) => {
     try {
@@ -786,7 +1211,7 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE f.ORGANIZATION_ID = ${req.companyId}
+            WHERE (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
             ORDER BY f.SORT_ORDER, f.FIELD_NAME
         `;
 
@@ -833,7 +1258,7 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
             FROM GUARDIAN.FORMS 
-            WHERE ORGANIZATION_ID = ${req.companyId}
+            WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
             ORDER BY FORM_NAME
         `;
 

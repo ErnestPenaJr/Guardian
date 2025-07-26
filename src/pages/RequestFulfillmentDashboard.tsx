@@ -182,16 +182,24 @@ const RequestFulfillmentDashboard: React.FC = () => {
     }
   };
 
-  const saveFormData = async () => {
+  const saveFormData = async (isComplete = false, isDraft = false) => {
     if (!selectedRequest || !formData) return;
     
     try {
       setActionLoading(true);
       
-      await formService.submitForm(selectedRequest.REQUEST_ID, formValues);
+      const result = await formService.submitForm(
+        selectedRequest.REQUEST_ID, 
+        formValues, 
+        { isComplete, isDraft }
+      );
       
-      toast.success('Form data saved successfully');
-      setShowFormModal(false);
+      toast.success(result.message || 'Form data saved successfully');
+      
+      if (isComplete) {
+        setShowFormModal(false);
+      }
+      
       fetchAssignedRequests(); // Refresh the list
     } catch (error) {
       console.error('Error saving form:', error);
@@ -640,7 +648,34 @@ const RequestFulfillmentDashboard: React.FC = () => {
             </div>
           )}
           
-          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 mt-8">
+          {/* Form Status Display */}
+          {formData && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-6">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-600">Form Status:</span>
+                {formData.formStatus === 'completed' ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Completed
+                  </span>
+                ) : formData.formStatus === 'in_progress' ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    📝 In Progress
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    📄 New
+                  </span>
+                )}
+                {formData.hasExistingData && (
+                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                    Previously saved data loaded
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between pt-6 border-t border-gray-200 mt-4">
             <button
               type="button"
               onClick={() => setShowFormModal(false)}
@@ -649,21 +684,50 @@ const RequestFulfillmentDashboard: React.FC = () => {
             >
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={saveFormData}
-              disabled={actionLoading || formLoading}
-              className="px-6 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              {actionLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
-              ) : (
-                'Save Form Data'
-              )}
-            </button>
+            
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => saveFormData(false, true)}
+                disabled={actionLoading || formLoading}
+                className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {actionLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 0 1-.88-7.903A5 5 0 1 1 15.9 6H16a5 5 0 0 1 1 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    Save Draft
+                  </>
+                )}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => saveFormData(true, false)}
+                disabled={actionLoading || formLoading}
+                className="px-6 py-3 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {actionLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Completing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Complete Form
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </Modal>

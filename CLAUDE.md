@@ -124,7 +124,7 @@ The application uses these key tables:
 bun server.cjs  # or node server.cjs
 
 # If database connection fails, use explicit DATABASE_URL:
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=true;schema=GUARDIAN" bun server.cjs
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN@guardian-dev-db;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
 ```
 
 **Production Testing:**
@@ -238,8 +238,16 @@ If you see "Authentication failed against database server" errors when starting 
 **Symptom:** Prisma can't connect to database, login fails
 **Solution:** Start development server with explicit DATABASE_URL:
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=true;schema=GUARDIAN" bun server.cjs
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN@guardian-dev-db;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
 ```
+
+**CORRECT Database Connection Details:**
+- Server: `guardian-dev-db.database.windows.net`
+- Port: `1433`
+- Database: `GUARDIAN-DEV`
+- User: `GUARDIAN@guardian-dev-db`
+- Password: `Sh13ldlyt1c$`
+- Additional parameters: `encrypt=true;trustServerCertificate=false`
 
 **Success indicators:**
 - Log shows "✅ Database connected successfully"

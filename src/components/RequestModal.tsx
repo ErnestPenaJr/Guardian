@@ -156,7 +156,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       console.log(`Fetching users for company ID: ${companyId}`);
       
       // Fetch assignable users from the same company
-      const response = await api.get(`/api/users/assignable`);
+      const response = await api.get(`/api/users`);
       console.log('Users response:', response.data);
       
       // Ensure we always set an array

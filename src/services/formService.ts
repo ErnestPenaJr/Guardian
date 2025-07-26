@@ -305,8 +305,14 @@ const formService = {
       }
       
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[FORM SERVICE] Error fetching request form:', error);
+      
+      // Handle specific 404 error for missing form templates
+      if (error.response?.status === 404 && error.response?.data?.details) {
+        console.error('[FORM SERVICE] Form template not found:', error.response.data.details);
+        throw new Error(`Form template not available: ${error.response.data.details}`);
+      }
       
       // Provide more specific error information
       if (error instanceof Error) {
@@ -319,11 +325,46 @@ const formService = {
   },
 
   // Submit form data
-  submitForm: async (requestId: number, fieldValues: Record<string, any>): Promise<void> => {
+  submitForm: async (requestId: number, fieldValues: Record<string, any>, options: { isComplete?: boolean, isDraft?: boolean } = {}): Promise<any> => {
     try {
-      await api.post(`/api/requests/${requestId}/form/submit`, { fieldValues });
+      const response = await api.post(`/api/requests/${requestId}/form/submit`, { 
+        fieldValues, 
+        isComplete: options.isComplete || false,
+        isDraft: options.isDraft || false
+      });
+      return response.data;
     } catch (error) {
       console.error('Error submitting form:', error);
+      throw error;
+    }
+  },
+
+  // Save form draft
+  saveDraft: async (requestId: number, fieldValues: Record<string, any>): Promise<any> => {
+    try {
+      const response = await api.post(`/api/requests/${requestId}/form/submit`, { 
+        fieldValues, 
+        isComplete: false,
+        isDraft: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error saving form draft:', error);
+      throw error;
+    }
+  },
+
+  // Complete form submission
+  completeForm: async (requestId: number, fieldValues: Record<string, any>): Promise<any> => {
+    try {
+      const response = await api.post(`/api/requests/${requestId}/form/submit`, { 
+        fieldValues, 
+        isComplete: true,
+        isDraft: false
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error completing form:', error);
       throw error;
     }
   }

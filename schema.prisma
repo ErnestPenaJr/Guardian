@@ -9,53 +9,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model INVITES {
-  INVITE_ID  Int       @id(map: "PK__INVITES__F55A91112E684DE5") @default(autoincrement())
-  EMAIL      String    @db.VarChar(100)
-  ROLE_ID    Int
-  COMPANY_ID Int
-  TOKEN      String    @unique(map: "UQ__INVITES__05BE64EDCB9633D7") @db.VarChar(255)
-  STATUS     String    @db.Char(1)
-  EXPIRES_AT DateTime
-  USED_AT    DateTime?
-  CREATED_AT DateTime  @default(dbgenerated("sysdatetime()"), map: "DF__INVITES__CREATED__2C538F61")
-}
-
-model USER_ROLES {
-  USER_ROLE_ID   Int       @id(map: "USER_ROLES_PK") @default(autoincrement())
-  USER_ID        Int
-  ROLE_ID        Int
-  CREATE_USER_ID Int?
-  UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__CREAT__797309D9") @db.DateTime
-  UPDATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__UPDAT__7A672E12") @db.DateTime
-  STATUS         String    @default("P", map: "DF__USER_ROLE__STATU__7B5B524B") @db.Char(1)
-}
-
-model USERS {
-  USER_ID                       Int            @id(map: "PK_USERS") @default(autoincrement())
-  FIRST_NAME                    String         @db.VarChar(30)
-  LAST_NAME                     String         @db.VarChar(30)
-  EMAIL                         String         @db.VarChar(100)
-  PIN                           Int?
-  CREATE_USER_ID                Int?
-  UPDATE_USER_ID                Int?
-  CREATE_DATE                   DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
-  UPDATE_DATE                   DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
-  STATUS                        String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
-  SysStartTime                  DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
-  SysEndTime                    DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
-  PASSWORD_HASH                 String?        @db.VarChar(255)
-  EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
-  EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
-  PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
-  COMPANY_ID                    Int?
-  EMAIL_VALIDATION_CODE_PLAIN   String?        @db.VarChar(10)
-  EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
-  PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
-  COMPANY_INFO                  COMPANY_INFO[]
-}
-
 model ATTACHMENTS {
   ATTACHMENT_ID  Int      @id(map: "PK_ATTACHMENTS") @default(autoincrement())
   REQUEST_ID     Int
@@ -74,6 +27,7 @@ model COMPANY {
   PHONE        String?        @db.NVarChar(50)
   CREATED_AT   DateTime       @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
   COMPANY_INFO COMPANY_INFO[]
+  FORMS        FORMS[]
 }
 
 model COMPANY_INFO {
@@ -176,6 +130,8 @@ model FORMS {
   UPDATE_DATE      DateTime @default(now(), map: "DF__FORMS__UPDATE_DA__6ABAD62E") @db.DateTime
   SysStartTime     DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
+  COMPANY_ID       Int?
+  COMPANY          COMPANY? @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__COMPANY")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -233,6 +189,7 @@ model FORMS_HISTORY {
   UPDATE_DATE      DateTime @db.DateTime
   SysStartTime     DateTime
   SysEndTime       DateTime
+  COMPANY_ID       Int?
 
   @@index([SysEndTime, SysStartTime], map: "ix_FORMS_HISTORY", clustered: true)
   @@ignore
@@ -296,6 +253,18 @@ model FORMS_INSTANCE_VALUES_HISTORY {
 
   @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_VALUES_HISTORY", clustered: true)
   @@ignore
+}
+
+model INVITES {
+  INVITE_ID  Int       @id(map: "PK__INVITES__F55A91112E684DE5") @default(autoincrement())
+  EMAIL      String    @db.VarChar(100)
+  ROLE_ID    Int
+  COMPANY_ID Int
+  TOKEN      String    @unique(map: "UQ__INVITES__05BE64EDCB9633D7") @db.VarChar(255)
+  STATUS     String    @db.Char(1)
+  EXPIRES_AT DateTime
+  USED_AT    DateTime?
+  CREATED_AT DateTime  @default(dbgenerated("sysdatetime()"), map: "DF__INVITES__CREATED__2C538F61")
 }
 
 model MILESTONES {
@@ -389,4 +358,39 @@ model TEST {
   NAME String? @db.VarChar(20)
 
   @@ignore
+}
+
+model USER_ROLES {
+  USER_ROLE_ID   Int       @id(map: "USER_ROLES_PK") @default(autoincrement())
+  USER_ID        Int
+  ROLE_ID        Int
+  CREATE_USER_ID Int?
+  UPDATE_USER_ID Int?
+  CREATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__CREAT__797309D9") @db.DateTime
+  UPDATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__UPDAT__7A672E12") @db.DateTime
+  STATUS         String    @default("P", map: "DF__USER_ROLE__STATU__7B5B524B") @db.Char(1)
+}
+
+model USERS {
+  USER_ID                       Int            @id(map: "PK_USERS") @default(autoincrement())
+  FIRST_NAME                    String         @db.VarChar(30)
+  LAST_NAME                     String         @db.VarChar(30)
+  EMAIL                         String         @db.VarChar(100)
+  PIN                           Int?
+  CREATE_USER_ID                Int?
+  UPDATE_USER_ID                Int?
+  CREATE_DATE                   DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
+  UPDATE_DATE                   DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
+  STATUS                        String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
+  SysStartTime                  DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
+  SysEndTime                    DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
+  PASSWORD_HASH                 String?        @db.VarChar(255)
+  EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
+  EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
+  PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
+  COMPANY_ID                    Int?
+  EMAIL_VALIDATION_CODE_PLAIN   String?        @db.VarChar(10)
+  EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
+  PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
+  COMPANY_INFO                  COMPANY_INFO[]
 }
