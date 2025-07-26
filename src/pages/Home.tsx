@@ -456,8 +456,8 @@ function Home() {
     
     try {
       const authToken = localStorage.getItem('token');
-      await axios.post(`/api/requests/${currentRequest.REQUEST_ID}/assign`, {
-        userId: selectedUser.id
+      await axios.put(`/api/requests/${currentRequest.REQUEST_ID}/assign`, {
+        assignedUserId: selectedUser.id
       }, {
         headers: {
           'Authorization': `Bearer ${authToken}`
