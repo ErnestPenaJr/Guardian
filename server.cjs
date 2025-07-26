@@ -169,11 +169,14 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         const token = authHeader.substring(7);
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         
-        // Get user's company ID from database using raw SQL
+        // Get user's company ID and roles from database using raw SQL
         const users = await prisma.$queryRaw`
-            SELECT USER_ID, COMPANY_ID, EMAIL 
-            FROM GUARDIAN.USERS 
-            WHERE USER_ID = ${decoded.userId}
+            SELECT u.USER_ID, u.COMPANY_ID, u.EMAIL,
+                   STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
+            WHERE u.USER_ID = ${decoded.userId}
+            GROUP BY u.USER_ID, u.COMPANY_ID, u.EMAIL
         `;
         const user = users.length > 0 ? users[0] : null;
 
@@ -184,6 +187,7 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         req.user = user;
         req.userId = user.USER_ID;
         req.companyId = user.COMPANY_ID;
+        req.userRoleIds = user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : [];
         next();
     } catch (error) {
         console.error('Authentication error:', error);
@@ -206,7 +210,8 @@ app.get('/api/notifications', getAuthenticatedUserCompany, async (req, res) => {
             whereClause += ` AND IS_READ = 0`;
         }
 
-        const notifications = await prisma.$queryRaw`
+        // Build the complete SQL query as a string
+        let sqlQuery = `
             SELECT 
                 NOTIFICATION_ID,
                 TYPE,
@@ -216,11 +221,13 @@ app.get('/api/notifications', getAuthenticatedUserCompany, async (req, res) => {
                 IS_READ,
                 CREATED_DATE
             FROM GUARDIAN.NOTIFICATIONS
-            ${prisma.Prisma.raw(whereClause)}
+            ${whereClause}
             ORDER BY CREATED_DATE DESC
             OFFSET ${parseInt(offset)} ROWS
             FETCH NEXT ${parseInt(limit)} ROWS ONLY
         `;
+
+        const notifications = await prisma.$queryRawUnsafe(sqlQuery);
 
         console.log(`✅ Found ${notifications.length} notifications`);
 
@@ -737,6 +744,107 @@ app.get('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Send invites endpoint
+app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { invites } = req.body;
+        console.log(`📧 Processing ${invites?.length || 0} invite requests for company ${req.companyId}`);
+
+        if (!invites || !Array.isArray(invites) || invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invites array is required and must not be empty'
+            });
+        }
+
+        const results = [];
+        const errors = [];
+
+        for (const invite of invites) {
+            try {
+                const { email, roleId } = invite;
+
+                if (!email || !roleId) {
+                    errors.push(`Invalid invite data: email and roleId required`);
+                    continue;
+                }
+
+                // Check if user already exists
+                const existingUser = await prisma.$queryRaw`
+                    SELECT USER_ID FROM GUARDIAN.USERS 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                `;
+
+                if (existingUser.length > 0) {
+                    errors.push(`User with email ${email} already exists`);
+                    continue;
+                }
+
+                // Check if there's already a pending invite
+                const existingInvite = await prisma.$queryRaw`
+                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
+                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+                `;
+
+                if (existingInvite.length > 0) {
+                    errors.push(`Pending invite already exists for ${email}`);
+                    continue;
+                }
+
+                // Generate unique token
+                const crypto = require('crypto');
+                const token = crypto.randomBytes(32).toString('hex');
+                
+                // Set expiration to 7 days from now
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+
+                // Insert the invite
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
+                    VALUES (${email}, ${roleId}, ${req.companyId}, ${token}, 'P', ${expiresAt})
+                `;
+
+                results.push({
+                    email: email,
+                    roleId: roleId,
+                    token: token,
+                    status: 'sent'
+                });
+
+                console.log(`✅ Invite sent to ${email} for role ${roleId}`);
+
+            } catch (inviteError) {
+                console.error(`❌ Error processing invite for ${invite.email}:`, inviteError);
+                errors.push(`Failed to send invite to ${invite.email}: ${inviteError.message}`);
+            }
+        }
+
+        // Return results
+        const response = {
+            success: true,
+            sent: results.length,
+            errors: errors.length,
+            results: results
+        };
+
+        if (errors.length > 0) {
+            response.errors = errors;
+        }
+
+        console.log(`📧 Invite processing complete: ${results.length} sent, ${errors.length} errors`);
+        
+        res.json(response);
+
+    } catch (error) {
+        console.error('❌ Error processing invites:', error);
+        res.status(500).json({
+            error: 'Failed to process invites',
+            message: error.message
+        });
+    }
+});
+
 // Update request assignment
 app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -923,12 +1031,30 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
 
         // Check for existing form instance and values
         console.log(`🔍 Checking for existing form instance for request ${requestId}`);
-        const existingInstances = await prisma.$queryRaw`
-            SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE
-            FROM GUARDIAN.FORMS_INSTANCE 
-            WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-            ORDER BY CREATE_DATE DESC
-        `;
+        
+        // Admin roles (1, 3, 4, 6) can see all form instances, others only see their own
+        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
+        
+        let existingInstances;
+        if (isAdmin) {
+            // Admin users can see all form instances for this form
+            existingInstances = await prisma.$queryRaw`
+                SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
+                FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE FORM_ID = ${request.FORM_ID}
+                ORDER BY CREATE_DATE DESC
+            `;
+            console.log(`👑 Admin user - fetching all form instances for form ${request.FORM_ID}`);
+        } else {
+            // Regular users only see their own assigned instances
+            existingInstances = await prisma.$queryRaw`
+                SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
+                FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+                ORDER BY CREATE_DATE DESC
+            `;
+            console.log(`👤 Regular user - fetching instances assigned to user ${request.ASSIGNED_ID}`);
+        }
 
         let existingValues = {};
         let formInstanceId = null;
@@ -1075,10 +1201,22 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         }
 
         // Check if form instance already exists for this request
-        const existingInstances = await prisma.$queryRaw`
-            SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-            WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-        `;
+        // Admin roles (1, 3, 4, 6) can see all form instances, others only see their own
+        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
+        
+        let existingInstances;
+        if (isAdmin) {
+            existingInstances = await prisma.$queryRaw`
+                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE FORM_ID = ${request.FORM_ID}
+                ORDER BY CREATE_DATE DESC
+            `;
+        } else {
+            existingInstances = await prisma.$queryRaw`
+                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+            `;
+        }
 
         let formInstanceId;
 
@@ -1129,11 +1267,20 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
             }
 
             // Get the new instance ID
-            const newInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
+            let newInstances;
+            if (isAdmin) {
+                newInstances = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE FORM_ID = ${request.FORM_ID}
+                    ORDER BY CREATE_DATE DESC
+                `;
+            } else {
+                newInstances = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+                    ORDER BY CREATE_DATE DESC
+                `;
+            }
             
             formInstanceId = newInstances[0].FORM_INSTANCE_ID;
         }
