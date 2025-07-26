@@ -120,7 +120,11 @@ The application uses these key tables:
 
 **Development Server:**
 ```bash
+# Standard way (may have database connection issues)
 bun server.cjs  # or node server.cjs
+
+# If database connection fails, use explicit DATABASE_URL:
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=true;schema=GUARDIAN" bun server.cjs
 ```
 
 **Production Testing:**
@@ -145,13 +149,17 @@ bun run build  # Build React app to dist/
 3. **Both servers have identical API endpoints** - Only the implementation details differ
 4. **Production uses IIS** - Static file serving and SPA routing handled by web.config
 5. **Development uses full Express** - Includes static serving and SPA fallback
+6. **Database connection fix** - If development server has database connection issues, explicitly set DATABASE_URL when starting
 
 ## Deployment
 
 ### Development
-- Run `server.cjs` locally
+- Run `server.cjs` locally (use explicit DATABASE_URL if connection fails)
 - Static files served by Express
 - Email service requires Resend API key
+- Frontend runs on port 5175 via Vite
+- Backend runs on port 3001 
+- Vite proxy routes API calls from frontend to backend
 
 ### Production (Azure App Service)
 - Deploy via Azure DevOps pipeline
@@ -221,3 +229,19 @@ After any server changes:
 - **Email:** Resend API (development)
 - **Deployment:** IIS (production)
 - **Styling:** Tailwind CSS + Bootstrap
+
+## Troubleshooting
+
+### Database Connection Issues in Development
+If you see "Authentication failed against database server" errors when starting `server.cjs`:
+
+**Symptom:** Prisma can't connect to database, login fails
+**Solution:** Start development server with explicit DATABASE_URL:
+```bash
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=true;schema=GUARDIAN" bun server.cjs
+```
+
+**Success indicators:**
+- Log shows "✅ Database connected successfully"
+- Login attempts work (queries database for user validation)
+- API endpoints return data instead of authentication errors

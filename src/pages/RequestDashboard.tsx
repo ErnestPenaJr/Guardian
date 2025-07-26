@@ -13,6 +13,76 @@ import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
 import { useAuth } from '../hooks/useAuth';
 
+interface FormFieldWithLayout extends FormField {
+  colWidth?: string;
+  FIELD_ID?: number;
+  FIELD_NAME?: string;
+  FIELD_TYPE_ID?: number;
+  IS_REQUIRED?: boolean;
+}
+
+// Utility function to determine column width based on field type and name
+const getFieldColumnWidth = (field: FormFieldWithLayout): string => {
+  // Field types that should take full width (3: Date, 4: Textarea, etc.)
+  const fullWidthTypes = [3, 4, 5];
+  const fieldTypeId = field.FIELD_TYPE_ID || field.fieldTypeId;
+  if (fieldTypeId && fullWidthTypes.includes(fieldTypeId)) {
+    return 'col-12';
+  }
+  
+  // Field names that should take full width
+  const fullWidthNames = ['description', 'notes', 'comments', 'address', 'details'];
+  const fieldName = ((field.FIELD_NAME || field.fieldName || '')).toLowerCase();
+  if (fullWidthNames.some(name => fieldName.includes(name))) {
+    return 'col-12';
+  }
+  
+  // Default to half width for most fields
+  return 'col-md-6';
+};
+
+// Function to group fields into rows for better organization
+const groupFieldsIntoRows = (fields: FormField[]): FormFieldWithLayout[][] => {
+  const rows: FormFieldWithLayout[][] = [];
+  let currentRow: FormFieldWithLayout[] = [];
+  let currentRowWidth = 0;
+  const maxRowWidth = 12; // Bootstrap's grid is 12 columns wide
+  
+  fields.forEach((field) => {
+    const colWidth = getFieldColumnWidth(field);
+    const fieldWidth = colWidth === 'col-12' ? 12 : 6; // Each field is either full width (12) or half width (6)
+    
+    // If adding this field would exceed the row width, start a new row
+    if (currentRowWidth + fieldWidth > maxRowWidth) {
+      rows.push([...currentRow]);
+      currentRow = [];
+      currentRowWidth = 0;
+    }
+    
+    const fieldWithLayout: FormFieldWithLayout = {
+      ...field,
+      colWidth: fieldWidth === 12 ? 'col-12' : 'col-md-6 col-12' // Responsive columns
+    };
+    
+    currentRow.push(fieldWithLayout);
+    currentRowWidth += fieldWidth;
+    
+    // If we've reached the max row width, start a new row
+    if (currentRowWidth >= maxRowWidth) {
+      rows.push([...currentRow]);
+      currentRow = [];
+      currentRowWidth = 0;
+    }
+  });
+  
+  // Add any remaining fields
+  if (currentRow.length > 0) {
+    rows.push(currentRow);
+  }
+  
+  return rows;
+};
+
 interface Request {
   REQUEST_ID: number;
   REQUEST_NAME: string;
@@ -770,7 +840,7 @@ const RequestDashboard: React.FC = () => {
       {/* Form Fulfillment Modal */}
       {showFormFulfillmentModal && (
         <div className="modal show d-block" tabIndex={-1} style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-          <div className="modal-dialog modal-lg">
+              <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
@@ -802,50 +872,65 @@ const RequestDashboard: React.FC = () => {
                     <p className="mt-2 text-muted">Loading form...</p>
                   </div>
                 ) : (
-                  <div className="row g-3">
-                    {fulfillmentFormFields.map((field, index) => (
-                      <div key={field.FIELD_ID} className="col-12">
-                        <label className="form-label fw-semibold">
-                          {field.FIELD_NAME}
-                          {field.IS_REQUIRED && <span className="text-danger ms-1">*</span>}
-                        </label>
-                        
-                        {field.FIELD_TYPE_ID === 3 ? (
-                          // Date field
-                          <input
-                            type="date"
-                            className="form-control"
-                            value={fulfillmentFormValues[field.FIELD_ID] || ''}
-                            onChange={(e) => setFulfillmentFormValues(prev => ({
-                              ...prev,
-                              [field.FIELD_ID]: e.target.value
-                            }))}
-                            required={field.IS_REQUIRED}
-                          />
-                        ) : (
-                          // Text field
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={fulfillmentFormValues[field.FIELD_ID] || ''}
-                            onChange={(e) => setFulfillmentFormValues(prev => ({
-                              ...prev,
-                              [field.FIELD_ID]: e.target.value
-                            }))}
-                            placeholder={`Enter ${field.FIELD_NAME.toLowerCase()}...`}
-                            required={field.IS_REQUIRED}
-                          />
-                        )}
-                        
-                        {index < fulfillmentFormFields.length - 1 && (
-                          <hr className="my-3" />
-                        )}
-                      </div>
+                  <div className="container-fluid p-0">
+                    {groupFieldsIntoRows(fulfillmentFormFields).map((row, rowIndex) => (
+                      <div key={`row-${rowIndex}`} className="row g-2 mb-2">
+                        {row.map((field) => (
+                          <div key={field.FIELD_ID} className={`${field.colWidth || 'col-md-6'} p-1`}>
+                              <div className="form-group mb-3">
+                                <label className="form-label fw-semibold">
+                                  {field.FIELD_NAME || field.fieldName}
+                                  {(field.IS_REQUIRED || field.required) && <span className="text-danger ms-1">*</span>}
+                                </label>
+                                
+                                {field.FIELD_TYPE_ID === 3 || field.fieldTypeId === 3 ? (
+                                  // Date field
+                                  <input
+                                    type="date"
+                                    className="form-control form-control-sm"
+                                    value={fulfillmentFormValues[field.FIELD_ID || field.dbFieldId || ''] || ''}
+                                    onChange={(e) => setFulfillmentFormValues(prev => ({
+                                      ...prev,
+                                      [field.FIELD_ID || field.dbFieldId || '']: e.target.value
+                                    }))}
+                                    required={field.IS_REQUIRED || field.required}
+                                  />
+                                ) : field.FIELD_TYPE_ID === 4 || field.fieldTypeId === 4 ? (
+                                  // Textarea for long text
+                                  <textarea
+                                    className="form-control form-control-sm"
+                                    rows={3}
+                                    value={fulfillmentFormValues[field.FIELD_ID || field.dbFieldId || ''] || ''}
+                                    onChange={(e) => setFulfillmentFormValues(prev => ({
+                                      ...prev,
+                                      [field.FIELD_ID || field.dbFieldId || '']: e.target.value
+                                    }))}
+                                    placeholder={`Enter ${(field.FIELD_NAME || field.fieldName || '').toLowerCase()}...`}
+                                    required={field.IS_REQUIRED || field.required}
+                                  />
+                                ) : (
+                                  // Default text input
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    value={fulfillmentFormValues[field.FIELD_ID || field.dbFieldId || ''] || ''}
+                                    onChange={(e) => setFulfillmentFormValues(prev => ({
+                                      ...prev,
+                                      [field.FIELD_ID || field.dbFieldId || '']: e.target.value
+                                    }))}
+                                    placeholder={`Enter ${(field.FIELD_NAME || field.fieldName || '').toLowerCase()}...`}
+                                    required={field.IS_REQUIRED || field.required}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                     ))}
                     
                     {/* Status Field */}
-                    {fulfillmentFormFields.length > 0 && <hr className="my-3" />}
-                    <div className="col-12">
+                    <div className="row g-2 mb-2">
+                      <div className="col-12 p-1">
                       <label className="form-label fw-semibold">
                         Request Status
                         <span className="text-danger ms-1">*</span>
@@ -867,6 +952,7 @@ const RequestDashboard: React.FC = () => {
                       </select>
                       <div className="form-text text-muted">
                         Update the status of this request based on your progress
+                      </div>
                       </div>
                     </div>
                   </div>
