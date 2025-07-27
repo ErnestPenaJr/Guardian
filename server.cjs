@@ -845,6 +845,50 @@ app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Delete an invite
+app.delete('/api/invites/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const inviteId = parseInt(req.params.id);
+        const companyId = req.companyId;
+
+        console.log(`🗑️ Deleting invite ${inviteId} for company ${companyId}`);
+
+        // Verify invite exists and belongs to the company
+        const invite = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, COMPANY_ID 
+            FROM GUARDIAN.INVITES 
+            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
+        `;
+
+        if (invite.length === 0) {
+            console.log(`❌ Invite ${inviteId} not found or not authorized for company ${companyId}`);
+            return res.status(404).json({
+                error: 'Invite not found or not authorized'
+            });
+        }
+
+        // Delete the invite
+        const result = await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.INVITES 
+            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
+        `;
+
+        console.log(`✅ Invite ${inviteId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Invite deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting invite:', error);
+        res.status(500).json({
+            error: 'Failed to delete invite',
+            message: error.message
+        });
+    }
+});
+
 // Update request assignment
 app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (req, res) => {
     try {

@@ -285,6 +285,7 @@ app.get('/api/debug/endpoints', (req, res) => {
             '/api/users', '/api/users/company/:companyId', '/api/invites', 
             '/api/roles', '/api/requests', '/api/forms', '/api/fields', '/api/field-types',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
+            '/api/validate-email', '/api/send-verification-email', 
             '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
         ]
     });
@@ -860,6 +861,50 @@ app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
         console.error('❌ Error processing invites:', error);
         res.status(500).json({
             error: 'Failed to process invites',
+            message: error.message
+        });
+    }
+});
+
+// Delete an invite
+app.delete('/api/invites/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const inviteId = parseInt(req.params.id);
+        const companyId = req.companyId;
+
+        console.log(`🗑️ Deleting invite ${inviteId} for company ${companyId}`);
+
+        // Verify invite exists and belongs to the company
+        const invite = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, COMPANY_ID 
+            FROM GUARDIAN.INVITES 
+            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
+        `;
+
+        if (invite.length === 0) {
+            console.log(`❌ Invite ${inviteId} not found or not authorized for company ${companyId}`);
+            return res.status(404).json({
+                error: 'Invite not found or not authorized'
+            });
+        }
+
+        // Delete the invite
+        const result = await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.INVITES 
+            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
+        `;
+
+        console.log(`✅ Invite ${inviteId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Invite deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting invite:', error);
+        res.status(500).json({
+            error: 'Failed to delete invite',
             message: error.message
         });
     }
@@ -1464,6 +1509,286 @@ app.post('/api/complete-registration', async (req, res) => {
         console.error('❌ Complete registration error:', error);
         res.status(500).json({
             error: 'Failed to complete registration',
+            message: error.message
+        });
+    }
+});
+
+// Email validation endpoint (for frontend compatibility)
+app.post('/api/validate-email', async (req, res) => {
+    try {
+        const { email, purpose = 'register' } = req.body;
+        console.log(`📧 Email validation request for: ${email} (purpose: ${purpose})`);
+
+        if (!email) {
+            return res.status(400).json({
+                valid: false,
+                reason: 'Email is required'
+            });
+        }
+
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isValidFormat = emailRegex.test(email);
+
+        if (!isValidFormat) {
+            return res.json({
+                valid: false,
+                reason: 'Invalid email format'
+            });
+        }
+
+        // For registration, check if user already exists
+        if (purpose === 'register') {
+            const existingUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            `;
+
+            if (existingUser.length > 0) {
+                return res.json({
+                    valid: false,
+                    reason: 'User with this email already exists'
+                });
+            }
+        }
+
+        // Email is valid
+        res.json({
+            valid: true,
+            reason: 'Email is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Email validation error:', error);
+        res.status(500).json({
+            valid: false,
+            reason: 'Server error during email validation',
+            message: error.message
+        });
+    }
+});
+
+// Resend verification email
+app.post('/api/send-verification-email', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`📧 Resend verification code request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Generate new 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Set expiration to 30 minutes from now
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+        // Update verification data
+        global.verificationCodes = global.verificationCodes || {};
+        global.verificationCodes[email] = {
+            code: verificationCode,
+            expiresAt: expiresAt,
+            verified: false
+        };
+
+        console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code resent to your email',
+            expiryTime: expiresAt.toISOString(),
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { code: verificationCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Resend verification error:', error);
+        res.status(500).json({
+            error: 'Failed to resend verification code',
+            message: error.message
+        });
+    }
+});
+
+// Request password reset
+app.post('/api/request-password-reset', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`🔄 Password reset request for: ${email}`);
+
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
+        }
+
+        // Check if user exists
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+
+        if (users.length === 0) {
+            // Don't reveal if email exists or not for security
+            return res.json({
+                success: true,
+                message: 'If an account with this email exists, you will receive a password reset code.'
+            });
+        }
+
+        const user = users[0];
+
+        // Generate a 6-digit reset code
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // For production, store the code in memory temporarily
+        global.resetCodes = global.resetCodes || {};
+        global.resetCodes[email] = {
+            code: resetCode,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+            userId: user.USER_ID
+        };
+
+        console.log(`✅ Password reset code generated for ${email}: ${resetCode}`);
+
+        res.json({
+            success: true,
+            message: 'If an account with this email exists, you will receive a password reset code.',
+            // In development, return the code for testing
+            ...(process.env.NODE_ENV === 'development' && { resetCode })
+        });
+
+    } catch (error) {
+        console.error('❌ Password reset request error:', error);
+        res.status(500).json({
+            error: 'Failed to process password reset request',
+            message: error.message
+        });
+    }
+});
+
+// Verify reset code (just validation, doesn't reset password)
+app.post('/api/verify-reset-code', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        console.log(`🔍 Verifying reset code for: ${email}`);
+
+        if (!email || !code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Email and verification code are required'
+            });
+        }
+
+        // Check reset code from memory
+        global.resetCodes = global.resetCodes || {};
+        const storedData = global.resetCodes[email];
+
+        if (!storedData) {
+            return res.status(400).json({
+                success: false,
+                error: 'No active password reset request found'
+            });
+        }
+
+        if (new Date() > storedData.expiresAt) {
+            delete global.resetCodes[email];
+            return res.status(400).json({
+                success: false,
+                error: 'Verification code has expired'
+            });
+        }
+
+        if (storedData.code !== code) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid verification code'
+            });
+        }
+
+        console.log(`✅ Reset code verified successfully for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Verification code is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Reset code verification error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to verify reset code',
+            message: error.message
+        });
+    }
+});
+
+// Reset password with code
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { email, code, resetCode, newPassword } = req.body;
+        // Support both 'code' and 'resetCode' parameter names
+        const verificationCode = code || resetCode;
+        console.log(`🔒 Password reset attempt for: ${email}`);
+
+        if (!email || !verificationCode || !newPassword) {
+            return res.status(400).json({
+                error: 'Email, reset code, and new password are required'
+            });
+        }
+
+        // Check reset code from memory
+        global.resetCodes = global.resetCodes || {};
+        const storedData = global.resetCodes[email];
+
+        if (!storedData) {
+            return res.status(400).json({
+                error: 'No active password reset request found'
+            });
+        }
+
+        if (new Date() > storedData.expiresAt) {
+            delete global.resetCodes[email];
+            return res.status(400).json({
+                error: 'Password reset code has expired'
+            });
+        }
+
+        if (storedData.code !== verificationCode) {
+            return res.status(400).json({
+                error: 'Invalid reset code'
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        // Update password in database
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET PASSWORD_HASH = ${hashedPassword}, UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${storedData.userId}
+        `;
+
+        // Clear reset code
+        delete global.resetCodes[email];
+
+        console.log(`✅ Password reset successful for: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Password has been reset successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Password reset error:', error);
+        res.status(500).json({
+            error: 'Failed to reset password',
             message: error.message
         });
     }

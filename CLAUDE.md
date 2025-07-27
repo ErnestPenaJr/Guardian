@@ -64,6 +64,7 @@ Both environments support the same complete set of API endpoints:
 ### Invites System
 - `GET /api/invites` - Get invites (company-filtered)
 - `POST /api/invites` - Send invites
+- `DELETE /api/invites/:id` - Delete invite (Added 2025-07-26)
 - `POST /api/invite/accept` - Accept invite
 
 ### Requests Management
@@ -283,9 +284,10 @@ DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUA
 - ✅ **Enhanced authentication**: Middleware now includes user roles in JWT tokens
 
 ### API Completeness
-- ✅ **Added missing endpoints**: POST /api/invites across all server files
+- ✅ **Added missing endpoints**: POST /api/invites and DELETE /api/invites/:id across all server files
 - ✅ **Request modal fixes**: User dropdown API response parsing corrected
 - ✅ **Prisma query fixes**: Replaced invalid `prisma.Prisma.raw` with `prisma.$queryRawUnsafe`
+- ✅ **Invite management**: Users can now delete invited users from AdminUserManagement
 
 ### Production Deployment Sync
 - ✅ **Server file synchronization**: All endpoints added to development, production, and production-source files
