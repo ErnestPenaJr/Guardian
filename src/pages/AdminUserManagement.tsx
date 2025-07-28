@@ -938,8 +938,12 @@ const AdminUserManagement: React.FC = () => {
       });
       
       const response = await api.post('/api/invites', {
-        email,
-        roleId: Number(roleId)
+        invites: [
+          {
+            email,
+            roleId: Number(roleId)
+          }
+        ]
       });
       
       // Close loading dialog
