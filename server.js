@@ -485,6 +485,29 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// User logout endpoint
+app.post('/logout', async (req, res) => {
+    try {
+        console.log('🚪 Logout request received');
+        
+        // Since we're using JWT tokens (stateless), logout is mainly handled client-side
+        // The client should remove the token from localStorage/sessionStorage
+        // Here we can log the logout event or perform any server-side cleanup if needed
+        
+        res.json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        res.status(500).json({
+            error: 'Failed to logout',
+            message: error.message
+        });
+    }
+});
+
 // Real requests endpoint with database query
 app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -571,6 +594,132 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         res.status(500).json({
             error: 'Failed to fetch requests',
             message: error.message
+        });
+    }
+});
+
+// Create new request
+app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📝 Creating new request for company: ${req.companyId}`, req.body);
+        
+        // Extract fields from request body (support multiple formats)
+        const {
+            REQUEST_NAME,
+            name,
+            requestName,
+            REQUEST_DESCRIPTION,
+            description,
+            ABBREVIATION,
+            abbreviation,
+            templateType,
+            templateId,
+            companyId,
+            userId,
+            ASSIGNED_ID,
+            assignedId,
+            STATUS,
+            status
+        } = req.body;
+
+        // Use the request name from any of the possible field names
+        const finalRequestName = REQUEST_NAME || name || requestName;
+        const finalDescription = REQUEST_DESCRIPTION || description || '';
+        const finalAbbreviation = ABBREVIATION || abbreviation || templateType?.substring(0, 5)?.toUpperCase() || finalRequestName?.substring(0, 5)?.toUpperCase() || 'REQ';
+        const finalStatus = STATUS || status || 'P'; // P = Pending
+        const finalAssignedId = ASSIGNED_ID || assignedId || null;
+
+        // Validation
+        if (!finalRequestName || finalRequestName.trim() === '') {
+            return res.status(400).json({
+                error: 'Request name is required',
+                details: 'REQUEST_NAME, name, or requestName field must be provided and non-empty'
+            });
+        }
+
+        // Generate tracking ID
+        const year = new Date().getFullYear();
+        const randomNum = Math.floor(10000 + Math.random() * 90000);
+        const trackingId = `REQ-${year}-${randomNum}`;
+
+        // Create the request with company-based data isolation
+        const currentDate = new Date();
+        const newRequest = await prisma.rEQUESTS.create({
+            data: {
+                REQUEST_NAME: finalRequestName.trim(),
+                REQUEST_DESCRIPTION: finalDescription.trim() || null,
+                ABBREVIATION: finalAbbreviation,
+                STATUS: finalStatus,
+                SUBMITTED_DATE: currentDate,
+                REQUESTOR_ID: req.userId, // From JWT token
+                ASSIGNED_ID: finalAssignedId,
+                CREATE_DATE: currentDate,
+                UPDATE_DATE: currentDate,
+                CREATE_USER_ID: req.userId, // From JWT token
+                UPDATE_USER_ID: req.userId, // From JWT token
+                TRACKINGID: trackingId,
+                COMPANY_ID: req.companyId, // Company-based data isolation
+                EXTERNAL_USER: null, // Internal user request
+                FORM_ID: templateId || null
+            }
+        });
+
+        console.log(`✅ Request created successfully:`, {
+            REQUEST_ID: newRequest.REQUEST_ID,
+            REQUEST_NAME: newRequest.REQUEST_NAME,
+            TRACKING_ID: newRequest.TRACKINGID,
+            COMPANY_ID: newRequest.COMPANY_ID
+        });
+
+        // Return the created request
+        res.status(201).json({
+            success: true,
+            message: 'Request created successfully',
+            data: {
+                REQUEST_ID: newRequest.REQUEST_ID,
+                REQUEST_NAME: newRequest.REQUEST_NAME,
+                REQUEST_DESCRIPTION: newRequest.REQUEST_DESCRIPTION,
+                ABBREVIATION: newRequest.ABBREVIATION,
+                STATUS: newRequest.STATUS,
+                SUBMITTED_DATE: newRequest.SUBMITTED_DATE,
+                REQUESTOR_ID: newRequest.REQUESTOR_ID,
+                ASSIGNED_ID: newRequest.ASSIGNED_ID,
+                CREATE_DATE: newRequest.CREATE_DATE,
+                UPDATE_DATE: newRequest.UPDATE_DATE,
+                CREATE_USER_ID: newRequest.CREATE_USER_ID,
+                UPDATE_USER_ID: newRequest.UPDATE_USER_ID,
+                TRACKINGID: newRequest.TRACKINGID,
+                COMPANY_ID: newRequest.COMPANY_ID,
+                EXTERNAL_USER: newRequest.EXTERNAL_USER,
+                FORM_ID: newRequest.FORM_ID
+            }
+        });
+
+    } catch (error) {
+        console.error(`❌ Error creating request:`, error);
+        
+        // Handle specific database errors
+        if (error.code === 'P2002') {
+            return res.status(409).json({
+                error: 'Duplicate request',
+                message: 'A request with this information already exists',
+                details: error.message
+            });
+        }
+        
+        if (error.code === 'P2003') {
+            return res.status(400).json({
+                error: 'Invalid reference',
+                message: 'Referenced user, form, or company does not exist',
+                details: error.message
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to create request',
+            message: 'An internal server error occurred while creating the request',
+            details: error.message,
+            timestamp: new Date().toISOString()
         });
     }
 });
@@ -676,6 +825,69 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         console.error('❌ Error assigning request:', error);
         res.status(500).json({
             error: 'Failed to assign request',
+            message: error.message
+        });
+    }
+});
+
+// Get users by specific company ID
+app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        console.log(`👥 Fetching users for company ID: ${companyId}`);
+
+        // Security check: users can only access their own company's users
+        if (companyId !== req.companyId) {
+            return res.status(403).json({
+                error: 'Access denied: You can only view users from your own company'
+            });
+        }
+
+        if (!companyId || isNaN(companyId)) {
+            return res.status(400).json({
+                error: 'Valid company ID is required'
+            });
+        }
+
+        const users = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                STRING_AGG(r.NAME, ', ') as ROLE_NAMES
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.COMPANY_ID = ${companyId} 
+            AND u.STATUS = 'A'
+            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        console.log(`✅ Found ${users.length} users for company ${companyId}`);
+
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            EMAIL: user.EMAIL,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            COMPANY_ID: user.COMPANY_ID,
+            ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`,
+            subtitle: user.ROLE_NAMES || 'No roles'
+        }));
+
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('❌ Error fetching company users:', error);
+        res.status(500).json({
+            error: 'Failed to fetch users',
             message: error.message
         });
     }
@@ -989,6 +1201,217 @@ app.delete('/api/invites/:id', getAuthenticatedUserCompany, async (req, res) => 
         console.error('❌ Error deleting invite:', error);
         res.status(500).json({
             error: 'Failed to delete invite',
+            message: error.message
+        });
+    }
+});
+
+// Accept invitation endpoint
+app.post('/api/invite/accept', async (req, res) => {
+    try {
+        const { token, firstName, lastName, password } = req.body;
+        console.log(`📩 Processing invite acceptance with token: ${token}`);
+
+        if (!token || !firstName || !lastName || !password) {
+            return res.status(400).json({
+                error: 'Token, first name, last name, and password are required'
+            });
+        }
+
+        // Find and validate invite
+        const invites = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, ROLE_ID, COMPANY_ID, STATUS, EXPIRES_AT
+            FROM GUARDIAN.INVITES 
+            WHERE TOKEN = ${token} AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+        `;
+
+        if (invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invalid or expired invite token'
+            });
+        }
+
+        const invite = invites[0];
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'User with this email already exists'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Create user account
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
+                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${invite.EMAIL}, ${hashedPassword}, ${firstName}, ${lastName},
+                'A', ${invite.COMPANY_ID}, GETDATE(), GETDATE()
+            )
+        `;
+
+        // Get the newly created user ID
+        const newUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        const userId = newUser[0].USER_ID;
+
+        // Assign the role from the invite
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, ${invite.ROLE_ID}, GETDATE(), GETDATE())
+        `;
+
+        // Mark invite as used
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.INVITES 
+            SET STATUS = 'U', USED_AT = GETDATE()
+            WHERE INVITE_ID = ${invite.INVITE_ID}
+        `;
+
+        console.log(`✅ Invite accepted successfully for: ${invite.EMAIL} (User ID: ${userId})`);
+
+        res.json({
+            success: true,
+            message: 'Invite accepted successfully. You can now log in.',
+            user: {
+                id: userId,
+                email: invite.EMAIL,
+                firstName: firstName,
+                lastName: lastName,
+                companyId: invite.COMPANY_ID,
+                roleId: invite.ROLE_ID
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Invite acceptance error:', error);
+        res.status(500).json({
+            error: 'Failed to accept invite',
+            message: error.message
+        });
+    }
+});
+
+// Send invites endpoint (alternative endpoint)
+app.post('/invites/send', async (req, res) => {
+    try {
+        const { invites } = req.body;
+        console.log(`📧 Processing ${invites?.length || 0} invite requests`);
+
+        if (!invites || !Array.isArray(invites) || invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invites array is required and must not be empty'
+            });
+        }
+
+        const results = [];
+        const errors = [];
+
+        for (const invite of invites) {
+            try {
+                const { email, roleId } = invite;
+
+                if (!email || !roleId) {
+                    errors.push(`Invalid invite data: email and roleId required`);
+                    continue;
+                }
+
+                // Check if user already exists
+                const existingUser = await prisma.$queryRaw`
+                    SELECT USER_ID FROM GUARDIAN.USERS 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                `;
+
+                if (existingUser.length > 0) {
+                    errors.push(`User with email ${email} already exists`);
+                    continue;
+                }
+
+                // Check if there's already a pending invite
+                const existingInvite = await prisma.$queryRaw`
+                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
+                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+                `;
+
+                if (existingInvite.length > 0) {
+                    errors.push(`Active invite already exists for ${email}`);
+                    continue;
+                }
+
+                // Generate unique token
+                const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+                
+                // Set expiration to 7 days from now
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+
+                // For now, default to company ID 1 - you may want to get this from the authenticated user
+                const companyId = 1;
+
+                // Insert invite record
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
+                    VALUES (${email}, ${roleId}, ${companyId}, ${token}, 'P', ${expiresAt})
+                `;
+
+                console.log(`✅ Invite created for ${email} with role ${roleId}`);
+                
+                // Send actual invite email using Resend
+                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
+                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
+                
+                results.push({
+                    email: email,
+                    status: status,
+                    token: token,
+                    expiresAt: expiresAt.toISOString(),
+                    emailSent: emailSent
+                });
+
+                if (!emailSent) {
+                    console.log(`⚠️ Failed to send invite email to ${email}, but invite record created`);
+                    console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                }
+
+            } catch (inviteError) {
+                console.error(`❌ Error processing invite for ${invite?.email}:`, inviteError);
+                errors.push(`Failed to process invite for ${invite?.email}: ${inviteError.message}`);
+            }
+        }
+
+        const response = {
+            success: results.length > 0,
+            message: `Processed ${invites.length} invite(s). ${results.length} sent, ${errors.length} failed.`,
+            results: results,
+            errors: errors.length > 0 ? errors : undefined
+        };
+
+        console.log(`📤 Invite processing complete:`, response);
+
+        if (results.length === 0 && errors.length > 0) {
+            return res.status(400).json(response);
+        }
+
+        res.json(response);
+
+    } catch (error) {
+        console.error('❌ Error in invite endpoint:', error);
+        res.status(500).json({
+            error: 'Failed to process invites',
             message: error.message
         });
     }
@@ -1458,7 +1881,125 @@ app.post('/api/register', async (req, res) => {
         // Generate 6-digit verification code
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // For production, store the code in memory temporarily
+        // Hash the verification code for secure storage
+        const crypto = require('crypto');
+        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+        const passwordHash = crypto.createHash('sha256').update('').digest('hex');
+        
+        // Get name parts from email
+        const firstName = email.split('@')[0].split('.')[0];
+        const lastName = email.split('@')[0].split('.')[1] || '';
+        
+        // Extract domain for company name
+        let companyNameToUse = 'Default Company';
+        if (email && email.includes('@')) {
+          const emailDomain = email.split('@')[1];
+          if (emailDomain) {
+            const domainParts = emailDomain.split('.');
+            if (domainParts.length > 0 && domainParts[0].length > 0) {
+              companyNameToUse = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+              
+              // Handle common domains
+              if (emailDomain.includes('gmail.com')) {
+                companyNameToUse = 'Gmail';
+              } else if (emailDomain.includes('outlook.com') || emailDomain.includes('hotmail.com')) {
+                companyNameToUse = 'Microsoft';
+              } else if (emailDomain.includes('yahoo.com')) {
+                companyNameToUse = 'Yahoo';
+              } else if (emailDomain.includes('icloud.com') || emailDomain.includes('me.com') || emailDomain.includes('mac.com')) {
+                companyNameToUse = 'Apple';
+              }
+            }
+          }
+        }
+        
+        // Find existing company or create new one
+        let companies = await prisma.$queryRaw`
+            SELECT COMPANY_ID, NAME FROM GUARDIAN.COMPANY 
+            WHERE NAME = ${companyNameToUse}
+        `;
+        
+        let companyId;
+        if (companies.length > 0) {
+            companyId = companies[0].COMPANY_ID;
+            console.log(`✅ Found existing company: ${companyNameToUse} (ID: ${companyId})`);
+        } else {
+            // Create new company
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.COMPANY (NAME, CREATED_AT, UPDATED_AT)
+                VALUES (${companyNameToUse}, GETDATE(), GETDATE())
+            `;
+            
+            // Get the newly created company ID
+            const newCompanies = await prisma.$queryRaw`
+                SELECT COMPANY_ID FROM GUARDIAN.COMPANY 
+                WHERE NAME = ${companyNameToUse}
+            `;
+            companyId = newCompanies[0].COMPANY_ID;
+            console.log(`✅ Created new company: ${companyNameToUse} (ID: ${companyId})`);
+        }
+        
+        // Create user in database
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                FIRST_NAME, LAST_NAME, EMAIL, PASSWORD_HASH, CREATE_DATE, UPDATE_DATE, 
+                STATUS, EMAIL_VALIDATED, EMAIL_VALIDATION_TOKEN, EMAIL_VALIDATION_TOKEN_EXPIRY, COMPANY_ID
+            ) VALUES (
+                ${firstName}, ${lastName}, ${email}, ${passwordHash}, GETDATE(), GETDATE(),
+                'P', ${false}, ${hashedCode}, ${tokenExpiry}, ${companyId}
+            )
+        `;
+        
+        // Get the newly created user ID
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        `;
+        const userId = users[0].USER_ID;
+        console.log(`✅ User created with ID: ${userId}`);
+        
+        // Create company_info entry
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, CREATED_AT, UPDATED_AT)
+            VALUES (${userId}, ${companyId}, GETDATE(), GETDATE())
+        `;
+        
+        // Find Admin role or create it
+        let adminRoles = await prisma.$queryRaw`
+            SELECT ROLE_ID FROM GUARDIAN.ROLES 
+            WHERE NAME = 'Admin'
+        `;
+        
+        let adminRoleId;
+        if (adminRoles.length > 0) {
+            adminRoleId = adminRoles[0].ROLE_ID;
+            console.log(`✅ Found existing Admin role (ID: ${adminRoleId})`);
+        } else {
+            // Create Admin role
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.ROLES (NAME, DISPLAY_NAME, DESCRIPTION, STATUS, CREATE_DATE, UPDATE_DATE)
+                VALUES ('Admin', 'Administrator', 'Default admin role', 'A', GETDATE(), GETDATE())
+            `;
+            
+            // Get the newly created role ID
+            const newAdminRoles = await prisma.$queryRaw`
+                SELECT ROLE_ID FROM GUARDIAN.ROLES 
+                WHERE NAME = 'Admin'
+            `;
+            adminRoleId = newAdminRoles[0].ROLE_ID;
+            console.log(`✅ Created new Admin role (ID: ${adminRoleId})`);
+        }
+        
+        // Assign Admin role to user
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, ${adminRoleId}, GETDATE(), GETDATE())
+        `;
+        
+        console.log(`✅ User created in database with ID: ${userId}, verification code: ${verificationCode}`);
+        
+        // For production, also store the code in memory temporarily for backward compatibility
         global.verificationCodes = global.verificationCodes || {};
         global.verificationCodes[email] = {
             code: verificationCode,
@@ -1466,12 +2007,10 @@ app.post('/api/register', async (req, res) => {
             verified: false
         };
 
-        console.log(`✅ Verification code generated for ${email}: ${verificationCode}`);
-
         // Send actual email with verification code using Resend
         const emailSent = await sendVerificationEmail(email, verificationCode);
         if (!emailSent) {
-            console.log(`⚠️ Failed to send email to ${email}, but continuing (code available in dev mode)`);
+            console.log(`⚠️ Failed to send email to ${email}, but user created in database (code available in dev mode)`);
         }
 
         res.json({
@@ -1525,8 +2064,17 @@ app.post('/api/verify-email', async (req, res) => {
             });
         }
 
-        // Mark as verified
+        // Mark as verified in memory
         storedData.verified = true;
+        
+        // Update database to mark email as validated
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET EMAIL_VALIDATED = 1 
+            WHERE EMAIL = ${email}
+        `;
+        
+        console.log(`✅ Database updated: EMAIL_VALIDATED set to 1 for ${email}`);
         console.log(`✅ Email verified successfully for: ${email}`);
 
         res.json({
@@ -1546,16 +2094,20 @@ app.post('/api/verify-email', async (req, res) => {
 // Complete registration after email verification
 app.post('/api/complete-registration', async (req, res) => {
     try {
-        const { email, password, fullName, workspaceName } = req.body;
+        const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
         console.log(`👤 Completing registration for: ${email}`);
+        console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
 
-        if (!email || !password || !fullName) {
+        // Validate required fields
+        console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
+        if (!email || !password || !fullName || !workspaceName) {
+            console.log(`❌ Missing required fields for complete-registration`);
             return res.status(400).json({
-                error: 'Email, password, and full name are required'
+                error: 'Email, password, full name, and workspace name are required'
             });
         }
 
-        // Check if email was verified
+        // Check if email was verified (memory-based for production)
         global.verificationCodes = global.verificationCodes || {};
         const storedData = global.verificationCodes[email];
 
@@ -1565,34 +2117,156 @@ app.post('/api/complete-registration', async (req, res) => {
             });
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 12);
+        // Check if user exists in database
+        console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
+        let existingUser;
+        try {
+            const users = await prisma.$queryRaw`
+                SELECT USER_ID, EMAIL, PASSWORD_HASH, EMAIL_VALIDATED, COMPANY_ID
+                FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            `;
+            existingUser = users.length > 0 ? users[0] : null;
+            console.log(`✅ Database query successful for user lookup`);
+        } catch (dbError) {
+            console.error(`❌ Database error during user lookup:`, dbError);
+            return res.status(500).json({
+                error: 'Database connection error',
+                details: dbError.message
+            });
+        }
 
-        // Split full name
+        console.log(`🔍 Checking user existence for: ${email}`);
+        if (!existingUser) {
+            console.log(`❌ No user found for email: ${email}`);
+            return res.status(400).json({
+                error: 'User not found. Please register first.'
+            });
+        }
+
+        console.log(`✅ User found - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}`);
+        console.log(`📧 Email validated: ${existingUser.EMAIL_VALIDATED}`);
+        console.log(`🔐 Has password: ${!!existingUser.PASSWORD_HASH}`);
+
+        if (!existingUser.EMAIL_VALIDATED) {
+            console.log(`❌ Email not validated for: ${email}`);
+            return res.status(400).json({
+                error: 'Email must be verified before completing registration'
+            });
+        }
+
+        console.log(`✅ Email validation check passed`);
+
+        // Allow profile updates even if user already has a password
+        if (existingUser.PASSWORD_HASH && existingUser.PASSWORD_HASH !== '') {
+            console.log(`ℹ️ User already has password, will update profile information for: ${email}`);
+        }
+
+        console.log(`✅ Password check passed - ready to update user`);
+        
+        // Hash password
+        console.log(`🔐 Starting password hashing process`);
+        const hashedPassword = await bcrypt.hash(password, 12);
+        console.log(`✅ Password hashed successfully`);
+
+        // Split full name into first and last name
+        console.log(`📝 Processing name: ${fullName}`);
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(' ') || '';
+        console.log(`✅ Name parsed - First: ${firstName}, Last: ${lastName}`);
 
-        // Create user
-        const result = await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USERS (
-                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
-                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
-            )
-            VALUES (
-                ${email}, ${hashedPassword}, ${firstName}, ${lastName},
-                'A', 1, GETDATE(), GETDATE()
-            )
+        // Update the existing user with password and name
+        console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET PASSWORD_HASH = ${hashedPassword}, 
+                FIRST_NAME = ${firstName}, 
+                LAST_NAME = ${lastName}, 
+                STATUS = 'A', 
+                UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${existingUser.USER_ID}
         `;
+        console.log(`✅ User updated successfully in database`);
+
+        const userId = existingUser.USER_ID;
+
+        // Check if user already has roles, if not assign Admin role
+        const existingRoles = await prisma.$queryRaw`
+            SELECT USER_ROLE_ID FROM GUARDIAN.USER_ROLES 
+            WHERE USER_ID = ${userId}
+        `;
+
+        if (existingRoles.length === 0) {
+            // Assign Admin role if no roles exist
+            const adminRoles = await prisma.$queryRaw`
+                SELECT ROLE_ID FROM GUARDIAN.ROLES 
+                WHERE NAME = 'Admin'
+            `;
+            
+            if (adminRoles.length > 0) {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+                    VALUES (${userId}, ${adminRoles[0].ROLE_ID}, GETDATE(), GETDATE())
+                `;
+                console.log(`✅ Admin role assigned to user ${userId}`);
+            }
+        }
+
+        // Update company info if provided
+        console.log(`📝 Updating company info for user ${userId}`);
+        if (role || teamSize || companySize || workspaceName) {
+            const existingCompanyInfo = await prisma.$queryRaw`
+                SELECT COMPANY_INFO_ID FROM GUARDIAN.COMPANY_INFO 
+                WHERE USER_ID = ${userId}
+            `;
+
+            if (existingCompanyInfo.length > 0) {
+                console.log(`✅ Found existing company info record with ID: ${existingCompanyInfo[0].COMPANY_INFO_ID}`);
+                // Update existing record using the unique COMPANY_INFO_ID - single efficient query
+                const companyInfoId = existingCompanyInfo[0].COMPANY_INFO_ID;
+                
+                // Log values being saved
+                console.log(`📝 Updating company info with values:`, {
+                    companyInfoId,
+                    workspaceName: workspaceName || 'NULL',
+                    role: role || 'NULL',
+                    teamSize: teamSize || 'NULL',
+                    companySize: companySize || 'NULL'
+                });
+                
+                // Single UPDATE query for all fields
+                const updateResult = await prisma.$executeRaw`
+                    UPDATE GUARDIAN.COMPANY_INFO 
+                    SET WORKSPACE_NAME = ${workspaceName || null}, 
+                        ROLE = ${role || null}, 
+                        TEAM_SIZE = ${teamSize || null}, 
+                        COMPANY_SIZE = ${companySize || null}, 
+                        UPDATED_AT = GETDATE()
+                    WHERE COMPANY_INFO_ID = ${companyInfoId}
+                `;
+                
+                console.log(`✅ Company info updated successfully - Rows affected: ${updateResult}`);
+            } else {
+                console.log(`❌ No existing company info found for user ${userId}`);
+            }
+        }
 
         // Clean up verification code
         delete global.verificationCodes[email];
 
-        console.log(`✅ Registration completed successfully for: ${email}`);
+        console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
 
         res.json({
             success: true,
-            message: 'Registration completed successfully'
+            message: 'Registration completed successfully',
+            user: {
+                id: userId,
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                companyId: existingUser.COMPANY_ID
+            }
         });
 
     } catch (error) {
