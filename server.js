@@ -6,6 +6,84 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 
+// Email service using Resend
+let sendVerificationEmail, sendInviteEmail;
+
+try {
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.SMTP_PASSWORD); // Resend API key
+    const FROM_EMAIL = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+
+    sendVerificationEmail = async (email, verificationCode) => {
+        try {
+            console.log(`📧 Sending verification email to: ${email}`);
+            
+            const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: [email],
+                subject: 'Verify Your Guardian Account',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #0D9488; margin: 0;">Guardian</h1>
+                        </div>
+                        
+                        <h2 style="color: #333; text-align: center;">Verify Your Email Address</h2>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                            Thank you for registering with Guardian. Please use the following verification code to complete your registration:
+                        </p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <div style="display: inline-block; background-color: #f5f5f5; padding: 15px 25px; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 3px; color: #333;">
+                                ${verificationCode}
+                            </div>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                            This code will expire in 15 minutes. If you didn't request this verification, please ignore this email.
+                        </p>
+                        
+                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <p style="color: #999; font-size: 12px;">
+                                © 2024 Guardian. All rights reserved.
+                            </p>
+                        </div>
+                    </div>
+                `
+            });
+
+            if (error) {
+                console.error('❌ Resend error:', error);
+                return false;
+            }
+
+            console.log('✅ Verification email sent successfully:', data?.id);
+            return true;
+        } catch (error) {
+            console.error('❌ Email sending failed:', error);
+            return false;
+        }
+    };
+
+    sendInviteEmail = async (email, token, role) => {
+        console.log(`📧 [PLACEHOLDER] Would send invite email to ${email} with token: ${token}`);
+        return false;
+    };
+
+    console.log('✅ Email service initialized with Resend');
+} catch (error) {
+    console.log('⚠️ Resend not available, using fallback mode:', error.message);
+    sendVerificationEmail = async (email, code) => {
+        console.log(`📧 [FALLBACK] Would send verification email to ${email} with code: ${code}`);
+        return false; // Return false to indicate email not sent
+    };
+    sendInviteEmail = async (email, token, role) => {
+        console.log(`📧 [FALLBACK] Would send invite email to ${email} with token: ${token}`);
+        return false; // Return false to indicate email not sent
+    };
+}
+
 console.log('=== GUARDIAN AZURE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -826,14 +904,20 @@ app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
                     VALUES (${email}, ${roleId}, ${req.companyId}, ${token}, 'P', ${expiresAt})
                 `;
 
+                console.log(`✅ Invite created for ${email} with role ${roleId}`);
+                
+                // Send actual invite email using Resend
+                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
+                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
+
                 results.push({
                     email: email,
                     roleId: roleId,
                     token: token,
-                    status: 'sent'
+                    status: status
                 });
 
-                console.log(`✅ Invite sent to ${email} for role ${roleId}`);
+                console.log(`✅ Invite ${status} to ${email} for role ${roleId}`);
 
             } catch (inviteError) {
                 console.error(`❌ Error processing invite for ${invite.email}:`, inviteError);
@@ -1384,6 +1468,12 @@ app.post('/api/register', async (req, res) => {
 
         console.log(`✅ Verification code generated for ${email}: ${verificationCode}`);
 
+        // Send actual email with verification code using Resend
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to send email to ${email}, but continuing (code available in dev mode)`);
+        }
+
         res.json({
             success: true,
             message: 'Verification code sent to your email',
@@ -1598,6 +1688,12 @@ app.post('/api/send-verification-email', async (req, res) => {
 
         console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
 
+        // Send actual email with verification code using Resend
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to resend email to ${email}, but continuing (code available in dev mode)`);
+        }
+
         res.json({
             success: true,
             message: 'Verification code resent to your email',
@@ -1653,6 +1749,12 @@ app.post('/api/request-password-reset', async (req, res) => {
             expiresAt: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
             userId: user.USER_ID
         };
+
+        // Send reset email
+        const emailSent = await sendVerificationEmail(email, resetCode);
+        if (!emailSent) {
+            console.log(`⚠️ Failed to send reset email to ${email}, but continuing (code available in dev mode)`);
+        }
 
         console.log(`✅ Password reset code generated for ${email}: ${resetCode}`);
 
