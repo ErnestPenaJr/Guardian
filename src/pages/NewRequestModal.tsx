@@ -628,12 +628,42 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                   <label className="form-label">
                     {field.fieldName} {field.required && <span className="text-danger">*</span>}
                   </label>
-                   {field.fieldType === 'text' && (
+                   {/* Handle field types with special cases for ZIP code and state */}
+                   {(field.fieldType === 'text' || field.fieldType === 'zip_code' || field.fieldType === 'state' ||
+                     field.fieldType === 'first_name' || field.fieldType === 'last_name' || field.fieldType === 'city' ||
+                     field.fieldType === 'address_line_1' || field.fieldType === 'address_line_2') && (
                     <input 
                       type="text" 
                       className="form-control" 
-                      placeholder={`Enter ${field.fieldName}`}
-                      onChange={(e) => handleFieldValueChange(field.id, e.target.value)}
+                      placeholder={
+                        field.fieldType === 'zip_code' || field.fieldName?.toLowerCase().includes('zip')
+                          ? 'Enter ZIP code (e.g., 12345)'
+                          : field.fieldType === 'state' || field.fieldName?.toLowerCase() === 'state'
+                          ? 'Enter state (e.g., CA, NY, TX)'
+                          : `Enter ${field.fieldName}`
+                      }
+                      maxLength={
+                        field.fieldType === 'zip_code' || field.fieldName?.toLowerCase().includes('zip')
+                          ? 10  // ZIP+4 format
+                          : field.fieldType === 'state' || field.fieldName?.toLowerCase() === 'state'
+                          ? 2   // State abbreviation
+                          : undefined
+                      }
+                      pattern={
+                        field.fieldType === 'zip_code' || field.fieldName?.toLowerCase().includes('zip')
+                          ? '[0-9]{5}(-[0-9]{4})?'
+                          : undefined
+                      }
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        
+                        // Auto-uppercase state field
+                        if (field.fieldType === 'state' || field.fieldName?.toLowerCase() === 'state') {
+                          value = value.toUpperCase();
+                        }
+                        
+                        handleFieldValueChange(field.id, value);
+                      }}
                       required={field.required}
                     />
                   )}
@@ -654,7 +684,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                       required={field.required}
                     />
                   )}
-                  {field.fieldType === 'date' && (
+                  {(field.fieldType === 'date' || field.fieldType === 'dob') && (
                     <input 
                       type="date" 
                       className="form-control"

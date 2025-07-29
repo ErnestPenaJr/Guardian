@@ -11,12 +11,35 @@ const FormFieldPreview: React.FC<FormFieldPreviewProps> = ({ field }) => {
   const renderFieldPreview = (): JSX.Element => {
     switch (field.fieldType) {
       case 'text':
-        return <input type="text" className="form-control form-control-sm" placeholder={field.fieldName || 'Text input'} disabled />;
+      case 'zip_code':
+      case 'state':
+      case 'first_name':
+      case 'last_name':
+      case 'city':
+      case 'address_line_1':
+      case 'address_line_2':
+      case 'bank_name':
+        return (
+          <input 
+            type="text" 
+            className="form-control form-control-sm" 
+            placeholder={
+              field.fieldType === 'zip_code' ? 'ZIP code (e.g., 12345)' :
+              field.fieldType === 'state' ? 'State (e.g., CA)' :
+              field.fieldName || 'Text input'
+            } 
+            disabled 
+          />
+        );
       case 'textarea':
         return <textarea className="form-control form-control-sm" placeholder={field.fieldName || 'Text area'} disabled rows={2}></textarea>;
       case 'number':
+      case 'account_number':
+      case 'routing_number':
+      case 'phone':
         return <input type="number" className="form-control form-control-sm" placeholder={field.fieldName || 'Number input'} disabled />;
       case 'date':
+      case 'dob':
         return <input type="date" className="form-control form-control-sm" disabled />;
       case 'select':
         return (

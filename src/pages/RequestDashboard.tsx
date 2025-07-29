@@ -883,8 +883,10 @@ const RequestDashboard: React.FC = () => {
                                   {(field.IS_REQUIRED || field.required) && <span className="text-danger ms-1">*</span>}
                                 </label>
                                 
-                                {field.FIELD_TYPE_ID === 3 || field.fieldTypeId === 3 ? (
-                                  // Date field
+                                {/* Handle field types based on field name and type ID */}
+                                {(field.FIELD_NAME && (field.FIELD_NAME.toLowerCase().includes('dob') || field.FIELD_NAME.toLowerCase().includes('date'))) || 
+                                 (field.FIELD_TYPE_ID === 3 || field.fieldTypeId === 3) && !(field.FIELD_NAME && field.FIELD_NAME.toLowerCase().includes('zip')) ? (
+                                  // Date field (but not ZIP code even if wrongly marked as date type)
                                   <input
                                     type="date"
                                     className="form-control form-control-sm"
@@ -909,16 +911,43 @@ const RequestDashboard: React.FC = () => {
                                     required={field.IS_REQUIRED || field.required}
                                   />
                                 ) : (
-                                  // Default text input
+                                  // Default text input with special handling for ZIP codes and state fields
                                   <input
                                     type="text"
                                     className="form-control form-control-sm"
                                     value={fulfillmentFormValues[field.FIELD_ID || field.dbFieldId || ''] || ''}
-                                    onChange={(e) => setFulfillmentFormValues(prev => ({
-                                      ...prev,
-                                      [field.FIELD_ID || field.dbFieldId || '']: e.target.value
-                                    }))}
-                                    placeholder={`Enter ${(field.FIELD_NAME || field.fieldName || '').toLowerCase()}...`}
+                                    onChange={(e) => {
+                                      let value = e.target.value;
+                                      
+                                      // Auto-uppercase state field
+                                      if (field.FIELD_NAME && field.FIELD_NAME.toLowerCase() === 'state') {
+                                        value = value.toUpperCase();
+                                      }
+                                      
+                                      setFulfillmentFormValues(prev => ({
+                                        ...prev,
+                                        [field.FIELD_ID || field.dbFieldId || '']: value
+                                      }));
+                                    }}
+                                    placeholder={
+                                      field.FIELD_NAME && field.FIELD_NAME.toLowerCase().includes('zip') 
+                                        ? 'Enter ZIP code (e.g., 12345)' 
+                                        : field.FIELD_NAME && field.FIELD_NAME.toLowerCase() === 'state'
+                                        ? 'Enter state (e.g., CA, NY, TX)'
+                                        : `Enter ${(field.FIELD_NAME || field.fieldName || '').toLowerCase()}...`
+                                    }
+                                    maxLength={
+                                      field.FIELD_NAME && field.FIELD_NAME.toLowerCase().includes('zip') 
+                                        ? 10 // Allow for ZIP+4 format
+                                        : field.FIELD_NAME && field.FIELD_NAME.toLowerCase() === 'state'
+                                        ? 2  // State abbreviation
+                                        : undefined
+                                    }
+                                    pattern={
+                                      field.FIELD_NAME && field.FIELD_NAME.toLowerCase().includes('zip') 
+                                        ? '[0-9]{5}(-[0-9]{4})?' // ZIP or ZIP+4 format
+                                        : undefined
+                                    }
                                     required={field.IS_REQUIRED || field.required}
                                   />
                                 )}
