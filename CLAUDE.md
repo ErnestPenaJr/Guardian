@@ -80,6 +80,8 @@ Both environments support the same complete set of API endpoints:
 - `GET /api/forms` - Get forms (company-filtered)
 - `GET /api/forms/:id` - Get specific form with fields
 - `GET /api/fields` - Get fields (company-filtered)
+- `POST /api/fields` - Create new field with duplicate name checking (Added 2025-07-29)
+- `PUT /api/fields/:fieldId` - Update field (Added 2025-07-29)
 - `GET /api/field-types` - Get field types
 - `GET /api/roles` - Get roles
 

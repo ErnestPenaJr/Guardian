@@ -509,8 +509,13 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
 
       if (error.response && error.response.status === 401) {
         toast.error('Your session has expired. Please log in again.');
+      } else if (error.response && error.response.status === 409) {
+        // Handle duplicate field name error
+        const errorMessage = error.response.data?.message || `Field name "${formData.FIELD_NAME}" already exists. Please choose a different name.`;
+        toast.error(errorMessage);
       } else {
-        toast.error('Failed to save field. Please try again.');
+        const errorMessage = error.response?.data?.message || 'Failed to save field. Please try again.';
+        toast.error(errorMessage);
       }
     } finally {
       setIsLoading(false);

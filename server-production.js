@@ -71,6 +71,66 @@ try {
         return false;
     };
 
+    sendAssignmentEmail = async (email, userName, requestName, trackingId, assignedBy) => {
+        try {
+            console.log(`📧 Sending assignment email to: ${email}`);
+            
+            const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: [email],
+                subject: `New Request Assignment - ${requestName}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #0D9488; margin: 0;">Guardian</h1>
+                        </div>
+                        
+                        <h2 style="color: #333; text-align: center;">New Request Assignment</h2>
+                        
+                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 0; font-size: 16px; color: #333;">
+                                Hello ${userName},
+                            </p>
+                            <p style="margin: 15px 0 0 0; font-size: 16px; color: #333;">
+                                You have been assigned to a new request:
+                            </p>
+                        </div>
+
+                        <div style="background-color: #e0f2f1; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0D9488;">
+                            <h3 style="margin: 0 0 10px 0; color: #0D9488;">Request Details</h3>
+                            <p style="margin: 5px 0; color: #333;"><strong>Request Name:</strong> ${requestName}</p>
+                            <p style="margin: 5px 0; color: #333;"><strong>Tracking ID:</strong> ${trackingId}</p>
+                            <p style="margin: 5px 0; color: #333;"><strong>Assigned By:</strong> ${assignedBy}</p>
+                        </div>
+
+                        <div style="text-align: center; margin: 30px 0;">
+                            <p style="margin: 0; color: #666; font-size: 14px;">
+                                Please log in to your Guardian account to view and work on this request.
+                            </p>
+                        </div>
+
+                        <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+                            <p style="margin: 0; color: #999; font-size: 12px;">
+                                This is an automated message from Guardian. Please do not reply to this email.
+                            </p>
+                        </div>
+                    </div>
+                `
+            });
+
+            if (error) {
+                console.error('❌ Resend error:', error);
+                return false;
+            }
+
+            console.log(`✅ Assignment email sent successfully to ${email}:`, data?.id);
+            return true;
+        } catch (error) {
+            console.error('❌ Email sending failed:', error);
+            return false;
+        }
+    };
+
     console.log('✅ Email service initialized with Resend');
 } catch (error) {
     console.log('⚠️ Resend not available, using fallback mode:', error.message);
@@ -80,6 +140,10 @@ try {
     };
     sendInviteEmail = async (email, token, role) => {
         console.log(`📧 [FALLBACK] Would send invite email to ${email} with token: ${token}`);
+        return false; // Return false to indicate email not sent
+    };
+    sendAssignmentEmail = async (email, userName, requestName, trackingId, assignedBy) => {
+        console.log(`📧 [FALLBACK] Would send assignment email to ${email} for request: ${requestName} (${trackingId})`);
         return false; // Return false to indicate email not sent
     };
 }
@@ -845,8 +909,13 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                     WHERE REQUEST_ID = ${requestId}
                 `;
 
+                console.log(`🔍 Request details query returned ${requestDetails.length} results`);
                 if (requestDetails.length > 0) {
                     const request = requestDetails[0];
+                    console.log(`📋 Request details:`, {
+                        REQUEST_NAME: request.REQUEST_NAME,
+                        TRACKINGID: request.TRACKINGID
+                    });
                     await prisma.$executeRaw`
                         INSERT INTO GUARDIAN.NOTIFICATIONS (
                             USER_ID, 
@@ -869,6 +938,53 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                         )
                     `;
                     console.log(`🔔 Notification created for user ${assignedUserId} about request assignment`);
+                    
+                    // Send email notification
+                    console.log(`🔄 Starting email notification process for user ${assignedUserId}`);
+                    try {
+                        // Get assigned user's email and name
+                        const assignedUser = await prisma.$queryRaw`
+                            SELECT EMAIL, FIRST_NAME, LAST_NAME 
+                            FROM GUARDIAN.USERS 
+                            WHERE USER_ID = ${assignedUserId}
+                        `;
+                        
+                        // Get assigning user's name  
+                        const assigningUser = await prisma.$queryRaw`
+                            SELECT FIRST_NAME, LAST_NAME 
+                            FROM GUARDIAN.USERS 
+                            WHERE USER_ID = ${req.userId}
+                        `;
+                        
+                        console.log(`👤 Assigned user query returned ${assignedUser.length} results`);
+                        console.log(`👤 Assigning user query returned ${assigningUser.length} results`);
+                        
+                        if (assignedUser.length > 0 && assigningUser.length > 0) {
+                            const assigned = assignedUser[0];
+                            const assigner = assigningUser[0];
+                            const assignedUserName = `${assigned.FIRST_NAME} ${assigned.LAST_NAME}`;
+                            const assignedByName = `${assigner.FIRST_NAME} ${assigner.LAST_NAME}`;
+                            
+                            console.log(`📧 Sending assignment email to ${assigned.EMAIL} for request: ${request.REQUEST_NAME}`);
+                            
+                            const emailSent = await sendAssignmentEmail(
+                                assigned.EMAIL,
+                                assignedUserName,
+                                request.REQUEST_NAME,
+                                request.TRACKINGID,
+                                assignedByName
+                            );
+                            
+                            if (emailSent) {
+                                console.log(`✅ Assignment email sent successfully to ${assigned.EMAIL}`);
+                            } else {
+                                console.log(`⚠️ Assignment email could not be sent to ${assigned.EMAIL} (fallback mode or error)`);
+                            }
+                        }
+                    } catch (emailError) {
+                        console.error('⚠️ Failed to send assignment email:', emailError);
+                        // Don't fail the assignment if email sending fails
+                    }
                 }
             } catch (notificationError) {
                 console.error('⚠️ Failed to create notification:', notificationError);
@@ -1525,7 +1641,7 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE f.ORGANIZATION_ID = ${req.companyId}
+            WHERE (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
             ORDER BY f.SORT_ORDER, f.FIELD_NAME
         `;
 
@@ -1559,6 +1675,261 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
         console.error('❌ Error fetching fields:', error);
         res.status(500).json({
             error: 'Failed to fetch fields',
+            message: error.message
+        });
+    }
+});
+
+// Update a field
+app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const fieldId = parseInt(req.params.fieldId);
+        console.log(`📝 Updating field ${fieldId} for company: ${req.companyId}`);
+        
+        const {
+            FIELD_NAME,
+            FIELD_TYPE_ID,
+            DISPLAY_FORMAT,
+            HAS_LOOKUP,
+            IS_PUBLIC,
+            IS_ACTIVE,
+            IS_REQUIRED,
+            IS_SENSITIVE,
+            CAN_SELECT_MULIPLE,
+            SORT_ORDER
+        } = req.body;
+
+        if (!fieldId || isNaN(fieldId)) {
+            return res.status(400).json({
+                error: 'Valid field ID is required'
+            });
+        }
+
+        // Verify field exists and belongs to user's company (or is global)
+        const existingField = await prisma.$queryRaw`
+            SELECT FIELD_ID FROM GUARDIAN.FIELDS 
+            WHERE FIELD_ID = ${fieldId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        `;
+
+        if (!existingField.length) {
+            return res.status(404).json({
+                error: 'Field not found or access denied'
+            });
+        }
+
+        // Update the field
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.FIELDS 
+            SET 
+                FIELD_NAME = ${FIELD_NAME},
+                FIELD_TYPE_ID = ${FIELD_TYPE_ID || null},
+                DISPLAY_FORMAT = ${DISPLAY_FORMAT || null},
+                HAS_LOOKUP = ${HAS_LOOKUP || false},
+                IS_PUBLIC = ${IS_PUBLIC !== undefined ? IS_PUBLIC : true},
+                IS_ACTIVE = ${IS_ACTIVE !== undefined ? IS_ACTIVE : true},
+                IS_REQUIRED = ${IS_REQUIRED || false},
+                IS_SENSITIVE = ${IS_SENSITIVE || false},
+                CAN_SELECT_MULIPLE = ${CAN_SELECT_MULIPLE || false},
+                SORT_ORDER = ${SORT_ORDER || 0},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE FIELD_ID = ${fieldId}
+        `;
+
+        console.log(`✅ Field ${fieldId} updated successfully`);
+
+        // Return the updated field
+        const updatedField = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
+                   ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE f.FIELD_ID = ${fieldId}
+        `;
+
+        if (updatedField.length > 0) {
+            const field = updatedField[0];
+            const formattedField = {
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.IS_REQUIRED,
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID,
+                SORT_ORDER: field.SORT_ORDER,
+                FIELD_TYPE: {
+                    FIELD_TYPE_DESC: field.FIELD_TYPE_DESC,
+                    FIELD_TYPE_ID: field.FIELD_TYPE_ID
+                }
+            };
+
+            res.json({
+                success: true,
+                message: 'Field updated successfully',
+                data: formattedField
+            });
+        } else {
+            res.status(404).json({
+                error: 'Field not found after update'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Error updating field:', error);
+        res.status(500).json({
+            error: 'Failed to update field',
+            message: error.message
+        });
+    }
+});
+
+// Create a new field
+app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📝 Creating new field for company: ${req.companyId}`);
+        
+        const {
+            FIELD_NAME,
+            FIELD_TYPE_ID,
+            DISPLAY_FORMAT,
+            HAS_LOOKUP,
+            IS_PUBLIC,
+            IS_ACTIVE,
+            IS_REQUIRED,
+            IS_SENSITIVE,
+            CAN_SELECT_MULIPLE,
+            SORT_ORDER
+        } = req.body;
+
+        // Validation
+        if (!FIELD_NAME || !FIELD_NAME.trim()) {
+            return res.status(400).json({
+                error: 'Field name is required'
+            });
+        }
+
+        if (!FIELD_TYPE_ID) {
+            return res.status(400).json({
+                error: 'Field type is required'
+            });
+        }
+
+        // Check for duplicate field names within the same company/organization
+        const existingField = await prisma.$queryRaw`
+            SELECT FIELD_ID, FIELD_NAME FROM GUARDIAN.FIELDS 
+            WHERE LOWER(TRIM(FIELD_NAME)) = LOWER(TRIM(${FIELD_NAME}))
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            AND IS_DELETED = 0
+        `;
+
+        if (existingField.length > 0) {
+            return res.status(409).json({
+                error: 'Field name already exists',
+                message: `A field with the name "${FIELD_NAME}" already exists. Please choose a different name.`,
+                existingField: existingField[0].FIELD_NAME
+            });
+        }
+
+        // Create the new field
+        const currentDate = new Date();
+        
+        // Insert the field and get the ID
+        const insertResult = await prisma.$queryRaw`
+            DECLARE @InsertedId INT;
+            
+            INSERT INTO GUARDIAN.FIELDS (
+                FIELD_NAME, FIELD_TYPE_ID, DISPLAY_FORMAT, HAS_LOOKUP,
+                IS_PUBLIC, IS_ACTIVE, IS_REQUIRED, IS_SENSITIVE, 
+                CAN_SELECT_MULIPLE, SORT_ORDER, ORGANIZATION_ID,
+                IS_DELETED, CREATE_DATE, UPDATE_DATE, 
+                CREATE_USER_ID, UPDATE_USER_ID
+            )
+            VALUES (
+                ${FIELD_NAME.trim()},
+                ${FIELD_TYPE_ID},
+                ${DISPLAY_FORMAT || null},
+                ${HAS_LOOKUP || false},
+                ${IS_PUBLIC !== undefined ? IS_PUBLIC : true},
+                ${IS_ACTIVE !== undefined ? IS_ACTIVE : true},
+                ${IS_REQUIRED || false},
+                ${IS_SENSITIVE || false},
+                ${CAN_SELECT_MULIPLE || false},
+                ${SORT_ORDER || 0},
+                ${req.companyId},
+                0,
+                ${currentDate},
+                ${currentDate},
+                ${req.userId},
+                ${req.userId}
+            );
+            
+            SET @InsertedId = SCOPE_IDENTITY();
+            SELECT @InsertedId AS FIELD_ID;
+        `;
+        
+        const insertedId = insertResult[0]?.FIELD_ID;
+        
+        if (!insertedId) {
+            return res.status(500).json({
+                error: 'Failed to create field - no ID returned'
+            });
+        }
+
+        console.log(`✅ Field created successfully with ID: ${insertedId}`);
+
+        // Get the newly created field with field type information
+        const newField = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
+                   ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE f.FIELD_ID = ${insertedId}
+        `;
+
+        if (newField.length > 0) {
+            const field = newField[0];
+            const formattedField = {
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.IS_REQUIRED,
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID,
+                SORT_ORDER: field.SORT_ORDER,
+                FIELD_TYPE: {
+                    FIELD_TYPE_DESC: field.FIELD_TYPE_DESC,
+                    FIELD_TYPE_ID: field.FIELD_TYPE_ID
+                }
+            };
+
+            res.status(201).json(formattedField);
+        } else {
+            res.status(500).json({
+                error: 'Field created but could not be retrieved'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Error creating field:', error);
+        res.status(500).json({
+            error: 'Failed to create field',
             message: error.message
         });
     }

@@ -8,6 +8,7 @@ import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
 import NewRequestModal from '../pages/NewRequestModal';
 import AdminFormsGroupsModal from '../components/AdminFormsGroupsModal';
 import AdminFields from '../pages/AdminFields';
+import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import formService from '../services/formService';
 import { toast } from 'react-toastify';
 
@@ -24,6 +25,8 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [formsGroupsModalOpen, setFormsGroupsModalOpen] = useState(false);
   const [adminFieldsModalOpen, setAdminFieldsModalOpen] = useState(false);
+  const [workflowManagementModalOpen, setWorkflowManagementModalOpen] = useState(false);
+  const [editingFormData, setEditingFormData] = useState<any>(null);
   
   // Handle enhanced form field changes
   const handleEnhancedFormFieldsChange = (updatedFields: any) => {
@@ -62,6 +65,41 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
     }
   };
 
+  // Handle workflow template editing
+  const handleEditTemplate = async (formId: number, formData: any) => {
+    console.log('Editing workflow template:', formId, formData);
+    
+    try {
+      // Fetch the complete form data including fields
+      const fullFormData = await formService.getFormById(formId);
+      console.log('Fetched form data for editing:', fullFormData);
+      
+      // Convert the database fields to the format expected by NewRequestModal
+      const convertedFields = formService.convertDbFieldsToFormFields(fullFormData.fields);
+      
+      // Set the editing form data
+      const editingData = {
+        name: fullFormData.form.FORM_NAME,
+        description: fullFormData.form.FORM_DESCRIPTION || '',
+        formType: 'custom', // Default to custom
+        formFields: convertedFields
+      };
+      
+      setEditingFormData(editingData);
+      setNewRequestModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching form data for editing:', error);
+      toast.error('Failed to load form data for editing');
+    }
+  };
+
+  // Handle creating new workflow template
+  const handleCreateNewTemplate = () => {
+    console.log('Creating new workflow template');
+    setEditingFormData(null); // Clear any existing editing data
+    setNewRequestModalOpen(true);
+  };
+
   if (loading) {
     return <div>Loading...</div>; 
   }
@@ -78,17 +116,14 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
       <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Workflow Card */}
-        <a
-          href="#"
-          className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition"
-          onClick={e => {
-            e.preventDefault();
-            // Add workflow navigation or action here
-            // navigate('/workflow-manager');
-          }}
-        >
+        <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-blue-50 transition">
           <FaProjectDiagram className="h-12 w-12 text-secondary mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Workflow</h3>
+          <h3 
+            className="text-lg font-semibold mb-2 cursor-pointer hover:text-secondary transition-colors"
+            onClick={() => setNewRequestModalOpen(true)}
+          >
+            Workflow
+          </h3>
           <ul className="text-gray-600">
             <li 
               className="cursor-pointer hover:text-secondary transition-colors"
@@ -98,6 +133,15 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               }}
             >
               Workflow templates
+            </li>
+            <li 
+              className="cursor-pointer hover:text-secondary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setWorkflowManagementModalOpen(true);
+              }}
+            >
+              Manage Workflows
             </li>
             <li 
               data-component-name="AdminDashboard"
@@ -120,7 +164,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
               Manage Field Groups
             </li>
           </ul>
-        </a>
+        </div>
 
         {/* Users Card - triggers callback to show user management - visible to admin (role 1) and JAFAR (role 6) */}
         {((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') && (
@@ -200,8 +244,12 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
       {/* New Request Modal */}
       <NewRequestModal
         isOpen={newRequestModalOpen}
-        onClose={() => setNewRequestModalOpen(false)}
+        onClose={() => {
+          setNewRequestModalOpen(false);
+          setEditingFormData(null); // Clear editing data when modal closes
+        }}
         onSave={handleSaveForm}
+        initialFormData={editingFormData}
       />
       
       {/* Forms Groups Modal */}
@@ -222,6 +270,14 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
           <AdminFields isModal={true} />
         </div>
       </Modal>
+      
+      {/* Workflow Management Modal */}
+      <WorkflowManagementModal
+        isOpen={workflowManagementModalOpen}
+        onClose={() => setWorkflowManagementModalOpen(false)}
+        onEditTemplate={handleEditTemplate}
+        onCreateNew={handleCreateNewTemplate}
+      />
     </div>
   );
 };
