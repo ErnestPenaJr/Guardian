@@ -55,10 +55,13 @@ const getAuthenticatedUserCompany = (req, res, next) => {
 ## Role-Based Access Control
 
 **User Roles**:
-- `ADMIN` - Full system access within company
-- `MANAGER` - Request management and user oversight within company
-- `PROCESSOR` - Request processing and completion within company
-- `EXTERNAL_USER` - Limited request creation within company
+| JAFAR | Full system access with all permissions. Can configure items for the entire system. |
+| ADMIN | Full system access with all permissions. Can configure items for the company. |
+| MANAGER | Team oversight permissions for their group/organization. Can manage workflows within their group. |
+| PROCESSOR | Process workflows within their group/organization. |
+| GENERAL USER | Can submit and receive workflows within their group/organization. |
+| EXTERNAL USER | Basic user with read-only permissions. |
+
 
 **Permission Enforcement Pattern**:
 ```javascript
