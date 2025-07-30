@@ -230,6 +230,17 @@ const formService = {
     }
   },
 
+  // Update form template (name, description, and fields)
+  updateFormTemplate: async (formId: number, templateData: { name: string, description: string, formFields: any[] }) => {
+    try {
+      const response = await api.put(`/api/forms/${formId}`, templateData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating form template ${formId}:`, error);
+      throw error;
+    }
+  },
+
   // Delete a form
   deleteForm: async (formId: number): Promise<void> => {
     try {

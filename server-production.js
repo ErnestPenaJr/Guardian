@@ -3399,15 +3399,53 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get the form details (check both company-specific and global forms)
-        const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        // Get user's roles to check for admin access
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
         `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
+        
+        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
+
+        // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
+        let forms;
+        
+        if (isAdmin) {
+            // Admin users can access both company forms and global forms
+            forms = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            `;
+        } else {
+            // Regular users can only access their company's forms
+            forms = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND ORGANIZATION_ID = ${req.companyId}
+            `;
+        }
 
         if (!forms.length) {
+            console.log(`❌ Form ${formId} not found for company ${req.companyId}. Checking if form exists at all...`);
+            
+            // Check if form exists but belongs to different company
+            const anyForm = await prisma.$queryRaw`
+                SELECT FORM_ID, ORGANIZATION_ID FROM GUARDIAN.FORMS WHERE FORM_ID = ${formId}
+            `;
+            
+            if (anyForm.length > 0) {
+                console.log(`📋 Form ${formId} exists but belongs to company ${anyForm[0].ORGANIZATION_ID}, user is in company ${req.companyId}`);
+            } else {
+                console.log(`📋 Form ${formId} does not exist in database at all`);
+            }
+            
             return res.status(404).json({
                 error: 'Form not found or access denied'
             });

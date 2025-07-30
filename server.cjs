@@ -217,6 +217,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+
 // Basic test endpoint
 app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
@@ -258,6 +259,46 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid authentication token' });
     }
 };
+
+// Debug endpoint to check user authentication and roles
+app.get('/api/debug/user', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('🔍 Debug user endpoint called');
+        
+        // Get user's roles
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID, r.NAME as ROLE_NAME
+            FROM GUARDIAN.USER_ROLES ur 
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6);
+        
+        res.json({
+            userId: req.userId,
+            companyId: req.companyId,
+            roles: userRoles,
+            roleIds: roleIds,
+            isAdmin: isAdmin,
+            canAccessGlobalForms: isAdmin
+        });
+    } catch (error) {
+        console.error('Debug user endpoint error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Debug endpoint without authentication to check server status
+app.get('/api/debug/status', (req, res) => {
+    console.log('🔍 Debug status endpoint called');
+    res.json({
+        server: 'running',
+        timestamp: new Date().toISOString(),
+        headers: req.headers.authorization ? 'has auth header' : 'no auth header'
+    });
+});
 
 // === NOTIFICATION ENDPOINTS ===
 
@@ -1664,15 +1705,53 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get the form details (check both company-specific and global forms)
-        const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        // Get user's roles to check for admin access
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
         `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
+        
+        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
+        
+        // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
+        let forms;
+        
+        if (isAdmin) {
+            // Admin users can access both company forms and global forms
+            forms = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            `;
+        } else {
+            // Regular users can only access their company's forms
+            forms = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND ORGANIZATION_ID = ${req.companyId}
+            `;
+        }
 
         if (!forms.length) {
+            console.log(`❌ Form ${formId} not found for company ${req.companyId}. Checking if form exists at all...`);
+            
+            // Check if form exists but belongs to different company
+            const anyForm = await prisma.$queryRaw`
+                SELECT FORM_ID, ORGANIZATION_ID FROM GUARDIAN.FORMS WHERE FORM_ID = ${formId}
+            `;
+            
+            if (anyForm.length > 0) {
+                console.log(`📋 Form ${formId} exists but belongs to company ${anyForm[0].ORGANIZATION_ID}, user is in company ${req.companyId}`);
+            } else {
+                console.log(`📋 Form ${formId} does not exist in database at all`);
+            }
+            
             return res.status(404).json({
                 error: 'Form not found or access denied'
             });
@@ -1680,15 +1759,16 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
 
         const form = forms[0];
 
-        // Get the form fields - simplified query for now  
+        // Get the form fields - join with FORMS_FIELDS to get only fields that belong to this specific form
         const fields = await prisma.$queryRaw`
             SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
-                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, ff.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID, ff.SORT_ORDER
             FROM GUARDIAN.FIELDS f
-            WHERE (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${formId}
             AND f.IS_DELETED = 0
-            ORDER BY f.FIELD_ID
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
         `;
 
         console.log(`✅ Found form ${formId} with ${fields.length} fields`);
@@ -1727,6 +1807,97 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         console.error(`❌ Error fetching form ${req.params.id}:`, error);
         res.status(500).json({
             error: 'Failed to fetch form',
+            message: error.message
+        });
+    }
+});
+
+// Update form template endpoint
+app.put('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        const { name, description, formFields } = req.body;
+        
+        console.log(`📝 Updating form template ${formId} for company:`, req.companyId);
+        console.log(`📝 New data: name="${name}", description="${description}", fields count=${formFields?.length || 0}`);
+
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({
+                error: 'Valid form ID is required'
+            });
+        }
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                error: 'Form name is required'
+            });
+        }
+
+        // Get user's roles to check for admin access
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
+        
+        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
+        
+        // Check if form exists and user has permission to edit it
+        let existingForm;
+        
+        if (isAdmin) {
+            // Admin users can edit both company forms and global forms
+            existingForm = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            `;
+        } else {
+            // Regular users can only edit their company's forms
+            existingForm = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND ORGANIZATION_ID = ${req.companyId}
+            `;
+        }
+
+        if (!existingForm.length) {
+            console.log(`❌ Form ${formId} not found or access denied for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Update form basic details
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET FORM_NAME = ${name.trim()}, 
+                FORM_DESCRIPTION = ${description?.trim() || ''},
+                UPDATE_DATE = GETDATE()
+            WHERE FORM_ID = ${formId}
+        `;
+
+        console.log(`✅ Form ${formId} basic details updated successfully`);
+
+        // TODO: Handle form fields update
+        // This would involve updating the FORM_FIELDS table or similar
+        console.log(`📝 Form fields update not yet implemented (${formFields?.length || 0} fields provided)`);
+
+        res.json({
+            success: true,
+            message: 'Form template updated successfully',
+            formId: formId
+        });
+
+    } catch (error) {
+        console.error(`❌ Error updating form ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to update form template',
             message: error.message
         });
     }

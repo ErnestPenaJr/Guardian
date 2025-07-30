@@ -555,8 +555,11 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
 
   // Filter fields based on search term
   useEffect(() => {
+    console.log('🔍 Filtering fields - searchTerm:', searchTerm, 'fields.length:', fields.length);
+    
     if (!searchTerm.trim()) {
       // If search term is empty, show all fields
+      console.log('📋 No search term, showing all fields:', fields.length);
       setFilteredFields(fields);
     } else {
       // Filter fields based on search term (case-insensitive)
@@ -564,6 +567,7 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
         field.FIELD_NAME?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (field.FIELD_TYPE?.FIELD_TYPE_DESC || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('🔍 Filtered fields:', filtered.length, 'from', fields.length);
       setFilteredFields(filtered);
     }
   }, [fields, searchTerm]);
@@ -615,23 +619,30 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
         // Log the structure of the first field to understand the data format
         console.log('Field structure example:', response.data[0]);
 
-        // Process fields to ensure FIELD_TYPE_ID is properly formatted
+        // Process fields to ensure FIELD_TYPE_ID is properly formatted and map IS_REQUIRED to REQUIRED
         const processedFields = response.data.map((field: any) => {
+          const processedField = { ...field };
+          
           // Check if FIELD_TYPE_ID is an object with FIELD_TYPE_ID property
           if (field.FIELD_TYPE && typeof field.FIELD_TYPE === 'object') {
             console.log('Field type is an object:', field.FIELD_TYPE);
-            return {
-              ...field,
-              FIELD_TYPE_ID: field.FIELD_TYPE.FIELD_TYPE_ID
-            };
+            processedField.FIELD_TYPE_ID = field.FIELD_TYPE.FIELD_TYPE_ID;
           }
-          return field;
+          
+          // Map IS_REQUIRED to REQUIRED for AG Grid compatibility
+          if (field.IS_REQUIRED !== undefined) {
+            processedField.REQUIRED = field.IS_REQUIRED;
+          }
+          
+          return processedField;
         });
 
         console.log('Processed fields:', processedFields);
+        console.log('📊 Setting fields state with', processedFields.length, 'fields');
         setFields(processedFields);
       } else {
         // If API returns empty array, set empty fields
+        console.log('⚠️ API returned empty array or no data');
         setFields([]);
       }
     } catch (apiError: any) {
@@ -743,6 +754,10 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
           ) : filteredFields.length === 0 && !searchTerm ? (
             <div className="text-center py-8 text-gray-500">
               <p>No fields found. Add your first field to get started.</p>
+              {/* Debug info */}
+              <div className="text-xs text-gray-400 mt-2">
+                Debug: fields={fields.length}, filteredFields={filteredFields.length}, searchTerm="{searchTerm}", isLoading={isLoading ? 'true' : 'false'}
+              </div>
             </div>
           ) : (
             <div className="flex justify-center w-full">

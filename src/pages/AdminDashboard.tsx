@@ -9,6 +9,7 @@ import NewRequestModal from '../pages/NewRequestModal';
 import AdminFormsGroupsModal from '../components/AdminFormsGroupsModal';
 import AdminFields from '../pages/AdminFields';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
+import FormTemplateEditorModal from '../components/FormTemplateEditorModal';
 import formService from '../services/formService';
 import { toast } from 'react-toastify';
 
@@ -26,6 +27,8 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   const [formsGroupsModalOpen, setFormsGroupsModalOpen] = useState(false);
   const [adminFieldsModalOpen, setAdminFieldsModalOpen] = useState(false);
   const [workflowManagementModalOpen, setWorkflowManagementModalOpen] = useState(false);
+  const [templateEditorModalOpen, setTemplateEditorModalOpen] = useState(false);
+  const [editingFormId, setEditingFormId] = useState<number | undefined>(undefined);
   const [editingFormData, setEditingFormData] = useState<any>(null);
   
   // Handle enhanced form field changes
@@ -67,37 +70,30 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
 
   // Handle workflow template editing
   const handleEditTemplate = async (formId: number, formData: any) => {
-    console.log('Editing workflow template:', formId, formData);
+    console.log('Opening template editor for form:', formId);
     
-    try {
-      // Fetch the complete form data including fields
-      const fullFormData = await formService.getFormById(formId);
-      console.log('Fetched form data for editing:', fullFormData);
-      
-      // Convert the database fields to the format expected by NewRequestModal
-      const convertedFields = formService.convertDbFieldsToFormFields(fullFormData.fields);
-      
-      // Set the editing form data
-      const editingData = {
-        name: fullFormData.form.FORM_NAME,
-        description: fullFormData.form.FORM_DESCRIPTION || '',
-        formType: 'custom', // Default to custom
-        formFields: convertedFields
-      };
-      
-      setEditingFormData(editingData);
-      setNewRequestModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching form data for editing:', error);
-      toast.error('Failed to load form data for editing');
-    }
+    // Open the template editor modal
+    setEditingFormId(formId);
+    setTemplateEditorModalOpen(true);
   };
 
   // Handle creating new workflow template
   const handleCreateNewTemplate = () => {
     console.log('Creating new workflow template');
-    setEditingFormData(null); // Clear any existing editing data
-    setNewRequestModalOpen(true);
+    setEditingFormId(undefined);
+    setTemplateEditorModalOpen(true);
+  };
+
+  // Handle template editor save/close
+  const handleTemplateEditorSave = () => {
+    console.log('Template saved, refreshing workflow management modal');
+    // The WorkflowManagementModal will need to refresh its data
+    // This could trigger a refresh in the parent or the modal itself
+  };
+
+  const handleTemplateEditorClose = () => {
+    setTemplateEditorModalOpen(false);
+    setEditingFormId(undefined);
   };
 
   if (loading) {
@@ -277,6 +273,14 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         onClose={() => setWorkflowManagementModalOpen(false)}
         onEditTemplate={handleEditTemplate}
         onCreateNew={handleCreateNewTemplate}
+      />
+
+      {/* Form Template Editor Modal */}
+      <FormTemplateEditorModal
+        isOpen={templateEditorModalOpen}
+        onClose={handleTemplateEditorClose}
+        formId={editingFormId}
+        onSave={handleTemplateEditorSave}
       />
     </div>
   );

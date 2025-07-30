@@ -3,6 +3,27 @@ import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import notificationService, { Notification } from '../services/notificationService';
 import { toast } from 'react-toastify';
 
+// Add CSS animation for bell juggling
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes juggle {
+    0%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(-10deg) scale(1.1); }
+    20% { transform: rotate(10deg) scale(1.1); }
+    30% { transform: rotate(-8deg) scale(1.05); }
+    40% { transform: rotate(8deg) scale(1.05); }
+    50% { transform: rotate(-5deg) scale(1.02); }
+    60% { transform: rotate(5deg) scale(1.02); }
+    70% { transform: rotate(-3deg) scale(1.01); }
+    80% { transform: rotate(3deg) scale(1.01); }
+    90% { transform: rotate(-1deg) scale(1.005); }
+  }
+`;
+if (!document.head.querySelector('style[data-notification-bell]')) {
+  style.setAttribute('data-notification-bell', 'true');
+  document.head.appendChild(style);
+}
+
 interface NotificationDropdownProps {
   className?: string;
 }
@@ -12,6 +33,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isJuggling, setIsJuggling] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,6 +42,17 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
     const interval = setInterval(fetchNotificationCount, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Juggle bell animation every 15 seconds only if there are unread notifications
+    const juggleInterval = setInterval(() => {
+      if (unreadCount > 0) {
+        setIsJuggling(true);
+        setTimeout(() => setIsJuggling(false), 1000); // Animation lasts 1 second
+      }
+    }, 15000);
+    return () => clearInterval(juggleInterval);
+  }, [unreadCount]);
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -120,7 +153,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
         className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         aria-label="Notifications"
       >
-        <Bell className="w-6 h-6" />
+        <Bell className={`w-6 h-6 ${isJuggling ? 'animate-bounce' : ''}`} style={{
+          animation: isJuggling ? 'juggle 1s ease-in-out' : undefined
+        }} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-5">
             {unreadCount > 99 ? '99+' : unreadCount}

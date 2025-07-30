@@ -60,18 +60,27 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
     }
   };
 
-  const handleEditTemplate = (form: DbForm) => {
+  const handleEditTemplate = async (form: DbForm) => {
     console.log('Editing template:', form);
-    // Convert DbForm to the format expected by the form builder
-    const formData = {
-      name: form.FORM_NAME,
-      description: form.FORM_DESCRIPTION || '',
-      formType: 'custom', // Default to custom since TEMPLATE_TYPE doesn't exist in DbForm
-      formFields: [] // This would need to be populated with actual fields
-    };
-    
-    onClose();
-    onEditTemplate(form.FORM_ID || 0, formData);
+    try {
+      // Fetch the complete form data with fields before closing modal
+      const response = await formService.getFormById(form.FORM_ID || 0);
+      
+      // Convert DbForm to the format expected by the form builder
+      const formData = {
+        name: form.FORM_NAME,
+        description: form.FORM_DESCRIPTION || '',
+        formType: 'custom', // Default to custom since TEMPLATE_TYPE doesn't exist in DbForm
+        formFields: response.fields || [] // Use the fetched fields
+      };
+      
+      onClose();
+      onEditTemplate(form.FORM_ID || 0, formData);
+    } catch (error) {
+      console.error('Error fetching form data for editing:', error);
+      toast.error('Failed to load form data for editing. You may not have permission to edit this template.');
+      // Don't close the modal if there's an error
+    }
   };
 
   const handleDeleteTemplate = async (formId: number, formName: string) => {
@@ -108,11 +117,11 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
       className="modal-content"
       style={{
         content: {
-          width: '900px',
+          width: '1200px',
           maxWidth: '95%',
           margin: '0',
           borderRadius: '8px',
-          padding: '20px',
+          padding: '12px',
           maxHeight: '90vh',
           overflow: 'auto',
           inset: '50% auto auto 50%',
@@ -135,7 +144,7 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
       }}
       ariaHideApp={false}
     >
-      <div className="modal-header d-flex justify-content-between align-items-center mb-4">
+      <div className="modal-header d-flex justify-content-between align-items-center mb-3">
         <h3 className="modal-title m-0">Manage Workflow Templates</h3>
         <button type="button" className="btn-close" onClick={onClose}></button>
       </div>
@@ -259,7 +268,7 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
         </div>
       )}
       
-      <div className="modal-footer d-flex justify-content-end mt-3">
+      <div className="modal-footer d-flex justify-content-end mt-2">
         <button 
           className="btn btn-secondary" 
           onClick={onClose}
