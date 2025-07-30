@@ -223,6 +223,22 @@ app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
 });
 
+app.get('/api/debug/endpoints', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Development server running latest code with all endpoints',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        endpoints: [
+            '/api/users', '/api/users/company/:companyId', '/api/invites', 
+            '/api/roles', '/api/requests', '/api/forms', '/api/fields', '/api/field-types',
+            '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
+            '/api/validate-email', '/api/send-verification-email', 
+            '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
+        ]
+    });
+});
+
 // Middleware to get authenticated user's company ID
 const getAuthenticatedUserCompany = async (req, res, next) => {
     try {
@@ -2371,6 +2387,146 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         console.error('❌ Error fetching forms:', error);
         res.status(500).json({
             error: 'Failed to fetch forms',
+            message: error.message
+        });
+    }
+});
+
+// Create a new form with fields
+app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { form, fields } = req.body;
+        console.log('📝 Creating new form with fields for company:', req.companyId);
+
+        if (!form || !form.FORM_NAME) {
+            return res.status(400).json({
+                error: 'Form name is required'
+            });
+        }
+
+        // Insert the form first
+        const formResult = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.FORMS (
+                FORM_NAME, FORM_DESCRIPTION, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+            )
+            OUTPUT INSERTED.FORM_ID
+            VALUES (
+                '${form.FORM_NAME}', 
+                '${form.FORM_DESCRIPTION || ''}', 
+                ${req.companyId}, 
+                ${form.IS_PUBLIC || false}, 
+                ${form.IS_ACTIVE !== false}, 
+                ${false},
+                GETDATE(), 
+                GETDATE(), 
+                ${req.user.userId}, 
+                ${req.user.userId}
+            )
+        `);
+
+        const formId = formResult[0].FORM_ID;
+        console.log(`✅ Created form with ID: ${formId}`);
+
+        // Insert fields if provided
+        const createdFields = [];
+        if (fields && Array.isArray(fields) && fields.length > 0) {
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                
+                const fieldResult = await prisma.$queryRawUnsafe(`
+                    INSERT INTO GUARDIAN.FORM_FIELDS (
+                        FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
+                        IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                    )
+                    OUTPUT INSERTED.FIELD_ID
+                    VALUES (
+                        ${formId},
+                        '${field.FIELD_NAME}',
+                        ${field.FIELD_TYPE_ID},
+                        ${field.IS_REQUIRED || false},
+                        ${field.OPTIONS ? `'${JSON.stringify(field.OPTIONS)}'` : 'NULL'},
+                        ${field.SEQUENCE || i + 1},
+                        ${field.IS_ACTIVE !== false},
+                        ${false},
+                        GETDATE(),
+                        GETDATE(),
+                        ${req.user.userId},
+                        ${req.user.userId}
+                    )
+                `);
+
+                createdFields.push({
+                    ...field,
+                    FIELD_ID: fieldResult[0].FIELD_ID,
+                    FORM_ID: formId
+                });
+            }
+        }
+
+        console.log(`✅ Created ${createdFields.length} fields for form ${formId}`);
+
+        res.json({
+            success: true,
+            form: {
+                ...form,
+                FORM_ID: formId,
+                ORGANIZATION_ID: req.companyId
+            },
+            fields: createdFields
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating form:', error);
+        res.status(500).json({
+            error: 'Failed to create form',
+            message: error.message
+        });
+    }
+});
+
+// Delete a form and its fields
+app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`🗑️ Deleting form ${formId} for company:`, req.companyId);
+
+        // Verify form belongs to the user's company
+        const existingForm = await prisma.$queryRawUnsafe(`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
+        `);
+
+        if (existingForm.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Soft delete the form and its fields
+        await prisma.$queryRawUnsafe(`
+            UPDATE GUARDIAN.FORMS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `);
+
+        await prisma.$queryRawUnsafe(`
+            UPDATE GUARDIAN.FORM_FIELDS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `);
+
+        console.log(`✅ Successfully deleted form ${formId}`);
+
+        res.json({
+            success: true,
+            message: 'Form deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting form:', error);
+        res.status(500).json({
+            error: 'Failed to delete form',
             message: error.message
         });
     }

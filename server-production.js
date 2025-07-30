@@ -433,6 +433,45 @@ app.get('/api/debug/endpoints', (req, res) => {
     });
 });
 
+app.get('/api/debug/user', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('🔍 Debug user endpoint called');
+        
+        // Get user's roles
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID, r.NAME as ROLE_NAME
+            FROM GUARDIAN.USER_ROLES ur 
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6);
+        
+        res.json({
+            userId: req.userId,
+            companyId: req.companyId,
+            roles: userRoles,
+            roleIds: roleIds,
+            isAdmin: isAdmin,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('❌ Error in debug user endpoint:', error);
+        res.status(500).json({ error: 'Debug user failed', message: error.message });
+    }
+});
+
+app.get('/api/debug/status', (req, res) => {
+    console.log('🔍 Debug status endpoint called');
+    res.json({
+        server: 'running',
+        timestamp: new Date().toISOString(),
+        headers: req.headers.authorization ? 'has auth header' : 'no auth header'
+    });
+});
+
 // Real database authentication
 app.post('/api/login', async (req, res) => {
     try {
