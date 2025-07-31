@@ -127,10 +127,19 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       console.log(`Fetching form data for request ${request.REQUEST_ID}, FORM_ID: ${request.FORM_ID}`);
       
       const response = await api.get(`/api/requests/${request.REQUEST_ID}/form`);
-      console.log('Form API response:', response.data);
+      console.log('=== FULL API RESPONSE ===');
+      console.log('Status:', response.status);
+      console.log('Success:', response.data?.success);
+      console.log('Data exists:', !!response.data?.data);
+      console.log('Full response:', JSON.stringify(response.data, null, 2));
       
-      if (response.data.success && response.data.data) {
+      if (response.data?.success && response.data?.data) {
         const formData = response.data.data;
+        console.log('=== FORM DATA BREAKDOWN ===');
+        console.log('Form info:', formData.form);
+        console.log('Fields count:', formData.fields?.length || 0);
+        console.log('Values object:', formData.values);
+        console.log('Has existing data:', formData.hasExistingData);
         
         // Set form template information
         if (formData.form) {
@@ -139,13 +148,17 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             description: formData.form.FORM_DESCRIPTION,
             id: formData.form.FORM_ID
           });
-          console.log('Set form template:', formData.form.FORM_NAME);
+          console.log('✅ Set form template:', formData.form.FORM_NAME);
+        } else {
+          console.log('❌ No form template found in response');
+          setFormTemplate(null);
         }
         
         // Convert form instance values to display format - ONLY show real database data
         const fieldValues: FormFieldValue[] = [];
         
-        if (formData.fields) {
+        if (formData.fields && Array.isArray(formData.fields)) {
+          console.log('=== PROCESSING FIELDS ===');
           formData.fields.forEach((field: any) => {
             // Get the actual value from FORMS_INSTANCE_VALUES table
             const value = formData.values?.[field.FIELD_ID];
@@ -154,18 +167,23 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               fieldName: field.FIELD_NAME,
               fieldValue: value && value.toString().trim() !== '' 
                 ? value // Real database value from FORMS_INSTANCE_VALUES
-                : '' // Empty string for unfilled fields - NO mock data
+                : '' // Empty string for unfilled fields
             });
             
-            console.log(`Field: ${field.FIELD_NAME}, Database Value: "${value || 'EMPTY'}"`);
+            console.log(`Field: ${field.FIELD_NAME} (ID: ${field.FIELD_ID})`);
+            console.log(`  Database Value: "${value || 'EMPTY'}"`);
+            console.log(`  Has Value: ${!!(value && value.toString().trim())}`);
           });
+        } else {
+          console.log('❌ No fields found in response');
         }
         
         setFormFieldValues(fieldValues);
-        console.log('Processed real database field values:', fieldValues);
+        console.log('✅ Final processed field values:', fieldValues);
       } else {
-        console.log('API response not successful or no data - NO FALLBACK DATA');
-        // NO fallback data - only show real database data
+        console.log('❌ API response not successful or no data');
+        console.log('Response success:', response.data?.success);
+        console.log('Response data:', response.data?.data);
         setFormTemplate(null);
         setFormFieldValues([]);
       }
@@ -321,12 +339,23 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             })}
           </div>
         ) : formTemplate ? (
-          <div className="text-muted text-center py-3">
-            <div>No form fields found for this template</div>
+          <div className="alert alert-info">
+            <h6 className="alert-heading">Form Template Found</h6>
+            <p className="mb-0">Template: <strong>{formTemplate.name}</strong></p>
+            <p className="mb-0">Description: {formTemplate.description}</p>
+            <hr className="my-2" />
+            <small className="text-muted">No form fields found for this template. The form may not have been configured with fields yet.</small>
           </div>
         ) : (
-          <div className="text-muted text-center py-3">
-            <div>No form template associated with this request</div>
+          <div className="alert alert-warning">
+            <h6 className="alert-heading">No Form Data Available</h6>
+            <p className="mb-1">This request does not have an associated form template.</p>
+            <hr className="my-2" />
+            <small className="text-muted">
+              Request ID: {request.REQUEST_ID}<br />
+              Form ID: {request.FORM_ID || 'None'}<br />
+              Check the browser console for detailed API response information.
+            </small>
           </div>
         )}
 
