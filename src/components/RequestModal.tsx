@@ -139,94 +139,46 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             description: formData.form.FORM_DESCRIPTION,
             id: formData.form.FORM_ID
           });
+          console.log('Set form template:', formData.form.FORM_NAME);
         }
         
-        // Convert form instance values to display format
+        // Convert form instance values to display format - ONLY show real database data
         const fieldValues: FormFieldValue[] = [];
         
         if (formData.fields) {
           formData.fields.forEach((field: any) => {
+            // Get the actual value from FORMS_INSTANCE_VALUES table
             const value = formData.values?.[field.FIELD_ID];
-            // Show all fields, whether they have values or not
+            
             fieldValues.push({
               fieldName: field.FIELD_NAME,
               fieldValue: value && value.toString().trim() !== '' 
-                ? value 
-                : `Enter ${field.FIELD_NAME}`  // Show placeholder for empty fields
+                ? value // Real database value from FORMS_INSTANCE_VALUES
+                : '' // Empty string for unfilled fields - NO mock data
             });
+            
+            console.log(`Field: ${field.FIELD_NAME}, Database Value: "${value || 'EMPTY'}"`);
           });
         }
         
         setFormFieldValues(fieldValues);
-        console.log('Processed form field values:', fieldValues);
+        console.log('Processed real database field values:', fieldValues);
       } else {
-        console.log('API response not successful or no data, using fallback');
-        createFallbackFormData();
+        console.log('API response not successful or no data - NO FALLBACK DATA');
+        // NO fallback data - only show real database data
+        setFormTemplate(null);
+        setFormFieldValues([]);
       }
     } catch (err) {
       console.error('Failed to load form field values:', err);
-      createFallbackFormData();
+      // NO fallback data - only show real database data
+      setFormTemplate(null);
+      setFormFieldValues([]);
     } finally {
       setFormLoading(false);
     }
   };
 
-  // Create fallback form data when API fails
-  const createFallbackFormData = () => {
-    console.log('Creating fallback form data for request:', request);
-    
-    // Always show form template and data, even if no FORM_ID
-    const formTypeMap: Record<number, any> = {
-      1: { name: 'SUBJECT Template', description: 'Subject verification template' },
-      2: { name: 'FINANCIAL Template', description: 'Banking information template' },
-      3: { name: 'ADDRESS Template', description: 'Address verification template' },
-      4: { name: 'EMPLOYMENT Template', description: 'Employment verification template' },
-      5: { name: 'FINANCIAL Template', description: 'Banking information template' },
-      6: { name: 'IDENTITY Template', description: 'Identity verification template' }
-    };
-    
-    // Use FORM_ID if available, otherwise default to FINANCIAL template
-    const templateInfo = formTypeMap[request.FORM_ID || 2] || { 
-      name: 'FINANCIAL Template', 
-      description: 'Banking information template' 
-    };
-    
-    setFormTemplate(templateInfo);
-    
-    // Set sample field values based on template type
-    let sampleFields: FormFieldValue[] = [];
-    
-    if (templateInfo.name.includes('FINANCIAL')) {
-      sampleFields = [
-        { fieldName: 'Bank Name', fieldValue: 'Chase Bank' }, // Example submitted value
-        { fieldName: 'Routing #', fieldValue: '123456789' }, // Example submitted value  
-        { fieldName: 'Account Holder', fieldValue: 'Enter Account Holder' } // Empty field
-      ];
-    } else if (templateInfo.name.includes('ADDRESS')) {
-      sampleFields = [
-        { fieldName: 'Street Address', fieldValue: '123 Main Street' }, // Example value
-        { fieldName: 'City', fieldValue: 'New York' }, // Example value
-        { fieldName: 'State', fieldValue: 'Enter State' }, // Empty field
-        { fieldName: 'ZIP Code', fieldValue: 'Enter ZIP Code' } // Empty field
-      ];
-    } else if (templateInfo.name.includes('SUBJECT')) {
-      sampleFields = [
-        { fieldName: 'First Name', fieldValue: 'John' }, // Example value
-        { fieldName: 'Last Name', fieldValue: 'Doe' }, // Example value
-        { fieldName: 'Date of Birth', fieldValue: 'Enter Date of Birth' } // Empty field
-      ];
-    } else {
-      sampleFields = [
-        { fieldName: 'Field 1', fieldValue: 'Enter Value 1' },
-        { fieldName: 'Field 2', fieldValue: 'Enter Value 2' },
-        { fieldName: 'Field 3', fieldValue: 'Enter Value 3' }
-      ];
-    }
-    
-    setFormFieldValues(sampleFields);
-    console.log('Set fallback template:', templateInfo);
-    console.log('Set fallback fields:', sampleFields);
-  };
 
   // Handle user assignment
   const handleAssignUser = async () => {
@@ -332,7 +284,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         ) : formFieldValues.length > 0 ? (
           <div className="mb-4">
             {formFieldValues.map((field, index) => {
-              const isPlaceholder = field.fieldValue.toString().startsWith('Enter ');
+              const hasValue = field.fieldValue && field.fieldValue.toString().trim() !== '';
               const isRequired = field.fieldName.includes('*') || field.fieldName.includes('#');
               
               return (
@@ -344,26 +296,39 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                   <input
                     type="text"
                     className="form-control"
-                    value={isPlaceholder ? '' : field.fieldValue}
-                    placeholder={isPlaceholder ? field.fieldValue : `Enter ${field.fieldName}`}
+                    value={hasValue ? field.fieldValue : ''}
+                    placeholder={hasValue ? '' : `Enter ${field.fieldName}`}
                     readOnly
                     style={{ 
-                      backgroundColor: isPlaceholder ? '#f8f9fa' : 'white',
-                      color: isPlaceholder ? '#6c757d' : '#212529',
-                      fontStyle: isPlaceholder ? 'italic' : 'normal'
+                      backgroundColor: hasValue ? 'white' : '#f8f9fa',
+                      color: hasValue ? '#212529' : '#6c757d',
+                      fontStyle: hasValue ? 'normal' : 'italic'
                     }}
                   />
-                  {/* Show actual value status */}
-                  {!isPlaceholder && (
+                  {/* Show database value status */}
+                  {hasValue && (
                     <div className="form-text text-success small">
-                      ✓ Value submitted
+                      ✓ Value from database
+                    </div>
+                  )}
+                  {!hasValue && (
+                    <div className="form-text text-muted small">
+                      No value submitted yet
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-        ) : null}
+        ) : formTemplate ? (
+          <div className="text-muted text-center py-3">
+            <div>No form fields found for this template</div>
+          </div>
+        ) : (
+          <div className="text-muted text-center py-3">
+            <div>No form template associated with this request</div>
+          </div>
+        )}
 
         {/* Assignment Section */}
         <div className="border-top pt-4">
