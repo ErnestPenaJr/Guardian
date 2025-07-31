@@ -9,6 +9,7 @@ import NewRequestModal from './NewRequestModal';
 import SelectFormModal from '../components/SelectFormModal';
 import AddRequestModal from '../components/AddRequestModal';
 import RequestModal from '../components/RequestModal';
+import SimpleRequestView from '../components/SimpleRequestView';
 import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
 import { useAuth } from '../hooks/useAuth';
@@ -118,6 +119,7 @@ const RequestDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('simple');
   
   // Check if user has one of the allowed roles
   const hasCreateRequestAccess = useMemo(() => {
@@ -720,13 +722,20 @@ const RequestDashboard: React.FC = () => {
     }
   };
 
+  // Handle request click from SimpleRequestView
+  const handleRequestClick = (request: Request) => {
+    setSelectedRequest(request);
+    setShowRequestModal(true);
+  };
+
   return (
     <div className="container">
       <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Request Dashboard</h1>
 
-      <div className="request-dashboard-header mb-3 d-flex align-items-center gap-2">
-        {hasCreateRequestAccess && (
-          <button
+      <div className="request-dashboard-header mb-3 d-flex align-items-center justify-content-between">
+        <div className="d-flex align-items-center gap-2">
+          {hasCreateRequestAccess && (
+            <button
             className="btn btn-outline-secondary ms-2"
             style={{
               minWidth: 100,
@@ -766,15 +775,42 @@ const RequestDashboard: React.FC = () => {
         )}
 
         {/* Create Request button removed as requested */}
+        </div>
+        
+        {/* View Toggle Buttons */}
+        <div className="d-flex align-items-center gap-2">
+          <div className="btn-group" role="group" aria-label="View mode">
+            <button
+              type="button"
+              className={`btn ${viewMode === 'simple' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setViewMode('simple')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-list-ul me-1" viewBox="0 0 16 16">
+                <path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+              </svg>
+              Simple
+            </button>
+            <button
+              type="button"
+              className={`btn ${viewMode === 'detailed' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setViewMode('detailed')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-table me-1" viewBox="0 0 16 16">
+                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/>
+              </svg>
+              Detailed
+            </button>
+          </div>
 
-        <input
-          type="text"
-          className="form-control ms-auto"
-          style={{ maxWidth: 260, display: 'inline-block' }}
-          placeholder="Search..."
-          value={quickFilter}
-          onChange={e => setQuickFilter(e.target.value)}
-        />
+          <input
+            type="text"
+            className="form-control"
+            style={{ maxWidth: 260 }}
+            placeholder="Search..."
+            value={quickFilter}
+            onChange={e => setQuickFilter(e.target.value)}
+          />
+        </div>
       </div>
       
       {/* Requests Table */}
@@ -784,8 +820,30 @@ const RequestDashboard: React.FC = () => {
         </div>
       )}
       
-      {/* Custom styles for DataTable */}
-      <DataTable
+      {/* Conditional View Rendering */}
+      {viewMode === 'simple' ? (
+        /* Simple Telegram-style View */
+        <div className="row">
+          {filteredRequests.length > 0 ? (
+            filteredRequests.map((request: Request) => (
+              <div key={request.REQUEST_ID} className="col-12 col-md-6 col-lg-4 mb-3">
+                <SimpleRequestView
+                  request={request}
+                  onClick={() => handleRequestClick(request)}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-12">
+              <div className="text-center py-5">
+                <p className="text-muted">No requests found</p>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Detailed DataTable View */
+        <DataTable
         columns={columns}
         data={filteredRequests}
         pagination
@@ -829,6 +887,7 @@ const RequestDashboard: React.FC = () => {
           </div>
         }
       />
+      )}
       
       {/* New Request Modal */}
       <NewRequestModal
