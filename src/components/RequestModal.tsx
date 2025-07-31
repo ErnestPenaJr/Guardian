@@ -133,8 +133,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       console.log('Data exists:', !!response.data?.data);
       console.log('Full response:', JSON.stringify(response.data, null, 2));
       
-      if (response.data?.success && response.data?.data) {
-        const formData = response.data.data;
+      if (response.data && response.status === 200) {
+        const formData = response.data;
         console.log('=== FORM DATA BREAKDOWN ===');
         console.log('Form info:', formData.form);
         console.log('Fields count:', formData.fields?.length || 0);
@@ -160,8 +160,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         if (formData.fields && Array.isArray(formData.fields)) {
           console.log('=== PROCESSING FIELDS ===');
           formData.fields.forEach((field: any) => {
-            // Get the actual value from FORMS_INSTANCE_VALUES table
-            const value = formData.values?.[field.FIELD_ID];
+            // Get the actual value - try both field ID and field name as keys
+            const valueByName = formData.values?.[field.FIELD_NAME];
+            const valueById = formData.values?.[field.FIELD_ID];
+            const value = valueByName || valueById;
             
             fieldValues.push({
               fieldName: field.FIELD_NAME,
@@ -171,7 +173,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             });
             
             console.log(`Field: ${field.FIELD_NAME} (ID: ${field.FIELD_ID})`);
-            console.log(`  Database Value: "${value || 'EMPTY'}"`);
+            console.log(`  Value by name: "${valueByName || 'EMPTY'}"`);
+            console.log(`  Value by ID: "${valueById || 'EMPTY'}"`);
+            console.log(`  Final value: "${value || 'EMPTY'}"`);
             console.log(`  Has Value: ${!!(value && value.toString().trim())}`);
           });
         } else {
@@ -182,8 +186,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         console.log('✅ Final processed field values:', fieldValues);
       } else {
         console.log('❌ API response not successful or no data');
-        console.log('Response success:', response.data?.success);
-        console.log('Response data:', response.data?.data);
+        console.log('Response status:', response.status);
+        console.log('Response data exists:', !!response.data);
         setFormTemplate(null);
         setFormFieldValues([]);
       }
