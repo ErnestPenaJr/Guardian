@@ -1,0 +1,55 @@
+-- Migration: Add COMPANY_ID to FORMS_INSTANCE table for data isolation
+-- Date: 2025-01-31
+-- Description: Adds COMPANY_ID column to FORMS_INSTANCE table and populates existing records
+
+BEGIN TRANSACTION;
+
+-- Step 1: Add COMPANY_ID column (nullable initially for existing records)  
+ALTER TABLE GUARDIAN.FORMS_INSTANCE 
+ADD COMPANY_ID INT NULL;
+
+-- Step 2: Populate existing FORMS_INSTANCE records with COMPANY_ID from related REQUEST
+-- This gets the company ID from the request that uses this form
+UPDATE fi 
+SET fi.COMPANY_ID = r.COMPANY_ID
+FROM GUARDIAN.FORMS_INSTANCE fi
+INNER JOIN GUARDIAN.REQUESTS r ON r.FORM_ID = fi.FORM_ID AND r.ASSIGNED_ID = fi.ASSIGNED_ID
+WHERE fi.COMPANY_ID IS NULL;
+
+-- Step 3: For any remaining records without COMPANY_ID, try to get it from the user's company
+UPDATE fi 
+SET fi.COMPANY_ID = ci.COMPANY_ID  
+FROM GUARDIAN.FORMS_INSTANCE fi
+INNER JOIN GUARDIAN.COMPANY_INFO ci ON ci.USER_ID = fi.ASSIGNED_ID
+WHERE fi.COMPANY_ID IS NULL;
+
+-- Step 4: Make COMPANY_ID NOT NULL after population
+ALTER TABLE GUARDIAN.FORMS_INSTANCE 
+ALTER COLUMN COMPANY_ID INT NOT NULL;
+
+-- Step 5: Add foreign key constraint
+ALTER TABLE GUARDIAN.FORMS_INSTANCE 
+ADD CONSTRAINT FK_FORMS_INSTANCE_COMPANY 
+FOREIGN KEY (COMPANY_ID) REFERENCES GUARDIAN.COMPANY(COMPANY_ID);
+
+-- Step 6: Add index for better query performance
+CREATE INDEX IX_FORMS_INSTANCE_COMPANY_ID 
+ON GUARDIAN.FORMS_INSTANCE (COMPANY_ID);
+
+-- Step 7: Add composite index for common queries
+CREATE INDEX IX_FORMS_INSTANCE_FORM_COMPANY 
+ON GUARDIAN.FORMS_INSTANCE (FORM_ID, COMPANY_ID);
+
+COMMIT TRANSACTION;
+
+-- Verification queries
+SELECT 'FORMS_INSTANCE records by company:' as info;
+SELECT COMPANY_ID, COUNT(*) as record_count 
+FROM GUARDIAN.FORMS_INSTANCE 
+GROUP BY COMPANY_ID 
+ORDER BY COMPANY_ID;
+
+SELECT 'Records with NULL COMPANY_ID (should be 0):' as info;
+SELECT COUNT(*) as null_company_records 
+FROM GUARDIAN.FORMS_INSTANCE 
+WHERE COMPANY_ID IS NULL;

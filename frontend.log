@@ -1,0 +1,25 @@
+$ vite
+
+  VITE v7.0.2  ready in 316 ms
+
+  ➜  Local:   http://localhost:5175/
+  ➜  Network: use --host to expose
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:50:54 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+7:52:41 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+7:53:45 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+11:36:29 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:36:51 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:37:08 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:37:33 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+2:13:45 PM [vite] .env changed, restarting server...
+2:13:45 PM [vite] (client) Re-optimizing dependencies because lockfile has changed
+2:13:45 PM [vite] server restarted.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+error: script "dev" was terminated by signal SIGKILL (Forced quit)

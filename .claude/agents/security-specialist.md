@@ -57,11 +57,10 @@ const getAuthenticatedUserCompany = (req, res, next) => {
 **User Roles**:
 | JAFAR | Full system access with all permissions. Can configure items for the entire system. |
 | ADMIN | Full system access with all permissions. Can configure items for the company. |
-| MANAGER | Team oversight permissions for their group/organization. Can manage workflows within their group. |
-| PROCESSOR | Process workflows within their group/organization. |
+| MANAGER | Team oversight permissions for their group/organization. Can also assign requests to processor or reassign to a differnt processor and process a request|
+| PROCESSOR | Process assign and work workflows to themseleves within their group/organization. |
 | GENERAL USER | Can submit and receive workflows within their group/organization. |
 | EXTERNAL USER | Basic user with read-only permissions. |
-
 
 **Permission Enforcement Pattern**:
 ```javascript

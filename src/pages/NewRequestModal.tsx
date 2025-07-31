@@ -171,6 +171,9 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     try {
       setSaving(true);
       
+      console.log(`🚀 [NewRequestModal] HandleSave called - Current fieldValues:`, fieldValues);
+      console.log(`🚀 [NewRequestModal] HandleSave called - Field values count:`, fieldValues.length);
+      
       // Validate all form fields before submission
       if (!validateForm()) {
         setSaving(false);
@@ -186,7 +189,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         SUBMITTED_DATE: new Date().toISOString(),
         REQUESTOR_ID: null, // Will be set by the server based on current user
         ASSIGNED_ID: requestMetadata.assignedUserId, // User assigned to process this request
-        STATUS: 'N', // New request
+        STATUS: 'A', // Active request
         CREATE_DATE: new Date().toISOString(),
         UPDATE_DATE: new Date().toISOString(),
         CREATE_USER_ID: null, // Will be set by the server
@@ -197,21 +200,33 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       };
       
       // Prepare form instance values for storage in FORMS_INSTANCE_VALUES table
+      console.log('🔍 Processing field values for submission...');
+      console.log('📋 Current fieldValues state:', fieldValues);
+      console.log('📋 FormData.formFields:', formData.formFields);
+      
       const formInstanceValues = fieldValues.map(fv => {
         const field = formData.formFields.find(field => field.id === fv.id);
-        return {
+        console.log(`🔍 Mapping field: UI ID=${fv.id} -> DB Field ID=${field?.dbFieldId || fv.id} (${field?.fieldName})`);
+        
+        const instanceValue = {
           FORM_INSTANCE_ID: null, // Will be assigned by the server after form instance creation
-          FIELD_ID: field?.dbFieldId || null, // Database field ID if available
+          FIELD_ID: field?.dbFieldId || parseInt(fv.id), // Use field ID directly if dbFieldId not available
           FIELD_VALUE: fv.value,
           FIELD_NAME: field?.fieldName || ''
         };
+        console.log(`📝 Form instance value: ${field?.fieldName} (DB Field ID: ${field?.dbFieldId || fv.id}) = "${fv.value}"`);
+        return instanceValue;
       });
+      
+      console.log('📊 Total form instance values prepared:', formInstanceValues.length);
+      console.log('📋 Form instance values:', formInstanceValues);
       
       // Submit the form with the properly structured data
       await onSave({
         ...formData, 
         requestData,
-        formInstanceValues // Add form instance values for proper storage
+        formInstanceValues, // Add form instance values for proper storage
+        templateId: formData.templateId || formData.FORM_ID || null // Include template ID
       });
       
       // Show success message with request ID
@@ -249,6 +264,9 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
   
   // Handle field value changes
   const handleFieldValueChange = (fieldId: string, value: string) => {
+    console.log(`🔧 [NewRequestModal] Field value changed: Field ID=${fieldId}, Value="${value}"`);
+    console.log(`🔧 [NewRequestModal] Current fieldValues before update:`, fieldValues);
+    
     // Check if we already have a value for this field
     const existingIndex = fieldValues.findIndex(fv => fv.id === fieldId);
     
@@ -257,10 +275,17 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       const updatedValues = [...fieldValues];
       updatedValues[existingIndex].value = value;
       setFieldValues(updatedValues);
+      console.log(`✅ [NewRequestModal] Updated existing field value for Field ID=${fieldId}`);
+      console.log(`✅ [NewRequestModal] Updated field values:`, updatedValues);
     } else {
       // Add new value
-      setFieldValues([...fieldValues, { id: fieldId, value }]);
+      const newFieldValues = [...fieldValues, { id: fieldId, value }];
+      setFieldValues(newFieldValues);
+      console.log(`✅ [NewRequestModal] Added new field value for Field ID=${fieldId}`);
+      console.log(`✅ [NewRequestModal] New field values:`, newFieldValues);
     }
+    
+    console.log(`📊 [NewRequestModal] Current field values count: ${fieldValues.length + (existingIndex < 0 ? 1 : 0)}`);
   };
   
   // Handle file attachment changes

@@ -1412,25 +1412,14 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
         const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
         
         let existingInstances;
-        if (isAdmin) {
-            // Admin users can see all form instances for this form
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
-                FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
-            console.log(`👑 Admin user - fetching all form instances for form ${request.FORM_ID}`);
-        } else {
-            // Regular users only see their own assigned instances
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
-                FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
-            console.log(`👤 Regular user - fetching instances assigned to user ${request.ASSIGNED_ID}`);
-        }
+        // Look for existing form instance for this specific request
+        existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
+            FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
+        console.log(`🔍 Fetching form instance for request ${requestId}`);
 
         let existingValues = {};
         let formInstanceId = null;
@@ -1449,9 +1438,19 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
                 WHERE FORM_INSTANCE_ID = ${formInstanceId}
             `;
             
-            // Convert to object with field IDs as keys
-            existingValues = savedValues.reduce((acc, value) => {
+            // Convert to object with field IDs as keys (for backend processing)
+            const existingValuesByFieldId = savedValues.reduce((acc, value) => {
                 acc[value.FIELD_ID] = value.VALUE;
+                return acc;
+            }, {});
+            
+            // Also create a mapping by field name (for frontend usage)
+            existingValues = savedValues.reduce((acc, value) => {
+                // Find the field with this FIELD_ID to get its name
+                const field = fields.find(f => f.FIELD_ID === value.FIELD_ID);
+                if (field) {
+                    acc[field.FIELD_NAME] = value.VALUE;
+                }
                 return acc;
             }, {});
             
@@ -1460,7 +1459,7 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
             // Determine form completion status
             const requiredFields = fields.filter(f => f.FORM_IS_REQUIRED || f.IS_REQUIRED);
             const filledRequiredFields = requiredFields.filter(f => 
-                existingValues[f.FIELD_ID] && existingValues[f.FIELD_ID].trim() !== ''
+                existingValuesByFieldId[f.FIELD_ID] && existingValuesByFieldId[f.FIELD_ID].trim() !== ''
             );
             
             if (submittedDate && filledRequiredFields.length === requiredFields.length) {
@@ -1581,18 +1580,12 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
         
         let existingInstances;
-        if (isAdmin) {
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
-        } else {
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-            `;
-        }
+        // Look for existing form instance for this specific request
+        existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
 
         let formInstanceId;
 
@@ -1624,9 +1617,9 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                 // Complete submission
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE (
-                        FORM_ID, ASSIGNED_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${request.FORM_ID}, ${request.ASSIGNED_ID}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 console.log(`📋 Created new completed form instance`);
@@ -1634,9 +1627,9 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                 // Draft/in-progress submission (no submitted date)
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE (
-                        FORM_ID, ASSIGNED_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${request.FORM_ID}, ${request.ASSIGNED_ID}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 console.log(`📋 Created new draft form instance`);
@@ -1647,13 +1640,13 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
             if (isAdmin) {
                 newInstances = await prisma.$queryRaw`
                     SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                    WHERE FORM_ID = ${request.FORM_ID}
+                    WHERE FORM_ID = ${request.FORM_ID} AND COMPANY_ID = ${req.companyId}
                     ORDER BY CREATE_DATE DESC
                 `;
             } else {
                 newInstances = await prisma.$queryRaw`
                     SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
+                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID} AND COMPANY_ID = ${req.companyId}
                     ORDER BY CREATE_DATE DESC
                 `;
             }
@@ -1829,9 +1822,9 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
 });
 
 // Update form template endpoint
-app.put('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        const formId = parseInt(req.params.id);
+        const formId = parseInt(req.params.formId);
         const { name, description, formFields } = req.body;
         
         console.log(`📝 Updating form template ${formId} for company:`, req.companyId);
@@ -1911,9 +1904,104 @@ app.put('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ Error updating form ${req.params.id}:`, error);
+        console.error(`❌ Error updating form ${req.params.formId}:`, error);
         res.status(500).json({
             error: 'Failed to update form template',
+            message: error.message
+        });
+    }
+});
+
+// Get specific form by ID (alternative endpoint for compatibility)
+app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`📋 Fetching form ${formId} for company:`, req.companyId);
+
+        // Get the form
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+            AND IS_DELETED = ${false}
+        `;
+
+        if (forms.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found'
+            });
+        }
+
+        // Get the form fields
+        const fields = await prisma.$queryRaw`
+            SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
+                   ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FORM_FIELDS ff
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
+            ORDER BY ff.SEQUENCE, ff.FIELD_ID
+        `;
+
+        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
+
+        res.json({
+            success: true,
+            form: forms[0],
+            fields: fields
+        });
+
+    } catch (error) {
+        console.error(`❌ Error fetching form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch form',
+            message: error.message
+        });
+    }
+});
+
+// Delete a form (soft delete)
+app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`🗑️ Deleting form ${formId} for company:`, req.companyId);
+
+        // Verify form belongs to the user's company
+        const existingForm = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
+        `;
+
+        if (existingForm.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Soft delete the form and its fields
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORM_FIELDS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        console.log(`✅ Form ${formId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Form deleted successfully'
+        });
+
+    } catch (error) {
+        console.error(`❌ Error deleting form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to delete form',
             message: error.message
         });
     }

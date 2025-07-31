@@ -1607,10 +1607,15 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Invalid request ID' });
         }
         // Verify request is assigned to current user and get form instance
+        // Find the most recently created form instance that matches both the request's form ID and assigned user
         const request = await prisma.$queryRawUnsafe(`
       SELECT r.*, fi.FORM_INSTANCE_ID
       FROM GUARDIAN.REQUESTS r
-      LEFT JOIN GUARDIAN.FORMS_INSTANCE fi ON fi.ASSIGNED_ID = r.ASSIGNED_ID
+      LEFT JOIN GUARDIAN.FORMS_INSTANCE fi ON fi.FORM_ID = r.FORM_ID AND fi.ASSIGNED_ID = r.ASSIGNED_ID AND fi.CREATE_DATE = (
+        SELECT MAX(fi2.CREATE_DATE)
+        FROM GUARDIAN.FORMS_INSTANCE fi2
+        WHERE fi2.FORM_ID = r.FORM_ID AND fi2.ASSIGNED_ID = r.ASSIGNED_ID
+      )
       WHERE r.REQUEST_ID = ${requestId} 
       AND r.ASSIGNED_ID = ${userInfo.userId}
     `);

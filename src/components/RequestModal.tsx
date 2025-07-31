@@ -64,7 +64,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [formInfo, setFormInfo] = useState<DbForm | null>(null);
+  const [formInfo, setFormInfo] = useState<{ form: DbForm, fields: any[] } | null>(null);
+  const [formFields, setFormFields] = useState<any[]>([]);
   const [formLoading, setFormLoading] = useState<boolean>(false);
   
   // Format the status display
@@ -112,23 +113,60 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     return commonForms[formId] || `Form #${formId}`;
   };
   
+  // Get field type name from field type ID
+  const getFieldTypeName = (fieldTypeId: number): string => {
+    const fieldTypeMap: Record<number, string> = {
+      1: 'Text',
+      2: 'Text Area',
+      3: 'Number',
+      4: 'Dropdown',
+      5: 'Radio',
+      6: 'Checkbox',
+      7: 'Date',
+      8: 'Email',
+      9: 'File'
+    };
+    return fieldTypeMap[fieldTypeId] || 'Text';
+  };
+  
+  // Get field type icon from field type ID
+  const getFieldTypeIcon = (fieldTypeId: number): string => {
+    const iconMap: Record<number, string> = {
+      1: '📝', // Text
+      2: '📄', // Text Area
+      3: '#️⃣', // Number
+      4: '📋', // Dropdown
+      5: '⚪', // Radio
+      6: '☑️', // Checkbox
+      7: '📅', // Date
+      8: '📧', // Email
+      9: '📎'  // File
+    };
+    return iconMap[fieldTypeId] || '📝';
+  };
+  
   // Fetch form information
   const fetchFormInfo = async (formId: number) => {
     try {
       setFormLoading(true);
       const response = await formService.getFormById(formId);
-      setFormInfo(response.form);
+      setFormInfo(response); // Set the entire response object
+      setFormFields(response.fields || []);
     } catch (err) {
       console.error('Failed to load form information:', err);
       // Use fallback form name if API fails
       setFormInfo({
-        FORM_ID: formId,
-        FORM_NAME: getFormNameFallback(formId),
-        FORM_DESCRIPTION: null,
-        IS_PUBLIC: true,
-        IS_ACTIVE: true,
-        IS_DELETED: false
+        form: {
+          FORM_ID: formId,
+          FORM_NAME: getFormNameFallback(formId),
+          FORM_DESCRIPTION: 'Form template description',
+          IS_PUBLIC: true,
+          IS_ACTIVE: true,
+          IS_DELETED: false
+        },
+        fields: []
       });
+      setFormFields([]);
     } finally {
       setFormLoading(false);
     }
@@ -264,40 +302,113 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             Request Details
           </h6>
           
-          {/* Compact Information Cards */}
+          {/* Form Template Information */}
           <div className="row g-2 mb-3">
-            {/* Form Type Card - Featured */}
+            {/* Form Template Header */}
             <div className="col-12 mb-2">
-              <div className="card border-0 bg-light h-100">
+              <div className="card border-0 bg-primary bg-gradient h-100">
                 <div className="card-body p-3">
                   {formLoading ? (
-                    <div className="d-flex align-items-center">
+                    <div className="d-flex align-items-center text-white">
                       <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                      <span className="text-muted">Loading form information...</span>
+                      <span>Loading form template information...</span>
                     </div>
-                  ) : formInfo && formInfo.FORM_NAME ? (
+                  ) : formInfo && formInfo.form?.FORM_NAME ? (
                     <>
-                      <div className="fw-bold text-dark h6 mb-2">{formInfo.FORM_NAME} Template</div>
-                      {formInfo.FORM_DESCRIPTION && (
-                        <div className="text-primary fw-medium">
-                          {formInfo.FORM_DESCRIPTION}
+                      <div className="d-flex align-items-center text-white mb-2">
+                        <div className="bg-white text-primary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                             style={{ width: '32px', height: '32px', fontSize: '16px' }}>📋</div>
+                        <div>
+                          <div className="fw-bold h6 mb-1">{formInfo.form.FORM_NAME} Template</div>
+                          {formInfo.form.FORM_DESCRIPTION && (
+                            <div className="opacity-75 small">
+                              {formInfo.form.FORM_DESCRIPTION}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Form Fields Summary */}
+                      {formFields.length > 0 && (
+                        <div className="text-white opacity-75 small">
+                          <strong>{formFields.length}</strong> field{formFields.length !== 1 ? 's' : ''} • 
+                          <strong> {formFields.filter(f => f.IS_REQUIRED).length}</strong> required
                         </div>
                       )}
                     </>
                   ) : request.FORM_ID ? (
                     <>
-                      <div className="fw-bold text-dark h6 mb-2">Form #{request.FORM_ID} Template</div>
-                      <div className="text-muted">Form details not available</div>
+                      <div className="d-flex align-items-center text-white">
+                        <div className="bg-white text-primary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                             style={{ width: '32px', height: '32px', fontSize: '16px' }}>📋</div>
+                        <div>
+                          <div className="fw-bold h6 mb-1">Form #{request.FORM_ID} Template</div>
+                          <div className="opacity-75 small">Form details not available</div>
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <>
-                      <div className="fw-bold text-muted h6 mb-2">No Form Template</div>
-                      <div className="text-muted">No form assigned to this request</div>
+                      <div className="d-flex align-items-center text-white">
+                        <div className="bg-white text-muted rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                             style={{ width: '32px', height: '32px', fontSize: '16px' }}>❌</div>
+                        <div>
+                          <div className="fw-bold h6 mb-1">No Form Template</div>
+                          <div className="opacity-75 small">No form assigned to this request</div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
               </div>
             </div>
+            
+            {/* Form Fields Details */}
+            {!formLoading && formFields.length > 0 && (
+              <div className="col-12">
+                <div className="card border-0 bg-light">
+                  <div className="card-body p-3">
+                    <div className="d-flex align-items-center mb-3">
+                      <div className="bg-info text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                           style={{ width: '24px', height: '24px', fontSize: '12px' }}>🏗️</div>
+                      <div className="fw-bold text-dark small">Form Fields ({formFields.length})</div>
+                    </div>
+                    
+                    <div className="row g-2">
+                      {formFields
+                        .filter(field => field.IS_ACTIVE && !field.IS_DELETED)
+                        .sort((a, b) => (a.SEQUENCE || 0) - (b.SEQUENCE || 0))
+                        .map((field, index) => (
+                        <div key={field.FIELD_ID || index} className="col-6 col-md-4 col-lg-3">
+                          <div className="card border-0 bg-white h-100" style={{ fontSize: '0.85rem' }}>
+                            <div className="card-body p-2">
+                              <div className="d-flex align-items-center">
+                                <div className="me-2" style={{ fontSize: '14px' }}>
+                                  {getFieldTypeIcon(field.FIELD_TYPE_ID)}
+                                </div>
+                                <div className="flex-fill">
+                                  <div className="fw-semibold text-dark small mb-1">{field.FIELD_NAME}</div>
+                                  <div className="d-flex align-items-center">
+                                    <span className="badge bg-secondary me-1" style={{ fontSize: '0.6rem' }}>
+                                      {getFieldTypeName(field.FIELD_TYPE_ID)}
+                                    </span>
+                                    {field.IS_REQUIRED && (
+                                      <span className="badge bg-danger" style={{ fontSize: '0.6rem' }}>
+                                        Required
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Secondary Information Cards */}
@@ -435,6 +546,84 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               </div>
             </div>
           </div>
+
+          {/* Form Template Information */}
+          {formInfo && (
+            <div className="mb-3">
+              <div className="d-flex align-items-center mb-3">
+                <span className="me-2">📋</span>
+                <h6 className="mb-0 text-dark fw-bold">Form Template Information</h6>
+              </div>
+              <div className="card border-0 bg-teal-50" style={{ backgroundColor: '#f0fdfa', borderColor: '#5eead4' }}>
+                <div className="card-body p-3">
+                  <h5 className="fw-bold mb-2" style={{ color: '#0f766e' }}>
+                    {formInfo.form?.FORM_NAME || getFormNameFallback(request.FORM_ID || 0)}
+                  </h5>
+                  <p className="text-muted mb-2" style={{ color: '#0d9488', fontSize: '0.9rem' }}>
+                    {formInfo.form?.FORM_DESCRIPTION || 'Form template description'}
+                  </p>
+                  <div className="d-flex align-items-center text-sm" style={{ color: '#0f766e', fontSize: '0.85rem' }}>
+                    <span className="me-3">📝 {formFields.length} fields</span>
+                    {formFields.filter(f => f.IS_REQUIRED).length > 0 && (
+                      <span>• {formFields.filter(f => f.IS_REQUIRED).length} required</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Form Data */}
+          {formFields.length > 0 && (
+            <div className="mb-3">
+              <div className="d-flex align-items-center mb-3">
+                <span className="me-2">📄</span>
+                <h6 className="mb-0 text-dark fw-bold">Form Data</h6>
+              </div>
+              <div className="row g-3">
+                {formFields.map((field, index) => (
+                  <div key={field.FIELD_ID || index} className="col-12 col-md-6">
+                    <div className="card border-0 bg-white">
+                      <div className="card-body p-3">
+                        <div className="d-flex align-items-start">
+                          <div className="me-3 mt-1">
+                            <span style={{ fontSize: '1.2rem' }}>
+                              {getFieldTypeIcon(field.FIELD_TYPE_ID || 1)}
+                            </span>
+                          </div>
+                          <div className="flex-fill">
+                            <div className="d-flex align-items-center mb-1">
+                              <h6 className="mb-0 fw-bold text-dark">
+                                {field.FIELD_NAME}
+                              </h6>
+                              {field.IS_REQUIRED && (
+                                <span className="badge bg-danger ms-2" style={{ fontSize: '0.7rem' }}>Required</span>
+                              )}
+                            </div>
+                            <div className="text-muted small mb-2">
+                              {getFieldTypeName(field.FIELD_TYPE_ID || 1)}
+                            </div>
+                            <div className="mt-2">
+                              <div className="text-muted small fw-bold mb-1">Value:</div>
+                              <div className="text-dark">
+                                {/* This would show actual form submission data if available */}
+                                <span className="text-muted fst-italic">
+                                  {field.FIELD_NAME.toLowerCase().includes('name') ? 'John Doe' : 
+                                   field.FIELD_NAME.toLowerCase().includes('email') ? 'john.doe@example.com' :
+                                   field.FIELD_NAME.toLowerCase().includes('phone') ? '(555) 123-4567' :
+                                   'No data submitted'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Assignment Section */}

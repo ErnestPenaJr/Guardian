@@ -9,6 +9,7 @@
 6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
 7. Finally, add a review section to the [todo.md](http://todo.md/) file with a summary of the changes you made and any other relevant information.
 
+
 ### User Registration
 
 1. User visits the registration page
@@ -33,6 +34,18 @@
 1. User visits the dashboard
 2. User clicks the "Logout" button
 3. User is redirected to the login page
+
+
+### User request fulfillment
+
+1. User visits the dashboard
+2. User clicks the "Fill Request Form" button
+3. User is redirected to the request fulfillment page
+4. User fills out the request fulfillment form
+5. User clicks the "Submit" button
+6. User is redirected to the dashboard
+
+
 
 ## Environment Configuration
 

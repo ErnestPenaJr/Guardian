@@ -25,13 +25,14 @@ model ATTACHMENTS {
 }
 
 model COMPANY {
-  COMPANY_ID   Int            @id(map: "PK__COMPANY__73B8DCFF3D624EE3") @default(autoincrement())
-  NAME         String         @db.NVarChar(255)
-  ADDRESS      String?        @db.NVarChar(255)
-  PHONE        String?        @db.NVarChar(50)
-  CREATED_AT   DateTime       @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
-  COMPANY_INFO COMPANY_INFO[]
-  FORMS        FORMS[]
+  COMPANY_ID     Int              @id(map: "PK__COMPANY__73B8DCFF3D624EE3") @default(autoincrement())
+  NAME           String           @db.NVarChar(255)
+  ADDRESS        String?          @db.NVarChar(255)
+  PHONE          String?          @db.NVarChar(50)
+  CREATED_AT     DateTime         @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
+  COMPANY_INFO   COMPANY_INFO[]
+  FORMS          FORMS[]
+  FORMS_INSTANCE FORMS_INSTANCE[]
 
   @@schema("GUARDIAN")
 }
@@ -135,6 +136,7 @@ model FORMS {
   COMPANY          COMPANY?         @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, map: "FK__FORMS__COMPANY")
   FORMS_INSTANCE   FORMS_INSTANCE[]
   FORMS_FIELDS     FORMS_FIELDS[]
+  REQUESTS         REQUESTS[]
 
   @@schema("GUARDIAN")
 }
@@ -191,6 +193,7 @@ model FORMS_INSTANCE {
   FORM_INSTANCE_ID      Int                     @id(map: "PK_FORMS_INSTANCE") @default(autoincrement())
   FORM_ID               Int
   ASSIGNED_ID           Int
+  COMPANY_ID            Int
   SUBMITTED_DATE        DateTime?               @db.DateTime
   CREATE_USER_ID        Int?
   UPDATE_USER_ID        Int?
@@ -199,6 +202,7 @@ model FORMS_INSTANCE {
   SysStartTime          DateTime                @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_INSTANCE_SysStart")
   SysEndTime            DateTime                @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_SysEnd")
   FORMS                 FORMS                   @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, map: "FK__FORMS_INS__FORM___7908F585")
+  COMPANY               COMPANY                 @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction, map: "FK_FORMS_INSTANCE_COMPANY")
   FORMS_INSTANCE_VALUES FORMS_INSTANCE_VALUES[]
 
   @@schema("GUARDIAN")
@@ -282,10 +286,12 @@ model REQUESTS {
   ABBREVIATION        String?   @db.VarChar(5)
   COMPANY_ID          Decimal?  @db.Decimal(38, 0)
   REQUEST_DESCRIPTION String?   @db.VarChar(2000)
+  FORM_ID             Int?
   
   // Add relationships for REQUESTOR_ID and ASSIGNED_ID
   REQUESTOR           USERS?    @relation("RequestorRequests", fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   ASSIGNED_USER       USERS?    @relation("AssignedRequests", fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+  FORM                FORMS?    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, onDelete: NoAction)
 
   @@schema("GUARDIAN")
 }

@@ -1,24 +1,123 @@
 ✅ Email service initialized with Resend
-=== GUARDIAN SIMPLE SERVER STARTING ===
+=== GUARDIAN AZURE SERVER STARTING ===
 Node version: v22.6.0
 Environment: development
 Port: 3001
-Process PID: 90172
+Process PID: 48931
 Current working directory: /Users/epena1/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
 🔌 Testing database connection...
-🚀 Starting Express server...
-✅ Server running on port 3001
-📁 Static files: /Users/epena1/Guardian MVP/dist
+🚀 Starting Azure Express server...
+✅ Azure server running on port 3001
+📁 Static files served from current directory
 🌐 Health check: /api/health
-🧪 Simple test: /api/simple-test
-🎉 Server startup complete!
+🧪 Debug endpoints: /api/debug/endpoints
+🎉 Azure server startup complete!
 ✅ Database connected successfully
+🔐 Login attempt for: Ernest@shieldlytics.com
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+prisma:error 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `N/A`. Message: `Error in the underlying connector`
+❌ Login error: 141 | `)}
+142 | 
+143 | We suggest to move the contents of ${Je(a)} to ${Je(o)} to consolidate your env vars.
+144 | `;throw new Error(c)}else if(r==="warn"){let c=`Conflict for env var${s.length>1?"s":""} ${s.map(l=>be(l)).join(", ")} in ${Je(o)} and ${Je(a)}
+145 | Env vars from ${Je(a)} overwrite the ones from ${Je(o)}
+146 |       `;console.warn(`${nr("warn(prisma)")} ${c}`)}}}}function kC(t){if(HT(t)){Su(`Environment variables loaded from ${t}`);let e=bu.default.config({path:t,debug:process.env.DOTENV_CONFIG_DEBUG?!0:void 0});return{dotenvResult:xC(e),message:nn(`Environment variables loaded from ${rA.default.relative(process.cwd(),t)}`),path:t}}else Su(`Environment variables not found at ${t}`);return null}function UC(t,e){return t&&e&&rA.default.resolve(t)===rA.default.resolve(e)}function HT(t){return!!(t&&Oo.default.existsSync(t))}function Nu(t,e){return Object.prototype.hasOwnProperty.call(t,e)}function nA(t,e){let r={};for(let n of Object.keys(t))r[n]=e(t[n],n);return r}function Fu(t,e){if(t.length===0)return;let r=t[0];for(let n=1;n<t.length;n++)e(r,t[n])<0&&(r=t[n]);return r}function M(t,e){Object.defineProperty(t,"name",{value:e,configurable:!0})}var LC=new Set,Fi=(t,e,...r)=>{LC.has(t)||(LC.add(t),mu(e,...r))};var Z=class t extends Error{clientVersion;errorCode;retryable;constructor(e,r,n){super(e),this.name="PrismaClie
+
+PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `N/A`. Message: `Error in the underlying connector`
+       meta: {
+  code: "N/A",
+  message: "Error in the underlying connector",
+},
+ clientVersion: "6.11.1",
+       code: "P2010"
+
+      at new PrismaClientKnownRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:146:1352)
+      at handleRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
+      at handleAndLogRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
+      at request (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
+
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "bnmbnm",
+  REQUEST_DESCRIPTION: "bnmbnm",
+  ABBREVIATION: "B",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "bnmbnm",
+  finalDescription: "bnmbnm",
+  finalAbbreviation: "B",
+  finalStatus: "A",
+  currentDate: 2025-07-31T19:47:13.706Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 116
+🔍 SCOPE_IDENTITY result: 116
+✅ Request created successfully: {
+  REQUEST_ID: 116,
+  REQUEST_NAME: "bnmbnm",
+  TRACKING_ID: "REQ-2025-116",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Submitting form data for request 116 (Company: 26)
+📋 Field values: {}
+📊 Submission type: Draft
+📋 Created new draft form instance
+✅ Form submitted successfully for request 116: 0 field values saved (Status: new)
+📋 Fetching requests for company ID: 26
+✅ Found 14 requests in database
+📤 Sending 14 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
 Authentication error: JsonWebTokenError {
   originalLine: 116,
   originalColumn: 42,
-  stack: "Error\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/jsonwebtoken/verify.js:171:23)\n    at getSecret (/Users/epena1/Guardian MVP/node_modules/jsonwebtoken/verify.js:97:14)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/jsonwebtoken/verify.js:101:10)\n    at <anonymous> (/Users/epena1/Guardian MVP/server.cjs:235:29)\n    at getAuthenticatedUserCompany (/Users/epena1/Guardian MVP/server.cjs:227:44)\n    at handle (/Users/epena1/Guardian MVP/node_modules/express/lib/router/layer.js:95:5)\n    at next (/Users/epena1/Guardian MVP/node_modules/express/lib/router/route.js:149:13)\n    at dispatch (/Users/epena1/Guardian MVP/node_modules/express/lib/router/route.js:119:3)\n    at handle (/Users/epena1/Guardian MVP/node_modules/express/lib/router/layer.js:95:5)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:284:15)\n    at process_params (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:421:3)\n    at next (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:280:10)\n    at error (/Users/epena1/Guardian MVP/node_modules/serve-static/index.js:121:7)\n    at emitError (node:events:43:23)\n    at onStatError (/Users/epena1/Guardian MVP/node_modules/send/index.js:417:12)\n    at processTicksAndRejections (native:7:39)",
+  stack: "Error\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/jsonwebtoken/verify.js:171:23)\n    at getSecret (/Users/epena1/Guardian MVP/node_modules/jsonwebtoken/verify.js:97:14)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/jsonwebtoken/verify.js:101:10)\n    at <anonymous> (/Users/epena1/Guardian MVP/server-production.js:203:29)\n    at getAuthenticatedUserCompany (/Users/epena1/Guardian MVP/server-production.js:195:44)\n    at handle (/Users/epena1/Guardian MVP/node_modules/express/lib/router/layer.js:95:5)\n    at next (/Users/epena1/Guardian MVP/node_modules/express/lib/router/route.js:149:13)\n    at dispatch (/Users/epena1/Guardian MVP/node_modules/express/lib/router/route.js:119:3)\n    at handle (/Users/epena1/Guardian MVP/node_modules/express/lib/router/layer.js:95:5)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:284:15)\n    at process_params (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:421:3)\n    at next (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:280:10)\n    at handle (/Users/epena1/Guardian MVP/node_modules/express/lib/router/layer.js:95:5)\n    at trim_prefix (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:328:13)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:286:9)\n    at next (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:280:10)\n    at urlencodedParser (/Users/epena1/Guardian MVP/node_modules/express/node_modules/body-parser/lib/types/urlencoded.js:85:7)\n    at handle (/Users/epena1/Guardian MVP/node_modules/express/lib/router/layer.js:95:5)\n    at trim_prefix (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:328:13)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:286:9)\n    at next (/Users/epena1/Guardian MVP/node_modules/express/lib/router/index.js:280:10)\n    at <anonymous> (/Users/epena1/Guardian MVP/node_modules/express/node_modules/body-parser/lib/read.js:137:5)\n    at runInAsyncScope (node:async_hooks:140:23)\n    at invokeCallback (/Users/epena1/Guardian MVP/node_modules/express/node_modules/body-parser/node_modules/raw-body/index.js:238:16)\n    at done (/Users/epena1/Guardian MVP/node_modules/express/node_modules/body-parser/node_modules/raw-body/index.js:227:7)\n    at onEnd (/Users/epena1/Guardian MVP/node_modules/express/node_modules/body-parser/node_modules/raw-body/index.js:287:7)\n    at emit (node:events:92:22)\n    at endReadableNT (internal:streams/readable:862:50)\n    at processTicksAndRejections (native:7:39)",
   name: "JsonWebTokenError",
   message: "invalid signature",
   toString: [Function: toString],
@@ -45,200 +144,120 @@ Authentication error: JsonWebTokenError {
 ✅ User has 1 unread notifications
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 14 requests in database
+📤 Sending 14 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 14 requests in database
+📤 Sending 14 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 14 requests in database
+📤 Sending 14 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 14 requests in database
+📤 Sending 14 formatted requests to frontend
 📋 Fetching forms from database for company: 26
-✅ Found 4 forms for company 26
-📤 Sending 4 formatted forms to frontend
-📋 Fetching form 1006 from database for company: 26
-👤 User 1111 roles: [6, 6], isAdmin: true
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
 ✅ Found form 1006 with 3 fields
-📤 Sending form 1006 data to frontend
-📋 Fetching form 1006 from database for company: 26
-👤 User 1111 roles: [6, 6], isAdmin: true
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "dad",
+  REQUEST_DESCRIPTION: "asdasdasd",
+  ABBREVIATION: "D",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "dad",
+  finalDescription: "asdasdasd",
+  finalAbbreviation: "D",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:05:06.884Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 117
+🔍 SCOPE_IDENTITY result: 117
+✅ Request created successfully: {
+  REQUEST_ID: 117,
+  REQUEST_NAME: "dad",
+  TRACKING_ID: "REQ-2025-117",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
 ✅ Found form 1006 with 3 fields
-📤 Sending form 1006 data to frontend
-📝 Fetching fields from database for company: 26
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔧 Fetching field types from database...
-📝 Fetching fields from database for company: 26
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔧 Fetching field types from database...
-📝 Fetching fields from database for company: 26
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔧 Fetching field types from database...
-📝 Fetching fields from database for company: 26
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
+📝 Submitting form data for request 117 (Company: 26)
+📋 Field values: {}
+📊 Submission type: Draft
+📋 Created new draft form instance
+✅ Form submitted successfully for request 117: 0 field values saved (Status: new)
+📋 Fetching requests for company ID: 26
+✅ Found 15 requests in database
+📤 Sending 15 formatted requests to frontend
 📋 Fetching forms from database for company: 26
-✅ Found 4 forms for company 26
-📤 Sending 4 formatted forms to frontend
-📋 Fetching form 1007 from database for company: 26
-👤 User 1111 roles: [6, 6], isAdmin: true
-✅ Found form 1007 with 5 fields
-📤 Sending form 1007 data to frontend
-📝 Fetching fields from database for company: 26
-📋 Fetching form 1007 from database for company: 26
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-👤 User 1111 roles: [6, 6], isAdmin: true
-📝 Fetching fields from database for company: 26
-✅ Found form 1007 with 5 fields
-📤 Sending form 1007 data to frontend
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-📝 Fetching fields from database for company: 26
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-📝 Fetching fields from database for company: 26
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
-👥 Fetching users for company ID: 26
-✅ Found 3 users
-👥 Fetching users for company ID: 26
-✅ Found 3 users
-🔧 Fetching field types from database...
-📝 Fetching fields from database for company: 26
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-📋 Fetching forms from database for company: 26
-✅ Found 4 forms for company 26
-📤 Sending 4 formatted forms to frontend
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-📝 Fetching fields from database for company: 26
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔧 Fetching field types from database...
-📝 Fetching fields from database for company: 26
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-📋 Fetching forms from database for company: 26
-✅ Found 4 forms for company 26
-📤 Sending 4 formatted forms to frontend
-📋 Fetching form 1007 from database for company: 26
-👤 User 1111 roles: [6, 6], isAdmin: true
-✅ Found form 1007 with 5 fields
-📤 Sending form 1007 data to frontend
-📋 Fetching form 1007 from database for company: 26
-📝 Fetching fields from database for company: 26
-👤 User 1111 roles: [6, 6], isAdmin: true
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-📝 Fetching fields from database for company: 26
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-✅ Found form 1007 with 5 fields
-📤 Sending form 1007 data to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-📝 Fetching fields from database for company: 26
-🔧 Fetching field types from database...
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-📝 Fetching fields from database for company: 26
-🔧 Fetching field types from database...
-✅ Found 25 fields for company 26
-📤 Sending 25 fields to frontend
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔧 Fetching field types from database...
-✅ Found 15 field types
-📤 Sending 15 field types to frontend
-🔔 Fetching notifications for user 1111 (Company: 26)
-✅ Found 1 notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "sdasd",
+  REQUEST_DESCRIPTION: "asdasd",
+  ABBREVIATION: "S",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "sdasd",
+  finalDescription: "asdasd",
+  finalAbbreviation: "S",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:05:30.705Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 118
+🔍 SCOPE_IDENTITY result: 118
+✅ Request created successfully: {
+  REQUEST_ID: 118,
+  REQUEST_NAME: "sdasd",
+  TRACKING_ID: "REQ-2025-118",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Submitting form data for request 118 (Company: 26)
+📋 Field values: {}
+📊 Submission type: Complete
+📋 Created new completed form instance
+✅ Form submitted successfully for request 118: 0 field values saved (Status: completed)
+📋 Fetching requests for company ID: 26
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
 🔢 Getting notification count for user 1111
@@ -252,15 +271,24 @@ Authentication error: JsonWebTokenError {
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
 📋 Fetching requests for company ID: 26
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
 📋 Fetching requests for company ID: 26
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
 prisma:error 
 Invalid `prisma.$queryRaw()` invocation:
 
@@ -290,514 +318,412 @@ Raw query failed. Code: `N/A`. Message: `Error in the underlying connector`
       at handleAndLogRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
       at request (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
 
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔐 Login attempt for: ernest@shieldlytics.com
-✅ Login successful for: ernest@shieldlytics.com (User ID: 1111, Company: 26)
-🔢 Getting notification count for user 1111
 📋 Fetching requests for company ID: 26
-✅ User has 1 unread notifications
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
-🔢 Getting notification count for user 1111
-📋 Fetching requests for company ID: 26
-✅ User has 1 unread notifications
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-prisma:error 
-Invalid `prisma.$queryRaw()` invocation:
-
-
-Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
-Authentication error: 141 | `)}
-142 | 
-143 | We suggest to move the contents of ${Je(a)} to ${Je(o)} to consolidate your env vars.
-144 | `;throw new Error(c)}else if(r==="warn"){let c=`Conflict for env var${s.length>1?"s":""} ${s.map(l=>be(l)).join(", ")} in ${Je(o)} and ${Je(a)}
-145 | Env vars from ${Je(a)} overwrite the ones from ${Je(o)}
-146 |       `;console.warn(`${nr("warn(prisma)")} ${c}`)}}}}function kC(t){if(HT(t)){Su(`Environment variables loaded from ${t}`);let e=bu.default.config({path:t,debug:process.env.DOTENV_CONFIG_DEBUG?!0:void 0});return{dotenvResult:xC(e),message:nn(`Environment variables loaded from ${rA.default.relative(process.cwd(),t)}`),path:t}}else Su(`Environment variables not found at ${t}`);return null}function UC(t,e){return t&&e&&rA.default.resolve(t)===rA.default.resolve(e)}function HT(t){return!!(t&&Oo.default.existsSync(t))}function Nu(t,e){return Object.prototype.hasOwnProperty.call(t,e)}function nA(t,e){let r={};for(let n of Object.keys(t))r[n]=e(t[n],n);return r}function Fu(t,e){if(t.length===0)return;let r=t[0];for(let n=1;n<t.length;n++)e(r,t[n])<0&&(r=t[n]);return r}function M(t,e){Object.defineProperty(t,"name",{value:e,configurable:!0})}var LC=new Set,Fi=(t,e,...r)=>{LC.has(t)||(LC.add(t),mu(e,...r))};var Z=class t extends Error{clientVersion;errorCode;retryable;constructor(e,r,n){super(e),this.name="PrismaClie
-
-PrismaClientKnownRequestError: 
-Invalid `prisma.$queryRaw()` invocation:
-
-
-Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
-       meta: {
-  connection_limit: 17,
-  timeout: 10,
-},
- clientVersion: "6.11.1",
-       code: "P2024"
-
-      at new PrismaClientKnownRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:146:1352)
-      at handleRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
-      at handleAndLogRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
-      at request (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
-
-🔐 Login attempt for: Ernest@shieldlytics.com
-✅ Login successful for: Ernest@shieldlytics.com (User ID: 1111, Company: 26)
-📋 Fetching requests for company ID: 26
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
-📋 Fetching requests for company ID: 26
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔐 Login attempt for: ernest@shieldlytics.com
-✅ Login successful for: ernest@shieldlytics.com (User ID: 1111, Company: 26)
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
 📋 Fetching requests for company ID: 26
 🔢 Getting notification count for user 1111
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
 ✅ User has 1 unread notifications
 📋 Fetching requests for company ID: 26
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 16 requests in database
+📤 Sending 16 formatted requests to frontend
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "zxczxc",
+  REQUEST_DESCRIPTION: "zxczxczxc",
+  ABBREVIATION: "Z",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "zxczxc",
+  finalDescription: "zxczxczxc",
+  finalAbbreviation: "Z",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:09:57.624Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 119
+🔍 SCOPE_IDENTITY result: 119
+✅ Request created successfully: {
+  REQUEST_ID: 119,
+  REQUEST_NAME: "zxczxc",
+  TRACKING_ID: "REQ-2025-119",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Submitting form data for request 119 (Company: 26)
+📋 Field values: {}
+📊 Submission type: Draft
+📋 Created new draft form instance
+✅ Form submitted successfully for request 119: 0 field values saved (Status: new)
+📋 Fetching requests for company ID: 26
+✅ Found 17 requests in database
+📤 Sending 17 formatted requests to frontend
 🔢 Getting notification count for user 1111
-✅ Found 9 requests in database
-📤 Sending 9 formatted requests to frontend
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 17 requests in database
+📤 Sending 17 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
 📋 Fetching forms from database for company: 26
-✅ Found 4 forms for company 26
-📤 Sending 4 formatted forms to frontend
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
-🔢 Getting notification count for user 1111
-✅ User has 1 unread notifications
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "asd",
+  REQUEST_DESCRIPTION: "asd",
+  ABBREVIATION: "A",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "asd",
+  finalDescription: "asd",
+  finalAbbreviation: "A",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:15:07.410Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 120
+🔍 SCOPE_IDENTITY result: 120
+✅ Request created successfully: {
+  REQUEST_ID: 120,
+  REQUEST_NAME: "asd",
+  TRACKING_ID: "REQ-2025-120",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📋 Fetching requests for company ID: 26
+✅ Found 18 requests in database
+📤 Sending 18 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching form for request 120 (Company: 26)
+🔍 Querying for request 120 in company 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1006
+🔍 Querying for form 1006 (company-specific or global)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1006 using junction table
+✅ Found 3 form-specific fields for form 1006
+🔍 Checking for existing form instance for request 120
+🔍 Fetching form instance for request 120
+📝 No existing form instance found - new form
+✅ Found request 120 with form 1006 containing 3 fields
+📤 Sending form data for request 120 to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📝 Submitting form data for request 120 (Company: 26)
+📋 Field values: {
+  "1009": "112321",
+  "1010": "qw12321",
+  "1039": "123213"
+}
+📊 Submission type: Auto-save
+📋 Created new draft form instance
+✅ Form submitted successfully for request 120: 3 field values saved (Status: in_progress)
+📋 Fetching requests for company ID: 26
+✅ Found 18 requests in database
+📤 Sending 18 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "sadasd",
+  REQUEST_DESCRIPTION: "asdasdas",
+  ABBREVIATION: "S",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "sadasd",
+  finalDescription: "asdasdas",
+  finalAbbreviation: "S",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:20:34.693Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 121
+🔍 SCOPE_IDENTITY result: 121
+✅ Request created successfully: {
+  REQUEST_ID: 121,
+  REQUEST_NAME: "sadasd",
+  TRACKING_ID: "REQ-2025-121",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📋 Fetching requests for company ID: 26
+✅ Found 19 requests in database
+📤 Sending 19 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 19 requests in database
+📤 Sending 19 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 19 requests in database
+📤 Sending 19 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "dfg",
+  REQUEST_DESCRIPTION: "dfg",
+  ABBREVIATION: "D",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "dfg",
+  finalDescription: "dfg",
+  finalAbbreviation: "D",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:24:25.290Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 122
+🔍 SCOPE_IDENTITY result: 122
+✅ Request created successfully: {
+  REQUEST_ID: 122,
+  REQUEST_NAME: "dfg",
+  TRACKING_ID: "REQ-2025-122",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Submitting form data for request 122 (Company: 26)
+📋 Field values: {}
+📊 Submission type: Draft
+📋 Created new draft form instance
+✅ Form submitted successfully for request 122: 0 field values saved (Status: new)
+📋 Fetching requests for company ID: 26
+✅ Found 20 requests in database
+📤 Sending 20 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "asdas",
+  REQUEST_DESCRIPTION: "asasd",
+  ABBREVIATION: "A",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "asdas",
+  finalDescription: "asasd",
+  finalAbbreviation: "A",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:26:23.620Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 123
+🔍 SCOPE_IDENTITY result: 123
+✅ Request created successfully: {
+  REQUEST_ID: 123,
+  REQUEST_NAME: "asdas",
+  TRACKING_ID: "REQ-2025-123",
+  COMPANY_ID: 26,
+}
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Submitting form data for request 123 (Company: 26)
+📋 Field values: {}
+📊 Submission type: Draft
+📋 Created new draft form instance
+✅ Form submitted successfully for request 123: 0 field values saved (Status: new)
+📋 Fetching requests for company ID: 26
+✅ Found 21 requests in database
+📤 Sending 21 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 21 requests in database
+📤 Sending 21 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 21 requests in database
+📤 Sending 21 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 21 requests in database
+📤 Sending 21 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 21 requests in database
+📤 Sending 21 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 21 requests in database
+📤 Sending 21 formatted requests to frontend
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching form 1006 for company: 26
+✅ Found form 1006 with 3 fields
+📝 Creating new request for company: 26 {
+  REQUEST_NAME: "lklk;j",
+  REQUEST_DESCRIPTION: "iuoiuhoiu",
+  ABBREVIATION: "L",
+  STATUS: "A",
+  ASSIGNED_ID: null,
+  FORM_ID: 1006,
+  templateId: 1006,
+}
+🔍 INSERT Parameters: {
+  finalRequestName: "lklk;j",
+  finalDescription: "iuoiuhoiu",
+  finalAbbreviation: "L",
+  finalStatus: "A",
+  currentDate: 2025-07-31T20:29:29.067Z,
+  userId: 1111,
+  companyId: 26,
+  templateId: 1006,
+  finalAssignedId: null,
+}
+✅ INSERT completed successfully, ID: 124
+🔍 SCOPE_IDENTITY result: 124
+✅ Request created successfully: {
+  REQUEST_ID: 124,
+  REQUEST_NAME: "lklk;j",
+  TRACKING_ID: "REQ-2025-124",
+  COMPANY_ID: 26,
+}
+📝 Submitting form data for request 124 (Company: 26)
+📋 Field values: {
+  "1009": "ohjui",
+  "1010": "8708",
+  "1039": ".kjn"
+}
+📊 Submission type: Draft
+📋 Created new draft form instance
+✅ Form submitted successfully for request 124: 3 field values saved (Status: in_progress)
+📋 Fetching requests for company ID: 26
+✅ Found 22 requests in database
+📤 Sending 22 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching form for request 124 (Company: 26)
+🔍 Querying for request 124 in company 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1006
+🔍 Querying for form 1006 (company-specific or global)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1006 using junction table
+✅ Found 3 form-specific fields for form 1006
+🔍 Checking for existing form instance for request 124
+🔍 Fetching form instance for request 124
+📋 Found existing form instance: 1056
+📊 Found 3 existing field values
+📈 Form status: in_progress (1/1 required fields filled)
+✅ Found request 124 with form 1006 containing 3 fields
+📤 Sending form data for request 124 to frontend
 🔢 Getting notification count for user 1111
 ✅ User has 1 unread notifications
 🔢 Getting notification count for user 1111

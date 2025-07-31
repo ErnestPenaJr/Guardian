@@ -2032,7 +2032,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 const field = fields[i];
                 
                 const fieldResult = await prisma.$queryRaw`
-                    INSERT INTO GUARDIAN.FORM_FIELDS (
+                    INSERT INTO GUARDIAN.FIELDS (
                         FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
                         IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
                     )
@@ -2127,7 +2127,7 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         if (fields && Array.isArray(fields)) {
             // First, mark all existing fields as deleted
             await prisma.$queryRaw`
-                UPDATE GUARDIAN.FORM_FIELDS 
+                UPDATE GUARDIAN.FIELDS 
                 SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
                 WHERE FORM_ID = ${formId}
             `;
@@ -2139,7 +2139,7 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
                 if (field.FIELD_ID) {
                     // Update existing field
                     await prisma.$queryRaw`
-                        UPDATE GUARDIAN.FORM_FIELDS 
+                        UPDATE GUARDIAN.FIELDS 
                         SET 
                             FIELD_NAME = ${field.FIELD_NAME},
                             FIELD_TYPE_ID = ${field.FIELD_TYPE_ID},
@@ -2160,7 +2160,7 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
                 } else {
                     // Insert new field
                     const fieldResult = await prisma.$queryRaw`
-                        INSERT INTO GUARDIAN.FORM_FIELDS (
+                        INSERT INTO GUARDIAN.FIELDS (
                             FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
                             IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
                         )
@@ -2234,7 +2234,7 @@ app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         const fields = await prisma.$queryRaw`
             SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
                    ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
-            FROM GUARDIAN.FORM_FIELDS ff
+            FROM GUARDIAN.FIELDS ff
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
             WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
             ORDER BY ff.SEQUENCE, ff.FIELD_ID
@@ -2283,7 +2283,7 @@ app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) =
         `;
 
         await prisma.$queryRaw`
-            UPDATE GUARDIAN.FORM_FIELDS 
+            UPDATE GUARDIAN.FIELDS 
             SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
             WHERE FORM_ID = ${formId}
         `;
@@ -3107,25 +3107,14 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
         const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
         
         let existingInstances;
-        if (isAdmin) {
-            // Admin users can see all form instances for this form
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
-                FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
-            console.log(`👑 Admin user - fetching all form instances for form ${request.FORM_ID}`);
-        } else {
-            // Regular users only see their own assigned instances
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
-                FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
-            console.log(`👤 Regular user - fetching instances assigned to user ${request.ASSIGNED_ID}`);
-        }
+        // Look for existing form instance for this specific request
+        existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
+            FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
+        console.log(`🔍 Fetching form instance for request ${requestId}`);
 
         let existingValues = {};
         let formInstanceId = null;
@@ -3144,9 +3133,19 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
                 WHERE FORM_INSTANCE_ID = ${formInstanceId}
             `;
             
-            // Convert to object with field IDs as keys
-            existingValues = savedValues.reduce((acc, value) => {
+            // Convert to object with field IDs as keys (for backend processing)
+            const existingValuesByFieldId = savedValues.reduce((acc, value) => {
                 acc[value.FIELD_ID] = value.VALUE;
+                return acc;
+            }, {});
+            
+            // Also create a mapping by field name (for frontend usage)
+            existingValues = savedValues.reduce((acc, value) => {
+                // Find the field with this FIELD_ID to get its name
+                const field = fields.find(f => f.FIELD_ID === value.FIELD_ID);
+                if (field) {
+                    acc[field.FIELD_NAME] = value.VALUE;
+                }
                 return acc;
             }, {});
             
@@ -3155,7 +3154,7 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
             // Determine form completion status
             const requiredFields = fields.filter(f => f.FORM_IS_REQUIRED || f.IS_REQUIRED);
             const filledRequiredFields = requiredFields.filter(f => 
-                existingValues[f.FIELD_ID] && existingValues[f.FIELD_ID].trim() !== ''
+                existingValuesByFieldId[f.FIELD_ID] && existingValuesByFieldId[f.FIELD_ID].trim() !== ''
             );
             
             if (submittedDate && filledRequiredFields.length === requiredFields.length) {
@@ -3276,18 +3275,12 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
         
         let existingInstances;
-        if (isAdmin) {
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID}
-                ORDER BY CREATE_DATE DESC
-            `;
-        } else {
-            existingInstances = await prisma.$queryRaw`
-                SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-            `;
-        }
+        // Look for existing form instance for this specific request
+        existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
 
         let formInstanceId;
 
@@ -3319,9 +3312,9 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                 // Complete submission
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE (
-                        FORM_ID, ASSIGNED_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${request.FORM_ID}, ${request.ASSIGNED_ID}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 console.log(`📋 Created new completed form instance`);
@@ -3329,9 +3322,9 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                 // Draft/in-progress submission (no submitted date)
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE (
-                        FORM_ID, ASSIGNED_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${request.FORM_ID}, ${request.ASSIGNED_ID}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID}, ${req.companyId}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 console.log(`📋 Created new draft form instance`);
@@ -3339,19 +3332,10 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
 
             // Get the new instance ID
             let newInstances;
-            if (isAdmin) {
-                newInstances = await prisma.$queryRaw`
-                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                    WHERE FORM_ID = ${request.FORM_ID}
-                    ORDER BY CREATE_DATE DESC
-                `;
-            } else {
-                newInstances = await prisma.$queryRaw`
-                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID}
-                    ORDER BY CREATE_DATE DESC
-                `;
-            }
+            newInstances = await prisma.$queryRaw`
+                SELECT TOP 1 FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE REQUEST_ID = ${requestId} ORDER BY CREATE_DATE DESC
+            `;
             
             formInstanceId = newInstances[0].FORM_INSTANCE_ID;
         }

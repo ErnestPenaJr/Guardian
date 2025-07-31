@@ -20,6 +20,7 @@ interface AddRequestModalProps {
 }
 
 const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [step, setStep] = useState(1);
   const [requestName, setRequestName] = useState('');
   const [abbreviation, setAbbreviation] = useState('');
   const [description, setDescription] = useState('');
@@ -33,6 +34,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     icon: JSX.Element;
     fields: string;
   }>>([]);
+  const [templateFields, setTemplateFields] = useState<any[]>([]);
+  const [fieldValues, setFieldValues] = useState<{[key: string]: string}>({});
+  const [loadingFields, setLoadingFields] = useState(false);
   
   // Get icon based on template name
   const getIconForTemplate = (templateName: string) => {
@@ -144,9 +148,12 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       fetchFormTemplates();
       
       // Reset form fields when modal opens
+      setStep(1);
       setRequestName('');
       setAbbreviation('');
       setDescription('');
+      setTemplateFields([]);
+      setFieldValues({});
     }
   }, [isOpen]);
   
@@ -165,13 +172,300 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle next step (from step 1 to step 2)
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
     if (abbreviation.length > 5) {
       toast.error('Abbreviation must be 5 characters or less');
       return;
     }
     
+    if (!requestName.trim()) {
+      toast.error('Request name is required');
+      return;
+    }
+    
+    if (!selectedTemplate) {
+      toast.error('Please select a form template');
+      return;
+    }
+    
+    // Load template fields for step 2
+    await loadTemplateFields(selectedTemplate);
+    setStep(2);
+  };
+  
+  // Load template fields
+  const loadTemplateFields = async (templateId: string) => {
+    setLoadingFields(true);
+    try {
+      const selectedTemplateObj = formTemplates.find(t => t.id === templateId);
+      let formId: number;
+      
+      if (selectedTemplateObj?.id.startsWith('default-')) {
+        const forms = await formService.getAllForms();
+        const matchingForm = forms.find(f => 
+          f.FORM_NAME.toUpperCase() === selectedTemplateObj.name.toUpperCase() && 
+          f.IS_ACTIVE && 
+          f.IS_PUBLIC
+        );
+        formId = matchingForm?.FORM_ID || 0;
+      } else {
+        formId = parseInt(selectedTemplateObj?.id || '0');
+      }
+      
+      if (formId) {
+        // Get form with fields
+        const formWithFields = await formService.getFormById(formId);
+        setTemplateFields(formWithFields.fields || []);
+      } else {
+        // Use default fields for the template
+        const defaultFields = getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || '');
+        setTemplateFields(defaultFields);
+      }
+    } catch (error) {
+      console.error('Error loading template fields:', error);
+      // Use default fields as fallback
+      const selectedTemplateObj = formTemplates.find(t => t.id === templateId);
+      setTemplateFields(getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || ''));
+    } finally {
+      setLoadingFields(false);
+    }
+  };
+  
+  // Get default fields as objects for template
+  const getDefaultFieldsForTemplateObj = (templateName: string) => {
+    switch(templateName.toUpperCase()) {
+      case 'FINANCIAL':
+        return [
+          { FIELD_ID: 'bank_name', FIELD_NAME: 'Bank Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'routing_number', FIELD_NAME: 'Routing #', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'account_holder', FIELD_NAME: 'Account Holder', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true }
+        ];
+      case 'ADDRESS':
+        return [
+          { FIELD_ID: 'address_line_1', FIELD_NAME: 'Address Line 1', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'address_line_2', FIELD_NAME: 'Address Line 2', FIELD_TYPE_DESC: 'text', IS_REQUIRED: false },
+          { FIELD_ID: 'city', FIELD_NAME: 'City', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'state', FIELD_NAME: 'State', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'zip_code', FIELD_NAME: 'ZIP Code', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true }
+        ];
+      case 'SUBJECT':
+        return [
+          { FIELD_ID: 'first_name', FIELD_NAME: 'First Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'middle_name', FIELD_NAME: 'Middle Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: false },
+          { FIELD_ID: 'last_name', FIELD_NAME: 'Last Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
+          { FIELD_ID: 'dob', FIELD_NAME: 'Date of Birth', FIELD_TYPE_DESC: 'date', IS_REQUIRED: true },
+          { FIELD_ID: 'ssn', FIELD_NAME: 'SSN', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true }
+        ];
+      default:
+        return [];
+    }
+  };
+  
+  // Handle form field value changes
+  const handleFieldValueChange = (fieldId: string, value: string) => {
+    setFieldValues(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+  };
+  
+  // Check if form is complete (all required fields filled)
+  const isFormComplete = () => {
+    // For now, consider all fields as required since IS_REQUIRED property is not in the database response
+    const requiredFields = templateFields.filter(field => field.FIELD_NAME !== 'Request Status');
+    
+    const missingFields = requiredFields.filter(field => {
+      const fieldId = String(field.FIELD_ID || '');
+      const value = fieldValues[fieldId];
+      return !value || value.trim() === '';
+    });
+    
+    return missingFields.length === 0;
+  };
+  
+  // Show incomplete form warning
+  const showIncompleteFormWarning = async () => {
+    const result = await MySwal.fire({
+      icon: 'warning',
+      title: 'Incomplete Form',
+      text: 'Any unsaved forms will not be saved and all incomplete data will be lost.',
+      showCancelButton: true,
+      confirmButtonText: 'Continue Anyway',
+      cancelButtonText: 'Go Back',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6'
+    });
+    
+    return result.isConfirmed;
+  };
+
+  // Handle start button (saves form data with conditional status based on form data)
+  const handleStart = async () => {
+    // Check if form is complete first
+    if (!isFormComplete()) {
+      const shouldContinue = await showIncompleteFormWarning();
+      if (!shouldContinue) {
+        return; // User chose to go back
+      }
+      // If user chooses to continue, don't save form instance, just close modal
+      resetForm();
+      onClose();
+      return;
+    }
+    
+    // Check if form has any data (excluding request_status field)
+    const formFieldsWithData = Object.entries(fieldValues).filter(([key, value]) => 
+      key !== 'request_status' && value && value.trim() !== ''
+    );
+    
+    // Determine status based on whether form has data
+    const status = formFieldsWithData.length > 0 ? 'In Progress' : 'Pending';
+    
+    console.log(`Form has ${formFieldsWithData.length} fields with data, setting status to: ${status}`);
+    
+    // Set the request status and submit
+    const updatedFieldValues = {
+      ...fieldValues,
+      request_status: status
+    };
+    setFieldValues(updatedFieldValues);
+    
+    // Submit with the determined status
+    await submitFormWithStatus(status);
+  };
+  
+  // Handle complete button (saves form data with status 'Completed')
+  const handleComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check if form is complete first
+    if (!isFormComplete()) {
+      const shouldContinue = await showIncompleteFormWarning();
+      if (!shouldContinue) {
+        return; // User chose to go back
+      }
+      // If user chooses to continue, don't save form instance, just close modal
+      resetForm();
+      onClose();
+      return;
+    }
+    
+    await submitFormWithStatus('Completed');
+  };
+  
+  // Handle cancel button (saves form data with status 'Cancelled')
+  const handleCancel = async () => {
+    // Check if form is complete first
+    if (!isFormComplete()) {
+      const shouldContinue = await showIncompleteFormWarning();
+      if (!shouldContinue) {
+        return; // User chose to go back
+      }
+      // If user chooses to continue, don't save form instance, just close modal
+      resetForm();
+      onClose();
+      return;
+    }
+    
+    await submitFormWithStatus('Cancelled');
+  };
+  
+  // Submit form with specific status
+  const submitFormWithStatus = async (status: string) => {
+    const updatedFieldValues = {
+      ...fieldValues,
+      request_status: status
+    };
+    setFieldValues(updatedFieldValues);
+    
+    // Perform the actual submission with the specific status
+    try {
+      setIsSubmitting(true);
+      
+      // Get the selected template's form ID
+      const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
+      let formId: number;
+      
+      if (selectedTemplateObj?.id.startsWith('default-')) {
+        const forms = await formService.getAllForms();
+        const matchingForm = forms.find(f => 
+          f.FORM_NAME.toUpperCase() === selectedTemplateObj.name.toUpperCase() && 
+          f.IS_ACTIVE && 
+          f.IS_PUBLIC
+        );
+        
+        if (matchingForm && matchingForm.FORM_ID) {
+          formId = matchingForm.FORM_ID;
+        } else {
+          toast.error('Selected template not found in database');
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        formId = parseInt(selectedTemplateObj?.id || '0');
+      }
+      
+      if (!formId || isNaN(formId)) {
+        toast.error('Invalid template selected');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Get authenticated user info
+      const authUser = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Prepare request data with the specific status
+      const requestData = {
+        name: requestName,
+        abbreviation,
+        description,
+        templateId: formId,
+        companyId: authUser?.company?.id || 14,
+        userId: authUser?.id || 1036,
+        formFieldValues: updatedFieldValues, // Use the updated field values with status
+        requestStatus: status // Explicitly set the request status
+      };
+      
+      console.log(`Creating request with status: ${status}`);
+      console.log('Request data being sent:', requestData);
+      
+      // Submit the form
+      await onSubmit(requestData);
+      
+      // Reset form and close modal
+      resetForm();
+      onClose();
+      
+      // Show success message
+      MySwal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: `Request ${status.toLowerCase()} successfully!`,
+        confirmButtonText: 'OK',
+        timer: 3000,
+        timerProgressBar: true
+      });
+      
+    } catch (error: any) {
+      console.error(`Error ${status.toLowerCase()} request:`, error);
+      const errorDetails = error.response?.data?.error || error.message || 'Unknown error';
+      
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Error ${status.toLowerCase()} request: ${errorDetails}. Please try again.`,
+        confirmButtonText: 'OK'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle final form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
     
     try {
@@ -218,7 +512,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         description,
         templateId: formId,
         companyId: authUser?.company?.id || 14, // Get company ID from authenticated user or default to DEV-TEAM (14)
-        userId: authUser?.id || 1036 // Get user ID from authenticated user or default to Ernest Pena (1036)
+        userId: authUser?.id || 1036, // Get user ID from authenticated user or default to Ernest Pena (1036)
+        formFieldValues: fieldValues // Include the form field values
       };
       
       // Use only the main endpoint to avoid duplicate creation
@@ -271,10 +566,13 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   
   // Reset form function
   const resetForm = () => {
+    setStep(1);
     setRequestName('');
     setAbbreviation('');
     setDescription('');
     setSelectedTemplate('SUBJECT');
+    setTemplateFields([]);
+    setFieldValues({});
   };
   
   return (
@@ -287,7 +585,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       id="AddRequestModal"
     >
       <div className="modal-header">
-        <h2 className="modal-title">Add New Request</h2>
+        <h2 className="modal-title">
+          {step === 1 ? 'Add New Request' : `Fill Request Form - ${requestName}`}
+        </h2>
         <button 
           type="button" 
           className="btn-close" 
@@ -296,8 +596,10 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         ></button>
       </div>
       
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}>
         <div className="modal-body" style={{ maxHeight: 'none', overflow: 'visible' }}>
+          {step === 1 && (
+            <>
           <div className="mb-4">
             <label htmlFor="formTemplate" className="form-label">Form Template</label>
             <div
@@ -425,7 +727,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             </div>
           )}
           
-          {/* Submit button */}
+          {/* Submit button for step 1 */}
           <div className="d-flex justify-content-end gap-2 mt-4">
             <button 
               type="button" 
@@ -441,9 +743,123 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               disabled={isSubmitting}
               style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
             >
-              {isSubmitting ? 'Adding...' : 'Add Request'}
+              Next
             </button>
           </div>
+            </>
+          )}
+          
+          {step === 2 && (
+            <div>
+              {/* Template info header */}
+              <div className="mb-4 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '0.375rem' }}>
+                <h5 className="text-primary mb-1">
+                  {formTemplates.find(t => t.id === selectedTemplate)?.name} Template
+                </h5>
+                <p className="text-muted mb-0 small">
+                  {formTemplates.find(t => t.id === selectedTemplate)?.name === 'FINANCIAL' 
+                    ? 'Banking information template' 
+                    : formTemplates.find(t => t.id === selectedTemplate)?.description || 'Form template'}
+                </p>
+              </div>
+              
+              {loadingFields ? (
+                <div className="text-center p-4">
+                  <FaSpinner className="fa-spin" style={{ fontSize: '24px' }} />
+                  <p className="mt-2">Loading form fields...</p>
+                </div>
+              ) : (
+                <div>
+                  {templateFields.filter(field => field.FIELD_NAME !== 'Request Status').map((field, index) => {
+                    const fieldId = String(field.FIELD_ID || index);
+                    return (
+                    <div key={fieldId} className="mb-3">
+                      <label className="form-label">
+                        {field.FIELD_NAME}
+                        <span className="text-danger ms-1">*</span>
+                      </label>
+                      {field.FIELD_TYPE_DESC === 'date' ? (
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        />
+                      ) : field.FIELD_TYPE_DESC === 'textarea' ? (
+                        <textarea
+                          className="form-control"
+                          rows={3}
+                          placeholder={`Enter ${field.FIELD_NAME}`}
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        />
+                      ) : field.FIELD_TYPE_DESC === 'select' && field.OPTIONS ? (
+                        <select
+                          className="form-select"
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        >
+                          <option value="">Select {field.FIELD_NAME}</option>
+                          {field.OPTIONS.split(',').map((option: string, i: number) => (
+                            <option key={i} value={option.trim()}>{option.trim()}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder={
+                            fieldId === 'routing_number' ? '123456789' :
+                            fieldId === 'bank_name' ? 'USA' :
+                            fieldId === 'account_holder' ? 'Ernest Pena' :
+                            `Enter ${field.FIELD_NAME}`
+                          }
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        />
+                      )}
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Submit buttons for step 2 */}
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <button 
+                  type="button" 
+                  className="btn btn-success"
+                  onClick={handleStart}
+                  disabled={isSubmitting}
+                  style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+                >
+                  {isSubmitting ? 'Starting...' : 'Start'}
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={handleComplete}
+                  disabled={isSubmitting}
+                  style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+                >
+                  {isSubmitting ? 'Completing...' : 'Complete'}
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-outline-danger"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+                >
+                  {isSubmitting ? 'Cancelling...' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </form>
     </Modal>

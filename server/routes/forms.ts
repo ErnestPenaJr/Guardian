@@ -88,13 +88,21 @@ router.get('/:id', async (req, res) => {
     console.log(`[FORMS GET] Fetching fields for form ${id}...`);
     
     // Get the fields associated with this form
-    const formFields = await prisma.$queryRaw`
-      SELECT f.* 
-      FROM GUARDIAN.FIELDS f
-      JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-      WHERE ff.FORM_ID = ${parseInt(id)}
-      ORDER BY ff.SORT_ORDER
-    `;
+    let formFields: any[] = [];
+    try {
+      const result = await prisma.$queryRaw`
+        SELECT f.* 
+        FROM GUARDIAN.FIELDS f
+        JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+        WHERE ff.FORM_ID = ${parseInt(id)}
+        ORDER BY ff.SORT_ORDER
+      `;
+      formFields = result as any[];
+    } catch (queryError) {
+      console.log(`[FORMS GET] No fields found for form ${id} or query error:`, queryError);
+      // Continue with empty fields array
+      formFields = [];
+    }
     
     console.log(`[FORMS GET] Fields query result for form ${id}: ${Array.isArray(formFields) ? formFields.length : 'ERROR'} fields`);
     

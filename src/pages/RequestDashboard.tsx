@@ -111,14 +111,6 @@ interface Request {
   assignedName?: string;
 }
 
-// Define a type for our form data
-interface FormData {
-  formType: string;
-  name: string;
-  description: string;
-  formFields: FormField[];
-}
-
 const RequestDashboard: React.FC = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
@@ -418,36 +410,187 @@ const RequestDashboard: React.FC = () => {
     }
   };
   
-  // Handle form save
-  const handleSaveForm = async (formData: FormData) => {
+  // Handle form save - now handles both form templates and request submissions
+  const handleSaveForm = async (formData: any) => {
     try {
-      // Create the form using the formService
-      const formToSave: any = {
-        FORM_NAME: formData.name,
-        FORM_DESCRIPTION: formData.description,
-        IS_PUBLIC: true,
-        IS_ACTIVE: true,
-        IS_DELETED: false,
-        FORM_TYPE: formData.formType.toLowerCase()
-      };
+      console.log('💾 handleSaveForm called with:', formData);
       
-      // Convert form fields to DB fields format if needed
-      const fieldsToSave = formData.formFields.map((field: any, index: number) => ({
-        FIELD_NAME: field.fieldName,
-        FIELD_TYPE_ID: field.dbFieldTypeId || 1, // Default to text if not specified
-        IS_REQUIRED: field.required || false,
-        OPTIONS: field.options || null,
-        SEQUENCE: index + 1,
-        IS_ACTIVE: true,
-        IS_DELETED: false
-      }));
+      // Check if this is a request submission - handle both NewRequestModal and AddRequestModal formats
+      const isAddRequestModalFormat = formData.name && formData.templateId && formData.formFieldValues;
+      const isNewRequestModalFormat = formData.requestData && formData.formInstanceValues;
       
-      await formService.createForm(formToSave, fieldsToSave);
-      toast.success('Form created successfully');
+      if (isAddRequestModalFormat || isNewRequestModalFormat) {
+        console.log('📋 Processing request submission with form data');
+        console.log('📋 Format detected:', isAddRequestModalFormat ? 'AddRequestModal' : 'NewRequestModal');
+        
+        // Step 1: Create the request - handle both data formats
+        let requestPayload;
+        if (isAddRequestModalFormat) {
+          // AddRequestModal format
+          requestPayload = {
+            REQUEST_NAME: formData.name,
+            REQUEST_DESCRIPTION: formData.description || '',
+            ABBREVIATION: formData.abbreviation,
+            STATUS: 'A', // Default to Active
+            ASSIGNED_ID: null, // Will be set by server
+            FORM_ID: formData.templateId,
+            templateId: formData.templateId // Also include as templateId for server compatibility
+          };
+        } else {
+          // NewRequestModal format
+          requestPayload = {
+            REQUEST_NAME: formData.requestData.REQUEST_NAME,
+            REQUEST_DESCRIPTION: formData.requestData.REQUEST_DESCRIPTION || '',
+            ABBREVIATION: formData.requestData.ABBREVIATION,
+            STATUS: formData.requestData.STATUS || 'A',
+            ASSIGNED_ID: formData.requestData.ASSIGNED_ID,
+            FORM_ID: formData.templateId || null,
+            templateId: formData.templateId || null // Also include as templateId for server compatibility
+          };
+        }
+        
+        console.log('🚀 Creating request with payload:', requestPayload);
+        const requestResponse = await api.post('/api/requests', requestPayload);
+        
+        if (!requestResponse.data.success) {
+          throw new Error(requestResponse.data.message || 'Failed to create request');
+        }
+        
+        const newRequest = requestResponse.data.data;
+        console.log('✅ Request created successfully:', newRequest);
+        
+        // Step 2: Submit form data if we have form values and a form ID
+        const hasFormValues = (isAddRequestModalFormat && formData.formFieldValues && Object.keys(formData.formFieldValues).length > 0) ||
+                             (isNewRequestModalFormat && formData.formInstanceValues && formData.formInstanceValues.length > 0);
+        
+        if (hasFormValues && newRequest.FORM_ID) {
+          console.log('📝 Submitting form data for request:', newRequest.REQUEST_ID);
+          
+          // Convert form values to field values format expected by form submission API
+          const fieldValues: Record<string, any> = {};
+          
+          if (isAddRequestModalFormat) {
+            // AddRequestModal format: formFieldValues is an object with field IDs as keys
+            console.log('📋 AddRequestModal field values received:', formData.formFieldValues);
+            
+            // Check if the keys are already field IDs (numeric) or field names (strings)
+            const firstKey = Object.keys(formData.formFieldValues)[0];
+            const keysAreFieldIds = !isNaN(parseInt(firstKey)) && firstKey !== 'request_status';
+            
+            if (keysAreFieldIds) {
+              // Keys are already field IDs, use them directly
+              Object.entries(formData.formFieldValues).forEach(([fieldId, value]: [string, any]) => {
+                if (fieldId !== 'request_status' && value !== null && value !== undefined && value !== '') {
+                  fieldValues[parseInt(fieldId)] = value;
+                  console.log(`✅ Direct field ID mapping: Field ${fieldId} = "${value}"`);
+                }
+              });
+            } else {
+              // Keys are field names, need to map to field IDs
+              try {
+                const formTemplate = await formService.getFormById(formData.templateId);
+                if (formTemplate && formTemplate.fields) {
+                  formTemplate.fields.forEach((field: any) => {
+                    // Create multiple possible field name mappings for better matching
+                    const fieldName = field.FIELD_NAME || '';
+                    const possibleKeys = [
+                      fieldName.toLowerCase().replace(/\s+/g, '_'),     // "Bank Name" -> "bank_name"
+                      fieldName.toLowerCase().replace(/[^a-z0-9]/g, '_'), // "Routing #" -> "routing___"
+                      fieldName.toLowerCase().replace(/\s+/g, '_').replace(/#/g, 'number'), // "Routing #" -> "routing_number"
+                      fieldName.toLowerCase().replace(/[^a-z0-9]/g, ''), // "Routing #" -> "routing"
+                    ];
+                    
+                    // Try to find a match using any of the possible keys
+                    for (const key of possibleKeys) {
+                      if (formData.formFieldValues[key]) {
+                        fieldValues[field.FIELD_ID] = formData.formFieldValues[key];
+                        console.log(`✅ Mapped field: ${key} -> ${fieldName} (ID: ${field.FIELD_ID}) = "${formData.formFieldValues[key]}"`);
+                        break; // Stop after first match
+                      }
+                    }
+                  });
+                }
+              } catch (error) {
+                console.error('❌ Error mapping field names to IDs:', error);
+                // Fallback: try direct field name to ID mapping if we can't get the template
+                Object.entries(formData.formFieldValues).forEach(([fieldName, value]: [string, any]) => {
+                  console.log(`⚠️ Fallback mapping: ${fieldName} = "${value}"`);
+                  fieldValues[fieldName] = value; // Use field name as key temporarily
+                });
+              }
+            }
+          } else {
+            // NewRequestModal format: formInstanceValues is an array with FIELD_ID and FIELD_VALUE
+            console.log('📋 NewRequestModal form instance values received:', formData.formInstanceValues);
+            formData.formInstanceValues.forEach((fv: any) => {
+              if (fv.FIELD_ID && fv.FIELD_VALUE) {
+                fieldValues[fv.FIELD_ID] = fv.FIELD_VALUE;
+                console.log(`✅ Adding field value: Field ${fv.FIELD_ID} = "${fv.FIELD_VALUE}"`);
+              } else {
+                console.log(`⚠️ Skipping field value: Field ID=${fv.FIELD_ID}, Value="${fv.FIELD_VALUE}"`);
+              }
+            });
+          }
+          
+          console.log('📊 Final field values to submit:', fieldValues);
+          console.log('📊 Total field values count:', Object.keys(fieldValues).length);
+          
+          try {
+            // Check the request status to determine which form service function to call
+            const requestStatus = isAddRequestModalFormat ? formData.requestStatus : 'Draft';
+            
+            if (requestStatus === 'Completed') {
+              // Call completeForm for completed requests
+              await formService.completeForm(newRequest.REQUEST_ID, fieldValues);
+              console.log('✅ Form data completed successfully');
+            } else {
+              // Call submitForm for drafts or other statuses
+              await formService.submitForm(newRequest.REQUEST_ID, fieldValues, { 
+                isComplete: false, 
+                isDraft: true 
+              });
+              console.log('✅ Form data saved as draft successfully');
+            }
+          } catch (formError) {
+            console.error('❌ Failed to save form data:', formError);
+            // Don't fail the whole operation, just warn
+            toast.warn('Request created but form data could not be saved. You can fill it out later.');
+          }
+        }
+        
+        toast.success(`Request created successfully! ID: ${newRequest.TRACKINGID || newRequest.REQUEST_ID}`);
+      } else {
+        console.log('📋 Processing form template creation');
+        
+        // Original form template creation logic
+        const formToSave: any = {
+          FORM_NAME: formData.name,
+          FORM_DESCRIPTION: formData.description,
+          IS_PUBLIC: true,
+          IS_ACTIVE: true,
+          IS_DELETED: false,
+          FORM_TYPE: formData.formType?.toLowerCase()
+        };
+        
+        // Convert form fields to DB fields format if needed
+        const fieldsToSave = formData.formFields.map((field: any, index: number) => ({
+          FIELD_NAME: field.fieldName,
+          FIELD_TYPE_ID: field.dbFieldTypeId || 1, // Default to text if not specified
+          IS_REQUIRED: field.required || false,
+          OPTIONS: field.options || null,
+          SEQUENCE: index + 1,
+          IS_ACTIVE: true,
+          IS_DELETED: false
+        }));
+        
+        await formService.createForm(formToSave, fieldsToSave);
+        toast.success('Form template created successfully');
+      }
+      
       fetchRequests(); // Refresh the requests list
     } catch (error: any) {
-      console.error('Error saving form:', error);
-      toast.error(error.response?.data?.error || error.message || 'Failed to save form');
+      console.error('❌ Error in handleSaveForm:', error);
+      toast.error(error.response?.data?.error || error.message || 'Failed to save');
       throw error;
     }
   };
@@ -708,11 +851,12 @@ const RequestDashboard: React.FC = () => {
             
             // If we have form data from a template, use it directly
             const formFields = formData.fields.map((field: any, index: number) => ({
-              id: index + 1,
+              id: field.FIELD_ID.toString(), // Use database field ID as the UI field ID
               fieldName: field.FIELD_NAME,
               fieldType: 'text', // Default to text
               required: field.IS_REQUIRED,
               options: field.OPTIONS,
+              dbFieldId: field.FIELD_ID, // Store the actual database field ID
               dbFieldTypeId: field.FIELD_TYPE_ID,
               sequence: field.SEQUENCE || index + 1
             }));
@@ -739,7 +883,9 @@ const RequestDashboard: React.FC = () => {
               name: formName,
               description: formData.form?.FORM_DESCRIPTION || '',
               formType: formType, // Use the explicit template type
-              formFields: formFields
+              formFields: formFields,
+              templateId: formData.form?.FORM_ID, // Include the form template ID
+              FORM_ID: formData.form?.FORM_ID // Also include as FORM_ID for compatibility
             });
             
             // Open the form modal
@@ -759,47 +905,14 @@ const RequestDashboard: React.FC = () => {
         onClose={() => setShowAddRequestModal(false)}
         onSubmit={async (requestData) => {
           try {
-            console.log('Submitting request data:', requestData);
+            console.log('AddRequestModal submitting request data:', requestData);
             
-            // Try the standard endpoint first as it's the most reliable
-            try {
-              console.log('Using standard endpoint...');
-              const response = await api.post('/api/requests', requestData);
-              console.log('Standard endpoint success:', response.data);
-              
-              // Refresh the requests list
-              fetchRequests();
-              
-              return response.data;
-            } catch (standardError) {
-              console.error('Standard endpoint failed:', standardError);
-              
-              // Fall back to the simple-request endpoint
-              try {
-                console.log('Falling back to simple-request endpoint...');
-                const simpleResponse = await api.post('/api/requests/simple-request', requestData);
-                console.log('simple-request endpoint success:', simpleResponse.data);
-                
-                // Refresh the requests list
-                fetchRequests();
-                
-                return simpleResponse.data;
-              } catch (simpleError) {
-                console.error('simple-request endpoint failed:', simpleError);
-                
-                // Last resort: try the SQL endpoint
-                console.log('Falling back to SQL endpoint...');
-                const sqlResponse = await api.post('/api/requests/sql-request', requestData);
-                console.log('SQL endpoint success:', sqlResponse.data);
-                
-                // Refresh the requests list
-                fetchRequests();
-                
-                return sqlResponse.data;
-              }
-            }
+            // Route through handleSaveForm to ensure form instances are created
+            await handleSaveForm(requestData);
+            
+            return { success: true };
           } catch (error: any) {
-            console.error('Error submitting request:', error);
+            console.error('Error submitting request via handleSaveForm:', error);
             toast.error(error.response?.data?.error || error.message || 'Failed to submit request');
             throw error;
           }
