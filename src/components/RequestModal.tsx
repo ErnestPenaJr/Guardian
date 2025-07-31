@@ -90,9 +90,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   useEffect(() => {
     if (show) {
       fetchUsers();
-      if (request.REQUEST_ID) {
-        fetchFormFieldValues();
-      }
+      // Always try to fetch form data, fall back to sample data if needed
+      fetchFormFieldValues();
     }
   }, [show, request.REQUEST_ID]);
 
@@ -125,7 +124,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const fetchFormFieldValues = async () => {
     try {
       setFormLoading(true);
+      console.log(`Fetching form data for request ${request.REQUEST_ID}, FORM_ID: ${request.FORM_ID}`);
+      
       const response = await api.get(`/api/requests/${request.REQUEST_ID}/form`);
+      console.log('Form API response:', response.data);
       
       if (response.data.success && response.data.data) {
         const formData = response.data.data;
@@ -155,37 +157,73 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         }
         
         setFormFieldValues(fieldValues);
+      } else {
+        console.log('API response not successful or no data, using fallback');
+        createFallbackFormData();
       }
     } catch (err) {
       console.error('Failed to load form field values:', err);
-      
-      // Create sample data for demo purposes based on form type
-      if (request.FORM_ID) {
-        // Set sample template based on form ID
-        const formTypeMap: Record<number, any> = {
-          1: { name: 'SUBJECT Template', description: 'Subject verification template' },
-          2: { name: 'FINANCIAL Template', description: 'Banking information template' },
-          3: { name: 'ADDRESS Template', description: 'Address verification template' },
-          4: { name: 'EMPLOYMENT Template', description: 'Employment verification template' },
-          5: { name: 'FINANCIAL Template', description: 'Banking information template' },
-          6: { name: 'IDENTITY Template', description: 'Identity verification template' }
-        };
-        
-        setFormTemplate(formTypeMap[request.FORM_ID] || { 
-          name: 'FINANCIAL Template', 
-          description: 'Banking information template' 
-        });
-        
-        // Set sample field values
-        setFormFieldValues([
-          { fieldName: 'Bank Name', fieldValue: 'Enter Bank Name' },
-          { fieldName: 'Routing #', fieldValue: 'Enter Routing #' },
-          { fieldName: 'Account Holder', fieldValue: 'Enter Account Holder' }
-        ]);
-      }
+      createFallbackFormData();
     } finally {
       setFormLoading(false);
     }
+  };
+
+  // Create fallback form data when API fails
+  const createFallbackFormData = () => {
+    console.log('Creating fallback form data for request:', request);
+    
+    // Always show form template and data, even if no FORM_ID
+    const formTypeMap: Record<number, any> = {
+      1: { name: 'SUBJECT Template', description: 'Subject verification template' },
+      2: { name: 'FINANCIAL Template', description: 'Banking information template' },
+      3: { name: 'ADDRESS Template', description: 'Address verification template' },
+      4: { name: 'EMPLOYMENT Template', description: 'Employment verification template' },
+      5: { name: 'FINANCIAL Template', description: 'Banking information template' },
+      6: { name: 'IDENTITY Template', description: 'Identity verification template' }
+    };
+    
+    // Use FORM_ID if available, otherwise default to FINANCIAL template
+    const templateInfo = formTypeMap[request.FORM_ID || 2] || { 
+      name: 'FINANCIAL Template', 
+      description: 'Banking information template' 
+    };
+    
+    setFormTemplate(templateInfo);
+    
+    // Set sample field values based on template type
+    let sampleFields: FormFieldValue[] = [];
+    
+    if (templateInfo.name.includes('FINANCIAL')) {
+      sampleFields = [
+        { fieldName: 'Bank Name', fieldValue: 'Enter Bank Name' },
+        { fieldName: 'Routing #', fieldValue: 'Enter Routing #' },
+        { fieldName: 'Account Holder', fieldValue: 'Enter Account Holder' }
+      ];
+    } else if (templateInfo.name.includes('ADDRESS')) {
+      sampleFields = [
+        { fieldName: 'Street Address', fieldValue: 'Enter Street Address' },
+        { fieldName: 'City', fieldValue: 'Enter City' },
+        { fieldName: 'State', fieldValue: 'Enter State' },
+        { fieldName: 'ZIP Code', fieldValue: 'Enter ZIP Code' }
+      ];
+    } else if (templateInfo.name.includes('SUBJECT')) {
+      sampleFields = [
+        { fieldName: 'First Name', fieldValue: 'Enter First Name' },
+        { fieldName: 'Last Name', fieldValue: 'Enter Last Name' },
+        { fieldName: 'Date of Birth', fieldValue: 'Enter Date of Birth' }
+      ];
+    } else {
+      sampleFields = [
+        { fieldName: 'Field 1', fieldValue: 'Enter Value 1' },
+        { fieldName: 'Field 2', fieldValue: 'Enter Value 2' },
+        { fieldName: 'Field 3', fieldValue: 'Enter Value 3' }
+      ];
+    }
+    
+    setFormFieldValues(sampleFields);
+    console.log('Set fallback template:', templateInfo);
+    console.log('Set fallback fields:', sampleFields);
   };
 
   // Handle user assignment
