@@ -57,6 +57,53 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [formFieldValues, setFormFieldValues] = useState<FormFieldValue[]>([]);
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
+  
+  // Check if current user can assign requests (processor and above)
+  const canAssignRequests = () => {
+    if (!currentUser) {
+      console.log('❌ canAssignRequests: No current user');
+      return false;
+    }
+    
+    console.log('🔍 canAssignRequests: Current user:', currentUser);
+    
+    // Role IDs that can assign requests: Admin(1), Manager(3), Processor(4), Super Admin(6)
+    const assignmentRoles = [1, 3, 4, 6];
+    
+    // Check if user has roles array (from login API response)
+    if (currentUser.roles && Array.isArray(currentUser.roles)) {
+      console.log('🔍 canAssignRequests: Checking roles array:', currentUser.roles);
+      const hasPermission = currentUser.roles.some((role: any) => {
+        const roleId = role.id;
+        console.log(`🔍 canAssignRequests: Checking role ID ${roleId} against assignment roles:`, assignmentRoles);
+        return assignmentRoles.includes(roleId);
+      });
+      console.log('🔍 canAssignRequests: Has permission from roles array:', hasPermission);
+      return hasPermission;
+    }
+    
+    // Check roleIds array (from login API response)
+    if (currentUser.roleIds && Array.isArray(currentUser.roleIds)) {
+      console.log('🔍 canAssignRequests: Checking roleIds array:', currentUser.roleIds);
+      const hasPermission = currentUser.roleIds.some((roleId: number) => 
+        assignmentRoles.includes(roleId)
+      );
+      console.log('🔍 canAssignRequests: Has permission from roleIds array:', hasPermission);
+      return hasPermission;
+    }
+    
+    // Check single role (fallback)
+    if (currentUser.role) {
+      console.log('🔍 canAssignRequests: Checking single role:', currentUser.role);
+      const roleId = parseInt(currentUser.role, 10);
+      const hasPermission = assignmentRoles.includes(roleId);
+      console.log('🔍 canAssignRequests: Has permission from single role:', hasPermission);
+      return hasPermission;
+    }
+    
+    console.log('❌ canAssignRequests: No valid role information found');
+    return false;
+  };
 
   // Get status display text
   const getStatusText = (status: string) => {
@@ -89,8 +136,18 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   // Load users and form data when modal opens
   useEffect(() => {
     if (show) {
-      fetchUsers();
-      // Always try to fetch form data, fall back to sample data if needed
+      console.log('🔄 Modal opened, checking permissions...');
+      const hasAssignPermission = canAssignRequests();
+      console.log('🔄 Has assignment permission:', hasAssignPermission);
+      
+      // Only fetch users if current user can assign requests
+      if (hasAssignPermission) {
+        console.log('✅ User has assignment permission, fetching users...');
+        fetchUsers();
+      } else {
+        console.log('❌ User does not have assignment permission, skipping user fetch');
+      }
+      // Always try to fetch form data
       fetchFormFieldValues();
     }
   }, [show, request.REQUEST_ID]);
@@ -104,14 +161,22 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   }, [request]);
 
-  // Fetch users for assignment dropdown
+  // Fetch users for assignment dropdown (only processors)
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/users');
       const userData = response.data?.data || response.data;
+      
       if (Array.isArray(userData)) {
-        setUsers(userData);
+        // Filter to only show processors (role ID 4) for assignment
+        const processors = userData.filter((user: User) => {
+          // Check if user has processor role
+          const roleNames = user.ROLE_NAMES?.toLowerCase() || '';
+          return roleNames.includes('processor') || roleNames.includes('4');
+        });
+        setUsers(processors);
+        console.log(`Loaded ${processors.length} processors for assignment out of ${userData.length} total users`);
       }
     } catch (err) {
       console.error('Failed to load users:', err);
@@ -237,104 +302,105 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
-      <Modal.Header closeButton className="border-0 pb-0">
-        <Modal.Title className="fw-normal text-dark">
+      <Modal.Header closeButton className="border-0 pb-2">
+        <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>
           Request Details: {request.TRACKINGID || `REQ-${request.REQUEST_ID}`}
         </Modal.Title>
       </Modal.Header>
       
-      <Modal.Body className="pt-2">
-        {/* Main Info Grid */}
-        <div className="row g-4 mb-4">
+      <Modal.Body className="pt-3">
+        {/* Main Info Grid - Compact Layout */}
+        <div className="row g-3 mb-3">
           {/* Left Column */}
           <div className="col-6">
-            <div className="mb-3">
-              <div className="text-muted small fw-medium mb-1">Request ID</div>
-              <div className="fw-medium">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Request ID</div>
+              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
             </div>
             
-            <div className="mb-3">
-              <div className="text-muted small fw-medium mb-1">Status</div>
-              <div className="fw-medium">{getStatusText(request.STATUS)}</div>
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Status</div>
+              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{getStatusText(request.STATUS)}</div>
             </div>
             
-            <div className="mb-3">
-              <div className="text-muted small fw-medium mb-1">Requestor</div>
-              <div className="fw-medium">{request.requestorName || 'Ernest Pena Jr'}</div>
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Requestor</div>
+              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{request.requestorName || 'Ernest Pena Jr'}</div>
             </div>
           </div>
           
           {/* Right Column */}
           <div className="col-6">
-            <div className="mb-3">
-              <div className="text-muted small fw-medium mb-1">Type</div>
-              <div className="fw-medium">{getFormType()}</div>
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Type</div>
+              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{getFormType()}</div>
             </div>
             
-            <div className="mb-3">
-              <div className="text-muted small fw-medium mb-1">Date Submitted</div>
-              <div className="fw-medium">{formatDate(request.SUBMITTED_DATE || request.CREATE_DATE)}</div>
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Date Submitted</div>
+              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{formatDate(request.SUBMITTED_DATE || request.CREATE_DATE)}</div>
             </div>
             
-            <div className="mb-3">
-              <div className="text-muted small fw-medium mb-1">Currently Assigned To</div>
-              <div className="fw-medium">{request.assignedName || 'Unassigned'}</div>
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Currently Assigned To</div>
+              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{request.assignedName || 'Unassigned'}</div>
             </div>
           </div>
         </div>
 
-        {/* Form Template Section */}
+        {/* Form Template Section - Compact */}
         {formTemplate && (
-          <div className="mb-4">
-            <div className="text-primary fw-medium mb-1" style={{ fontSize: '1.1rem' }}>
+          <div className="border-top pt-3 mb-3">
+            <div className="text-primary fw-semibold mb-1" style={{ fontSize: '1rem' }}>
               {formTemplate.name}
             </div>
-            <div className="text-muted mb-3" style={{ fontSize: '0.9rem' }}>
+            <div className="text-muted mb-2" style={{ fontSize: '0.85rem' }}>
               {formTemplate.description}
             </div>
           </div>
         )}
 
-        {/* Form Field Values */}
+        {/* Form Field Values - Compact Layout */}
         {formLoading ? (
-          <div className="text-center py-4">
-            <div className="spinner-border text-primary" role="status">
+          <div className="text-center py-3">
+            <div className="spinner-border spinner-border-sm text-primary" role="status">
               <span className="visually-hidden">Loading form data...</span>
             </div>
-            <div className="mt-2 text-muted">Loading form data...</div>
+            <div className="mt-2 text-muted small">Loading form data...</div>
           </div>
         ) : formFieldValues.length > 0 ? (
-          <div className="mb-4">
+          <div className="mb-3">
             {formFieldValues.map((field, index) => {
               const hasValue = field.fieldValue && field.fieldValue.toString().trim() !== '';
               const isRequired = field.fieldName.includes('*') || field.fieldName.includes('#');
               
               return (
-                <div key={index} className="mb-3">
-                  <label className="form-label fw-medium text-dark mb-1">
+                <div key={index} className="mb-2">
+                  <label className="form-label fw-medium text-dark mb-1" style={{ fontSize: '0.85rem' }}>
                     {field.fieldName}
                     {isRequired && <span className="text-danger ms-1">*</span>}
                   </label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="form-control form-control-sm"
                     value={hasValue ? field.fieldValue : ''}
                     placeholder={hasValue ? '' : `Enter ${field.fieldName}`}
                     readOnly
                     style={{ 
                       backgroundColor: hasValue ? 'white' : '#f8f9fa',
                       color: hasValue ? '#212529' : '#6c757d',
-                      fontStyle: hasValue ? 'normal' : 'italic'
+                      fontStyle: hasValue ? 'normal' : 'italic',
+                      fontSize: '0.85rem'
                     }}
                   />
-                  {/* Show database value status */}
+                  {/* Compact status indicators */}
                   {hasValue && (
-                    <div className="form-text text-success small">
+                    <div className="form-text text-success" style={{ fontSize: '0.7rem', marginTop: '2px' }}>
                       ✓ Value from database
                     </div>
                   )}
                   {!hasValue && (
-                    <div className="form-text text-muted small">
+                    <div className="form-text text-muted" style={{ fontSize: '0.7rem', marginTop: '2px' }}>
                       No value submitted yet
                     </div>
                   )}
@@ -363,39 +429,67 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         )}
 
-        {/* Assignment Section */}
-        <div className="border-top pt-4">
-          <div className="text-dark fw-medium mb-3">Assign Request</div>
-          
-          <Form.Select 
-            value={selectedUser} 
-            onChange={(e) => setSelectedUser(e.target.value)}
-            disabled={loading}
-            className="mb-3"
-          >
-            <option value="">Select a user to assign</option>
-            {users.map((user) => (
-              <option key={user.USER_ID} value={user.USER_ID}>
-                {user.FULL_NAME} ({user.ROLE_NAMES})
-              </option>
-            ))}
-          </Form.Select>
-          
-          <div className="d-flex gap-2">
-            <Button 
-              variant="success" 
-              onClick={handleAssignUser}
-              disabled={!selectedUser || loading}
-              className="px-4"
-            >
-              {loading ? 'Assigning...' : 'Assign'}
-            </Button>
+        {/* Assignment Section - Only show if user has permission */}
+        {(() => {
+          const hasPermission = canAssignRequests();
+          console.log('🎨 Rendering assignment section, has permission:', hasPermission);
+          return hasPermission;
+        })() ? (
+          <div className="border-top pt-3 mt-3">
+            <div className="text-dark fw-semibold mb-2" style={{ fontSize: '0.9rem' }}>Assign Request</div>
             
-            <Button variant="secondary" onClick={onHide} className="px-4">
-              Close
-            </Button>
+            <Form.Select 
+              value={selectedUser} 
+              onChange={(e) => setSelectedUser(e.target.value)}
+              disabled={loading}
+              className="mb-3 form-select-sm"
+              style={{ fontSize: '0.85rem' }}
+            >
+              <option value="">Select a processor to assign</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            
+            <div className="d-flex gap-2 justify-content-end">
+              <Button 
+                variant="outline-secondary" 
+                onClick={onHide} 
+                size="sm"
+                className="px-3"
+                style={{ fontSize: '0.85rem' }}
+              >
+                Close
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={handleAssignUser}
+                disabled={!selectedUser || loading}
+                size="sm"
+                className="px-3"
+                style={{ fontSize: '0.85rem' }}
+              >
+                {loading ? 'Assigning...' : 'Assign'}
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="border-top pt-3 mt-3">
+            <div className="d-flex justify-content-end">
+              <Button 
+                variant="outline-secondary" 
+                onClick={onHide} 
+                size="sm"
+                className="px-3"
+                style={{ fontSize: '0.85rem' }}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal.Body>
     </Modal>
   );

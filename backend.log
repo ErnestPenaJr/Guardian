@@ -1,473 +1,87 @@
-
-> Guardian@2.5.0 backend
-> npm run build-server && PORT=3001 npm run start-server
-
-
-> Guardian@2.5.0 build-server
-> tsc -p tsconfig.server.json && cp -r server/emails dist-server/emails 2>/dev/null || :
-
-
-> Guardian@2.5.0 start-server
-> node --experimental-specifier-resolution=node --loader ts-node/esm ./dist-server/index.js
-
-(node:7443) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
---import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:7443) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-[RESEND] Email service initialized
-[RESEND] From email: support@shieldlytics.com
-[STATIC FILES] Serving static files from: /Users/epena1/Guardian MVP/dist
-Server running on port 3001
-Server environment: development
-Access the application at: http://localhost:3001
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[USERS] Fetching users for company ID: 14
-[USERS] Querying USERS table for company ID: 14
-[USERS] Found 3 active users for company ID: 14
-[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
-[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
-[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
-[USERS] Fetching users for company ID: 14
-[USERS] Querying USERS table for company ID: 14
-[USERS] Found 3 active users for company ID: 14
-[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
-[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
-[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[USERS] Fetching users for company ID: 14
-[USERS] Querying USERS table for company ID: 14
-[USERS] Found 3 active users for company ID: 14
-[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
-[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
-[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
-[USERS] Fetching users for company ID: 14
-[USERS] Querying USERS table for company ID: 14
-[USERS] Found 3 active users for company ID: 14
-[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
-[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
-[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
-[USERS] Fetching users for company ID: 14
-[USERS] Querying USERS table for company ID: 14
-[USERS] Found 3 active users for company ID: 14
-[ROLES] Fetching all roles
-[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
-[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
-[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
-[USERS] Fetching users for company ID: 14
-[USERS] Querying USERS table for company ID: 14
-[USERS] Found 3 active users for company ID: 14
-[USERS] User 1041 (Colin Pender) all roles: [ { ROLE_ID: 1, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1036 (Ernest Pena) all roles: [ { ROLE_ID: 6, STATUS: 'P' } ]
-[USERS] User 1065 (Andrea Hall) has 1 active roles: [ 6 ]
-[USERS] User 1041 (Colin Pender) has 1 active roles: [ 1 ]
-[USERS] User 1036 (Ernest Pena) has 1 active roles: [ 6 ]
-[ROLES] Found 5 active roles
-[ROLES] Fetching all roles
-[ROLES] Found 5 active roles
-[ROLES] Fetching all roles
-[ROLES] Found 5 active roles
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[ROLES] Fetching all roles
-[ROLES] Found 5 active roles
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[ROLES] Fetching all roles
-[ROLES] Found 5 active roles
-[LOGIN] Login attempt: { email: 'ernest@shieldlytics.com' }
-[LOGIN] Looking up user in database...
-[LOGIN] User found: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  hasPassword: true,
-  status: 'A',
-  emailValidated: true
-}
-[LOGIN] Comparing password...
-[LOGIN] Authentication successful, fetching user roles...
-[LOGIN] User role IDs: [ 6 ]
-[LOGIN] Found roles: [ 'JAFAR' ]
-[LOGIN] Fetching company info for ID: 14
-[LOGIN] Found company: DEV-TEAM
-[LOGIN] Generating token for user: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  role: 'jafar',
-  companyId: 14
-}
-[LOGIN] Token generated successfully
-[LOGIN] Login successful, sending response
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[LOGIN] Login attempt: { email: 'ernest@shieldlytics.com' }
-[LOGIN] Looking up user in database...
-[LOGIN] User found: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  hasPassword: true,
-  status: 'A',
-  emailValidated: true
-}
-[LOGIN] Comparing password...
-[LOGIN] Authentication successful, fetching user roles...
-[LOGIN] User role IDs: [ 6 ]
-[LOGIN] Found roles: [ 'JAFAR' ]
-[LOGIN] Fetching company info for ID: 14
-[LOGIN] Found company: DEV-TEAM
-[LOGIN] Generating token for user: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  role: 'jafar',
-  companyId: 14
-}
-[LOGIN] Token generated successfully
-[LOGIN] Login successful, sending response
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[LOGIN] Login attempt: { email: 'ernest@shieldlytics.com' }
-[LOGIN] Looking up user in database...
-[LOGIN] User found: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  hasPassword: true,
-  status: 'A',
-  emailValidated: true
-}
-[LOGIN] Comparing password...
-[LOGIN] Authentication successful, fetching user roles...
-[LOGIN] User role IDs: [ 6 ]
-[LOGIN] Found roles: [ 'JAFAR' ]
-[LOGIN] Fetching company info for ID: 14
-[LOGIN] Found company: DEV-TEAM
-[LOGIN] Generating token for user: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  role: 'jafar',
-  companyId: 14
-}
-[LOGIN] Token generated successfully
-[LOGIN] Login successful, sending response
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-[LOGIN] Login attempt: { email: 'ernest@shieldlytics.com' }
-[LOGIN] Looking up user in database...
-[LOGIN] User found: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  hasPassword: true,
-  status: 'A',
-  emailValidated: true
-}
-[LOGIN] Comparing password...
-[LOGIN] Authentication successful, fetching user roles...
-[LOGIN] User role IDs: [ 6 ]
-[LOGIN] Found roles: [ 'JAFAR' ]
-[LOGIN] Fetching company info for ID: 14
-[LOGIN] Found company: DEV-TEAM
-[LOGIN] Generating token for user: {
-  id: 1036,
-  email: 'ernest@shieldlytics.com',
-  role: 'jafar',
-  companyId: 14
-}
-[LOGIN] Token generated successfully
-[LOGIN] Login successful, sending response
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
-Executing query: 
-        SELECT  
-          r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        WHERE r.STATUS <> 'D' 
-        ORDER BY r.CREATE_DATE DESC
-      
-Returning 26 requests with user details
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v22.6.0
+Environment: development
+Port: 3001
+Process PID: 72108
+Current working directory: /Users/epena1/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🚀 Starting Express server...
+✅ Server running on port 3001
+📁 Static files: /Users/epena1/Guardian MVP/dist
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+🔐 Login attempt for: Ernest@shieldlytics.com
+✅ Login successful for: Ernest@shieldlytics.com (User ID: 1111, Company: 26)
+📋 Fetching requests for company ID: 26
+✅ Found 1 requests in database
+📤 Sending 1 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 1 requests in database
+📤 Sending 1 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Found 1 requests in database
+📤 Sending 1 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 1 requests in database
+📤 Sending 1 formatted requests to frontend
+📋 Fetching form for request 125 (Company: 26)
+🔍 Querying for request 125 in company 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1006
+🔍 Querying for form 1006 (company-specific or global)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1006 using junction table
+✅ Found 3 form-specific fields for form 1006
+🔍 Checking for existing form instance for request 125
+🔍 Fetching form instance for request 125
+📋 Found existing form instance: 1057
+📊 Found 3 existing field values
+📈 Form status: in_progress (1/1 required fields filled)
+✅ Found request 125 with form 1006 containing 3 fields
+📤 Sending form data for request 125 to frontend
+📋 Fetching form for request 125 (Company: 26)
+🔍 Querying for request 125 in company 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1006
+🔍 Querying for form 1006 (company-specific or global)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1006 using junction table
+✅ Found 3 form-specific fields for form 1006
+🔍 Checking for existing form instance for request 125
+🔍 Fetching form instance for request 125
+📋 Found existing form instance: 1057
+📊 Found 3 existing field values
+📈 Form status: in_progress (1/1 required fields filled)
+✅ Found request 125 with form 1006 containing 3 fields
+📤 Sending form data for request 125 to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 1 requests in database
+📤 Sending 1 formatted requests to frontend
+📋 Fetching form for request 125 (Company: 26)
+🔍 Querying for request 125 in company 26
+👥 Fetching users for company ID: 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1006
+🔍 Querying for form 1006 (company-specific or global)
+✅ Found 5 users
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1006 using junction table
+✅ Found 3 form-specific fields for form 1006
+🔍 Checking for existing form instance for request 125
+🔍 Fetching form instance for request 125
+📋 Found existing form instance: 1057
+📊 Found 3 existing field values
+📈 Form status: in_progress (1/1 required fields filled)
+✅ Found request 125 with form 1006 containing 3 fields
+📤 Sending form data for request 125 to frontend
+🔢 Getting notification count for user 1111
+✅ User has 1 unread notifications
