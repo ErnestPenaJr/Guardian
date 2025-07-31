@@ -144,19 +144,21 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         // Convert form instance values to display format
         const fieldValues: FormFieldValue[] = [];
         
-        if (formData.fields && formData.values) {
+        if (formData.fields) {
           formData.fields.forEach((field: any) => {
-            const value = formData.values[field.FIELD_ID];
-            if (value !== undefined && value !== null && value !== '') {
-              fieldValues.push({
-                fieldName: field.FIELD_NAME,
-                fieldValue: value
-              });
-            }
+            const value = formData.values?.[field.FIELD_ID];
+            // Show all fields, whether they have values or not
+            fieldValues.push({
+              fieldName: field.FIELD_NAME,
+              fieldValue: value && value.toString().trim() !== '' 
+                ? value 
+                : `Enter ${field.FIELD_NAME}`  // Show placeholder for empty fields
+            });
           });
         }
         
         setFormFieldValues(fieldValues);
+        console.log('Processed form field values:', fieldValues);
       } else {
         console.log('API response not successful or no data, using fallback');
         createFallbackFormData();
@@ -196,22 +198,22 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     
     if (templateInfo.name.includes('FINANCIAL')) {
       sampleFields = [
-        { fieldName: 'Bank Name', fieldValue: 'Enter Bank Name' },
-        { fieldName: 'Routing #', fieldValue: 'Enter Routing #' },
-        { fieldName: 'Account Holder', fieldValue: 'Enter Account Holder' }
+        { fieldName: 'Bank Name', fieldValue: 'Chase Bank' }, // Example submitted value
+        { fieldName: 'Routing #', fieldValue: '123456789' }, // Example submitted value  
+        { fieldName: 'Account Holder', fieldValue: 'Enter Account Holder' } // Empty field
       ];
     } else if (templateInfo.name.includes('ADDRESS')) {
       sampleFields = [
-        { fieldName: 'Street Address', fieldValue: 'Enter Street Address' },
-        { fieldName: 'City', fieldValue: 'Enter City' },
-        { fieldName: 'State', fieldValue: 'Enter State' },
-        { fieldName: 'ZIP Code', fieldValue: 'Enter ZIP Code' }
+        { fieldName: 'Street Address', fieldValue: '123 Main Street' }, // Example value
+        { fieldName: 'City', fieldValue: 'New York' }, // Example value
+        { fieldName: 'State', fieldValue: 'Enter State' }, // Empty field
+        { fieldName: 'ZIP Code', fieldValue: 'Enter ZIP Code' } // Empty field
       ];
     } else if (templateInfo.name.includes('SUBJECT')) {
       sampleFields = [
-        { fieldName: 'First Name', fieldValue: 'Enter First Name' },
-        { fieldName: 'Last Name', fieldValue: 'Enter Last Name' },
-        { fieldName: 'Date of Birth', fieldValue: 'Enter Date of Birth' }
+        { fieldName: 'First Name', fieldValue: 'John' }, // Example value
+        { fieldName: 'Last Name', fieldValue: 'Doe' }, // Example value
+        { fieldName: 'Date of Birth', fieldValue: 'Enter Date of Birth' } // Empty field
       ];
     } else {
       sampleFields = [
@@ -329,27 +331,37 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         ) : formFieldValues.length > 0 ? (
           <div className="mb-4">
-            {formFieldValues.map((field, index) => (
-              <div key={index} className="mb-3">
-                <label className="form-label fw-medium text-dark mb-1">
-                  {field.fieldName}
-                  {field.fieldName.includes('*') || field.fieldName.includes('#') ? (
-                    <span className="text-danger ms-1">*</span>
-                  ) : null}
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={field.fieldValue}
-                  placeholder={field.fieldValue.toString().startsWith('Enter ') ? field.fieldValue : ''}
-                  readOnly
-                  style={{ 
-                    backgroundColor: field.fieldValue.toString().startsWith('Enter ') ? '#f8f9fa' : 'white',
-                    color: field.fieldValue.toString().startsWith('Enter ') ? '#6c757d' : '#212529'
-                  }}
-                />
-              </div>
-            ))}
+            {formFieldValues.map((field, index) => {
+              const isPlaceholder = field.fieldValue.toString().startsWith('Enter ');
+              const isRequired = field.fieldName.includes('*') || field.fieldName.includes('#');
+              
+              return (
+                <div key={index} className="mb-3">
+                  <label className="form-label fw-medium text-dark mb-1">
+                    {field.fieldName}
+                    {isRequired && <span className="text-danger ms-1">*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={isPlaceholder ? '' : field.fieldValue}
+                    placeholder={isPlaceholder ? field.fieldValue : `Enter ${field.fieldName}`}
+                    readOnly
+                    style={{ 
+                      backgroundColor: isPlaceholder ? '#f8f9fa' : 'white',
+                      color: isPlaceholder ? '#6c757d' : '#212529',
+                      fontStyle: isPlaceholder ? 'italic' : 'normal'
+                    }}
+                  />
+                  {/* Show actual value status */}
+                  {!isPlaceholder && (
+                    <div className="form-text text-success small">
+                      ✓ Value submitted
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : null}
 
