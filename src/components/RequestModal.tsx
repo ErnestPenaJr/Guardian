@@ -55,6 +55,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [formFieldValues, setFormFieldValues] = useState<FormFieldValue[]>([]);
+  const [formTemplate, setFormTemplate] = useState<any>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
 
   // Get status display text
   const getStatusText = (status: string) => {
@@ -122,9 +124,21 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   // Fetch form field values for this request
   const fetchFormFieldValues = async () => {
     try {
+      setFormLoading(true);
       const response = await api.get(`/api/requests/${request.REQUEST_ID}/form`);
+      
       if (response.data.success && response.data.data) {
         const formData = response.data.data;
+        
+        // Set form template information
+        if (formData.form) {
+          setFormTemplate({
+            name: formData.form.FORM_NAME,
+            description: formData.form.FORM_DESCRIPTION,
+            id: formData.form.FORM_ID
+          });
+        }
+        
         // Convert form instance values to display format
         const fieldValues: FormFieldValue[] = [];
         
@@ -144,13 +158,33 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       }
     } catch (err) {
       console.error('Failed to load form field values:', err);
-      // Create sample data for demo purposes
-      setFormFieldValues([
-        { fieldName: 'Bank Name', fieldValue: 'Chase Bank' },
-        { fieldName: 'Account Type', fieldValue: 'Checking' },
-        { fieldName: 'Routing Number', fieldValue: '123456789' },
-        { fieldName: 'Account Number', fieldValue: '****5678' }
-      ]);
+      
+      // Create sample data for demo purposes based on form type
+      if (request.FORM_ID) {
+        // Set sample template based on form ID
+        const formTypeMap: Record<number, any> = {
+          1: { name: 'SUBJECT Template', description: 'Subject verification template' },
+          2: { name: 'FINANCIAL Template', description: 'Banking information template' },
+          3: { name: 'ADDRESS Template', description: 'Address verification template' },
+          4: { name: 'EMPLOYMENT Template', description: 'Employment verification template' },
+          5: { name: 'FINANCIAL Template', description: 'Banking information template' },
+          6: { name: 'IDENTITY Template', description: 'Identity verification template' }
+        };
+        
+        setFormTemplate(formTypeMap[request.FORM_ID] || { 
+          name: 'FINANCIAL Template', 
+          description: 'Banking information template' 
+        });
+        
+        // Set sample field values
+        setFormFieldValues([
+          { fieldName: 'Bank Name', fieldValue: 'Enter Bank Name' },
+          { fieldName: 'Routing #', fieldValue: 'Enter Routing #' },
+          { fieldName: 'Account Holder', fieldValue: 'Enter Account Holder' }
+        ]);
+      }
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -235,22 +269,51 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         </div>
 
-        {/* Form Field Values */}
-        {formFieldValues.length > 0 && (
+        {/* Form Template Section */}
+        {formTemplate && (
           <div className="mb-4">
-            <div className="text-muted small fw-medium mb-3">Form Values</div>
-            <div className="row g-3">
-              {formFieldValues.map((field, index) => (
-                <div key={index} className="col-6">
-                  <div className="mb-2">
-                    <div className="text-muted small fw-medium mb-1">{field.fieldName}</div>
-                    <div className="fw-medium">{field.fieldValue}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="text-primary fw-medium mb-1" style={{ fontSize: '1.1rem' }}>
+              {formTemplate.name}
+            </div>
+            <div className="text-muted mb-3" style={{ fontSize: '0.9rem' }}>
+              {formTemplate.description}
             </div>
           </div>
         )}
+
+        {/* Form Field Values */}
+        {formLoading ? (
+          <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading form data...</span>
+            </div>
+            <div className="mt-2 text-muted">Loading form data...</div>
+          </div>
+        ) : formFieldValues.length > 0 ? (
+          <div className="mb-4">
+            {formFieldValues.map((field, index) => (
+              <div key={index} className="mb-3">
+                <label className="form-label fw-medium text-dark mb-1">
+                  {field.fieldName}
+                  {field.fieldName.includes('*') || field.fieldName.includes('#') ? (
+                    <span className="text-danger ms-1">*</span>
+                  ) : null}
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={field.fieldValue}
+                  placeholder={field.fieldValue.toString().startsWith('Enter ') ? field.fieldValue : ''}
+                  readOnly
+                  style={{ 
+                    backgroundColor: field.fieldValue.toString().startsWith('Enter ') ? '#f8f9fa' : 'white',
+                    color: field.fieldValue.toString().startsWith('Enter ') ? '#6c757d' : '#212529'
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {/* Assignment Section */}
         <div className="border-top pt-4">
