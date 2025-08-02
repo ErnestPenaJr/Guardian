@@ -6,8 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Trash2 } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// Import custom styles only (AG Grid CSS removed to use new Theming API)
 import '../styles/ag-grid-custom.css';
 
 // We'll use the built-in modules from ag-grid-community v33.3.0 instead of the separate packages
@@ -476,6 +475,7 @@ const AdminFieldsLookup: React.FC<AdminFieldsLookupProps> = ({ fieldId }) => {
           
           <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
             <AgGridReact
+              theme="legacy"
               rowData={filteredLookups}
               columnDefs={columnDefs}
               headerHeight={48}

@@ -5,8 +5,7 @@ import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { Trash2, Check, X } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// Import custom styles only (AG Grid CSS removed to use new Theming API)
 import '../styles/ag-grid-custom.css';
 
 interface AdminFormGroupFieldsProps {
@@ -613,6 +612,7 @@ const AdminFormGroupFields: React.FC<AdminFormGroupFieldsProps> = ({ groupId }) 
           ) : (
             <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
               <AgGridReact
+                theme="legacy"
                 rowData={filteredFields}
                 columnDefs={columnDefs}
                 headerHeight={48}

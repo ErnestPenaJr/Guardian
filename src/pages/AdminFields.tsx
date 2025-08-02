@@ -10,9 +10,7 @@ import { toast } from 'react-toastify';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, GridApi } from 'ag-grid-community';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-// Import styles
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// Import custom styles only (AG Grid CSS removed to use new Theming API)
 import '../styles/ag-grid-custom.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);

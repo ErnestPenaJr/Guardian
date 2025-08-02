@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// AG Grid CSS imports removed to use new Theming API
 import { Search, Shield } from 'lucide-react';
 import { movies, Movie } from '../database';
 import { showToast } from '../utils/toast';

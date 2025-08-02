@@ -26,8 +26,7 @@ import {
   ProgressFilterOptions,
   ProgressExportOptions 
 } from '../types/workProgress';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// AG Grid CSS imports removed to use new Theming API
 
 interface WorkProgressTableProps {
   requestId: number;
@@ -473,6 +472,7 @@ const WorkProgressTable: React.FC<WorkProgressTableProps> = ({
       {/* AG Grid Table */}
       <div className="ag-theme-alpine" style={{ height: '500px' }}>
         <AgGridReact
+          theme="legacy"
           columnDefs={columnDefs}
           rowData={progressEntries}
           defaultColDef={defaultColDef}
@@ -481,7 +481,7 @@ const WorkProgressTable: React.FC<WorkProgressTableProps> = ({
           pagination={true}
           paginationPageSize={20}
           enableCellTextSelection={true}
-          suppressRowClickSelection={true}
+          rowSelection={{ mode: 'singleRow', enableClickSelection: false }}
           loadingOverlayComponent="agLoadingOverlay"
           loading={loading}
         />

@@ -883,3 +883,34 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+12:17:49 PM [vite] (client) hmr update /src/pages/AdminFields.tsx, /src/index.css
+12:18:01 PM [vite] (client) hmr update /src/pages/AdminFormsGroups.tsx, /src/index.css
+12:18:08 PM [vite] (client) hmr update /src/pages/AdminFormGroupFields.tsx, /src/index.css
+12:18:14 PM [vite] (client) hmr update /src/pages/AdminFieldLookups.tsx, /src/index.css
+12:18:21 PM [vite] (client) hmr update /src/components/WorkProgressTable.tsx, /src/index.css
+12:18:27 PM [vite] (client) page reload src/components/DataTable.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+12:18:35 PM [vite] (client) page reload src/components/TestGrid.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+12:18:58 PM [vite] (client) hmr update /src/pages/AdminFieldLookups.tsx, /src/index.css
+12:19:05 PM [vite] (client) hmr update /src/pages/AdminFormGroupFields.tsx, /src/index.css
+12:19:12 PM [vite] (client) hmr update /src/components/WorkProgressTable.tsx, /src/index.css
+12:19:24 PM [vite] (client) page reload src/components/TestGrid.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+12:19:42 PM [vite] (client) hmr update /src/components/WorkProgressTable.tsx, /src/index.css
+12:19:46 PM [vite] (client) hmr update /src/pages/AdminFormsGroups.tsx, /src/index.css
+12:19:46 PM [vite] (client) warning: Duplicate "rowSelection" attribute in JSX element
+544|              paginationPageSize={10}
+545|              suppressCellFocus={true}
+546|              rowSelection={{ mode: 'singleRow', enableClickSelection: false }}
+   |              ^
+547|              overlayNoRowsTemplate="No groups found" />
+548|  
+
+  Plugin: vite:esbuild
+  File: /Users/epena1/Guardian MVP/src/pages/AdminFormsGroups.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

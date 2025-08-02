@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// AG Grid CSS imports removed to use new Theming API
 
 const TestGrid: React.FC = () => {
   // Define the row data type
@@ -29,6 +28,7 @@ const TestGrid: React.FC = () => {
   return (
     <div className="ag-theme-alpine" style={{ height: 300, width: '100%' }}>
       <AgGridReact
+        theme="legacy"
         rowData={rowData}
         columnDefs={columnDefs}
       />
