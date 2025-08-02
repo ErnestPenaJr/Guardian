@@ -348,3 +348,157 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 8:16:24 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
 8:16:35 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
 8:16:35 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+10:42:09 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:42:21 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:42:22 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:42:37 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:42:46 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:42:56 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:42:56 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+10:44:07 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:44:07 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx: Identifier 'canAssignRequests' has already been declared. (117:8)
+
+  115 |   
+  116 |   // Check if current user can assign requests (processor and above)
+> 117 |   const canAssignRequests = () => {
+      |         ^
+  118 |     if (!currentUser) {
+  119 |       console.log('❌ canAssignRequests: No current user');
+  120 |       return false;
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx:117:8
+  115|    
+  116|    // Check if current user can assign requests (processor and above)
+  117|    const canAssignRequests = () => {
+     |          ^
+  118|      if (!currentUser) {
+  119|        console.log('❌ canAssignRequests: No current user');
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptScopeHandler.checkRedeclarationInScope (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:1644:19)
+      at TypeScriptScopeHandler.declareName (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:1610:12)
+      at TypeScriptScopeHandler.declareName (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4910:11)
+      at TypeScriptParserMixin.declareNameFromIdentifier (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:7591:16)
+      at TypeScriptParserMixin.checkIdentifier (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:7587:12)
+      at TypeScriptParserMixin.checkLVal (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:7526:12)
+      at TypeScriptParserMixin.parseVarId (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13412:10)
+      at TypeScriptParserMixin.parseVarId (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9767:11)
+      at TypeScriptParserMixin.parseVar (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13383:12)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13230:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9493:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12851:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseVar (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13384:91)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13230:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9493:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12851:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseModuleItem (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12744:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:36)
+      at TypeScriptParserMixin.parseBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseProgram (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12625:10)
+      at TypeScriptParserMixin.parseTopLevel (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12615:25)
+      at TypeScriptParserMixin.parse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:14492:10)
+      at TypeScriptParserMixin.parse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10144:18)
+10:44:07 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:44:07 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx: Identifier 'canAssignRequests' has already been declared. (117:8)
+
+  115 |   
+  116 |   // Check if current user can assign requests (processor and above)
+> 117 |   const canAssignRequests = () => {
+      |         ^
+  118 |     if (!currentUser) {
+  119 |       console.log('❌ canAssignRequests: No current user');
+  120 |       return false;
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx:117:8
+  115|    
+  116|    // Check if current user can assign requests (processor and above)
+  117|    const canAssignRequests = () => {
+     |          ^
+  118|      if (!currentUser) {
+  119|        console.log('❌ canAssignRequests: No current user');
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptScopeHandler.checkRedeclarationInScope (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:1644:19)
+      at TypeScriptScopeHandler.declareName (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:1610:12)
+      at TypeScriptScopeHandler.declareName (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4910:11)
+      at TypeScriptParserMixin.declareNameFromIdentifier (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:7591:16)
+      at TypeScriptParserMixin.checkIdentifier (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:7587:12)
+      at TypeScriptParserMixin.checkLVal (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:7526:12)
+      at TypeScriptParserMixin.parseVarId (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13412:10)
+      at TypeScriptParserMixin.parseVarId (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9767:11)
+      at TypeScriptParserMixin.parseVar (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13383:12)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13230:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9493:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12851:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseVar (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13384:91)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13230:10)
+      at TypeScriptParserMixin.parseVarStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9493:31)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12851:23)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseModuleItem (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12744:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:36)
+      at TypeScriptParserMixin.parseBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseProgram (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12625:10)
+      at TypeScriptParserMixin.parseTopLevel (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12615:25)
+      at TypeScriptParserMixin.parse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:14492:10)
+      at TypeScriptParserMixin.parse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10144:18)
+10:45:00 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+10:46:27 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+10:46:42 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
