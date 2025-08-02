@@ -160,7 +160,7 @@
 .modal-overlay {
   position: fixed !important;
   inset: 0 !important;
-  background: rgba(0,0,0,0.45) !important;
+  background: rgba(0, 0, 0, 0.45) !important;
   z-index: 9998 !important;
   display: flex !important;
   align-items: center !important;
@@ -174,8 +174,7 @@
   background: #fff !important;
   max-width: 650px !important;
   width: 98% !important;
-  padding: 2.2rem 2.2rem 2rem 2.2rem !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
   position: relative !important;
 }
 
@@ -184,6 +183,7 @@
   gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
+
 .step-btn {
   background: none;
   border: none;
@@ -196,6 +196,7 @@
   cursor: default;
   transition: background 0.2s, color 0.2s;
 }
+
 .step-btn.active {
   background: #e6f7f7;
   color: #155e5e;
@@ -213,9 +214,11 @@
   display: flex;
   gap: 1rem;
 }
+
 .modal-content .col {
   flex: 1 1 0;
 }
+
 .modal-content input[type="text"],
 .modal-content textarea,
 .modal-content select {
@@ -226,24 +229,29 @@
   outline: none;
   transition: border 0.2s;
 }
+
 .modal-content input[type="text"]:focus,
 .modal-content textarea:focus,
 .modal-content select:focus {
   border-color: #155e5e;
 }
+
 .modal-content textarea {
   min-height: 80px;
   resize: vertical;
 }
+
 .modal-content label {
   color: #155e5e;
   font-size: 1rem;
   font-weight: 500;
   margin-right: 1.5rem;
 }
+
 .modal-content .d-flex.gap-4 {
   margin: 0.8rem 0 1.2rem 0;
 }
+
 .modal-content .btn-primary {
   background: #219191;
   color: #fff;
@@ -254,9 +262,11 @@
   font-weight: 600;
   transition: background 0.2s;
 }
+
 .modal-content .btn-primary:hover {
   background: #155e5e;
 }
+
 .modal-content .btn-secondary {
   background: #e6f7f7;
   color: #219191;
@@ -267,10 +277,12 @@
   font-weight: 600;
   transition: background 0.2s, color 0.2s;
 }
+
 .modal-content .btn-secondary:hover {
   background: #219191;
   color: #fff;
 }
+
 .modal-content .btn-outline-secondary {
   background: none;
   color: #219191;
@@ -282,9 +294,11 @@
   margin-left: 0.5rem;
   transition: background 0.2s, color 0.2s;
 }
+
 .modal-content .btn-outline-secondary:hover {
   background: #e6f7f7;
 }
+
 .modal-content .table-header {
   display: flex;
   gap: 2rem;
@@ -292,9 +306,11 @@
   color: #155e5e;
   margin-bottom: 0.5rem;
 }
+
 .modal-content .d-flex.justify-content-between {
   margin-top: 2rem;
 }
+
 .modal-content .text-danger {
   color: #e74c3c;
   margin-top: 1rem;
@@ -307,6 +323,7 @@
   gap: 1.2rem;
   margin-bottom: 2rem;
 }
+
 .workflow-type-item {
   display: flex;
   align-items: flex-start;
@@ -317,22 +334,27 @@
   padding: 1rem 1.2rem;
   transition: border 0.2s;
 }
+
 .workflow-type-item input[type="radio"] {
   margin-top: 3px;
   accent-color: #219191;
 }
+
 .workflow-type-title {
   font-weight: 600;
   color: #155e5e;
   font-size: 1.08rem;
   margin-right: 0.3rem;
 }
+
 .workflow-type-desc {
   color: #155e5e;
   font-size: 1rem;
   line-height: 1.5;
 }
-.workflow-type-item:hover, .workflow-type-item:focus-within {
+
+.workflow-type-item:hover,
+.workflow-type-item:focus-within {
   border-color: #155e5e;
   background: #e6f7f7;
 }
@@ -349,6 +371,7 @@
   margin: 0;
   transition: color 0.2s;
 }
+
 .add-level-link:hover {
   color: #155e5e;
 }
@@ -359,10 +382,12 @@
     padding: 1.2rem 0.5rem 1.2rem 0.5rem !important;
     max-width: 99vw !important;
   }
+
   .modal-content .row {
     flex-direction: column;
     gap: 0.5rem;
   }
+
   .modal-content .d-flex.justify-content-between {
     flex-direction: column;
     gap: 1rem;

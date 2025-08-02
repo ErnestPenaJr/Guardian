@@ -1,13 +1,137 @@
 # Guardian MVP - Project Documentation
 
-## Standard Workflow
-1. First think through the problem, read the codebase for relevant files, and write a plan to tasks/todo.md.
-2. The plan should have a list of todo items that you can check off as you complete them
-3. Before you begin working, check in with me and I will verify the plan.
-4. Then, begin working on the todo items, marking them as complete as you go.
-5. Please every step of the way just give me a high level explanation of what changes you made
-6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
-7. Finally, add a review section to the [todo.md](http://todo.md/) file with a summary of the changes you made and any other relevant information.
+## Efficient Development Workflow with Specialized Agents
+
+### Core Principles
+- **Use specialized sub-agents automatically** for their areas of expertise
+- **Minimize manual steps** by leveraging agent automation
+- **Maintain simplicity** - every change should impact minimal code
+- **Company isolation first** - always ensure data security and proper filtering
+
+### Automatic Sub-Agent Usage Patterns
+
+**Frontend Development:**
+- Use `frontend-react-expert` for React components, UI optimization, and responsive design
+- Use `react-specialist` for Guardian-specific React patterns, TypeScript fixes, and form builders
+
+**Backend Development:**
+- Use `api-specialist` for API endpoints, Express server management, and multi-server synchronization
+- Use `database-specialist` for database operations, Prisma queries, and company-based data isolation
+- Use `security-specialist` for authentication, authorization, and security reviews
+
+**Infrastructure & Deployment:**
+- Use `deployment-specialist` proactively for Azure deployment issues, pipeline failures, and IIS configuration
+- Use `doc-updater` automatically after ANY code changes to update documentation
+
+**Quality Assurance & Testing:**
+- Use `testing-qa-specialist` for comprehensive testing coverage, quality assurance validation, and test strategy development for government-grade applications
+
+### Task-Based Sub-Agent Selection
+
+| Task Type | Primary Agent | Secondary Agent | Use When |
+|-----------|---------------|-----------------|----------|
+| React Component Creation | `frontend-react-expert` | `react-specialist` | Building/modifying UI components |
+| API Endpoint Changes | `api-specialist` | `security-specialist` | Adding/modifying endpoints across server files |
+| Database Schema/Queries | `database-specialist` | `security-specialist` | Any database operations or schema changes |
+| Form Builder Features | `react-specialist` | `database-specialist` | Form templates, field management, validation |
+| Authentication/Security | `security-specialist` | `database-specialist` | Auth flows, JWT tokens, company isolation |
+| Testing & Quality Assurance | `testing-qa-specialist` | `security-specialist` | Test coverage, QA validation, pre-deployment testing |
+| Deployment Issues | `deployment-specialist` | `api-specialist` | Pipeline failures, Azure/IIS problems |
+| Documentation Updates | `doc-updater` | N/A | After any code changes (MANDATORY) |
+
+### Streamlined Workflow
+
+1. **Auto-Planning**: Use TodoWrite tool immediately when receiving multi-step tasks
+2. **Agent Selection**: Automatically choose appropriate sub-agent based on task type (see table above)
+3. **Parallel Execution**: Run multiple agents concurrently when tasks are independent
+4. **Validation**: Use `security-specialist` to review any changes affecting company data isolation
+5. **Quality Assurance**: Use `testing-qa-specialist` for comprehensive testing coverage and pre-deployment validation
+6. **Documentation**: Use `doc-updater` proactively after ANY code modifications
+7. **Testing**: Run appropriate tests (`bun test`, `bun run lint`, `tsc --noEmit`) before completion
+
+### Multi-Server Synchronization Protocol
+
+**CRITICAL**: When modifying API endpoints, automatically ensure synchronization:
+1. Use `api-specialist` to update ALL THREE server files simultaneously:
+   - `server.cjs` (development)
+   - `server-production.js` (production source)
+   - `server.js` (local production testing)
+2. Use `deployment-specialist` if deployment issues arise
+3. Use `doc-updater` to update endpoint documentation
+
+### Efficiency Guidelines
+
+**DO automatically:**
+- Use specialized agents for their expertise areas
+- Run multiple agents in parallel for independent tasks
+- Use `testing-qa-specialist` for comprehensive test coverage and quality validation
+- Update documentation after code changes
+- Validate company isolation in database operations
+- Test code before marking tasks complete
+
+**DON'T do manually:**
+- Search for code patterns (use agents with search tools)
+- Manually synchronize endpoints across server files
+- Skip documentation updates
+- Bypass security validation for database changes
+- Work on multiple complex tasks simultaneously
+
+### Agent Automation Examples
+
+**Example 1: Adding New API Endpoint**
+```
+User Request: "Add a new endpoint to get user preferences"
+Automatic Response: Use api-specialist to:
+1. Add endpoint to all 3 server files simultaneously
+2. Implement company-based data filtering
+3. Use security-specialist to validate authorization
+4. Use doc-updater to update API documentation
+```
+
+**Example 2: Creating React Component**
+```
+User Request: "Create a user profile modal component"
+Automatic Response: Use frontend-react-expert to:
+1. Build responsive modal with Guardian design patterns
+2. Use react-specialist for TypeScript integration
+3. Use database-specialist if data fetching needed
+4. Use doc-updater to document component usage
+```
+
+**Example 3: Database Schema Change**
+```
+User Request: "Add notification preferences table"
+Automatic Response: Use database-specialist to:
+1. Design schema with proper company isolation
+2. Create Prisma migrations
+3. Use security-specialist to validate data access patterns
+4. Use api-specialist to create related endpoints
+5. Use doc-updater to update schema documentation
+```
+
+**Example 4: Quality Assurance & Testing**
+```
+User Request: "I just implemented a new authentication endpoint and need thorough testing"
+Automatic Response: Use testing-qa-specialist to:
+1. Create comprehensive test coverage for the endpoint
+2. Validate security and authorization patterns
+3. Test edge cases and error handling
+4. Create pre-deployment testing checklist
+5. Use security-specialist for security validation
+```
+
+### Performance Optimization Guidelines
+
+**Concurrent Agent Execution:**
+- Run independent agents in parallel using single message with multiple tool calls  
+- Example: api-specialist + database-specialist + security-specialist + testing-qa-specialist simultaneously
+- Avoid sequential execution when tasks don't depend on each other
+
+**Agent Specialization Benefits:**
+- Reduced context switching and improved focus
+- Specialized knowledge and patterns for each domain
+- Automatic adherence to Guardian MVP conventions
+- Built-in security and company isolation validation
 
 
 ### User Registration
@@ -45,6 +169,15 @@
 5. User clicks the "Submit" button
 6. User is redirected to the dashboard
 
+
+### user with "processor" role
+
+1. User visits the dashboard
+2. User clicks the "" button
+3. User is redirected to the request fulfillment page
+4. User fills out the request fulfillment form
+5. User clicks the "Submit" button
+6. User is redirected to the dashboard
 
 
 ## Environment Configuration
@@ -404,14 +537,14 @@ If you see "Authentication failed against database server" errors when starting 
 **Symptom:** Prisma can't connect to database, login fails
 **Solution:** Start development server with explicit DATABASE_URL:
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN@guardian-dev-db;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
 ```
 
 **CORRECT Database Connection Details:**
 - Server: `guardian-dev-db.database.windows.net`
 - Port: `1433`
 - Database: `GUARDIAN-DEV`
-- User: `GUARDIAN@guardian-dev-db`
+- User: `GUARDIAN`
 - Password: `Sh13ldlyt1c$`
 - Additional parameters: `encrypt=true;trustServerCertificate=false`
 

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaCode } from 'react-icons/fa';
 import {
-  LogOut, User, Settings, KeyRound, Bell, SunMoon, UserPlus, RefreshCw, 
-  MessageCircle, CheckCircle, FileText, Monitor, CreditCard,
+  LogOut, User, Settings, KeyRound, Bell, SunMoon, FileText, Monitor,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +9,8 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { Tooltip } from 'react-tooltip';
-// Import the Modal component
-import Modal from '../components/Modal';
+// Import the RequestModal component
+import RequestModal from '../components/RequestModal';
 import axios from 'axios';
 import 'react-tooltip/dist/react-tooltip.css';
 import '../styles/sidebar.css';
@@ -27,7 +26,6 @@ import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
-import formService from '../services/formService';
 
 ChartJS.register(ArcElement, ChartTooltip, Legend);
 
@@ -59,6 +57,7 @@ interface Request {
   CREATE_USER_ID: number | null;
   UPDATE_USER_ID: number | null;
   TRACKINGID: string;
+  FORM_ID: number | null;
   ABBREVIATION?: string;
   REQUEST_DESCRIPTION?: string;
   requestorName: string;
@@ -325,58 +324,16 @@ function Home() {
   const [selectedRows, setSelectedRows] = useState<Request[]>([]);
   const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [toggleCleared, setToggleCleared] = useState<boolean>(false);
   const [requestStatusData, setRequestStatusData] = useState<Array<{ label: string; value: number; color: string }>>([]);
   const [totalRequests, setTotalRequests] = useState<number>(0);
   
-  // Form data states for modal
-  const [formData, setFormData] = useState<any>(null);
-  const [formLoading, setFormLoading] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  
   // User is already declared at the top of the component
-
-  // Function to fetch form data for a request
-  const fetchFormData = async (requestId: number) => {
-    try {
-      setFormLoading(true);
-      setFormError(null);
-      setFormData(null);
-      
-      console.log(`Fetching form data for request ${requestId}`);
-      const response = await formService.getRequestForm(requestId);
-      console.log('Form data response:', response);
-      
-      setFormData(response);
-    } catch (error: any) {
-      console.error('Error fetching form data:', error);
-      setFormError(error.message || 'Failed to load form data');
-      setFormData(null);
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   // Function to handle viewing a request
   const handleViewRequest = (request: Request) => {
     setCurrentRequest(request);
     setShowRequestModal(true);
-    
-    if (request.ASSIGNED_ID) {
-      setSelectedUser({ id: request.ASSIGNED_ID, firstName: request.assignedName?.split(' ')[0] || '', lastName: request.assignedName?.split(' ')[1] || '', email: '', status: '', createdAt: '', companyId: 0, roles: [] });
-    } else {
-      setSelectedUser(null);
-    }
-    
-    // Fetch users for assignment dropdown if user has permission
-    if (hasAssignPermission()) {
-      fetchUsers();
-    }
-    
-    // Fetch form data for the request
-    fetchFormData(request.REQUEST_ID);
   };
   
   // Define columns for the requests table
@@ -453,112 +410,7 @@ function Home() {
     }
   ];
 
-  // Function to fetch users for assignment dropdown
-  const fetchUsers = async () => {
-    if (hasAssignPermission()) {
-      try {
-        const response = await api.get('/api/users');
-        // Extract the data array from the response structure
-        setUsers(response.data.data || []);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        toast.error('Failed to load users for assignment');
-      }
-    }
-  };
-  
-  // Function to handle assigning a request to a user
-  const handleAssignRequest = async () => {
-    if (!currentRequest || !selectedUser) {
-      toast.error('Please select a user to assign the request to');
-      return;
-    }
-    
-    try {
-      const authToken = localStorage.getItem('token');
-      await axios.put(`/api/requests/${currentRequest.REQUEST_ID}/assign`, {
-        assignedUserId: selectedUser.id
-      }, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      
-      // Update local state
-      const updatedRequests = requests.map(req => {
-        if (req.REQUEST_ID === currentRequest.REQUEST_ID) {
-          return {
-            ...req,
-            ASSIGNED_ID: selectedUser.id,
-            assignedName: `${selectedUser.firstName} ${selectedUser.lastName}`
-          };
-        }
-        return req;
-      });
-      
-      setRequests(updatedRequests);
-      setFilteredRequests(updatedRequests);
-      setShowRequestModal(false);
-      
-      // Show success toast
-      toast.success(`Request assigned to ${selectedUser.firstName} ${selectedUser.lastName}`);
-      
-      // Refresh data after assignment
-      fetchRequests();
-    } catch (error) {
-      console.error('Error assigning request:', error);
-      toast.error('Failed to assign request. Please try again.');
-    }
-  };
 
-  // Function to check if user has manager, admin or JAFAR role
-  const hasAssignPermission = () => {
-    if (!user) return false;
-    
-    // Check for role IDs 1 (admin), 6 (JAFAR), or 2 (manager)
-    if (user.roles && user.roles.some((role: any) => [1, 2, 6].includes(role.id))) {
-      return true;
-    }
-    
-    // Check for role string '1' (admin), '6' (JAFAR), or '2' (manager)
-    if (user.role === '1' || user.role === '2' || user.role === '6') {
-      return true;
-    }
-    
-    return false;
-  };
-
-  // Helper function to get field type name from field type ID
-  const getFieldTypeName = (fieldTypeId: number): string => {
-    const fieldTypeMap: Record<number, string> = {
-      1: 'Text',
-      2: 'Text Area',
-      3: 'Number',
-      4: 'Dropdown',
-      5: 'Radio',
-      6: 'Checkbox',
-      7: 'Date',
-      8: 'Email',
-      9: 'File'
-    };
-    return fieldTypeMap[fieldTypeId] || 'Text';
-  };
-
-  // Helper function to get field type icon from field type ID
-  const getFieldTypeIcon = (fieldTypeId: number): string => {
-    const iconMap: Record<number, string> = {
-      1: '📝', // Text
-      2: '📄', // Text Area
-      3: '#️⃣', // Number
-      4: '📋', // Dropdown
-      5: '⚪', // Radio
-      6: '☑️', // Checkbox
-      7: '📅', // Date
-      8: '📧', // Email
-      9: '📎'  // File
-    };
-    return iconMap[fieldTypeId] || '📝';
-  };
 
   // Function to handle processing selected requests
   const handleProcessRequests = async () => {
@@ -1266,199 +1118,15 @@ function Home() {
 
       {/* Request Details Modal */}
       {showRequestModal && currentRequest && (
-        <Modal
-          isOpen={showRequestModal}
-          onClose={() => setShowRequestModal(false)}
-          title={`Request Details: ${currentRequest.TRACKINGID || 'N/A'}`}
-          size="lg"
-        >
-          <div className="p-4 max-h-[80vh] overflow-y-auto">
-            {/* Basic Request Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Request ID</h3>
-                <p className="text-base">{currentRequest.TRACKINGID || 'N/A'}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Type</h3>
-                <p className="text-base">{currentRequest.REQUEST_NAME || 'N/A'}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Status</h3>
-                <p className="text-base">
-                  {{
-                    'P': 'In Progress',
-                    'A': 'Approved',
-                    'R': 'Rejected',
-                    'C': 'Completed',
-                    'N': 'New',
-                    'X': 'Cancelled'
-                  }[currentRequest.STATUS] || 'Unknown'}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Date Submitted</h3>
-                <p className="text-base">
-                  {currentRequest.SUBMITTED_DATE ? new Date(currentRequest.SUBMITTED_DATE).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Requestor</h3>
-                <p className="text-base">{currentRequest.requestorName || 'N/A'}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-1">Currently Assigned To</h3>
-                <p className="text-base">{currentRequest.assignedName || 'Unassigned'}</p>
-              </div>
-            </div>
-
-            {/* Form Template Information */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <h3 className="text-lg font-semibold mb-3 flex items-center">
-                <span className="mr-2">📋</span>
-                Form Template Information
-              </h3>
-              
-              {formLoading ? (
-                <div className="flex items-center justify-center p-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-                  <span className="ml-3 text-gray-600">Loading form data...</span>
-                </div>
-              ) : formError ? (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                  <div className="flex items-center">
-                    <span className="text-yellow-600 mr-2">⚠️</span>
-                    <div>
-                      <p className="text-yellow-800 font-medium">Form template not available</p>
-                      <p className="text-yellow-700 text-sm mt-1">{formError}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : formData ? (
-                <div className="space-y-4">
-                  {/* Form Header */}
-                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                    <h4 className="text-lg font-semibold text-teal-800 mb-2">
-                      {formData.form?.FORM_NAME || 'Unnamed Form'}
-                    </h4>
-                    {formData.form?.FORM_DESCRIPTION && (
-                      <p className="text-teal-700 text-sm">
-                        {formData.form.FORM_DESCRIPTION}
-                      </p>
-                    )}
-                    <div className="mt-2 flex items-center text-sm text-teal-600">
-                      <span className="mr-4">
-                        📝 {formData.fields?.length || 0} field{(formData.fields?.length || 0) !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Form Fields and Values */}
-                  {formData.fields && formData.fields.length > 0 ? (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h5 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
-                        <span className="mr-2">📄</span>
-                        Form Data
-                      </h5>
-                      <div className="space-y-3">
-                        {formData.fields
-                          .filter((field: any) => field.IS_ACTIVE && !field.IS_DELETED)
-                          .sort((a: any, b: any) => (a.SEQUENCE || 0) - (b.SEQUENCE || 0))
-                          .map((field: any, index: number) => (
-                          <div key={field.FIELD_ID || index} className="bg-white rounded-md p-3 border border-gray-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center mb-2">
-                                <span className="mr-2 text-lg">
-                                  {getFieldTypeIcon(field.FIELD_TYPE_ID)}
-                                </span>
-                                <div>
-                                  <h6 className="font-medium text-gray-800">
-                                    {field.FIELD_NAME}
-                                    {field.IS_REQUIRED && <span className="text-red-500 ml-1">*</span>}
-                                  </h6>
-                                  <div className="flex items-center mt-1">
-                                    <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-                                      {getFieldTypeName(field.FIELD_TYPE_ID)}
-                                    </span>
-                                    {field.IS_REQUIRED && (
-                                      <span className="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded ml-2">
-                                        Required
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="mt-2 pl-8">
-                              <div className="text-sm text-gray-600 font-medium mb-1">Value:</div>
-                              <div className="bg-gray-50 rounded p-2 text-sm">
-                                {formData.values && formData.values[field.FIELD_NAME] ? (
-                                  <span className="text-gray-800">
-                                    {String(formData.values[field.FIELD_NAME])}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400 italic">No value provided</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <span className="text-gray-500 italic">No form fields found</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <span className="text-gray-500 italic">No form template associated with this request</span>
-                </div>
-              )}
-            </div>
-
-            {/* Assignment Section - Only visible to admin, manager, and JAFAR roles */}
-            {hasAssignPermission() && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h3 className="text-lg font-semibold mb-3">Assign Request</h3>
-                <div className="flex flex-col md:flex-row gap-3">
-                  <select
-                    className="form-select rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200 focus:ring-opacity-50 flex-grow"
-                    value={selectedUser ? selectedUser.id : ''}
-                    onChange={(e) => {
-                      const userId = e.target.value;
-                      const user = users.find(u => u.id.toString() === userId.toString());
-                      setSelectedUser(user || null);
-                    }}
-                  >
-                    <option value="">Select a user to assign</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.firstName} {user.lastName} ({user.email})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="btn btn-primary px-4 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white"
-                    onClick={handleAssignRequest}
-                  >
-                    Assign
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                className="btn btn-secondary px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700"
-                onClick={() => setShowRequestModal(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </Modal>
+        <RequestModal
+          request={currentRequest}
+          show={showRequestModal}
+          onHide={() => setShowRequestModal(false)}
+          onUpdate={() => {
+            // Refresh the requests data when modal updates
+            fetchRequests();
+          }}
+        />
       )}
       {/* Mobile Bottom Nav */}
       <MobileNavBar

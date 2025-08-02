@@ -8,3 +8,298 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+8:48:16 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:48:16 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:50:53 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:53:44 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:53:54 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:54:22 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:54:28 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:54:28 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:54:41 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:54:41 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:05 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:12 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:22 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:34 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:34 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:48 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:55:51 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:56:22 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:56:27 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:57:11 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:57:16 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:57:16 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:12:39 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:19:17 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:19:45 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:19:54 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:20:00 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:20:00 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:20:07 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+11:01:03 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:02:04 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:02:35 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:02:35 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx: Expected corresponding JSX closing tag for <div>. (494:6)
+
+  492 |           </div>
+  493 |         )}
+> 494 |       </Modal.Body>
+      |       ^
+  495 |     </Modal>
+  496 |   );
+  497 | };
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx:494:6
+  492|            </div>
+  493|          )}
+  494|        </Modal.Body>
+     |        ^
+  495|      </Modal>
+  496|    );
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.parseReturnStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+11:02:35 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx: Expected corresponding JSX closing tag for <div>. (494:6)
+
+  492 |           </div>
+  493 |         )}
+> 494 |       </Modal.Body>
+      |       ^
+  495 |     </Modal>
+  496 |   );
+  497 | };
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/components/RequestModal.tsx:494:6
+  492|            </div>
+  493|          )}
+  494|        </Modal.Body>
+     |        ^
+  495|      </Modal>
+  496|    );
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.parseReturnStatement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
+      at TypeScriptParserMixin.parseStatementContent (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+11:02:57 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:03:53 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:04:05 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:04:05 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:04:15 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:04:15 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:05:20 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:07:11 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:08:00 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:08:14 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:08:28 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:08:39 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+11:13:18 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+11:14:46 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+11:15:46 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:48 AM [vite] http proxy error: /api/requests/127/form
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:48 AM [vite] http proxy error: /api/requests/127/form
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:50 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:51 AM [vite] http proxy error: /api/requests/127/form
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:51 AM [vite] http proxy error: /api/requests/127/form
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:52 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:15:53 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+11:17:25 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+6:12:01 AM [vite] http proxy error: /api/login
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:30:56 AM [vite] (client) hmr update /src/styles/RequestDashboard.css
+6:34:52 AM [vite] (client) hmr update /src/styles/RequestDashboard.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:11:02 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:11:43 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:11:57 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:11:57 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:12:07 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:12:07 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:12:13 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:12:27 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:12:44 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:13:21 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:13:29 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:13:29 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:17:06 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+7:17:14 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+7:17:24 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:17:32 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:17:32 AM [vite] (client) hmr update /src/components/RequestModal.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:20:25 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:20:35 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:20:51 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:20:59 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:22:14 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:22:22 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:22:22 AM [vite] (client) hmr update /src/components/RequestModal.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:24:16 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:24:27 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:24:36 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:24:36 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:24:44 AM [vite] (client) hmr update /src/components/RequestModal.css
+7:24:44 AM [vite] (client) hmr update /src/components/RequestModal.css

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import './RequestModal.css';
 
 interface User {
   USER_ID: number;
@@ -109,7 +110,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const getStatusText = (status: string) => {
     switch(status) {
       case 'P': return 'In Progress';
-      case 'A': return 'Approved';
+      case 'A': return 'Accepted';
       case 'R': return 'Rejected';
       case 'C': return 'Completed';
       default: return 'Unknown';
@@ -301,7 +302,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
+    <Modal show={show} onHide={onHide} size="lg" centered className="request-modal-improved">
       <Modal.Header closeButton className="border-0 pb-2">
         <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>
           Request Details: {request.TRACKINGID || `REQ-${request.REQUEST_ID}`}
@@ -310,7 +311,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       
       <Modal.Body className="pt-3">
         {/* Main Info Grid - Compact Layout */}
-        <div className="row g-3 mb-3">
+        <div className="row mb-3">
           {/* Left Column */}
           <div className="col-6">
             <div className="mb-2">

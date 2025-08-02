@@ -1,3 +1,29 @@
+/* Simple Two-Column Layout - Override All Conflicts */
+.request-modal-improved .modal-body .row.mb-3 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 2rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+.request-modal-improved .modal-body .row.mb-3 .col-6 {
+  display: block !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure items inside columns stack vertically */
+.request-modal-improved .modal-body .col-6 .mb-2 {
+  display: block !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Debug styles removed */
+
 /* Improved RequestModal Design */
 .request-modal-improved .modal-content {
   border-radius: 0.5rem;
@@ -8,7 +34,7 @@
 }
 
 .request-modal-improved .modal-header {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
 }
@@ -20,7 +46,7 @@
 }
 
 .request-modal-improved .modal-body {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   background-color: #fff;
   max-height: calc(90vh - 140px);
   overflow-y: auto;
@@ -106,7 +132,7 @@
 
 /* Footer */
 .request-modal-improved .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   background-color: #fff;
   border-top: 1px solid #dee2e6;
 }
@@ -262,61 +288,66 @@
 /* Responsive */
 @media (max-width: 768px) {
   .request-modal-improved .modal-content {
-    margin: 0.5rem;
     max-height: 95vh;
   }
   
+  /* Stack columns on mobile */
+  .request-modal-improved .modal-body .row.mb-3 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
   .request-modal-improved .modal-body {
     padding: 0.75rem 1rem;
     max-height: calc(95vh - 120px);
   }
-  
+
   .request-modal-improved .modal-header {
     padding: 0.75rem 1rem;
   }
-  
+
   .request-modal-improved .modal-footer {
     padding: 0.75rem 1rem;
   }
-  
+
   /* Mobile card adjustments */
   .request-modal-improved .col-6.col-md-3 {
     margin-bottom: 0.5rem;
   }
-  
+
   .request-modal-improved .card-body.p-2 {
     padding: 0.4rem !important;
   }
-  
+
   .request-modal-improved .rounded-circle {
     width: 20px !important;
     height: 20px !important;
     font-size: 10px !important;
   }
-  
+
   .request-modal-improved .small {
     font-size: 0.8rem;
   }
-  
+
   /* Stack cards vertically on mobile */
   .request-modal-improved .row.g-2 {
     gap: 0.5rem;
   }
-  
+
   .request-modal-improved .col-6.col-md-3 {
     flex: 0 0 calc(50% - 0.25rem);
     max-width: calc(50% - 0.25rem);
   }
-  
+
   /* Mobile form type card adjustments */
   .request-modal-improved .card.bg-light .card-body {
     padding: 1rem !important;
   }
-  
+
   .request-modal-improved .card.bg-light .h6 {
     font-size: 1rem;
   }
-  
+
   .request-modal-improved .card.bg-light .text-primary {
     font-size: 0.9rem;
   }

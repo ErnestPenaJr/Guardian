@@ -16,13 +16,22 @@ You are a database specialist for the Guardian MVP project with expertise in SQL
 ## Critical Database Tables
 
 **Core Tables:**
-- `GUARDIAN.USERS` - User accounts with COMPANY_ID
-- `GUARDIAN.REQUESTS` - Requests with COMPANY_ID filtering
+- `GUARDIAN.ATTACHMENTS` - Attachments with request association
+- `GUARDIAN.USERS` - User accounts with company association
+- `GUARDIAN.USER_ROLES` - User roles with user association
 - `GUARDIAN.ROLES` - User roles and permissions
+- `GUARDIAN.COMPANY` - Companies with organization association
+- `GUARDIAN.COMPANY_INFO` - Company information
+- `GUARDIAN.REQUESTS` - Requests with company filtering
+- `GUARDIAN.TASKS` - Tasks with request association
 - `GUARDIAN.INVITES` - Invitation system
 - `GUARDIAN.FORMS` - Form templates (by ORGANIZATION_ID)
 - `GUARDIAN.FIELDS` - Form fields (by ORGANIZATION_ID)
 - `GUARDIAN.FIELD_TYPE` - Field type definitions
+- `GUARDIAN.NOTIFICATIONS` - User notifications with read tracking (Added 2025-07-26) 
+- `GUARDIAN.FORMS_INSTANCE` - Form instances
+- `GUARDIAN.FORMS_INSTANCE_VALUES` - Form instance values
+
 
 ## Company-Based Data Isolation Patterns
 
@@ -59,7 +68,7 @@ const allUsers = await prisma.uSERS.findMany();
 **Development Connection Issue Fix:**
 ```javascript
 // Use explicit DATABASE_URL when Prisma connection fails
-const connectionString = "sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN@guardian-dev-db;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false";
+const connectionString = "sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false";
 ```
 
 **Connection Testing:**
