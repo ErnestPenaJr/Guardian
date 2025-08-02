@@ -338,3 +338,8 @@ AggregateError [ECONNREFUSED]:
     at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+8:09:05 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:09:14 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:09:15 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:11:24 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:11:33 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css

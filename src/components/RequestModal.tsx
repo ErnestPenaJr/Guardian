@@ -68,8 +68,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     
     console.log('🔍 canAssignRequests: Current user:', currentUser);
     
-    // Role IDs that can assign requests: Admin(1), Manager(3), Processor(4), Super Admin(6)
-    const assignmentRoles = [1, 3, 4, 6];
+    // Role IDs that can assign requests: Admin(1), User(2), Manager(3), Super Admin(6)
+    const assignmentRoles = [1, 2, 3, 6];
     
     // Check if user has roles array (from login API response)
     if (currentUser.roles && Array.isArray(currentUser.roles)) {
@@ -147,6 +147,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         fetchUsers();
       } else {
         console.log('❌ User does not have assignment permission, skipping user fetch');
+        console.log('❌ Current user details:', currentUser);
+        console.log('❌ This means the assignment dropdown will be empty!');
       }
       // Always try to fetch form data
       fetchFormFieldValues();
@@ -166,21 +168,37 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching users from /api/users...');
       const response = await api.get('/api/users');
+      console.log('🔄 Raw API response:', response);
       const userData = response.data?.data || response.data;
+      console.log('🔄 Extracted user data:', userData);
       
       if (Array.isArray(userData)) {
-        // Filter to only show processors (role ID 4) for assignment
-        const processors = userData.filter((user: User) => {
-          // Check if user has processor role
-          const roleNames = user.ROLE_NAMES?.toLowerCase() || '';
-          return roleNames.includes('processor') || roleNames.includes('4');
+        console.log(`🔄 Processing ${userData.length} users for filtering...`);
+        
+        // Log first few users to see their structure
+        if (userData.length > 0) {
+          console.log('🔄 Sample user structure:', userData.slice(0, 2));
+        }
+        
+        // Show all users for assignment (no filtering by role)
+        // Users with role IDs 1,2,3,6 can assign to any user
+        const allUsers = userData.filter((user: User) => {
+          // Basic validation - user must have name and ID
+          const isValidUser = user.USER_ID && (user.FIRST_NAME || user.LAST_NAME);
+          console.log(`🔄 User ${user.FIRST_NAME} ${user.LAST_NAME} - Role: "${user.ROLE_NAMES}" - Valid: ${isValidUser}`);
+          return isValidUser;
         });
-        setUsers(processors);
-        console.log(`Loaded ${processors.length} processors for assignment out of ${userData.length} total users`);
+        
+        console.log(`🔄 Showing ${allUsers.length} users for assignment:`, allUsers.map(u => `${u.FIRST_NAME} ${u.LAST_NAME} (${u.ROLE_NAMES})`));
+        setUsers(allUsers);
+        console.log(`✅ Loaded ${allUsers.length} users for assignment out of ${userData.length} total users`);
+      } else {
+        console.error('❌ User data is not an array:', userData);
       }
     } catch (err) {
-      console.error('Failed to load users:', err);
+      console.error('❌ Failed to load users:', err);
     } finally {
       setLoading(false);
     }
