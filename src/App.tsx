@@ -47,6 +47,7 @@ function App() {
           <Route path="/admin-forms-groups/fields/:groupId" element={<ProtectedRoute><AdminFormGroupFieldsPage /></ProtectedRoute>} />
           <Route path="/requests-dashboard" element={<ProtectedRoute><RequestDashboard /></ProtectedRoute>} />
           <Route path="/my-requests" element={<ProtectedRoute><RequestFulfillmentDashboard /></ProtectedRoute>} />
+          <Route path="/my-assignments" element={<ProtectedRoute><RequestFulfillmentDashboard /></ProtectedRoute>} />
           {/* Commented out to prevent navigation when clicking View button 
           <Route path="/request/:id" element={<Navigate to="/requests-dashboard" replace />} />
           */}

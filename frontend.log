@@ -862,3 +862,24 @@ AggregateError [ECONNREFUSED]:
     at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+12:07:28 PM [vite] (client) hmr update /src/components/MobileNavBar.tsx, /src/index.css
+12:07:36 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:07:48 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:05 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:10 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:16 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:21 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:32 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:41 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:45 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:51 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:08:56 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:09:02 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+12:09:13 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+12:12:39 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

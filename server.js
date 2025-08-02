@@ -731,6 +731,143 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Get assigned requests for current user
+app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const startTime = Date.now();
+        console.log(`📋 Fetching assigned requests for user ID: ${req.userId} (Company: ${req.companyId})`);
+
+        // Get requests assigned to the current user
+        const assignedRequests = await prisma.$queryRaw`
+            SELECT 
+                r.REQUEST_ID,
+                r.REQUEST_NAME,
+                r.REQUEST_DESCRIPTION,
+                r.STATUS,
+                r.SUBMITTED_DATE,
+                r.TRACKINGID,
+                r.CREATE_DATE,
+                r.UPDATE_DATE,
+                r.COMPANY_ID,
+                r.REQUESTOR_ID,
+                r.ASSIGNED_ID,
+                ru.FIRST_NAME as REQUESTOR_FIRST_NAME,
+                ru.LAST_NAME as REQUESTOR_LAST_NAME,
+                ru.EMAIL as REQUESTOR_EMAIL,
+                au.FIRST_NAME as ASSIGNED_FIRST_NAME,
+                au.LAST_NAME as ASSIGNED_LAST_NAME,
+                au.EMAIL as ASSIGNED_EMAIL
+            FROM GUARDIAN.REQUESTS r
+            LEFT JOIN GUARDIAN.USERS ru ON r.REQUESTOR_ID = ru.USER_ID
+            LEFT JOIN GUARDIAN.USERS au ON r.ASSIGNED_ID = au.USER_ID
+            WHERE r.ASSIGNED_ID = ${req.userId} 
+                AND r.COMPANY_ID = ${req.companyId}
+            ORDER BY r.CREATE_DATE DESC
+        `;
+
+        // Format the requests for frontend
+        const formattedRequests = assignedRequests.map(req => ({
+            REQUEST_ID: req.REQUEST_ID,
+            REQUEST_NAME: req.REQUEST_NAME,
+            REQUEST_DESCRIPTION: req.REQUEST_DESCRIPTION,
+            STATUS: req.STATUS,
+            SUBMITTED_DATE: req.SUBMITTED_DATE,
+            TRACKINGID: req.TRACKINGID,
+            CREATE_DATE: req.CREATE_DATE,
+            UPDATE_DATE: req.UPDATE_DATE,
+            COMPANY_ID: req.COMPANY_ID,
+            REQUESTOR_ID: req.REQUESTOR_ID,
+            ASSIGNED_ID: req.ASSIGNED_ID,
+            requestorName: req.REQUESTOR_FIRST_NAME ? 
+                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
+                'Unknown',
+            assignedName: req.ASSIGNED_FIRST_NAME ? 
+                `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}` : 
+                null,
+            requestor: req.REQUESTOR_FIRST_NAME ? {
+                FIRST_NAME: req.REQUESTOR_FIRST_NAME,
+                LAST_NAME: req.REQUESTOR_LAST_NAME,
+                EMAIL: req.REQUESTOR_EMAIL
+            } : null,
+            assigned: req.ASSIGNED_FIRST_NAME ? {
+                FIRST_NAME: req.ASSIGNED_FIRST_NAME,
+                LAST_NAME: req.ASSIGNED_LAST_NAME,
+                EMAIL: req.ASSIGNED_EMAIL
+            } : null
+        }));
+
+        const endTime = Date.now();
+        console.log(`✅ Retrieved ${formattedRequests.length} assigned requests in ${endTime - startTime}ms`);
+        
+        res.json(formattedRequests);
+    } catch (error) {
+        console.error('❌ Error fetching assigned requests:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch assigned requests',
+            message: error.message 
+        });
+    }
+});
+
+// Start working on a request (change status from P to A)
+app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        console.log(`🚀 Starting work on request ${requestId} by user ${req.userId}`);
+
+        // Update request status to 'P' (In Progress)
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS 
+            SET STATUS = 'P', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            WHERE REQUEST_ID = ${requestId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND ASSIGNED_ID = ${req.userId}
+        `;
+
+        console.log(`✅ Request ${requestId} started successfully`);
+        res.json({ success: true, message: 'Request started successfully' });
+    } catch (error) {
+        console.error(`❌ Error starting request ${req.params.id}:`, error);
+        res.status(500).json({ 
+            error: 'Failed to start request',
+            message: error.message 
+        });
+    }
+});
+
+// Complete a request (change status from P to C)
+app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const { completionNotes } = req.body;
+        console.log(`✅ Completing request ${requestId} by user ${req.userId}`);
+
+        // Update request status to 'C' (Completed)
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS 
+            SET STATUS = 'C', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            WHERE REQUEST_ID = ${requestId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND ASSIGNED_ID = ${req.userId}
+        `;
+
+        // Add completion notes if provided
+        if (completionNotes) {
+            console.log(`📝 Adding completion notes for request ${requestId}`);
+            // You might want to add a progress entry or notes table for this
+        }
+
+        console.log(`✅ Request ${requestId} completed successfully`);
+        res.json({ success: true, message: 'Request completed successfully' });
+    } catch (error) {
+        console.error(`❌ Error completing request ${req.params.id}:`, error);
+        res.status(500).json({ 
+            error: 'Failed to complete request',
+            message: error.message 
+        });
+    }
+});
+
 // Create new request
 app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {

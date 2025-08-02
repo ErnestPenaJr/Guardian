@@ -24,6 +24,7 @@ import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
+import requestService from '../services/requestService';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 
@@ -41,6 +42,15 @@ interface User {
   createdAt: string;
   companyId: number;
   roles: any[];
+}
+
+// Define NavItem interface
+interface NavItem {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active: boolean;
+  badge?: number;
 }
 
 // Define Request interface
@@ -176,11 +186,15 @@ function Home() {
   
   // State for refresh button loading state
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // State for assigned requests count
+  const [assignedRequestsCount, setAssignedRequestsCount] = useState<number>(0);
 
   // Fetch requests when component mounts
   useEffect(() => {
     console.log('Home component mounted, fetching requests...');
     fetchRequests();
+    fetchAssignedRequestsCount();
   }, []);
 
   useEffect(() => {
@@ -246,7 +260,7 @@ function Home() {
     });
   };
 
-  const navItems = [
+  const navItems: NavItem[] = [
     {
       icon: <LayoutDashboard className="w-6 h-6" />,
       label: 'Dashboard',
@@ -265,6 +279,17 @@ function Home() {
       label: 'My Requests',
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
+    },
+    {
+      icon: <User className="w-6 h-6" />,
+      label: 'Assignments',
+      onClick: () => {
+        setSelectedSection('myRequests');
+        // Refresh count when user navigates to assignments
+        fetchAssignedRequestsCount();
+      },
+      active: selectedSection === 'myRequests',
+      badge: assignedRequestsCount > 0 ? assignedRequestsCount : undefined,
     },
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
       {
@@ -539,6 +564,21 @@ function Home() {
     }
   };
   
+  // Function to fetch assigned requests count
+  const fetchAssignedRequestsCount = async () => {
+    try {
+      const assignedRequests = await requestService.getAssignedRequests();
+      // Count only active assignments (not completed or cancelled)
+      const activeCount = assignedRequests.filter(req => 
+        req.STATUS && !['C', 'X'].includes(req.STATUS)
+      ).length;
+      setAssignedRequestsCount(activeCount);
+    } catch (error) {
+      console.error('Error fetching assigned requests count:', error);
+      setAssignedRequestsCount(0);
+    }
+  };
+
   // Function to fetch requests and prepare chart data
   const fetchRequests = async () => {
     console.log('Fetching requests...');
@@ -608,6 +648,9 @@ function Home() {
       ];
       
       setRequestStatusData(chartData);
+      
+      // Also refresh assigned requests count
+      fetchAssignedRequestsCount();
     } catch (err) {
       console.error('Error fetching requests:', err);
       setError('Failed to load requests. Please try again.');
@@ -766,7 +809,7 @@ function Home() {
             <button
               key={index}
               onClick={item.onClick}
-              className={`flex items-center ${isNavExpanded ? 'justify-start px-4' : 'justify-center'} w-full h-10 mb-3 transition-all duration-150 ${
+              className={`flex items-center ${isNavExpanded ? 'justify-start px-4' : 'justify-center'} w-full h-10 mb-3 transition-all duration-150 relative ${
                 item.active ? 'bg-[#4AB0B9]' : 'hover:bg-[#4AB0B9]/70'
               }`}
               aria-label={item.label}
@@ -778,6 +821,11 @@ function Home() {
               </span>
               {isNavExpanded && (
                 <span className="ml-3 text-sm font-medium">{item.label}</span>
+              )}
+              {item.badge && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
               )}
             </button>
           ))}
@@ -1125,6 +1173,8 @@ function Home() {
           onUpdate={() => {
             // Refresh the requests data when modal updates
             fetchRequests();
+            // Also refresh assigned requests count since assignments might have changed
+            fetchAssignedRequestsCount();
           }}
         />
       )}
@@ -1135,6 +1185,10 @@ function Home() {
           if (["dashboard", "search", "notifications", "profile"].includes(key)) {
             setMobileNav(key as 'dashboard' | 'search' | 'notifications' | 'profile');
             if (key === 'dashboard') setSelectedSection('dashboard');
+          } else if (["workorder", "myRequests", "admin", "adminUserManagement"].includes(key)) {
+            // Handle dashboard dropdown selections
+            setSelectedSection(key as 'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement');
+            setMobileNav('dashboard'); // Keep mobile nav on dashboard but change content
           }
         }}
         onCenterAction={handleCenterAction}

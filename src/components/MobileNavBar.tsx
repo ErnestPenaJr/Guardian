@@ -11,6 +11,7 @@ interface MobileNavBarProps {
 const dashboards = [
   { key: 'dashboard', label: 'Main Dashboard' },
   { key: 'workorder', label: 'Requests Dashboard' },
+  { key: 'myRequests', label: 'My Assignments' },
   { key: 'admin', label: 'Admin' },
   { key: 'adminUserManagement', label: 'User Management' },
 ];
