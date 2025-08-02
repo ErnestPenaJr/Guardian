@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { flushSync } from 'react-dom';
+
 import DataTable, { TableColumn } from 'react-data-table-component';
 import api from '../utils/api';
 import '../styles/RequestDashboard.css';
@@ -353,22 +353,7 @@ const RequestDashboard: React.FC = () => {
           >
             View
           </button>
-          <button 
-            className="btn btn-sm btn-outline-success"
-            onClick={() => {
-              console.log('[BUTTON CLICK] Start Assessment clicked for request:', row.REQUEST_ID);
-              console.log('[BUTTON CLICK] Request details:', {
-                REQUEST_ID: row.REQUEST_ID,
-                REQUEST_NAME: row.REQUEST_NAME,
-                FORM_ID: row.FORM_ID,
-                STATUS: row.STATUS
-              });
-              // Always use the proper form loading function
-              loadRequestFormForFulfillment(row);
-            }}
-          >
-            Start Assessment
-          </button>
+
         </div>
       ),
       width: '220px',
@@ -596,77 +581,7 @@ const RequestDashboard: React.FC = () => {
   };
 
   // Load request form for fulfillment
-  const loadRequestFormForFulfillment = async (request: Request) => {
-    console.log('[FULFILLMENT] Loading form for request:', request.REQUEST_ID, request.REQUEST_NAME);
-    console.log('[FULFILLMENT] Request should use FORM_ID:', request.FORM_ID);
-    
-    try {
-      setFulfillmentFormLoading(true);
-      
-      // Get the actual form data from the API
-      const response = await formService.getRequestForm(request.REQUEST_ID);
-      console.log('[FULFILLMENT] API Response received:', response);
-      console.log('[FULFILLMENT] Response form details:', {
-        formId: response.form?.FORM_ID,
-        formName: response.form?.FORM_NAME,
-        formDescription: response.form?.FORM_DESCRIPTION,
-        fieldsCount: response.fields?.length || 0,
-        firstField: response.fields?.[0]?.FIELD_NAME || 'none'
-      });
-      
-      // Set the form data directly from API response
-      setFulfillmentFormData(response);
-      setFulfillmentFormFields(response.fields || []);
-      setFulfillmentFormValues(response.values || {});
-      setSelectedRequest(request);
-      setShowFormFulfillmentModal(true);
-      
-      console.log('[FULFILLMENT] Form modal opened with data:', {
-        formName: response.form?.FORM_NAME,
-        fieldsCount: response.fields?.length || 0
-      });
-    } catch (error) {
-      console.error('[FULFILLMENT] Error loading form:', error);
-      console.error('[FULFILLMENT] Request details:', request);
-      
-      // Instead of showing error, provide a working fallback form
-      const fallbackResponse = {
-        request: request,
-        form: {
-          FORM_ID: request.FORM_ID || 0,
-          FORM_NAME: 'Request Assessment Form (Fallback)',
-          FORM_DESCRIPTION: 'Complete this form to process the request. Note: This is a fallback form due to a connection issue.'
-        },
-        fields: [
-          { FIELD_ID: 1, FIELD_NAME: 'Assessment Notes', FIELD_TYPE_ID: 2, IS_REQUIRED: true, SEQUENCE: 1 },
-          { FIELD_ID: 2, FIELD_NAME: 'Completion Date', FIELD_TYPE_ID: 3, IS_REQUIRED: true, SEQUENCE: 2 },
-          { FIELD_ID: 3, FIELD_NAME: 'Additional Comments', FIELD_TYPE_ID: 2, IS_REQUIRED: false, SEQUENCE: 3 }
-        ],
-        values: {},
-        formInstanceId: null
-      };
-      
-      console.log('[FULFILLMENT] Setting fallback form data:', fallbackResponse);
-      
-      // Use flushSync to ensure all state updates happen immediately
-      flushSync(() => {
-        setFulfillmentFormData(fallbackResponse);
-        setFulfillmentFormFields(fallbackResponse.fields);
-        setFulfillmentFormValues({});
-        setSelectedRequest(request);
-      });
-      
-      console.log('[FULFILLMENT] About to show fallback modal');
-      flushSync(() => {
-        setShowFormFulfillmentModal(true);
-      });
-      console.log('[FULFILLMENT] Fallback modal state set to true');
-      
-      toast.warning('Using fallback form due to connection issue. Your data will still be saved.');
-    } finally {
-      setFulfillmentFormLoading(false);
-    }
-  };
+
 
   // Save form fulfillment data
   const saveFulfillmentFormData = async () => {
