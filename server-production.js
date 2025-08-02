@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const { PrismaClient } = require('@prisma/client');
 
 // Email service using Resend
@@ -1044,6 +1045,856 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         console.error('❌ Error assigning request:', error);
         res.status(500).json({
             error: 'Failed to assign request',
+            message: error.message
+        });
+    }
+});
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Allow common file types
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/gif',
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'text/csv'
+        ];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only images, PDF, Word, Excel, and text files are allowed.'), false);
+        }
+    }
+});
+
+// === WORK PROGRESS MANAGEMENT ENDPOINTS ===
+
+// Get all work progress entries for a request
+app.get('/api/requests/:id/progress', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        console.log(`📈 Fetching work progress for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Get all progress entries for the request with user information
+        const progressEntries = await prisma.$queryRaw`
+            SELECT 
+                wp.WORK_PROGRESS_ID,
+                wp.REQUEST_ID,
+                wp.USER_ID,
+                wp.COMPANY_ID,
+                wp.PROGRESS_TYPE,
+                wp.TITLE,
+                wp.DESCRIPTION,
+                wp.HOURS_WORKED,
+                wp.STATUS_UPDATE,
+                wp.RELATED_ATTACHMENT_ID,
+                wp.IS_MILESTONE,
+                wp.IS_VISIBLE_TO_REQUESTOR,
+                wp.CREATE_DATE,
+                wp.UPDATE_DATE,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                a.FILE_NAME as ATTACHMENT_FILE_NAME
+            FROM GUARDIAN.WORK_PROGRESS wp
+            INNER JOIN GUARDIAN.USERS u ON wp.USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.ATTACHMENTS a ON wp.RELATED_ATTACHMENT_ID = a.ATTACHMENT_ID
+            WHERE wp.REQUEST_ID = ${requestId} 
+            AND wp.COMPANY_ID = ${req.companyId}
+            ORDER BY wp.CREATE_DATE DESC
+        `;
+
+        console.log(`✅ Found ${progressEntries.length} progress entries for request ${requestId}`);
+
+        res.json({
+            success: true,
+            progress: progressEntries.map(entry => ({
+                workProgressId: entry.WORK_PROGRESS_ID,
+                requestId: entry.REQUEST_ID,
+                userId: entry.USER_ID,
+                companyId: entry.COMPANY_ID,
+                progressType: entry.PROGRESS_TYPE,
+                title: entry.TITLE,
+                description: entry.DESCRIPTION,
+                hoursWorked: entry.HOURS_WORKED ? parseFloat(entry.HOURS_WORKED) : null,
+                statusUpdate: entry.STATUS_UPDATE,
+                relatedAttachmentId: entry.RELATED_ATTACHMENT_ID,
+                isMilestone: entry.IS_MILESTONE,
+                isVisibleToRequestor: entry.IS_VISIBLE_TO_REQUESTOR,
+                createDate: entry.CREATE_DATE,
+                updateDate: entry.UPDATE_DATE,
+                user: {
+                    firstName: entry.FIRST_NAME,
+                    lastName: entry.LAST_NAME,
+                    email: entry.EMAIL
+                },
+                attachmentFileName: entry.ATTACHMENT_FILE_NAME
+            }))
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching work progress:', error);
+        res.status(500).json({
+            error: 'Failed to fetch work progress',
+            message: error.message
+        });
+    }
+});
+
+// Add new progress entry with optional file upload
+app.post('/api/requests/:id/progress', getAuthenticatedUserCompany, upload.single('attachment'), async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const {
+            progressType = 'note',
+            title,
+            description,
+            hoursWorked,
+            statusUpdate,
+            isMilestone = false,
+            isVisibleToRequestor = true
+        } = req.body;
+
+        console.log(`📝 Adding progress entry for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        if (!title || title.trim().length === 0) {
+            return res.status(400).json({
+                error: 'Progress title is required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID, ASSIGNED_ID, REQUESTOR_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        const request = requestExists[0];
+
+        // Check if user is authorized to add progress (assigned user, requestor, or admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isAssigned = request.ASSIGNED_ID === req.userId;
+        const isRequestor = request.REQUESTOR_ID === req.userId;
+
+        if (!isAdmin && !isAssigned && !isRequestor) {
+            return res.status(403).json({
+                error: 'You are not authorized to add progress to this request'
+            });
+        }
+
+        let attachmentId = null;
+
+        // Handle file upload if provided
+        if (req.file) {
+            console.log(`📎 Processing file upload: ${req.file.originalname}`);
+            
+            const fileResult = await prisma.$queryRaw`
+                INSERT INTO GUARDIAN.ATTACHMENTS (
+                    REQUEST_ID, 
+                    FILE_NAME, 
+                    ATTACHMENT, 
+                    COMPANY_ID,
+                    CREATE_USER_ID, 
+                    CREATE_DATE
+                ) 
+                OUTPUT INSERTED.ATTACHMENT_ID
+                VALUES (
+                    ${requestId},
+                    ${req.file.originalname},
+                    ${req.file.buffer},
+                    ${req.companyId},
+                    ${req.userId},
+                    GETDATE()
+                )
+            `;
+
+            if (fileResult.length > 0) {
+                attachmentId = fileResult[0].ATTACHMENT_ID;
+                console.log(`✅ File uploaded with attachment ID: ${attachmentId}`);
+            }
+        }
+
+        // Create the progress entry
+        const progressResult = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.WORK_PROGRESS (
+                REQUEST_ID,
+                USER_ID,
+                COMPANY_ID,
+                PROGRESS_TYPE,
+                TITLE,
+                DESCRIPTION,
+                HOURS_WORKED,
+                STATUS_UPDATE,
+                RELATED_ATTACHMENT_ID,
+                IS_MILESTONE,
+                IS_VISIBLE_TO_REQUESTOR,
+                CREATE_USER_ID,
+                CREATE_DATE
+            )
+            OUTPUT INSERTED.WORK_PROGRESS_ID
+            VALUES (
+                ${requestId},
+                ${req.userId},
+                ${req.companyId},
+                ${progressType},
+                ${title},
+                ${description || null},
+                ${hoursWorked ? parseFloat(hoursWorked) : null},
+                ${statusUpdate || null},
+                ${attachmentId},
+                ${isMilestone === 'true' || isMilestone === true ? 1 : 0},
+                ${isVisibleToRequestor === 'true' || isVisibleToRequestor === true ? 1 : 0},
+                ${req.userId},
+                GETDATE()
+            )
+        `;
+
+        const workProgressId = progressResult[0].WORK_PROGRESS_ID;
+        console.log(`✅ Progress entry created with ID: ${workProgressId}`);
+
+        // If this is a milestone or status update, create notifications for relevant users
+        if (isMilestone === 'true' || isMilestone === true || statusUpdate) {
+            try {
+                const notificationTitle = isMilestone ? 'Milestone Reached' : 'Status Update';
+                const notificationMessage = `${title}${statusUpdate ? ` - Status: ${statusUpdate}` : ''}`;
+
+                // Notify requestor if not the same user
+                if (request.REQUESTOR_ID && request.REQUESTOR_ID !== req.userId) {
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.NOTIFICATIONS (
+                            USER_ID, 
+                            TYPE, 
+                            TITLE, 
+                            MESSAGE, 
+                            RELATED_ID, 
+                            COMPANY_ID, 
+                            CREATED_DATE, 
+                            IS_READ
+                        ) VALUES (
+                            ${request.REQUESTOR_ID},
+                            'progress_update',
+                            ${notificationTitle},
+                            ${notificationMessage},
+                            ${requestId},
+                            ${req.companyId},
+                            GETDATE(),
+                            0
+                        )
+                    `;
+                }
+
+                // Notify assigned user if not the same user
+                if (request.ASSIGNED_ID && request.ASSIGNED_ID !== req.userId) {
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.NOTIFICATIONS (
+                            USER_ID, 
+                            TYPE, 
+                            TITLE, 
+                            MESSAGE, 
+                            RELATED_ID, 
+                            COMPANY_ID, 
+                            CREATED_DATE, 
+                            IS_READ
+                        ) VALUES (
+                            ${request.ASSIGNED_ID},
+                            'progress_update',
+                            ${notificationTitle},
+                            ${notificationMessage},
+                            ${requestId},
+                            ${req.companyId},
+                            GETDATE(),
+                            0
+                        )
+                    `;
+                }
+
+                console.log(`🔔 Progress update notifications created`);
+            } catch (notificationError) {
+                console.error('⚠️ Failed to create progress notifications:', notificationError);
+                // Don't fail the progress creation if notification creation fails
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Progress entry added successfully',
+            workProgressId: workProgressId,
+            attachmentId: attachmentId
+        });
+
+    } catch (error) {
+        console.error('❌ Error adding progress entry:', error);
+        res.status(500).json({
+            error: 'Failed to add progress entry',
+            message: error.message
+        });
+    }
+});
+
+// Update existing progress entry
+app.put('/api/progress/:progressId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const progressId = parseInt(req.params.progressId);
+        const {
+            title,
+            description,
+            hoursWorked,
+            statusUpdate,
+            isMilestone,
+            isVisibleToRequestor
+        } = req.body;
+
+        console.log(`✏️ Updating progress entry ${progressId} (Company: ${req.companyId})`);
+
+        if (!progressId || isNaN(progressId)) {
+            return res.status(400).json({
+                error: 'Valid progress ID is required'
+            });
+        }
+
+        // Verify progress entry belongs to user's company and get details
+        const progressEntry = await prisma.$queryRaw`
+            SELECT wp.WORK_PROGRESS_ID, wp.USER_ID, wp.REQUEST_ID, r.ASSIGNED_ID, r.REQUESTOR_ID
+            FROM GUARDIAN.WORK_PROGRESS wp
+            INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
+            WHERE wp.WORK_PROGRESS_ID = ${progressId} 
+            AND wp.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!progressEntry.length) {
+            return res.status(404).json({
+                error: 'Progress entry not found or access denied'
+            });
+        }
+
+        const entry = progressEntry[0];
+
+        // Check if user is authorized to update progress (creator, assigned user, requestor, or admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isCreator = entry.USER_ID === req.userId;
+        const isAssigned = entry.ASSIGNED_ID === req.userId;
+        const isRequestor = entry.REQUESTOR_ID === req.userId;
+
+        if (!isAdmin && !isCreator && !isAssigned && !isRequestor) {
+            return res.status(403).json({
+                error: 'You are not authorized to update this progress entry'
+            });
+        }
+
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.WORK_PROGRESS 
+            SET TITLE = ${title || null},
+                DESCRIPTION = ${description || null},
+                HOURS_WORKED = ${hoursWorked ? parseFloat(hoursWorked) : null},
+                STATUS_UPDATE = ${statusUpdate || null},
+                IS_MILESTONE = ${isMilestone === 'true' || isMilestone === true ? 1 : 0},
+                IS_VISIBLE_TO_REQUESTOR = ${isVisibleToRequestor === 'true' || isVisibleToRequestor === true ? 1 : 0},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE WORK_PROGRESS_ID = ${progressId} 
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ Progress entry ${progressId} updated successfully`);
+
+        res.json({
+            success: true,
+            message: 'Progress entry updated successfully',
+            workProgressId: progressId
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating progress entry:', error);
+        res.status(500).json({
+            error: 'Failed to update progress entry',
+            message: error.message
+        });
+    }
+});
+
+// Delete progress entry
+app.delete('/api/progress/:progressId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const progressId = parseInt(req.params.progressId);
+
+        console.log(`🗑️ Deleting progress entry ${progressId} (Company: ${req.companyId})`);
+
+        if (!progressId || isNaN(progressId)) {
+            return res.status(400).json({
+                error: 'Valid progress ID is required'
+            });
+        }
+
+        // Verify progress entry belongs to user's company and get details
+        const progressEntry = await prisma.$queryRaw`
+            SELECT wp.WORK_PROGRESS_ID, wp.USER_ID, wp.REQUEST_ID, r.ASSIGNED_ID, r.REQUESTOR_ID
+            FROM GUARDIAN.WORK_PROGRESS wp
+            INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
+            WHERE wp.WORK_PROGRESS_ID = ${progressId} 
+            AND wp.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!progressEntry.length) {
+            return res.status(404).json({
+                error: 'Progress entry not found or access denied'
+            });
+        }
+
+        const entry = progressEntry[0];
+
+        // Check if user is authorized to delete progress (creator or admin only)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isCreator = entry.USER_ID === req.userId;
+
+        if (!isAdmin && !isCreator) {
+            return res.status(403).json({
+                error: 'You are not authorized to delete this progress entry'
+            });
+        }
+
+        // Delete the progress entry
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.WORK_PROGRESS 
+            WHERE WORK_PROGRESS_ID = ${progressId} 
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ Progress entry ${progressId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Progress entry deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting progress entry:', error);
+        res.status(500).json({
+            error: 'Failed to delete progress entry',
+            message: error.message
+        });
+    }
+});
+
+// Get progress summary/statistics for a request
+app.get('/api/progress/:progressId/summary', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const progressId = parseInt(req.params.progressId);
+
+        console.log(`📊 Fetching progress summary for ${progressId} (Company: ${req.companyId})`);
+
+        if (!progressId || isNaN(progressId)) {
+            return res.status(400).json({
+                error: 'Valid progress ID is required'
+            });
+        }
+
+        // Get the request ID from the progress entry
+        const progressEntry = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.WORK_PROGRESS 
+            WHERE WORK_PROGRESS_ID = ${progressId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!progressEntry.length) {
+            return res.status(404).json({
+                error: 'Progress entry not found or access denied'
+            });
+        }
+
+        const requestId = progressEntry[0].REQUEST_ID;
+
+        // Get summary statistics
+        const summary = await prisma.$queryRaw`
+            SELECT 
+                COUNT(*) as TOTAL_ENTRIES,
+                SUM(CASE WHEN IS_MILESTONE = 1 THEN 1 ELSE 0 END) as MILESTONE_COUNT,
+                SUM(CASE WHEN HOURS_WORKED IS NOT NULL THEN HOURS_WORKED ELSE 0 END) as TOTAL_HOURS,
+                COUNT(DISTINCT USER_ID) as CONTRIBUTORS_COUNT,
+                COUNT(CASE WHEN RELATED_ATTACHMENT_ID IS NOT NULL THEN 1 END) as ATTACHMENTS_COUNT,
+                MIN(CREATE_DATE) as FIRST_ENTRY,
+                MAX(CREATE_DATE) as LATEST_ENTRY
+            FROM GUARDIAN.WORK_PROGRESS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        // Get progress type breakdown
+        const typeBreakdown = await prisma.$queryRaw`
+            SELECT 
+                PROGRESS_TYPE,
+                COUNT(*) as COUNT
+            FROM GUARDIAN.WORK_PROGRESS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            GROUP BY PROGRESS_TYPE
+            ORDER BY COUNT DESC
+        `;
+
+        const summaryData = summary[0];
+
+        console.log(`✅ Progress summary compiled for request ${requestId}`);
+
+        res.json({
+            success: true,
+            summary: {
+                totalEntries: parseInt(summaryData.TOTAL_ENTRIES),
+                milestoneCount: parseInt(summaryData.MILESTONE_COUNT),
+                totalHours: parseFloat(summaryData.TOTAL_HOURS) || 0,
+                contributorsCount: parseInt(summaryData.CONTRIBUTORS_COUNT),
+                attachmentsCount: parseInt(summaryData.ATTACHMENTS_COUNT),
+                firstEntry: summaryData.FIRST_ENTRY,
+                latestEntry: summaryData.LATEST_ENTRY,
+                typeBreakdown: typeBreakdown.map(item => ({
+                    type: item.PROGRESS_TYPE,
+                    count: parseInt(item.COUNT)
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching progress summary:', error);
+        res.status(500).json({
+            error: 'Failed to fetch progress summary',
+            message: error.message
+        });
+    }
+});
+
+// === ATTACHMENT MANAGEMENT ENDPOINTS ===
+
+// Upload file attachment to request
+app.post('/api/requests/:id/attachments', getAuthenticatedUserCompany, upload.single('file'), async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+
+        console.log(`📎 Uploading attachment for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                error: 'File is required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        console.log(`📁 Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Insert the attachment
+        const attachmentResult = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.ATTACHMENTS (
+                REQUEST_ID, 
+                FILE_NAME, 
+                ATTACHMENT, 
+                COMPANY_ID,
+                CREATE_USER_ID, 
+                CREATE_DATE
+            ) 
+            OUTPUT INSERTED.ATTACHMENT_ID
+            VALUES (
+                ${requestId},
+                ${req.file.originalname},
+                ${req.file.buffer},
+                ${req.companyId},
+                ${req.userId},
+                GETDATE()
+            )
+        `;
+
+        const attachmentId = attachmentResult[0].ATTACHMENT_ID;
+        console.log(`✅ Attachment uploaded successfully with ID: ${attachmentId}`);
+
+        res.json({
+            success: true,
+            message: 'File uploaded successfully',
+            attachmentId: attachmentId,
+            fileName: req.file.originalname
+        });
+
+    } catch (error) {
+        console.error('❌ Error uploading attachment:', error);
+        res.status(500).json({
+            error: 'Failed to upload attachment',
+            message: error.message
+        });
+    }
+});
+
+// Get all attachments for a request
+app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+
+        console.log(`📎 Fetching attachments for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Get all attachments for the request
+        const attachments = await prisma.$queryRaw`
+            SELECT 
+                a.ATTACHMENT_ID,
+                a.REQUEST_ID,
+                a.FILE_NAME,
+                a.CREATE_DATE,
+                a.CREATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.ATTACHMENTS a
+            LEFT JOIN GUARDIAN.USERS u ON a.CREATE_USER_ID = u.USER_ID
+            WHERE a.REQUEST_ID = ${requestId} 
+            AND a.COMPANY_ID = ${req.companyId}
+            ORDER BY a.CREATE_DATE DESC
+        `;
+
+        console.log(`✅ Found ${attachments.length} attachments for request ${requestId}`);
+
+        res.json({
+            success: true,
+            attachments: attachments.map(attachment => ({
+                attachmentId: attachment.ATTACHMENT_ID,
+                requestId: attachment.REQUEST_ID,
+                fileName: attachment.FILE_NAME,
+                createDate: attachment.CREATE_DATE,
+                uploadedBy: {
+                    userId: attachment.CREATE_USER_ID,
+                    firstName: attachment.FIRST_NAME,
+                    lastName: attachment.LAST_NAME,
+                    email: attachment.EMAIL
+                }
+            }))
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching attachments:', error);
+        res.status(500).json({
+            error: 'Failed to fetch attachments',
+            message: error.message
+        });
+    }
+});
+
+// Download specific attachment
+app.get('/api/attachments/:id/download', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const attachmentId = parseInt(req.params.id);
+
+        console.log(`⬇️ Downloading attachment ${attachmentId} (Company: ${req.companyId})`);
+
+        if (!attachmentId || isNaN(attachmentId)) {
+            return res.status(400).json({
+                error: 'Valid attachment ID is required'
+            });
+        }
+
+        // Get the attachment with company verification
+        const attachments = await prisma.$queryRaw`
+            SELECT 
+                a.ATTACHMENT_ID,
+                a.FILE_NAME,
+                a.ATTACHMENT,
+                a.CREATE_DATE
+            FROM GUARDIAN.ATTACHMENTS a
+            WHERE a.ATTACHMENT_ID = ${attachmentId} 
+            AND a.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!attachments.length) {
+            return res.status(404).json({
+                error: 'Attachment not found or access denied'
+            });
+        }
+
+        const attachment = attachments[0];
+        console.log(`📁 Serving file: ${attachment.FILE_NAME}`);
+
+        // Set appropriate headers for file download
+        res.setHeader('Content-Disposition', `attachment; filename="${attachment.FILE_NAME}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        
+        // Send the file buffer
+        res.send(attachment.ATTACHMENT);
+
+    } catch (error) {
+        console.error('❌ Error downloading attachment:', error);
+        res.status(500).json({
+            error: 'Failed to download attachment',
+            message: error.message
+        });
+    }
+});
+
+// Delete attachment
+app.delete('/api/attachments/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const attachmentId = parseInt(req.params.id);
+
+        console.log(`🗑️ Deleting attachment ${attachmentId} (Company: ${req.companyId})`);
+
+        if (!attachmentId || isNaN(attachmentId)) {
+            return res.status(400).json({
+                error: 'Valid attachment ID is required'
+            });
+        }
+
+        // Verify attachment belongs to user's company and get details
+        const attachments = await prisma.$queryRaw`
+            SELECT 
+                a.ATTACHMENT_ID,
+                a.CREATE_USER_ID,
+                a.REQUEST_ID,
+                r.ASSIGNED_ID,
+                r.REQUESTOR_ID
+            FROM GUARDIAN.ATTACHMENTS a
+            INNER JOIN GUARDIAN.REQUESTS r ON a.REQUEST_ID = r.REQUEST_ID
+            WHERE a.ATTACHMENT_ID = ${attachmentId} 
+            AND a.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!attachments.length) {
+            return res.status(404).json({
+                error: 'Attachment not found or access denied'
+            });
+        }
+
+        const attachment = attachments[0];
+
+        // Check if user is authorized to delete attachment (uploader, assigned user, requestor, or admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isUploader = attachment.CREATE_USER_ID === req.userId;
+        const isAssigned = attachment.ASSIGNED_ID === req.userId;
+        const isRequestor = attachment.REQUESTOR_ID === req.userId;
+
+        if (!isAdmin && !isUploader && !isAssigned && !isRequestor) {
+            return res.status(403).json({
+                error: 'You are not authorized to delete this attachment'
+            });
+        }
+
+        // Check if attachment is referenced by any work progress entries
+        const progressReferences = await prisma.$queryRaw`
+            SELECT COUNT(*) as COUNT 
+            FROM GUARDIAN.WORK_PROGRESS 
+            WHERE RELATED_ATTACHMENT_ID = ${attachmentId}
+        `;
+
+        if (progressReferences[0].COUNT > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete attachment that is referenced by work progress entries'
+            });
+        }
+
+        // Delete the attachment
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.ATTACHMENTS 
+            WHERE ATTACHMENT_ID = ${attachmentId} 
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ Attachment ${attachmentId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Attachment deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting attachment:', error);
+        res.status(500).json({
+            error: 'Failed to delete attachment',
             message: error.message
         });
     }

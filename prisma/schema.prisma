@@ -16,10 +16,39 @@ model ATTACHMENTS {
   REQUEST_ID     Int
   FILE_NAME      String   @db.VarChar(100)
   ATTACHMENT     Bytes?
+  COMPANY_ID     Int?
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
   CREATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__CREAT__2BFE89A6") @db.DateTime
   UPDATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__UPDAT__2CF2ADDF") @db.DateTime
+  
+  WORK_PROGRESS  WORK_PROGRESS[]
+
+  @@schema("GUARDIAN")
+}
+
+model WORK_PROGRESS {
+  WORK_PROGRESS_ID        Int      @id(map: "PK_WORK_PROGRESS") @default(autoincrement())
+  REQUEST_ID              Int
+  USER_ID                 Int
+  COMPANY_ID              Int
+  PROGRESS_TYPE           String   @default("note") @db.VarChar(50)
+  TITLE                   String   @db.VarChar(255)
+  DESCRIPTION             String?  @db.VarChar(2000)
+  HOURS_WORKED            Decimal? @db.Decimal(5,2)
+  STATUS_UPDATE           String?  @db.VarChar(100)
+  RELATED_ATTACHMENT_ID   Int?
+  IS_MILESTONE            Boolean  @default(false)
+  IS_VISIBLE_TO_REQUESTOR Boolean  @default(true)
+  CREATE_DATE             DateTime @default(now()) @db.DateTime
+  UPDATE_DATE             DateTime @default(now()) @db.DateTime
+  CREATE_USER_ID          Int?
+  UPDATE_USER_ID          Int?
+  
+  // Relationships
+  REQUEST                 REQUESTS     @relation(fields: [REQUEST_ID], references: [REQUEST_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_WORK_PROGRESS_REQUEST")
+  USER                    USERS        @relation("WorkProgressUser", fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_WORK_PROGRESS_USER")
+  RELATED_ATTACHMENT      ATTACHMENTS? @relation(fields: [RELATED_ATTACHMENT_ID], references: [ATTACHMENT_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_WORK_PROGRESS_ATTACHMENT")
 
   @@schema("GUARDIAN")
 }
@@ -292,6 +321,7 @@ model REQUESTS {
   REQUESTOR           USERS?    @relation("RequestorRequests", fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   ASSIGNED_USER       USERS?    @relation("AssignedRequests", fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   FORM                FORMS?    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, onDelete: NoAction)
+  WORK_PROGRESS       WORK_PROGRESS[]
 
   @@schema("GUARDIAN")
 }
@@ -362,6 +392,9 @@ model USERS {
   // Add relationships for REQUESTS
   REQUESTOR_REQUESTS            REQUESTS[]     @relation("RequestorRequests")
   ASSIGNED_REQUESTS             REQUESTS[]     @relation("AssignedRequests")
+  
+  // Add relationships for WORK_PROGRESS
+  WORK_PROGRESS                 WORK_PROGRESS[] @relation("WorkProgressUser")
 
   // Add aliases for common field names used in the codebase
   @@map("USERS")

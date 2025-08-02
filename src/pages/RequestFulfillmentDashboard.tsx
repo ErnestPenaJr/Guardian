@@ -9,8 +9,9 @@ import Select from '../components/ui/Select';
 import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/Modal';
+import WorkProgressTable from '../components/WorkProgressTable';
 import { toast } from 'react-toastify';
-import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText } from 'lucide-react';
+import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList } from 'lucide-react';
 import './RequestFulfillmentDashboard.css';
 
 interface Request {
@@ -63,6 +64,10 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const [formFields, setFormFields] = useState<any[]>([]);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [formLoading, setFormLoading] = useState(false);
+
+  // Work progress state
+  const [showWorkProgressModal, setShowWorkProgressModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'form' | 'progress'>('details');
 
   useEffect(() => {
     fetchAssignedRequests();
@@ -182,6 +187,18 @@ const RequestFulfillmentDashboard: React.FC = () => {
     }
   };
 
+  // Work progress functions
+  const openWorkProgressModal = (request: Request) => {
+    setSelectedRequest(request);
+    setActiveTab('progress');
+    setShowWorkProgressModal(true);
+  };
+
+  const handleWorkProgressUpdate = () => {
+    // Refresh the request list to show updated progress
+    fetchAssignedRequests();
+  };
+
   const saveFormData = async (isComplete = false, isDraft = false) => {
     if (!selectedRequest || !formData) return;
     
@@ -257,6 +274,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
     
     if (request.STATUS === 'P' || request.STATUS === 'A') {
       actions.push({ type: 'form', label: 'Start Assignment', icon: FileText, variant: 'primary' });
+      actions.push({ type: 'work-progress', label: 'Work Progress', icon: ClipboardList, variant: 'secondary' });
     }
     
     return actions;
@@ -415,6 +433,8 @@ const RequestFulfillmentDashboard: React.FC = () => {
                         onClick={() => {
                           if (action.type === 'form') {
                             loadRequestForm(request);
+                          } else if (action.type === 'work-progress') {
+                            openWorkProgressModal(request);
                           } else {
                             setSelectedRequest(request);
                             setActionType(action.type as any);
@@ -729,6 +749,189 @@ const RequestFulfillmentDashboard: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      </Modal>
+
+      {/* Work Progress Modal */}
+      <Modal
+        isOpen={showWorkProgressModal}
+        onClose={() => setShowWorkProgressModal(false)}
+        title={`Work Progress - ${selectedRequest?.REQUEST_NAME}`}
+        size="xl"
+      >
+        <div className="p-6">
+          {selectedRequest && (
+            <div className="space-y-6">
+              {/* Request Summary Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="text-lg font-semibold text-blue-900 mb-1">
+                      {selectedRequest.REQUEST_NAME}
+                    </h4>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <div><strong>Request ID:</strong> {selectedRequest.TRACKINGID}</div>
+                      <div><strong>Status:</strong> {getStatusBadge(selectedRequest.STATUS)}</div>
+                      <div><strong>Submitted:</strong> {formatDate(selectedRequest.SUBMITTED_DATE)}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {selectedRequest.priority && (
+                      <div className="mb-2">
+                        {getPriorityBadge(selectedRequest.priority)}
+                      </div>
+                    )}
+                    <div className="text-sm text-blue-700">
+                      <strong>Assigned To:</strong><br />
+                      {selectedRequest.assignedTo}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tab Navigation */}
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
+                  <button
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'details'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveTab('details')}
+                  >
+                    <AlertCircle className="w-4 h-4 inline mr-2" />
+                    Request Details
+                  </button>
+                  <button
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'form'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveTab('form')}
+                  >
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    Form Data
+                  </button>
+                  <button
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'progress'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveTab('progress')}
+                  >
+                    <ClipboardList className="w-4 h-4 inline mr-2" />
+                    Work Progress
+                  </button>
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="min-h-96">
+                {activeTab === 'details' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Request Description
+                        </label>
+                        <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                          {selectedRequest.REQUEST_DESCRIPTION || 'No description provided'}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Requestor Information
+                        </label>
+                        <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                          {selectedRequest.requestorName || selectedRequest.requestor?.FIRST_NAME + ' ' + selectedRequest.requestor?.LAST_NAME || 'Unknown Requestor'}
+                        </div>
+                      </div>
+                    </div>
+                    {selectedRequest.milestones && (
+                      <div className="mt-6">
+                        <h5 className="text-lg font-medium text-gray-900 mb-3">Project Milestones</h5>
+                        <div className="space-y-3">
+                          {selectedRequest.milestones.map((milestone, index) => (
+                            <div 
+                              key={milestone.id} 
+                              className={`flex items-start gap-3 p-3 rounded-lg border ${
+                                milestone.completed 
+                                  ? 'bg-green-50 border-green-200' 
+                                  : 'bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              <div className="flex-shrink-0 mt-1">
+                                {milestone.completed ? (
+                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                                ) : (
+                                  <div className="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                                    <span className="text-xs text-gray-500">{index + 1}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h6 className={`font-medium ${
+                                  milestone.completed ? 'text-green-800' : 'text-gray-800'
+                                }`}>
+                                  {milestone.title}
+                                </h6>
+                                {milestone.description && (
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {milestone.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'form' && (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Form Data</h3>
+                    <p className="text-gray-500 mb-4">
+                      Access and edit form data for this request
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setShowWorkProgressModal(false);
+                        loadRequestForm(selectedRequest);
+                      }}
+                      variant="primary"
+                    >
+                      Open Form Editor
+                    </Button>
+                  </div>
+                )}
+
+                {activeTab === 'progress' && (
+                  <WorkProgressTable
+                    requestId={selectedRequest.REQUEST_ID}
+                    requestStatus={selectedRequest.STATUS}
+                    isAssignedToCurrentUser={true}
+                    onProgressUpdate={handleWorkProgressUpdate}
+                  />
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end pt-4 border-t border-gray-200">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowWorkProgressModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </div>
