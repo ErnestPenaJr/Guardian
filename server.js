@@ -615,44 +615,56 @@ app.post('/logout', async (req, res) => {
 // Real requests endpoint with database query
 app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        // Get requests from database filtered by company ID
+        const startTime = Date.now();
         console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
-        const requests = await prisma.$queryRaw`
-            SELECT 
-                r.REQUEST_ID,
-                r.REQUEST_NAME,
-                r.REQUEST_DESCRIPTION,
-                r.EXTERNAL_USER,
-                r.SUBMITTED_DATE,
-                r.REQUESTOR_ID,
-                r.ASSIGNED_ID,
-                r.STATUS,
-                r.CREATE_DATE,
-                r.UPDATE_DATE,
-                r.CREATE_USER_ID,
-                r.UPDATE_USER_ID,
-                r.TRACKINGID,
-                r.ABBREVIATION,
-                r.COMPANY_ID,
-                r.FORM_ID,
-                requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
-                requestor.LAST_NAME as REQUESTOR_LAST_NAME,
-                requestor.EMAIL as REQUESTOR_EMAIL,
-                assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
-                assigned.LAST_NAME as ASSIGNED_LAST_NAME,
-                assigned.EMAIL as ASSIGNED_EMAIL,
-                creator.FIRST_NAME as CREATOR_FIRST_NAME,
-                creator.LAST_NAME as CREATOR_LAST_NAME,
-                creator.EMAIL as CREATOR_EMAIL
-            FROM GUARDIAN.REQUESTS r
-            LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-            LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-            LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID
-            WHERE r.COMPANY_ID = ${req.companyId}
-            ORDER BY r.CREATE_DATE DESC
-        `;
 
-        console.log(`✅ Found ${requests.length} requests in database`);
+        // OPTIMIZED: Single query with proper JOINs and timeout handling
+        const requests = await Promise.race([
+            prisma.$queryRaw`
+                SELECT 
+                    r.REQUEST_ID,
+                    r.REQUEST_NAME,
+                    r.REQUEST_DESCRIPTION,
+                    r.EXTERNAL_USER,
+                    r.SUBMITTED_DATE,
+                    r.REQUESTOR_ID,
+                    r.ASSIGNED_ID,
+                    r.STATUS,
+                    r.CREATE_DATE,
+                    r.UPDATE_DATE,
+                    r.CREATE_USER_ID,
+                    r.UPDATE_USER_ID,
+                    r.TRACKINGID,
+                    r.ABBREVIATION,
+                    r.COMPANY_ID,
+                    r.FORM_ID,
+                    requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
+                    requestor.LAST_NAME as REQUESTOR_LAST_NAME,
+                    requestor.EMAIL as REQUESTOR_EMAIL,
+                    assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
+                    assigned.LAST_NAME as ASSIGNED_LAST_NAME,
+                    assigned.EMAIL as ASSIGNED_EMAIL,
+                    creator.FIRST_NAME as CREATOR_FIRST_NAME,
+                    creator.LAST_NAME as CREATOR_LAST_NAME,
+                    creator.EMAIL as CREATOR_EMAIL
+                FROM GUARDIAN.REQUESTS r
+                LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID AND requestor.COMPANY_ID = ${req.companyId}
+                LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID AND assigned.COMPANY_ID = ${req.companyId}
+                LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID AND creator.COMPANY_ID = ${req.companyId}
+                WHERE r.COMPANY_ID = ${req.companyId}
+                ORDER BY r.CREATE_DATE DESC
+            `,
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Query timeout after 8 seconds')), 8000)
+            )
+        ]);
+
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ Found ${requests.length} requests in database (query took ${queryTime}ms)`);
+        
+        if (queryTime > 2000) {
+            console.warn(`⚠️ Slow query detected: ${queryTime}ms for company ${req.companyId}`);
+        }
 
         // Format the data to match frontend expectations exactly
         const formattedRequests = requests.map(req => ({
@@ -695,10 +707,27 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error fetching requests:', error);
-        res.status(500).json({
-            error: 'Failed to fetch requests',
-            message: error.message
-        });
+        
+        // Handle different types of errors
+        if (error.message.includes('timeout')) {
+            console.error('⏱️ Database query timeout - possible performance issue');
+            res.status(408).json({
+                error: 'Request timeout',
+                message: 'Database query took too long. Please try again or contact support if this persists.'
+            });
+        } else if (error.message.includes('connection')) {
+            console.error('🔌 Database connection error');
+            res.status(503).json({
+                error: 'Database connection error',
+                message: 'Unable to connect to database. Please try again later.'
+            });
+        } else {
+            res.status(500).json({
+                error: 'Failed to fetch requests',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            });
+        }
     }
 });
 
@@ -1947,6 +1976,7 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {
         console.log(`👥 Fetching users for company ID: ${req.companyId}`);
 
+        // First get all users
         const users = await prisma.$queryRaw`
             SELECT 
                 u.USER_ID,
@@ -1955,47 +1985,247 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
                 u.LAST_NAME,
                 u.STATUS,
                 u.COMPANY_ID,
-                u.CREATE_DATE,
-                STRING_AGG(r.NAME, ', ') as ROLE_NAMES
+                u.CREATE_DATE
             FROM GUARDIAN.USERS u
-            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
-            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
             WHERE u.STATUS = 'A' AND u.COMPANY_ID = ${req.companyId}
-            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID, u.CREATE_DATE
             ORDER BY u.LAST_NAME, u.FIRST_NAME
         `;
 
         console.log(`✅ Found ${users.length} users`);
 
-        const formattedUsers = users.map(user => ({
-            USER_ID: user.USER_ID,
-            EMAIL: user.EMAIL,
-            FIRST_NAME: user.FIRST_NAME,
-            LAST_NAME: user.LAST_NAME,
-            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
-            COMPANY_ID: user.COMPANY_ID,
-            STATUS: user.STATUS,
-            CREATE_DATE: user.CREATE_DATE,
-            ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
-            id: user.USER_ID,
-            firstName: user.FIRST_NAME,
-            lastName: user.LAST_NAME,
-            email: user.EMAIL,
-            companyId: user.COMPANY_ID,
-            status: user.STATUS,
-            createdAt: user.CREATE_DATE
-        }));
+        // OPTIMIZED: Get all user roles in single query to avoid N+1 problem
+        const userIds = users.map(u => u.USER_ID);
+        let allRoles = [];
+        
+        if (userIds.length > 0) {
+            // Build dynamic query using template literals - more reliable than $queryRawUnsafe
+            const userIdList = userIds.join(', ');
+            allRoles = await prisma.$queryRawUnsafe(`
+                SELECT 
+                    ur.USER_ID,
+                    r.ROLE_ID as id,
+                    r.NAME as name,
+                    r.DISPLAY_NAME as displayName
+                FROM GUARDIAN.USER_ROLES ur
+                JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                WHERE ur.USER_ID IN (${userIdList}) AND ur.STATUS = 'P'
+                ORDER BY ur.USER_ID, r.ROLE_ID
+            `);
+        }
+        
+        // Group roles by user ID for efficient lookup
+        const rolesByUserId = {};
+        allRoles.forEach(role => {
+            if (!rolesByUserId[role.USER_ID]) {
+                rolesByUserId[role.USER_ID] = [];
+            }
+            rolesByUserId[role.USER_ID].push({
+                id: role.id,
+                name: role.name,
+                displayName: role.displayName
+            });
+        });
+        
+        // Map users with their roles efficiently
+        const usersWithRoles = users.map(user => {
+            const userRoles = rolesByUserId[user.USER_ID] || [];
+            
+            return {
+                USER_ID: user.USER_ID,
+                EMAIL: user.EMAIL,
+                FIRST_NAME: user.FIRST_NAME,
+                LAST_NAME: user.LAST_NAME,
+                FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+                COMPANY_ID: user.COMPANY_ID,
+                STATUS: user.STATUS,
+                CREATE_DATE: user.CREATE_DATE,
+                ROLE_NAMES: userRoles.map(role => role.name).join(', ') || 'No roles assigned',
+                id: user.USER_ID,
+                firstName: user.FIRST_NAME,
+                lastName: user.LAST_NAME,
+                email: user.EMAIL,
+                companyId: user.COMPANY_ID,
+                status: user.STATUS,
+                createdAt: user.CREATE_DATE,
+                roles: userRoles
+            };
+        });
 
         res.json({
             success: true,
-            data: formattedUsers,
-            count: formattedUsers.length
+            data: usersWithRoles,
+            count: usersWithRoles.length
         });
 
     } catch (error) {
         console.error('❌ Error fetching users:', error);
         res.status(500).json({
             error: 'Failed to fetch users',
+            message: error.message
+        });
+    }
+});
+
+// Update user endpoint (PUT /api/users/:id)
+app.put('/api/users/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const { firstName, lastName, email, roleId, status } = req.body;
+
+        console.log(`✏️ Updating user ${userId} with data:`, { firstName, lastName, email, roleId, status });
+
+        // Validate required fields
+        if (!firstName || !lastName || !email) {
+            return res.status(400).json({
+                error: 'Missing required fields',
+                message: 'firstName, lastName, and email are required'
+            });
+        }
+
+        // Validate userId
+        if (!userId || isNaN(userId)) {
+            return res.status(400).json({
+                error: 'Invalid user ID',
+                message: 'User ID must be a valid number'
+            });
+        }
+
+        // Check if user exists and belongs to the same company
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID, COMPANY_ID, EMAIL 
+            FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (existingUser.length === 0) {
+            return res.status(404).json({
+                error: 'User not found',
+                message: 'User not found or you do not have permission to edit this user'
+            });
+        }
+
+        // Check if email is already taken by another user (excluding current user)
+        if (email !== existingUser[0].EMAIL) {
+            const emailCheck = await prisma.$queryRaw`
+                SELECT USER_ID 
+                FROM GUARDIAN.USERS 
+                WHERE EMAIL = ${email} AND USER_ID != ${userId} AND COMPANY_ID = ${req.companyId}
+            `;
+
+            if (emailCheck.length > 0) {
+                return res.status(400).json({
+                    error: 'Email already exists',
+                    message: 'Another user with this email already exists in your company'
+                });
+            }
+        }
+
+        // Update user information
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET 
+                FIRST_NAME = ${firstName},
+                LAST_NAME = ${lastName},
+                EMAIL = ${email},
+                STATUS = ${status || 'A'},
+                UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ User ${userId} basic information updated`);
+
+        // Update user role if roleId is provided
+        if (roleId) {
+            // Validate roleId exists
+            const roleExists = await prisma.$queryRaw`
+                SELECT ROLE_ID FROM GUARDIAN.ROLES WHERE ROLE_ID = ${roleId} AND STATUS = 'A'
+            `;
+
+            if (roleExists.length === 0) {
+                return res.status(400).json({
+                    error: 'Invalid role',
+                    message: 'Selected role does not exist or is inactive'
+                });
+            }
+
+            // Check current user roles
+            const currentRoles = await prisma.$queryRaw`
+                SELECT USER_ROLE_ID, ROLE_ID 
+                FROM GUARDIAN.USER_ROLES 
+                WHERE USER_ID = ${userId}
+            `;
+
+            // If user has roles, update the first one, otherwise create new one
+            if (currentRoles.length > 0) {
+                // Update existing role
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.USER_ROLES 
+                    SET ROLE_ID = ${roleId}, UPDATE_DATE = GETDATE()
+                    WHERE USER_ROLE_ID = ${currentRoles[0].USER_ROLE_ID}
+                `;
+                console.log(`✅ User ${userId} role updated to ${roleId}`);
+            } else {
+                // Create new role assignment
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+                    VALUES (${userId}, ${roleId}, GETDATE(), GETDATE())
+                `;
+                console.log(`✅ User ${userId} assigned new role ${roleId}`);
+            }
+        }
+
+        // Fetch updated user data to return
+        const updatedUser = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                u.CREATE_DATE,
+                STRING_AGG(r.NAME, ', ') as ROLE_NAMES,
+                STRING_AGG(CAST(r.ROLE_ID AS VARCHAR), ',') as ROLE_IDS
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.USER_ID = ${userId} AND u.COMPANY_ID = ${req.companyId}
+            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID, u.CREATE_DATE
+        `;
+
+        if (updatedUser.length === 0) {
+            return res.status(404).json({
+                error: 'User not found after update',
+                message: 'Failed to retrieve updated user information'
+            });
+        }
+
+        const user = updatedUser[0];
+        const formattedUser = {
+            USER_ID: user.USER_ID,
+            id: user.USER_ID,
+            firstName: user.FIRST_NAME,
+            lastName: user.LAST_NAME,
+            email: user.EMAIL,
+            companyId: user.COMPANY_ID,
+            status: user.STATUS,
+            createdAt: user.CREATE_DATE,
+            roleNames: user.ROLE_NAMES,
+            roleIds: user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : []
+        };
+
+        console.log(`✅ User ${userId} successfully updated and retrieved`);
+
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            data: formattedUser
+        });
+
+    } catch (error) {
+        console.error(`❌ Error updating user:`, error);
+        res.status(500).json({
+            error: 'Failed to update user',
             message: error.message
         });
     }
