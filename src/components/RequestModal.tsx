@@ -182,18 +182,29 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           console.log('🔄 Sample user structure:', userData.slice(0, 2));
         }
         
-        // Show all users for assignment (no filtering by role)
+        // Show all users for assignment (minimal filtering for debugging)
         // Users with role IDs 1,2,3,6 can assign to any user
         const allUsers = userData.filter((user: User) => {
-          // Basic validation - user must have name and ID
-          const isValidUser = user.USER_ID && (user.FIRST_NAME || user.LAST_NAME);
-          console.log(`🔄 User ${user.FIRST_NAME} ${user.LAST_NAME} - Role: "${user.ROLE_NAMES}" - Valid: ${isValidUser}`);
-          return isValidUser;
+          // Very basic validation - just check if user has an ID
+          const hasId = user.USER_ID;
+          const firstName = user.FIRST_NAME || 'No First Name';
+          const lastName = user.LAST_NAME || 'No Last Name';
+          console.log(`🔄 User ID: ${user.USER_ID}, Name: "${firstName} ${lastName}", Role: "${user.ROLE_NAMES}", Has ID: ${hasId}`);
+          return hasId; // Only require USER_ID to exist
         });
         
         console.log(`🔄 Showing ${allUsers.length} users for assignment:`, allUsers.map(u => `${u.FIRST_NAME} ${u.LAST_NAME} (${u.ROLE_NAMES})`));
-        setUsers(allUsers);
-        console.log(`✅ Loaded ${allUsers.length} users for assignment out of ${userData.length} total users`);
+        
+        // If no users after filtering, show all users as fallback for debugging
+        if (allUsers.length === 0) {
+          console.log('⚠️ No users passed filtering! Using all users as fallback...');
+          setUsers(userData);
+        } else {
+          setUsers(allUsers);
+        }
+        
+        console.log(`✅ Final user count in dropdown: ${allUsers.length > 0 ? allUsers.length : userData.length}`);
+        console.log(`✅ Users set in state:`, allUsers.length > 0 ? allUsers : userData);
       } else {
         console.error('❌ User data is not an array:', userData);
       }

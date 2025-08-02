@@ -343,3 +343,8 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 8:09:15 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
 8:11:24 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
 8:11:33 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+8:16:24 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:16:35 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:16:35 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
