@@ -3829,53 +3829,6 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
-// Delete a form and its fields
-app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const formId = parseInt(req.params.formId);
-        console.log(`🗑️ Deleting form ${formId} for company:`, req.companyId);
-
-        // Verify form belongs to the user's company
-        const existingForm = await prisma.$queryRawUnsafe(`
-            SELECT FORM_ID FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
-        `);
-
-        if (existingForm.length === 0) {
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
-        }
-
-        // Soft delete the form and its fields
-        await prisma.$queryRawUnsafe(`
-            UPDATE GUARDIAN.FORMS 
-            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
-            WHERE FORM_ID = ${formId}
-        `);
-
-        await prisma.$queryRawUnsafe(`
-            UPDATE GUARDIAN.FORM_FIELDS 
-            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
-            WHERE FORM_ID = ${formId}
-        `);
-
-        console.log(`✅ Successfully deleted form ${formId}`);
-
-        res.json({
-            success: true,
-            message: 'Form deleted successfully'
-        });
-
-    } catch (error) {
-        console.error('❌ Error deleting form:', error);
-        res.status(500).json({
-            error: 'Failed to delete form',
-            message: error.message
-        });
-    }
-});
-
 // Logout endpoint
 app.post('/logout', async (req, res) => {
     try {

@@ -2937,118 +2937,6 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
-// Update a field
-app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const fieldId = parseInt(req.params.fieldId);
-        console.log(`📝 Updating field ${fieldId} for company: ${req.companyId}`);
-        
-        const {
-            FIELD_NAME,
-            FIELD_TYPE_ID,
-            DISPLAY_FORMAT,
-            HAS_LOOKUP,
-            IS_PUBLIC,
-            IS_ACTIVE,
-            IS_REQUIRED,
-            IS_SENSITIVE,
-            CAN_SELECT_MULIPLE,
-            SORT_ORDER
-        } = req.body;
-
-        if (!fieldId || isNaN(fieldId)) {
-            return res.status(400).json({
-                error: 'Valid field ID is required'
-            });
-        }
-
-        // Verify field exists and belongs to user's company (or is global)
-        const existingField = await prisma.$queryRaw`
-            SELECT FIELD_ID FROM GUARDIAN.FIELDS 
-            WHERE FIELD_ID = ${fieldId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
-        `;
-
-        if (!existingField.length) {
-            return res.status(404).json({
-                error: 'Field not found or access denied'
-            });
-        }
-
-        // Update the field
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.FIELDS 
-            SET 
-                FIELD_NAME = ${FIELD_NAME},
-                FIELD_TYPE_ID = ${FIELD_TYPE_ID || null},
-                DISPLAY_FORMAT = ${DISPLAY_FORMAT || null},
-                HAS_LOOKUP = ${HAS_LOOKUP || false},
-                IS_PUBLIC = ${IS_PUBLIC !== undefined ? IS_PUBLIC : true},
-                IS_ACTIVE = ${IS_ACTIVE !== undefined ? IS_ACTIVE : true},
-                IS_REQUIRED = ${IS_REQUIRED || false},
-                IS_SENSITIVE = ${IS_SENSITIVE || false},
-                CAN_SELECT_MULIPLE = ${CAN_SELECT_MULIPLE || false},
-                SORT_ORDER = ${SORT_ORDER || 0},
-                UPDATE_DATE = GETDATE(),
-                UPDATE_USER_ID = ${req.userId}
-            WHERE FIELD_ID = ${fieldId}
-        `;
-
-        console.log(`✅ Field ${fieldId} updated successfully`);
-
-        // Return the updated field
-        const updatedField = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
-                   f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
-                   ft.FIELD_TYPE_DESC
-            FROM GUARDIAN.FIELDS f
-            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE f.FIELD_ID = ${fieldId}
-        `;
-
-        if (updatedField.length > 0) {
-            const field = updatedField[0];
-            const formattedField = {
-                FIELD_ID: field.FIELD_ID,
-                FIELD_NAME: field.FIELD_NAME,
-                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
-                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
-                HAS_LOOKUP: field.HAS_LOOKUP,
-                IS_PUBLIC: field.IS_PUBLIC,
-                IS_ACTIVE: field.IS_ACTIVE,
-                IS_DELETED: field.IS_DELETED,
-                IS_REQUIRED: field.IS_REQUIRED,
-                IS_SENSITIVE: field.IS_SENSITIVE,
-                CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE,
-                ORGANIZATION_ID: field.ORGANIZATION_ID,
-                SORT_ORDER: field.SORT_ORDER,
-                FIELD_TYPE: {
-                    FIELD_TYPE_DESC: field.FIELD_TYPE_DESC,
-                    FIELD_TYPE_ID: field.FIELD_TYPE_ID
-                }
-            };
-
-            res.json({
-                success: true,
-                message: 'Field updated successfully',
-                data: formattedField
-            });
-        } else {
-            res.status(404).json({
-                error: 'Field not found after update'
-            });
-        }
-
-    } catch (error) {
-        console.error('❌ Error updating field:', error);
-        res.status(500).json({
-            error: 'Failed to update field',
-            message: error.message
-        });
-    }
-});
-
 // Create a new field
 app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -3187,6 +3075,118 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
         console.error('❌ Error creating field:', error);
         res.status(500).json({
             error: 'Failed to create field',
+            message: error.message
+        });
+    }
+});
+
+// Update a field
+app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const fieldId = parseInt(req.params.fieldId);
+        console.log(`📝 Updating field ${fieldId} for company: ${req.companyId}`);
+        
+        const {
+            FIELD_NAME,
+            FIELD_TYPE_ID,
+            DISPLAY_FORMAT,
+            HAS_LOOKUP,
+            IS_PUBLIC,
+            IS_ACTIVE,
+            IS_REQUIRED,
+            IS_SENSITIVE,
+            CAN_SELECT_MULIPLE,
+            SORT_ORDER
+        } = req.body;
+
+        if (!fieldId || isNaN(fieldId)) {
+            return res.status(400).json({
+                error: 'Valid field ID is required'
+            });
+        }
+
+        // Verify field exists and belongs to user's company (or is global)
+        const existingField = await prisma.$queryRaw`
+            SELECT FIELD_ID FROM GUARDIAN.FIELDS 
+            WHERE FIELD_ID = ${fieldId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        `;
+
+        if (!existingField.length) {
+            return res.status(404).json({
+                error: 'Field not found or access denied'
+            });
+        }
+
+        // Update the field
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.FIELDS 
+            SET 
+                FIELD_NAME = ${FIELD_NAME},
+                FIELD_TYPE_ID = ${FIELD_TYPE_ID || null},
+                DISPLAY_FORMAT = ${DISPLAY_FORMAT || null},
+                HAS_LOOKUP = ${HAS_LOOKUP || false},
+                IS_PUBLIC = ${IS_PUBLIC !== undefined ? IS_PUBLIC : true},
+                IS_ACTIVE = ${IS_ACTIVE !== undefined ? IS_ACTIVE : true},
+                IS_REQUIRED = ${IS_REQUIRED || false},
+                IS_SENSITIVE = ${IS_SENSITIVE || false},
+                CAN_SELECT_MULIPLE = ${CAN_SELECT_MULIPLE || false},
+                SORT_ORDER = ${SORT_ORDER || 0},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE FIELD_ID = ${fieldId}
+        `;
+
+        console.log(`✅ Field ${fieldId} updated successfully`);
+
+        // Return the updated field
+        const updatedField = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
+                   ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE f.FIELD_ID = ${fieldId}
+        `;
+
+        if (updatedField.length > 0) {
+            const field = updatedField[0];
+            const formattedField = {
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.IS_REQUIRED,
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                CAN_SELECT_MULIPLE: field.CAN_SELECT_MULIPLE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID,
+                SORT_ORDER: field.SORT_ORDER,
+                FIELD_TYPE: {
+                    FIELD_TYPE_DESC: field.FIELD_TYPE_DESC,
+                    FIELD_TYPE_ID: field.FIELD_TYPE_ID
+                }
+            };
+
+            res.json({
+                success: true,
+                message: 'Field updated successfully',
+                data: formattedField
+            });
+        } else {
+            res.status(404).json({
+                error: 'Field not found after update'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Error updating field:', error);
+        res.status(500).json({
+            error: 'Failed to update field',
             message: error.message
         });
     }
