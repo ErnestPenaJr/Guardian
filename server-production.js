@@ -426,7 +426,7 @@ app.get('/api/debug/endpoints', (req, res) => {
         version: '2.0.0',
         endpoints: [
             '/api/users', '/api/users/company/:companyId', '/api/invites', 
-            '/api/roles', '/api/requests', '/api/forms', '/api/fields', '/api/field-types',
+            '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
             '/api/validate-email', '/api/send-verification-email', 
             '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
@@ -3187,6 +3187,220 @@ app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) =>
         console.error('❌ Error updating field:', error);
         res.status(500).json({
             error: 'Failed to update field',
+            message: error.message
+        });
+    }
+});
+
+// ===== FORMS GROUPS ENDPOINTS =====
+
+// Get forms groups endpoint
+app.get('/api/forms-groups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('📁 Fetching forms groups from database for company:', req.companyId);
+
+        const formsGroups = await prisma.$queryRawUnsafe(`
+            SELECT fg.GROUP_ID, fg.ORGANIZATION_ID, fg.GROUP_NAME, fg.GROUP_DESCRIPTION, 
+                   fg.SORT_ORDER, fg.IS_PUBLIC, fg.CREATE_USER_ID, fg.UPDATE_USER_ID,
+                   fg.CREATE_DATE, fg.UPDATE_DATE
+            FROM GUARDIAN.FORMS_GROUPS fg
+            WHERE fg.ORGANIZATION_ID = ${req.companyId} OR fg.ORGANIZATION_ID IS NULL
+            ORDER BY fg.SORT_ORDER, fg.GROUP_NAME
+        `);
+
+        console.log(`✅ Found ${formsGroups.length} forms groups for company ${req.companyId}`);
+        res.json(formsGroups);
+    } catch (error) {
+        console.error('❌ Error fetching forms groups:', error);
+        res.status(500).json({
+            error: 'Failed to fetch forms groups',
+            message: error.message
+        });
+    }
+});
+
+// Create forms group endpoint
+app.post('/api/forms-groups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const {
+            GROUP_NAME,
+            GROUP_DESCRIPTION,
+            SORT_ORDER,
+            IS_PUBLIC
+        } = req.body;
+        
+        console.log(`📁 Creating new forms group for company: ${req.companyId}`);
+        
+        if (!GROUP_NAME || !GROUP_DESCRIPTION) {
+            return res.status(400).json({
+                error: 'GROUP_NAME and GROUP_DESCRIPTION are required'
+            });
+        }
+        
+        // Check for duplicate group name within the company
+        const existingGroup = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE ORGANIZATION_ID = ${req.companyId} AND GROUP_NAME = '${GROUP_NAME.replace(/'/g, "''")}'`
+        );
+        
+        if (existingGroup.length > 0) {
+            return res.status(409).json({
+                error: 'A forms group with this name already exists in your organization'
+            });
+        }
+        
+        const result = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.FORMS_GROUPS (
+                ORGANIZATION_ID, GROUP_NAME, GROUP_DESCRIPTION, SORT_ORDER, IS_PUBLIC,
+                CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+            ) 
+            OUTPUT INSERTED.GROUP_ID, INSERTED.ORGANIZATION_ID, INSERTED.GROUP_NAME, 
+                   INSERTED.GROUP_DESCRIPTION, INSERTED.SORT_ORDER, INSERTED.IS_PUBLIC,
+                   INSERTED.CREATE_USER_ID, INSERTED.UPDATE_USER_ID, INSERTED.CREATE_DATE, INSERTED.UPDATE_DATE
+            VALUES (
+                ${req.companyId}, '${GROUP_NAME.replace(/'/g, "''")}', '${GROUP_DESCRIPTION.replace(/'/g, "''")}', 
+                ${SORT_ORDER || 'NULL'}, ${IS_PUBLIC ? 1 : 0}, ${req.userId}, ${req.userId}, 
+                GETUTCDATE(), GETUTCDATE()
+            )`
+        );
+        
+        console.log(`✅ Created forms group with ID: ${result[0].GROUP_ID}`);
+        res.status(201).json(result[0]);
+        
+    } catch (error) {
+        console.error('❌ Error creating forms group:', error);
+        res.status(500).json({
+            error: 'Failed to create forms group',
+            message: error.message
+        });
+    }
+});
+
+// Update forms group endpoint
+app.put('/api/forms-groups/:groupId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const groupId = parseInt(req.params.groupId);
+        const {
+            GROUP_NAME,
+            GROUP_DESCRIPTION,
+            SORT_ORDER,
+            IS_PUBLIC
+        } = req.body;
+        
+        console.log(`📁 Updating forms group ${groupId} for company: ${req.companyId}`);
+        
+        if (!groupId || isNaN(groupId)) {
+            return res.status(400).json({ error: 'Invalid group ID' });
+        }
+        
+        if (!GROUP_NAME || !GROUP_DESCRIPTION) {
+            return res.status(400).json({
+                error: 'GROUP_NAME and GROUP_DESCRIPTION are required'
+            });
+        }
+        
+        // Verify the group belongs to the user's company
+        const existingGroup = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        if (existingGroup.length === 0) {
+            return res.status(404).json({
+                error: 'Forms group not found or does not belong to your organization'
+            });
+        }
+        
+        // Check for duplicate name (excluding current group)
+        const duplicateCheck = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE ORGANIZATION_ID = ${req.companyId} AND GROUP_NAME = '${GROUP_NAME.replace(/'/g, "''")}' 
+            AND GROUP_ID != ${groupId}`
+        );
+        
+        if (duplicateCheck.length > 0) {
+            return res.status(409).json({
+                error: 'A forms group with this name already exists in your organization'
+            });
+        }
+        
+        const result = await prisma.$queryRawUnsafe(`
+            UPDATE GUARDIAN.FORMS_GROUPS 
+            SET GROUP_NAME = '${GROUP_NAME.replace(/'/g, "''")}',
+                GROUP_DESCRIPTION = '${GROUP_DESCRIPTION.replace(/'/g, "''")}',
+                SORT_ORDER = ${SORT_ORDER || 'NULL'},
+                IS_PUBLIC = ${IS_PUBLIC ? 1 : 0},
+                UPDATE_USER_ID = ${req.userId},
+                UPDATE_DATE = GETUTCDATE()
+            OUTPUT INSERTED.GROUP_ID, INSERTED.ORGANIZATION_ID, INSERTED.GROUP_NAME,
+                   INSERTED.GROUP_DESCRIPTION, INSERTED.SORT_ORDER, INSERTED.IS_PUBLIC,
+                   INSERTED.CREATE_USER_ID, INSERTED.UPDATE_USER_ID, INSERTED.CREATE_DATE, INSERTED.UPDATE_DATE
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: 'Forms group not found' });
+        }
+        
+        console.log(`✅ Updated forms group ${groupId}`);
+        res.json(result[0]);
+        
+    } catch (error) {
+        console.error('❌ Error updating forms group:', error);
+        res.status(500).json({
+            error: 'Failed to update forms group',
+            message: error.message
+        });
+    }
+});
+
+// Delete forms group endpoint
+app.delete('/api/forms-groups/:groupId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const groupId = parseInt(req.params.groupId);
+        console.log(`🗑️ Deleting forms group ${groupId} for company: ${req.companyId}`);
+        
+        if (!groupId || isNaN(groupId)) {
+            return res.status(400).json({ error: 'Invalid group ID' });
+        }
+        
+        // Verify the group belongs to the user's company
+        const existingGroup = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        if (existingGroup.length === 0) {
+            return res.status(404).json({
+                error: 'Forms group not found or does not belong to your organization'
+            });
+        }
+        
+        // Check if group has any associated fields
+        const associatedFields = await prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) as fieldCount FROM GUARDIAN.FORMS_GROUPS_FIELDS 
+            WHERE GROUP_ID = ${groupId}`
+        );
+        
+        if (associatedFields[0].fieldCount > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete forms group that has associated fields. Please remove all fields from this group first.'
+            });
+        }
+        
+        // Delete the group
+        await prisma.$queryRawUnsafe(`
+            DELETE FROM GUARDIAN.FORMS_GROUPS 
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        console.log(`✅ Deleted forms group ${groupId}`);
+        res.json({ message: 'Forms group deleted successfully' });
+        
+    } catch (error) {
+        console.error('❌ Error deleting forms group:', error);
+        res.status(500).json({
+            error: 'Failed to delete forms group',
             message: error.message
         });
     }

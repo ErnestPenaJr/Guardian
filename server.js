@@ -426,7 +426,7 @@ app.get('/api/debug/endpoints', (req, res) => {
         version: '2.0.0',
         endpoints: [
             '/api/users', '/api/users/company/:companyId', '/api/invites', 
-            '/api/roles', '/api/requests', '/api/forms', '/api/fields', '/api/field-types',
+            '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
             '/api/validate-email', '/api/send-verification-email', 
             '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
@@ -913,6 +913,18 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         // Create the request with company-based data isolation using raw SQL
         const currentDate = new Date();
         
+        console.log('🔍 INSERT Parameters:', {
+            finalRequestName: finalRequestName.trim(),
+            finalDescription: finalDescription.trim() || null,
+            finalAbbreviation,
+            finalStatus,
+            currentDate,
+            userId: req.userId,
+            companyId: req.companyId,
+            templateId: templateId || null,
+            finalAssignedId
+        });
+        
         // Insert and get ID in a single query to ensure same connection/transaction
         let insertedId;
         try {
@@ -1103,8 +1115,13 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                     WHERE REQUEST_ID = ${requestId}
                 `;
 
+                console.log(`🔍 Request details query returned ${requestDetails.length} results`);
                 if (requestDetails.length > 0) {
                     const request = requestDetails[0];
+                    console.log(`📋 Request details:`, {
+                        REQUEST_NAME: request.REQUEST_NAME,
+                        TRACKINGID: request.TRACKINGID
+                    });
                     await prisma.$executeRaw`
                         INSERT INTO GUARDIAN.NOTIFICATIONS (
                             USER_ID, 
@@ -1129,6 +1146,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                     console.log(`🔔 Notification created for user ${assignedUserId} about request assignment`);
                     
                     // Send email notification
+                    console.log(`🔄 Starting email notification process for user ${assignedUserId}`);
                     try {
                         // Get assigned user's email and name
                         const assignedUser = await prisma.$queryRaw`
@@ -1143,6 +1161,9 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                             FROM GUARDIAN.USERS 
                             WHERE USER_ID = ${req.userId}
                         `;
+                        
+                        console.log(`👤 Assigned user query returned ${assignedUser.length} results`);
+                        console.log(`👤 Assigning user query returned ${assigningUser.length} results`);
                         
                         if (assignedUser.length > 0 && assigningUser.length > 0) {
                             const assigned = assignedUser[0];
@@ -2933,20 +2954,20 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             CAN_SELECT_MULIPLE,
             SORT_ORDER
         } = req.body;
-        
+
         // Validation
         if (!FIELD_NAME || !FIELD_NAME.trim()) {
             return res.status(400).json({
                 error: 'Field name is required'
             });
         }
-        
+
         if (!FIELD_TYPE_ID) {
             return res.status(400).json({
                 error: 'Field type is required'
             });
         }
-        
+
         // Check for duplicate field names within the same company/organization
         const existingField = await prisma.$queryRaw`
             SELECT FIELD_ID, FIELD_NAME FROM GUARDIAN.FIELDS 
@@ -2954,7 +2975,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
             AND IS_DELETED = 0
         `;
-        
+
         if (existingField.length > 0) {
             return res.status(409).json({
                 error: 'Field name already exists',
@@ -2962,7 +2983,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                 existingField: existingField[0].FIELD_NAME
             });
         }
-        
+
         // Create the new field
         const currentDate = new Date();
         
@@ -3007,9 +3028,9 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                 error: 'Failed to create field - no ID returned'
             });
         }
-        
+
         console.log(`✅ Field created successfully with ID: ${insertedId}`);
-        
+
         // Get the newly created field with field type information
         const newField = await prisma.$queryRaw`
             SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
@@ -3020,7 +3041,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
             WHERE f.FIELD_ID = ${insertedId}
         `;
-        
+
         if (newField.length > 0) {
             const field = newField[0];
             const formattedField = {
@@ -3042,13 +3063,14 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                     FIELD_TYPE_ID: field.FIELD_TYPE_ID
                 }
             };
-            
+
             res.status(201).json(formattedField);
         } else {
             res.status(500).json({
                 error: 'Field created but could not be retrieved'
             });
         }
+
     } catch (error) {
         console.error('❌ Error creating field:', error);
         res.status(500).json({
@@ -3165,6 +3187,220 @@ app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) =>
         console.error('❌ Error updating field:', error);
         res.status(500).json({
             error: 'Failed to update field',
+            message: error.message
+        });
+    }
+});
+
+// ===== FORMS GROUPS ENDPOINTS =====
+
+// Get forms groups endpoint
+app.get('/api/forms-groups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('📁 Fetching forms groups from database for company:', req.companyId);
+
+        const formsGroups = await prisma.$queryRawUnsafe(`
+            SELECT fg.GROUP_ID, fg.ORGANIZATION_ID, fg.GROUP_NAME, fg.GROUP_DESCRIPTION, 
+                   fg.SORT_ORDER, fg.IS_PUBLIC, fg.CREATE_USER_ID, fg.UPDATE_USER_ID,
+                   fg.CREATE_DATE, fg.UPDATE_DATE
+            FROM GUARDIAN.FORMS_GROUPS fg
+            WHERE fg.ORGANIZATION_ID = ${req.companyId} OR fg.ORGANIZATION_ID IS NULL
+            ORDER BY fg.SORT_ORDER, fg.GROUP_NAME
+        `);
+
+        console.log(`✅ Found ${formsGroups.length} forms groups for company ${req.companyId}`);
+        res.json(formsGroups);
+    } catch (error) {
+        console.error('❌ Error fetching forms groups:', error);
+        res.status(500).json({
+            error: 'Failed to fetch forms groups',
+            message: error.message
+        });
+    }
+});
+
+// Create forms group endpoint
+app.post('/api/forms-groups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const {
+            GROUP_NAME,
+            GROUP_DESCRIPTION,
+            SORT_ORDER,
+            IS_PUBLIC
+        } = req.body;
+        
+        console.log(`📁 Creating new forms group for company: ${req.companyId}`);
+        
+        if (!GROUP_NAME || !GROUP_DESCRIPTION) {
+            return res.status(400).json({
+                error: 'GROUP_NAME and GROUP_DESCRIPTION are required'
+            });
+        }
+        
+        // Check for duplicate group name within the company
+        const existingGroup = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE ORGANIZATION_ID = ${req.companyId} AND GROUP_NAME = '${GROUP_NAME.replace(/'/g, "''")}'`
+        );
+        
+        if (existingGroup.length > 0) {
+            return res.status(409).json({
+                error: 'A forms group with this name already exists in your organization'
+            });
+        }
+        
+        const result = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.FORMS_GROUPS (
+                ORGANIZATION_ID, GROUP_NAME, GROUP_DESCRIPTION, SORT_ORDER, IS_PUBLIC,
+                CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+            ) 
+            OUTPUT INSERTED.GROUP_ID, INSERTED.ORGANIZATION_ID, INSERTED.GROUP_NAME, 
+                   INSERTED.GROUP_DESCRIPTION, INSERTED.SORT_ORDER, INSERTED.IS_PUBLIC,
+                   INSERTED.CREATE_USER_ID, INSERTED.UPDATE_USER_ID, INSERTED.CREATE_DATE, INSERTED.UPDATE_DATE
+            VALUES (
+                ${req.companyId}, '${GROUP_NAME.replace(/'/g, "''")}', '${GROUP_DESCRIPTION.replace(/'/g, "''")}', 
+                ${SORT_ORDER || 'NULL'}, ${IS_PUBLIC ? 1 : 0}, ${req.userId}, ${req.userId}, 
+                GETUTCDATE(), GETUTCDATE()
+            )`
+        );
+        
+        console.log(`✅ Created forms group with ID: ${result[0].GROUP_ID}`);
+        res.status(201).json(result[0]);
+        
+    } catch (error) {
+        console.error('❌ Error creating forms group:', error);
+        res.status(500).json({
+            error: 'Failed to create forms group',
+            message: error.message
+        });
+    }
+});
+
+// Update forms group endpoint
+app.put('/api/forms-groups/:groupId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const groupId = parseInt(req.params.groupId);
+        const {
+            GROUP_NAME,
+            GROUP_DESCRIPTION,
+            SORT_ORDER,
+            IS_PUBLIC
+        } = req.body;
+        
+        console.log(`📁 Updating forms group ${groupId} for company: ${req.companyId}`);
+        
+        if (!groupId || isNaN(groupId)) {
+            return res.status(400).json({ error: 'Invalid group ID' });
+        }
+        
+        if (!GROUP_NAME || !GROUP_DESCRIPTION) {
+            return res.status(400).json({
+                error: 'GROUP_NAME and GROUP_DESCRIPTION are required'
+            });
+        }
+        
+        // Verify the group belongs to the user's company
+        const existingGroup = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        if (existingGroup.length === 0) {
+            return res.status(404).json({
+                error: 'Forms group not found or does not belong to your organization'
+            });
+        }
+        
+        // Check for duplicate name (excluding current group)
+        const duplicateCheck = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE ORGANIZATION_ID = ${req.companyId} AND GROUP_NAME = '${GROUP_NAME.replace(/'/g, "''")}' 
+            AND GROUP_ID != ${groupId}`
+        );
+        
+        if (duplicateCheck.length > 0) {
+            return res.status(409).json({
+                error: 'A forms group with this name already exists in your organization'
+            });
+        }
+        
+        const result = await prisma.$queryRawUnsafe(`
+            UPDATE GUARDIAN.FORMS_GROUPS 
+            SET GROUP_NAME = '${GROUP_NAME.replace(/'/g, "''")}',
+                GROUP_DESCRIPTION = '${GROUP_DESCRIPTION.replace(/'/g, "''")}',
+                SORT_ORDER = ${SORT_ORDER || 'NULL'},
+                IS_PUBLIC = ${IS_PUBLIC ? 1 : 0},
+                UPDATE_USER_ID = ${req.userId},
+                UPDATE_DATE = GETUTCDATE()
+            OUTPUT INSERTED.GROUP_ID, INSERTED.ORGANIZATION_ID, INSERTED.GROUP_NAME,
+                   INSERTED.GROUP_DESCRIPTION, INSERTED.SORT_ORDER, INSERTED.IS_PUBLIC,
+                   INSERTED.CREATE_USER_ID, INSERTED.UPDATE_USER_ID, INSERTED.CREATE_DATE, INSERTED.UPDATE_DATE
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: 'Forms group not found' });
+        }
+        
+        console.log(`✅ Updated forms group ${groupId}`);
+        res.json(result[0]);
+        
+    } catch (error) {
+        console.error('❌ Error updating forms group:', error);
+        res.status(500).json({
+            error: 'Failed to update forms group',
+            message: error.message
+        });
+    }
+});
+
+// Delete forms group endpoint
+app.delete('/api/forms-groups/:groupId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const groupId = parseInt(req.params.groupId);
+        console.log(`🗑️ Deleting forms group ${groupId} for company: ${req.companyId}`);
+        
+        if (!groupId || isNaN(groupId)) {
+            return res.status(400).json({ error: 'Invalid group ID' });
+        }
+        
+        // Verify the group belongs to the user's company
+        const existingGroup = await prisma.$queryRawUnsafe(`
+            SELECT GROUP_ID FROM GUARDIAN.FORMS_GROUPS 
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        if (existingGroup.length === 0) {
+            return res.status(404).json({
+                error: 'Forms group not found or does not belong to your organization'
+            });
+        }
+        
+        // Check if group has any associated fields
+        const associatedFields = await prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) as fieldCount FROM GUARDIAN.FORMS_GROUPS_FIELDS 
+            WHERE GROUP_ID = ${groupId}`
+        );
+        
+        if (associatedFields[0].fieldCount > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete forms group that has associated fields. Please remove all fields from this group first.'
+            });
+        }
+        
+        // Delete the group
+        await prisma.$queryRawUnsafe(`
+            DELETE FROM GUARDIAN.FORMS_GROUPS 
+            WHERE GROUP_ID = ${groupId} AND ORGANIZATION_ID = ${req.companyId}`
+        );
+        
+        console.log(`✅ Deleted forms group ${groupId}`);
+        res.json({ message: 'Forms group deleted successfully' });
+        
+    } catch (error) {
+        console.error('❌ Error deleting forms group:', error);
+        res.status(500).json({
+            error: 'Failed to delete forms group',
             message: error.message
         });
     }
@@ -3435,11 +3671,13 @@ app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         const formId = parseInt(req.params.formId);
         console.log(`📋 Fetching form ${formId} for company:`, req.companyId);
 
-        // Get the form
+        // Get the form (include global forms with ORGANIZATION_ID = NULL or COMPANY_ID = NULL)
         const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId} AND IS_DELETED = ${false}
+            WHERE FORM_ID = ${formId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+            AND IS_DELETED = ${false}
         `;
 
         if (forms.length === 0) {
@@ -3448,14 +3686,20 @@ app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get the form fields
+        // Get the form fields using the junction table
         const fields = await prisma.$queryRaw`
-            SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
-                   ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
-            FROM GUARDIAN.FIELDS ff
-            INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
-            ORDER BY ff.SEQUENCE, ff.FIELD_ID
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
+                   ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER,
+                   ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${formId}
+            AND (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
+            AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
         `;
 
         console.log(`✅ Found form ${formId} with ${fields.length} fields`);
@@ -4532,7 +4776,7 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                     INSERT INTO GUARDIAN.FORMS_INSTANCE (
                         REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 console.log(`📋 Created new completed form instance`);
@@ -4542,7 +4786,7 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                     INSERT INTO GUARDIAN.FORMS_INSTANCE (
                         REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID}, ${req.companyId}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 console.log(`📋 Created new draft form instance`);
@@ -4550,10 +4794,19 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
 
             // Get the new instance ID
             let newInstances;
-            newInstances = await prisma.$queryRaw`
-                SELECT TOP 1 FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                WHERE REQUEST_ID = ${requestId} ORDER BY CREATE_DATE DESC
-            `;
+            if (isAdmin) {
+                newInstances = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE FORM_ID = ${request.FORM_ID} AND COMPANY_ID = ${req.companyId}
+                    ORDER BY CREATE_DATE DESC
+                `;
+            } else {
+                newInstances = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID} AND COMPANY_ID = ${req.companyId}
+                    ORDER BY CREATE_DATE DESC
+                `;
+            }
             
             formInstanceId = newInstances[0].FORM_INSTANCE_ID;
         }
@@ -4629,7 +4882,7 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
         
         console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
-        
+
         // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
         let forms;
         

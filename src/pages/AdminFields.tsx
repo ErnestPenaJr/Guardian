@@ -763,9 +763,9 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
                 height: 'calc(40px * 10 + 48px + 16px)', // 10 rows * 40px + header + padding
                 width: '100%' 
               }}>
+                {console.log('🎯 AG Grid rowData:', filteredFields.length > 0 || searchTerm ? filteredFields : fields)}
                 <AgGridReact
                   ref={gridRef}
-                  theme="legacy"
                   pagination={true}
                   paginationPageSize={10}
                   paginationAutoPageSize={false}
