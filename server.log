@@ -3,7 +3,7 @@
 Node version: v22.6.0
 Environment: development
 Port: 3001
-Process PID: 15465
+Process PID: 26515
 Current working directory: /Users/epena1/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
@@ -15,124 +15,392 @@ Current working directory: /Users/epena1/Guardian MVP
 🧪 Simple test: /api/simple-test
 🎉 Server startup complete!
 ✅ Database connected successfully
-🔐 Login attempt for: ernest@shieldlytics.com
-✅ Login successful for: ernest@shieldlytics.com (User ID: 1111, Company: 26)
+🔐 Login attempt for: Ernest@shieldlytics.com
+✅ Login successful for: Ernest@shieldlytics.com (User ID: 1111, Company: 26)
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
 📋 Fetching requests for company ID: 26
-✅ Found 5 requests in database (query took 57ms)
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Found 5 requests in database (query took 48ms)
 📤 Sending 5 formatted requests to frontend
+✅ Retrieved 1 assigned requests in 47ms
 📋 Fetching requests for company ID: 26
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Found 5 requests in database (query took 52ms)
+📤 Sending 5 formatted requests to frontend
+✅ Retrieved 1 assigned requests in 48ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 48ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 48ms
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📝 Fetching fields from database for company: 26
+🔧 Fetching field types from database...
+✅ Found 15 field types
+📤 Sending 15 field types to frontend
+✅ Found 25 fields for company 26
+📤 Sending 25 fields to frontend
+🔐 Login attempt for: Ernest@shieldlytics.com
+✅ Login successful for: Ernest@shieldlytics.com (User ID: 1111, Company: 26)
+📋 Fetching requests for company ID: 26
+✅ Found 5 requests in database (query took 50ms)
+📤 Sending 5 formatted requests to frontend
+🔢 Getting notification count for user 1111
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ User has 0 unread notifications
+📋 Fetching requests for company ID: 26
+✅ Retrieved 1 assigned requests in 56ms
 ✅ Found 5 requests in database (query took 51ms)
 📤 Sending 5 formatted requests to frontend
 🔢 Getting notification count for user 1111
 📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ User has 2 unread notifications
-✅ Retrieved 1 assigned requests in 57ms
-🔢 Getting notification count for user 1111
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ User has 2 unread notifications
-✅ Retrieved 1 assigned requests in 52ms
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 52ms
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 53ms
-📋 Fetching requests for company ID: 26
-✅ Found 5 requests in database (query took 53ms)
-📤 Sending 5 formatted requests to frontend
-📋 Fetching requests for company ID: 26
-✅ Found 5 requests in database (query took 53ms)
-📤 Sending 5 formatted requests to frontend
-📋 Fetching form for request 129 (Company: 26)
-🔍 Querying for request 129 in company 26
-👥 Fetching users for company ID: 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1005
-🔍 Querying for form 1005 (company-specific or global)
-✅ Found 5 users
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1005 using junction table
-✅ Found 6 form-specific fields for form 1005
-🔍 Checking for existing form instance for request 129
-🔍 Fetching form instance for request 129
-📋 Found existing form instance: 1061
-📊 Found 6 existing field values
-📈 Form status: completed (1/1 required fields filled)
-✅ Found request 129 with form 1005 containing 6 fields
-📤 Sending form data for request 129 to frontend
-📋 Fetching form for request 129 (Company: 26)
-🔍 Querying for request 129 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1005
-🔍 Querying for form 1005 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1005 using junction table
-✅ Found 6 form-specific fields for form 1005
-🔍 Checking for existing form instance for request 129
-🔍 Fetching form instance for request 129
-📋 Found existing form instance: 1061
-📊 Found 6 existing field values
-📈 Form status: completed (1/1 required fields filled)
-✅ Found request 129 with form 1005 containing 6 fields
-📤 Sending form data for request 129 to frontend
-📋 Fetching form for request 129 (Company: 26)
-🔍 Querying for request 129 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1005
-🔍 Querying for form 1005 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1005 using junction table
-✅ Found 6 form-specific fields for form 1005
-🔍 Checking for existing form instance for request 129
-🔍 Fetching form instance for request 129
-📋 Found existing form instance: 1061
-📊 Found 6 existing field values
-📈 Form status: completed (1/1 required fields filled)
-✅ Found request 129 with form 1005 containing 6 fields
-📤 Sending form data for request 129 to frontend
-📋 Fetching requests for company ID: 26
-✅ Found 5 requests in database (query took 54ms)
-📤 Sending 5 formatted requests to frontend
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 53ms
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 51ms
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 51ms
-🔢 Getting notification count for user 1111
-✅ User has 2 unread notifications
-🔔 Fetching notifications for user 1111 (Company: 26)
-✅ Found 3 notifications
-📖 Marking notification 19 as read for user 1111
-✅ Notification 19 marked as read
-📖 Marking notification 15 as read for user 1111
-✅ Notification 15 marked as read
+✅ User has 0 unread notifications
+✅ Retrieved 1 assigned requests in 55ms
 📋 Fetching assigned requests for user ID: 1111 (Company: 26)
 ✅ Retrieved 1 assigned requests in 55ms
-🎭 Fetching roles from database...
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 57ms
 🔢 Getting notification count for user 1111
 ✅ User has 0 unread notifications
-👥 Fetching users for company ID: 26
-✅ Found 5 users
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+prisma:error 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
+Authentication error: 141 | `)}
+142 | 
+143 | We suggest to move the contents of ${Je(a)} to ${Je(o)} to consolidate your env vars.
+144 | `;throw new Error(c)}else if(r==="warn"){let c=`Conflict for env var${s.length>1?"s":""} ${s.map(l=>be(l)).join(", ")} in ${Je(o)} and ${Je(a)}
+145 | Env vars from ${Je(a)} overwrite the ones from ${Je(o)}
+146 |       `;console.warn(`${nr("warn(prisma)")} ${c}`)}}}}function kC(t){if(HT(t)){Su(`Environment variables loaded from ${t}`);let e=bu.default.config({path:t,debug:process.env.DOTENV_CONFIG_DEBUG?!0:void 0});return{dotenvResult:xC(e),message:nn(`Environment variables loaded from ${rA.default.relative(process.cwd(),t)}`),path:t}}else Su(`Environment variables not found at ${t}`);return null}function UC(t,e){return t&&e&&rA.default.resolve(t)===rA.default.resolve(e)}function HT(t){return!!(t&&Oo.default.existsSync(t))}function Nu(t,e){return Object.prototype.hasOwnProperty.call(t,e)}function nA(t,e){let r={};for(let n of Object.keys(t))r[n]=e(t[n],n);return r}function Fu(t,e){if(t.length===0)return;let r=t[0];for(let n=1;n<t.length;n++)e(r,t[n])<0&&(r=t[n]);return r}function M(t,e){Object.defineProperty(t,"name",{value:e,configurable:!0})}var LC=new Set,Fi=(t,e,...r)=>{LC.has(t)||(LC.add(t),mu(e,...r))};var Z=class t extends Error{clientVersion;errorCode;retryable;constructor(e,r,n){super(e),this.name="PrismaClie
+
+PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
+       meta: {
+  connection_limit: 17,
+  timeout: 10,
+},
+ clientVersion: "6.11.1",
+       code: "P2024"
+
+      at new PrismaClientKnownRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:146:1352)
+      at handleRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
+      at handleAndLogRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
+      at request (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
+
+🔐 Login attempt for: ernest@shieldlytics.com
+✅ Login successful for: ernest@shieldlytics.com (User ID: 1111, Company: 26)
+📋 Fetching requests for company ID: 26
+✅ Found 5 requests in database (query took 49ms)
+📤 Sending 5 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 5 requests in database (query took 49ms)
+📤 Sending 5 formatted requests to frontend
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ User has 0 unread notifications
+✅ Retrieved 1 assigned requests in 67ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 65ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 65ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 66ms
+📋 Fetching requests for company ID: 26
+✅ Found 5 requests in database (query took 68ms)
+📤 Sending 5 formatted requests to frontend
+📋 Fetching requests for company ID: 26
+✅ Found 5 requests in database (query took 66ms)
+📤 Sending 5 formatted requests to frontend
+📋 Fetching forms from database for company: 26
+✅ Found 5 forms for company 26
+📤 Sending 5 formatted forms to frontend
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 67ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 68ms
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 65ms
 🎭 Fetching roles from database...
-📧 Fetching invites for company ID: 26
 👥 Fetching users for company ID: 26
-✅ Found 0 invites
 ✅ Found 5 roles in database
 📤 Sending 5 formatted roles to frontend
+📧 Fetching invites for company ID: 26
+🎭 Fetching roles from database...
 ✅ Found 5 users
+✅ Found 5 roles in database
+📤 Sending 5 formatted roles to frontend
+✅ Found 0 invites
 🎭 Fetching roles from database...
 📧 Fetching invites for company ID: 26
 ✅ Found 5 roles in database
 📤 Sending 5 formatted roles to frontend
-🎭 Fetching roles from database...
 ✅ Found 0 invites
 👥 Fetching users for company ID: 26
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
 📧 Fetching invites for company ID: 26
 ✅ Found 5 users
 ✅ Found 0 invites
 👥 Fetching users for company ID: 26
 ✅ Found 5 users
-🚪 Logout request received
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+prisma:error 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
+Authentication error: 141 | `)}
+142 | 
+143 | We suggest to move the contents of ${Je(a)} to ${Je(o)} to consolidate your env vars.
+144 | `;throw new Error(c)}else if(r==="warn"){let c=`Conflict for env var${s.length>1?"s":""} ${s.map(l=>be(l)).join(", ")} in ${Je(o)} and ${Je(a)}
+145 | Env vars from ${Je(a)} overwrite the ones from ${Je(o)}
+146 |       `;console.warn(`${nr("warn(prisma)")} ${c}`)}}}}function kC(t){if(HT(t)){Su(`Environment variables loaded from ${t}`);let e=bu.default.config({path:t,debug:process.env.DOTENV_CONFIG_DEBUG?!0:void 0});return{dotenvResult:xC(e),message:nn(`Environment variables loaded from ${rA.default.relative(process.cwd(),t)}`),path:t}}else Su(`Environment variables not found at ${t}`);return null}function UC(t,e){return t&&e&&rA.default.resolve(t)===rA.default.resolve(e)}function HT(t){return!!(t&&Oo.default.existsSync(t))}function Nu(t,e){return Object.prototype.hasOwnProperty.call(t,e)}function nA(t,e){let r={};for(let n of Object.keys(t))r[n]=e(t[n],n);return r}function Fu(t,e){if(t.length===0)return;let r=t[0];for(let n=1;n<t.length;n++)e(r,t[n])<0&&(r=t[n]);return r}function M(t,e){Object.defineProperty(t,"name",{value:e,configurable:!0})}var LC=new Set,Fi=(t,e,...r)=>{LC.has(t)||(LC.add(t),mu(e,...r))};var Z=class t extends Error{clientVersion;errorCode;retryable;constructor(e,r,n){super(e),this.name="PrismaClie
+
+PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
+       meta: {
+  connection_limit: 17,
+  timeout: 10,
+},
+ clientVersion: "6.11.1",
+       code: "P2024"
+
+      at new PrismaClientKnownRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:146:1352)
+      at handleRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
+      at handleAndLogRequestError (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
+      at request (/Users/epena1/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
+

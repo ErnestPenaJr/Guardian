@@ -1,9 +1,8 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import AdminFieldsLookup from './AdminFieldsLookup';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
 
 const AdminFieldsLookupPage: React.FC = () => {
   const { fieldId } = useParams<{ fieldId: string }>();
@@ -15,7 +14,11 @@ const AdminFieldsLookupPage: React.FC = () => {
   
   if (!user) return <Navigate to="/login" />;
   
-  if (!user.roles.includes('admin')) {
+  // Check if user has admin role (id 1) or super admin role (id 6)
+  const isAdmin = user.roles?.some((role: any) => role.id === 1 || role.id === 6) ||
+                  user.role === '1' || user.role === '6';
+  
+  if (!isAdmin) {
     return <Navigate to="/dashboard" />;
   }
 
@@ -41,6 +44,18 @@ const AdminFieldsLookupPage: React.FC = () => {
 
         {/* Main content */}
         <div className="bg-white shadow overflow-hidden sm:rounded-md p-6">
+          {/* Note: Lookup functionality requires backend API endpoints to be implemented */}
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> The lookup values management functionality requires the following API endpoints to be implemented:
+            </p>
+            <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside">
+              <li>GET /api/fields/{fieldId}/lookups</li>
+              <li>POST /api/fields/{fieldId}/lookups</li>
+              <li>PUT /api/fields/{fieldId}/lookups/{lookupId}</li>
+              <li>DELETE /api/fields/{fieldId}/lookups/{lookupId}</li>
+            </ul>
+          </div>
           <AdminFieldsLookup fieldId={Number(fieldId)} />
         </div>
       </div>

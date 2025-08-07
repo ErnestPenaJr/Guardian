@@ -8,3 +8,10 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+9:36:34 AM [vite] (client) hmr update /src/pages/AdminFieldsLookupPage.tsx, /src/index.css
+9:36:39 AM [vite] (client) hmr update /src/pages/AdminFieldsLookupPage.tsx, /src/index.css
+9:36:45 AM [vite] (client) hmr update /src/pages/AdminFieldsLookupPage.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
