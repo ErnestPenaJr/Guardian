@@ -12,18 +12,21 @@ Guardian MVP is a comprehensive request management platform designed for enterpr
 ### Core Functionality
 - **Company-Based Data Isolation**: Multi-tenant architecture with complete data separation
 - **Request Management**: Full lifecycle management from creation to completion with progress tracking
+- **Task Management**: Comprehensive task system with status tracking, assignments, and batch operations
 - **User Management**: Role-based access control with invite system
 - **Workflow Management**: Customizable forms and templates for different request types
-- **Real-time Notifications**: Email notifications and in-app alerts for assignments
+- **Real-time Notifications**: Email notifications and in-app alerts for assignments and task updates
 - **Field Management**: Advanced field types including addresses, banking info, and custom validation
 
 ### Advanced Features
 - **Email Integration**: Resend API for verification emails and notifications
-- **Database-Generated Tracking**: Auto-generated tracking IDs for all requests
-- **Batch Operations**: Support for bulk invites and field operations
+- **Database-Generated Tracking**: Auto-generated tracking IDs for all requests and tasks
+- **Batch Operations**: Support for bulk invites, field operations, and multi-task management
+- **Export Functionality**: CSV and Excel export capabilities for task data and reporting
 - **Mobile-Responsive Design**: Bootstrap and Tailwind CSS for all devices
 - **File Attachments**: Support for document uploads and management
-- **Progress Tracking**: Real-time updates on request completion status
+- **Progress Tracking**: Real-time updates on request and task completion status
+- **Status Management**: Flexible task status transitions with confirmation dialogs
 
 ### Security & Authentication
 - **JWT-Based Authentication**: Secure token-based access control
@@ -87,8 +90,8 @@ The application uses a comprehensive SQL Server schema:
 - `GUARDIAN.USERS` - User accounts with company association
 - `GUARDIAN.COMPANY` - Company information and organization structure  
 - `GUARDIAN.REQUESTS` - Request tracking with company filtering
-- `GUARDIAN.TASKS` - Task management with request association
-- `GUARDIAN.NOTIFICATIONS` - Real-time notification system with read tracking
+- `GUARDIAN.TASKS` - Enhanced task management with request association, status tracking, and audit trails
+- `GUARDIAN.NOTIFICATIONS` - Real-time notification system with read tracking and task assignment alerts
 
 #### Form Management
 - `GUARDIAN.FORMS` - Form templates (supports global and company-specific templates)
@@ -143,6 +146,27 @@ POST /api/requests/:id/start      - Start request processing
 POST /api/requests/:id/complete   - Complete request
 PUT  /api/requests/:id/progress   - Update progress
 ```
+
+### Task Management
+```
+GET    /api/requests/:requestId/tasks - Get tasks for specific request (company-filtered)
+POST   /api/tasks                     - Create new task with auto-generated tracking ID
+PUT    /api/tasks/:taskId             - Update task (status, assignment, description)
+DELETE /api/tasks/:taskId             - Delete task with validation
+```
+
+**Task Status Flow:**
+- `Pending → In Progress → Completed` (traditional workflow)
+- `Pending → Completed` (direct completion)
+- `Pending → Cancelled` (task cancellation)
+
+**Task Features:**
+- Auto-generated tracking IDs: `TSK-{timestamp}-{random}`
+- Batch operations with multi-select support
+- Status filtering: All, Pending, In Progress, Completed, Cancelled
+- Export functionality: CSV and Excel formats
+- Automatic notification creation for assignments
+- Company-based data isolation and role-based access control
 
 ### Forms & Field Management
 ```
@@ -467,7 +491,27 @@ For technical support or questions:
 
 ---
 
-**Last Updated**: 2025-07-30  
+---
+
+## Key Components (Updated 2025-08-07)
+
+### Task Management System
+- **TaskTable.tsx**: AG Grid-based task display with multi-select, filtering, and export
+- **AddTaskModal.tsx**: Task creation modal with user assignment and validation
+- **Task Status Management**: Flexible status transitions with confirmation dialogs
+- **Batch Operations**: Multi-select task operations (Start, Complete, Cancel)
+- **Export Functionality**: CSV and Excel export capabilities
+- **Notification Integration**: Auto-notification system for task assignments
+
+### Request Processing Workflow
+- **Work Progress Modal**: 4-tab interface (Details, Form, Progress, Tasks)
+- **RequestFulfillmentDashboard.tsx**: Enhanced with task management integration
+- **Company Isolation**: All operations filtered by user's company for security
+- **Role-Based Access**: Processor, Manager, User, and Admin role permissions
+
+---
+
+**Last Updated**: 2025-08-07  
 **Version**: 2.5.0  
 **Node.js Compatibility**: 18+  
 **Database**: Microsoft SQL Server  

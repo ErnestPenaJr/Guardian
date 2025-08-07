@@ -2134,6 +2134,364 @@ app.get('/api/progress/:progressId/summary', getAuthenticatedUserCompany, async 
     }
 });
 
+// === TASK MANAGEMENT ENDPOINTS ===
+
+// Get tasks for a specific request
+app.get('/api/requests/:requestId/tasks', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        console.log(`📋 Fetching tasks for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const request = await prisma.$queryRaw`
+            SELECT REQUEST_ID, REQUESTOR_ID, ASSIGNED_ID, STATUS
+            FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!request.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Get tasks with user information
+        const tasks = await prisma.$queryRaw`
+            SELECT 
+                t.TASK_ID,
+                t.REQUEST_ID,
+                t.STATUS,
+                t.ASSIGNED_USER_ID,
+                t.DESCRIPTION,
+                t.CREATE_DATE,
+                t.UPDATE_DATE,
+                t.TRACKINGID,
+                au.FIRST_NAME as ASSIGNED_FIRST_NAME,
+                au.LAST_NAME as ASSIGNED_LAST_NAME,
+                au.EMAIL as ASSIGNED_EMAIL,
+                cu.FIRST_NAME as CREATED_BY_FIRST_NAME,
+                cu.LAST_NAME as CREATED_BY_LAST_NAME,
+                cu.EMAIL as CREATED_BY_EMAIL
+            FROM GUARDIAN.TASKS t
+            LEFT JOIN GUARDIAN.USERS au ON t.ASSIGNED_USER_ID = au.USER_ID
+            LEFT JOIN GUARDIAN.USERS cu ON t.CREATE_USER_ID = cu.USER_ID
+            WHERE t.REQUEST_ID = ${requestId}
+            ORDER BY t.CREATE_DATE DESC
+        `;
+
+        // Format tasks with user objects
+        const formattedTasks = tasks.map(task => ({
+            ...task,
+            assignedUser: task.ASSIGNED_USER_ID ? {
+                FIRST_NAME: task.ASSIGNED_FIRST_NAME,
+                LAST_NAME: task.ASSIGNED_LAST_NAME,
+                EMAIL: task.ASSIGNED_EMAIL
+            } : null,
+            createdBy: {
+                FIRST_NAME: task.CREATED_BY_FIRST_NAME,
+                LAST_NAME: task.CREATED_BY_LAST_NAME,
+                EMAIL: task.CREATED_BY_EMAIL
+            }
+        }));
+
+        // Calculate summary
+        const summary = {
+            totalTasks: tasks.length,
+            pendingTasks: tasks.filter(t => t.STATUS === 'Pending').length,
+            inProgressTasks: tasks.filter(t => t.STATUS === 'In Progress').length,
+            completedTasks: tasks.filter(t => t.STATUS === 'Completed').length
+        };
+
+        console.log(`✅ Found ${tasks.length} tasks for request ${requestId}`);
+
+        res.json({
+            success: true,
+            data: formattedTasks,
+            summary: summary
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching tasks:', error);
+        res.status(500).json({
+            error: 'Failed to fetch tasks',
+            message: error.message
+        });
+    }
+});
+
+// Create a new task
+app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { requestId, assignedUserId, description, status = 'Pending' } = req.body;
+        
+        console.log(`➕ Creating task for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || !description) {
+            return res.status(400).json({
+                error: 'Request ID and description are required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const request = await prisma.$queryRaw`
+            SELECT REQUEST_ID, REQUESTOR_ID, ASSIGNED_ID, STATUS
+            FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!request.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // If assignedUserId is provided, verify the user exists and belongs to the same company
+        if (assignedUserId) {
+            const assignedUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+            `;
+
+            if (!assignedUser.length) {
+                return res.status(400).json({
+                    error: 'Assigned user not found or not in the same company'
+                });
+            }
+        }
+
+        // Generate tracking ID for the task
+        const trackingId = `TSK-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+        // Create the task
+        const taskResult = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.TASKS (
+                REQUEST_ID,
+                STATUS,
+                ASSIGNED_USER_ID,
+                DESCRIPTION,
+                CREATE_USER_ID,
+                UPDATE_USER_ID,
+                CREATE_DATE,
+                UPDATE_DATE,
+                TRACKINGID
+            )
+            OUTPUT INSERTED.TASK_ID
+            VALUES (
+                ${requestId},
+                ${status},
+                ${assignedUserId || null},
+                ${description},
+                ${req.userId},
+                ${req.userId},
+                GETDATE(),
+                GETDATE(),
+                ${trackingId}
+            )
+        `;
+
+        const taskId = taskResult[0].TASK_ID;
+        console.log(`✅ Task created with ID: ${taskId}`);
+
+        // Create notification for assigned user if different from creator
+        if (assignedUserId && assignedUserId !== req.userId) {
+            try {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.NOTIFICATIONS (
+                        USER_ID, 
+                        TYPE, 
+                        TITLE, 
+                        MESSAGE, 
+                        RELATED_ID, 
+                        COMPANY_ID, 
+                        CREATED_DATE, 
+                        IS_READ
+                    ) VALUES (
+                        ${assignedUserId}, 
+                        'task_assigned', 
+                        'New Task Assigned', 
+                        ${'You have been assigned a new task: ' + description}, 
+                        ${taskId}, 
+                        ${req.companyId}, 
+                        GETDATE(), 
+                        0
+                    )
+                `;
+                console.log(`📢 Notification sent to user ${assignedUserId} for task assignment`);
+            } catch (notificationError) {
+                console.error('⚠️ Failed to create notification:', notificationError);
+                // Continue anyway - task creation should not fail due to notification issues
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Task created successfully',
+            taskId: taskId,
+            trackingId: trackingId
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating task:', error);
+        res.status(500).json({
+            error: 'Failed to create task',
+            message: error.message
+        });
+    }
+});
+
+// Update a task
+app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId);
+        const { assignedUserId, description, status } = req.body;
+
+        console.log(`✏️ Updating task ${taskId} (Company: ${req.companyId})`);
+
+        if (!taskId || isNaN(taskId)) {
+            return res.status(400).json({
+                error: 'Valid task ID is required'
+            });
+        }
+
+        // Verify task exists and belongs to user's company
+        const task = await prisma.$queryRaw`
+            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID
+            FROM GUARDIAN.TASKS t
+            INNER JOIN GUARDIAN.REQUESTS r ON t.REQUEST_ID = r.REQUEST_ID
+            WHERE t.TASK_ID = ${taskId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!task.length) {
+            return res.status(404).json({
+                error: 'Task not found or access denied'
+            });
+        }
+
+        // Build update query dynamically
+        const updates = [];
+        const updateData = {};
+
+        if (description !== undefined) {
+            updates.push('DESCRIPTION = @description');
+            updateData.description = description;
+        }
+
+        if (status !== undefined) {
+            updates.push('STATUS = @status');
+            updateData.status = status;
+        }
+
+        if (assignedUserId !== undefined) {
+            if (assignedUserId) {
+                // Verify the user exists and belongs to the same company
+                const assignedUser = await prisma.$queryRaw`
+                    SELECT USER_ID FROM GUARDIAN.USERS
+                    WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+                `;
+
+                if (!assignedUser.length) {
+                    return res.status(400).json({
+                        error: 'Assigned user not found or not in the same company'
+                    });
+                }
+            }
+            updates.push('ASSIGNED_USER_ID = @assignedUserId');
+            updateData.assignedUserId = assignedUserId || null;
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({
+                error: 'No valid fields to update'
+            });
+        }
+
+        // Add standard update fields
+        updates.push('UPDATE_DATE = GETDATE()');
+        updates.push('UPDATE_USER_ID = @updateUserId');
+        updateData.updateUserId = req.userId;
+
+        // Execute update
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.TASKS 
+            SET DESCRIPTION = ${description || task[0].DESCRIPTION},
+                STATUS = ${status || task[0].STATUS},
+                ASSIGNED_USER_ID = ${assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE TASK_ID = ${taskId}
+        `;
+
+        console.log(`✅ Task ${taskId} updated successfully`);
+
+        res.json({
+            success: true,
+            message: 'Task updated successfully',
+            taskId: taskId
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating task:', error);
+        res.status(500).json({
+            error: 'Failed to update task',
+            message: error.message
+        });
+    }
+});
+
+// Delete a task
+app.delete('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId);
+
+        console.log(`🗑️ Deleting task ${taskId} (Company: ${req.companyId})`);
+
+        if (!taskId || isNaN(taskId)) {
+            return res.status(400).json({
+                error: 'Valid task ID is required'
+            });
+        }
+
+        // Verify task exists and belongs to user's company
+        const task = await prisma.$queryRaw`
+            SELECT t.TASK_ID, r.COMPANY_ID
+            FROM GUARDIAN.TASKS t
+            INNER JOIN GUARDIAN.REQUESTS r ON t.REQUEST_ID = r.REQUEST_ID
+            WHERE t.TASK_ID = ${taskId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!task.length) {
+            return res.status(404).json({
+                error: 'Task not found or access denied'
+            });
+        }
+
+        // Delete the task
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.TASKS WHERE TASK_ID = ${taskId}
+        `;
+
+        console.log(`✅ Task ${taskId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Task deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting task:', error);
+        res.status(500).json({
+            error: 'Failed to delete task',
+            message: error.message
+        });
+    }
+});
+
 // === ATTACHMENT MANAGEMENT ENDPOINTS ===
 
 // Upload file attachment to request

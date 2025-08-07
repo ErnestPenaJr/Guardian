@@ -55,3 +55,39 @@ AggregateError [ECONNREFUSED]:
     at afterConnectMultiple (node:net:1715:7)
 1:46:22 PM [vite] (client) hmr update /src/pages/AdminFormsGroups.tsx, /src/index.css
 1:46:39 PM [vite] (client) hmr update /src/pages/AdminFormsGroups.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+3:42:13 PM [vite] (client) hmr update /src/pages/RequestFulfillmentDashboard.tsx, /src/index.css
+3:43:25 PM [vite] (client) hmr update /src/pages/RequestFulfillmentDashboard.tsx, /src/index.css
+3:48:22 PM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+4:29:22 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:29:27 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:29:33 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:29:38 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:29:52 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:30:00 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:30:07 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:30:21 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:33:00 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:33:06 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:33:10 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:33:15 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:33:19 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:35:08 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:35:13 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:35:20 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:35:32 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:35:40 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:35:47 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:36:00 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:36:16 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+4:45:51 PM [vite] (client) hmr update /src/components/TaskTable.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

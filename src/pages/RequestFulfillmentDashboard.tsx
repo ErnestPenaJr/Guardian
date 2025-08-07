@@ -10,8 +10,9 @@ import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/Modal';
 import WorkProgressTable from '../components/WorkProgressTable';
+import TaskTable from '../components/TaskTable';
 import { toast } from 'react-toastify';
-import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList } from 'lucide-react';
+import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList, CheckSquare } from 'lucide-react';
 import './RequestFulfillmentDashboard.css';
 
 interface Request {
@@ -67,7 +68,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
 
   // Work progress state
   const [showWorkProgressModal, setShowWorkProgressModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'form' | 'progress'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'form' | 'progress' | 'tasks'>('details');
 
   useEffect(() => {
     fetchAssignedRequests();
@@ -825,6 +826,17 @@ const RequestFulfillmentDashboard: React.FC = () => {
                     <ClipboardList className="w-4 h-4 inline mr-2" />
                     Work Progress
                   </button>
+                  <button
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'tasks'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveTab('tasks')}
+                  >
+                    <CheckSquare className="w-4 h-4 inline mr-2" />
+                    Tasks
+                  </button>
                 </nav>
               </div>
 
@@ -917,6 +929,15 @@ const RequestFulfillmentDashboard: React.FC = () => {
                     requestStatus={selectedRequest.STATUS}
                     isAssignedToCurrentUser={true}
                     onProgressUpdate={handleWorkProgressUpdate}
+                  />
+                )}
+
+                {activeTab === 'tasks' && (
+                  <TaskTable
+                    requestId={selectedRequest.REQUEST_ID}
+                    requestStatus={selectedRequest.STATUS}
+                    isAssignedToCurrentUser={true}
+                    onTaskUpdate={handleWorkProgressUpdate}
                   />
                 )}
               </div>
