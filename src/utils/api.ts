@@ -1,4 +1,5 @@
 import axios from 'axios';
+import errorCapture from './errorCapture';
 
 // Base URL for API requests
 // In development, we use the Vite proxy which is configured in vite.config.ts
@@ -43,6 +44,14 @@ api.interceptors.response.use(
       const error = new Error('API endpoint returned HTML instead of JSON. This indicates a routing or deployment issue.');
       (error as any).isHTMLResponse = true;
       (error as any).originalUrl = response.config.url;
+      
+      // Capture HTML response error
+      errorCapture.captureApiError(error, {
+        url: response.config.url,
+        method: response.config.method,
+        data: response.config.data,
+      }, response.data);
+      
       return Promise.reject(error);
     }
     
@@ -57,6 +66,17 @@ api.interceptors.response.use(
       statusText: error.response?.statusText,
       data: error.response?.data
     });
+    
+    // Capture API error with detailed information
+    try {
+      errorCapture.captureApiError(error, {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data,
+      }, error.response?.data);
+    } catch (captureError) {
+      console.warn('Failed to capture API error:', captureError);
+    }
     
     if (error.response && error.response.status === 401) {
       // Token expired or invalid, redirect to login

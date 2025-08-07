@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import Swal from 'sweetalert2';
 import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
+import errorCapture from '../utils/errorCapture';
 
 function Login() {
   const navigate = useNavigate();
@@ -77,24 +78,32 @@ function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mark all fields as touched to trigger validation
-    setValidation(prev => ({
-      email: { ...prev.email, touched: true },
-      password: { ...prev.password, touched: true }
-    }));
-    
-    // Check if form is valid
-    if (!validateEmail(credentials.email) || !validatePassword(credentials.password)) {
-      Swal.fire({
-        title: 'Validation Error',
-        text: 'Please correct the errors in the form.',
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
-      return;
-    }
-    
     try {
+      // Mark all fields as touched to trigger validation
+      setValidation(prev => ({
+        email: { ...prev.email, touched: true },
+        password: { ...prev.password, touched: true }
+      }));
+      
+      // Check if form is valid
+      if (!validateEmail(credentials.email) || !validatePassword(credentials.password)) {
+        await Swal.fire({
+          title: 'Validation Error',
+          text: 'Please correct the errors in the form.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          customClass: {
+            popup: 'swal2-popup',
+            title: 'swal2-title',
+            htmlContainer: 'swal2-html-container',
+            confirmButton: 'swal2-confirm'
+          },
+          buttonsStyling: true,
+          allowOutsideClick: false
+        });
+        return;
+      }
+      
       setIsLoading(true);
       
       // Call the login API endpoint using our API utility
@@ -120,7 +129,13 @@ function Login() {
         text: 'Login successful',
         icon: 'success',
         timer: 1500,
-        showConfirmButton: false
+        showConfirmButton: false,
+        customClass: {
+          popup: 'swal2-popup',
+          title: 'swal2-title',
+          htmlContainer: 'swal2-html-container'
+        },
+        buttonsStyling: true
       });
       
       // Redirect to home page after successful login
@@ -131,71 +146,163 @@ function Login() {
       console.error('Error response data:', error.response?.data);
       console.error('Error status:', error.response?.status);
       
+      // Capture error for email notification
+      try {
+        errorCapture.captureLoginError(error, { 
+          email: credentials.email,
+          attempts: 1 
+        });
+      } catch (captureErr) {
+        console.warn('Failed to capture error:', captureErr);
+      }
+      
+      // Prevent any potential page reload by stopping here if needed
+      let shouldShowAlert = true;
+      
       // Handle different error scenarios with specific messages
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         const statusCode = error.response.status;
-        const errorMessage = error.response.data.message || 'Authentication failed';
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Authentication failed';
         
         // Show appropriate error message based on status code
         switch (statusCode) {
           case 401:
-            Swal.fire({
-              title: 'Authentication Failed',
-              text: 'Invalid email or password. Please try again.',
-              icon: 'error',
-              confirmButtonText: 'OK'
-            });
+            if (shouldShowAlert) {
+              await Swal.fire({
+                title: 'Authentication Failed',
+                text: 'Invalid email or password. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                  popup: 'swal2-popup',
+                  title: 'swal2-title',
+                  htmlContainer: 'swal2-html-container',
+                  confirmButton: 'swal2-confirm'
+                },
+                buttonsStyling: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                returnFocus: false
+              });
+            }
+            // Reset password field but keep email
+            setCredentials(prev => ({ ...prev, password: '' }));
+            // Focus back to password field after a short delay
+            setTimeout(() => {
+              const passwordInput = document.getElementById('password');
+              if (passwordInput) passwordInput.focus();
+            }, 300);
             break;
           case 403:
-            Swal.fire({
-              title: 'Account Issue',
-              text: 'Your account is not active or email is not verified.',
-              icon: 'warning',
-              confirmButtonText: 'OK'
-            });
+            if (shouldShowAlert) {
+              await Swal.fire({
+                title: 'Account Issue',
+                text: 'Your account is not active or email is not verified.',
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                customClass: {
+                  popup: 'swal2-popup',
+                  title: 'swal2-title',
+                  htmlContainer: 'swal2-html-container',
+                  confirmButton: 'swal2-confirm'
+                },
+                buttonsStyling: true,
+                returnFocus: false
+              });
+            }
             break;
           case 404:
-            Swal.fire({
-              title: 'User Not Found',
-              text: 'User not found. Please check your email or register a new account.',
-              icon: 'error',
-              confirmButtonText: 'OK'
-            });
+            if (shouldShowAlert) {
+              await Swal.fire({
+                title: 'User Not Found',
+                text: 'User not found. Please check your email or register a new account.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                  popup: 'swal2-popup',
+                  title: 'swal2-title',
+                  htmlContainer: 'swal2-html-container',
+                  confirmButton: 'swal2-confirm'
+                },
+                buttonsStyling: true,
+                returnFocus: false
+              });
+            }
             break;
           case 429:
-            Swal.fire({
-              title: 'Too Many Attempts',
-              text: 'Too many login attempts. Please try again later.',
-              icon: 'warning',
-              confirmButtonText: 'OK'
-            });
+            if (shouldShowAlert) {
+              await Swal.fire({
+                title: 'Too Many Attempts',
+                text: 'Too many login attempts. Please try again later.',
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                customClass: {
+                  popup: 'swal2-popup',
+                  title: 'swal2-title',
+                  htmlContainer: 'swal2-html-container',
+                  confirmButton: 'swal2-confirm'
+                },
+                buttonsStyling: true,
+                returnFocus: false
+              });
+            }
             break;
           default:
-            Swal.fire({
-              title: 'Error',
-              text: errorMessage,
-              icon: 'error',
-              confirmButtonText: 'OK'
-            });
+            if (shouldShowAlert) {
+              await Swal.fire({
+                title: 'Login Error',
+                text: errorMessage,
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                  popup: 'swal2-popup',
+                  title: 'swal2-title',
+                  htmlContainer: 'swal2-html-container',
+                  confirmButton: 'swal2-confirm'
+                },
+                buttonsStyling: true,
+                returnFocus: false
+              });
+            }
         }
       } else if (error.request) {
         // The request was made but no response was received
-        Swal.fire({
-          title: 'Server Error',
-          text: 'Server not responding. Please try again later.',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
+        if (shouldShowAlert) {
+          await Swal.fire({
+            title: 'Network Error',
+            text: 'Cannot connect to server. Please check your internet connection.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            customClass: {
+              popup: 'swal2-popup',
+              title: 'swal2-title',
+              htmlContainer: 'swal2-html-container',
+              confirmButton: 'swal2-confirm'
+            },
+            buttonsStyling: true,
+            returnFocus: false
+          });
+        }
       } else {
         // Something happened in setting up the request that triggered an Error
-        Swal.fire({
-          title: 'Unexpected Error',
-          text: 'An unexpected error occurred. Please try again.',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
+        if (shouldShowAlert) {
+          await Swal.fire({
+            title: 'Unexpected Error',
+            text: 'An unexpected error occurred. Error details have been sent to support.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            customClass: {
+              popup: 'swal2-popup',
+              title: 'swal2-title',
+              htmlContainer: 'swal2-html-container',
+              confirmButton: 'swal2-confirm'
+            },
+            buttonsStyling: true,
+            returnFocus: false
+          });
+        }
       }
     } finally {
       setIsLoading(false);

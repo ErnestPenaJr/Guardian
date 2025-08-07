@@ -520,11 +520,10 @@ const AdminFormsGroups: React.FC<AdminFormsGroupsProps> = ({ isInModal = false, 
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               animateRows={true}
-              rowSelection="single"
+              rowSelection={{ mode: 'singleRow', enableClickSelection: false }}
               pagination={true}
               paginationPageSize={10}
               suppressCellFocus={true}
-              rowSelection={{ mode: 'singleRow', enableClickSelection: false }}
               overlayNoRowsTemplate="No groups found"
             />
           )}

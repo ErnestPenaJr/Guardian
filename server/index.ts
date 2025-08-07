@@ -56,6 +56,78 @@ app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3001;
 
+// Global server error capture function
+async function captureServerError(error: Error, context: {
+  endpoint?: string;
+  method?: string;
+  userId?: string;
+  requestBody?: any;
+  headers?: any;
+}) {
+  try {
+    console.log(`[SERVER ERROR CAPTURE] ${error.message} at ${context.endpoint}`);
+    
+    // Send error email
+    await resend.emails.send({
+      from: `Guardian Server Error <${EMAIL_FROM}>`,
+      to: 'ernest@shieldlytics.com',
+      subject: `🚨 Server Error - ${context.endpoint || 'Unknown Endpoint'}`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Server Error Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+    .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header { background: #dc3545; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+    .critical { color: #dc3545; font-weight: bold; }
+    .stack-trace { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background-color: #f2f2f2; }
+    .value { background: #f8f9fa; padding: 8px; border-radius: 4px; margin-top: 5px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚨 Server Error Report</h1>
+      <p>A server-side error occurred in the Guardian application</p>
+    </div>
+
+    <div>
+      <h2 class="critical">Error Summary</h2>
+      <table>
+        <tr><th>Error Message</th><td class="critical">${error.message}</td></tr>
+        <tr><th>Endpoint</th><td>${context.method} ${context.endpoint}</td></tr>
+        <tr><th>User ID</th><td>${context.userId || 'Not authenticated'}</td></tr>
+        <tr><th>Timestamp</th><td>${new Date().toISOString()}</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <h2>Request Details</h2>
+      <p><strong>Request Body:</strong></p>
+      <div class="value">${JSON.stringify(context.requestBody, null, 2)}</div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <h2>Stack Trace</h2>
+      <div class="stack-trace">${error.stack || 'No stack trace available'}</div>
+    </div>
+  </div>
+</body>
+</html>`
+    });
+
+    console.log(`[SERVER ERROR CAPTURE] Error report sent for: ${context.endpoint}`);
+  } catch (emailError) {
+    console.error('[SERVER ERROR CAPTURE] Failed to send error email:', emailError);
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
@@ -133,11 +205,34 @@ app.post('/api/login', loginRateLimiter, async (req, res) => {
     
     try {
       console.log('[LOGIN] Looking up user in database...');
-      const user = await prisma.uSERS.findFirst({ 
-        where: { EMAIL: email }
-      });
+      console.log('[LOGIN] Database connection status:', prisma ? 'Connected' : 'Not connected');
+      console.log('[LOGIN] Searching for email:', email);
+      console.log('[LOGIN] Email type:', typeof email);
+      console.log('[LOGIN] Email length:', email?.length);
       
-      console.log('[LOGIN] User found:', user ? { 
+      // First, let's try a raw query to see what's in the database
+      console.log('[LOGIN] Executing raw query to check USERS table...');
+      const rawUsers = await prisma.$queryRaw`
+        SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME, STATUS 
+        FROM GUARDIAN.USERS 
+        WHERE EMAIL LIKE ${'%' + email.split('@')[1]}
+      `;
+      console.log('[LOGIN] Raw query result (similar domain users):', rawUsers);
+      
+      // Check exact email match with raw query
+      console.log('[LOGIN] Executing exact email match raw query...');
+      const exactMatch = await prisma.$queryRaw`
+        SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, EMAIL_VALIDATED 
+        FROM GUARDIAN.USERS 
+        WHERE EMAIL = ${email}
+      `;
+      console.log('[LOGIN] Exact email match raw query result:', exactMatch);
+      
+      // Use the exact match raw query result since it's working
+      console.log('[LOGIN] Using exact match result from raw query...');
+      const user = (exactMatch as any[]).length > 0 ? (exactMatch as any[])[0] : null;
+      
+      console.log('[LOGIN] Selected user:', user ? { 
         id: user.USER_ID, 
         email: user.EMAIL,
         hasPassword: !!user.PASSWORD_HASH,
@@ -1142,6 +1237,44 @@ async function sendVerificationEmail(email: string, verificationCode: string) {
 
 
 
+// --- ERROR EMAIL ENDPOINT ---
+app.post('/api/send-error-email', async (req, res) => {
+  try {
+    const { to, subject, errorDetails, htmlBody } = req.body;
+    
+    console.log('[ERROR EMAIL] Sending error report:', {
+      to,
+      subject,
+      errorPage: errorDetails?.pageName,
+      errorMain: errorDetails?.mainError,
+      timestamp: errorDetails?.timestamp
+    });
+    
+    if (!to || !subject || !errorDetails) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Send error email using Resend
+    await resend.emails.send({
+      from: `Guardian Error System <${EMAIL_FROM}>`,
+      to: to,
+      subject: subject,
+      text: `Error Report:\n\nMain Error: ${errorDetails.mainError}\nPage: ${errorDetails.pageName}\nFunction: ${errorDetails.functionName}\nLine: ${errorDetails.lineNumber}\nTimestamp: ${errorDetails.timestamp}\n\nStack Trace:\n${errorDetails.stackTrace}`,
+      html: htmlBody
+    });
+    
+    console.log(`[ERROR EMAIL] Error report sent to ${to}`);
+    res.json({ success: true, message: 'Error email sent successfully' });
+    
+  } catch (error: any) {
+    console.error('[ERROR EMAIL] Failed to send error report:', error);
+    res.status(500).json({ 
+      error: 'Failed to send error email',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // ... (rest of the code remains the same)
 
 // Invites endpoints moved to /routes/invites.ts
@@ -1252,6 +1385,29 @@ app.post('/api/test/create-sample-requests', passport.authenticate('jwt', { sess
 
 // External and requests routes already registered above
 
+// Global error handling middleware - MUST be last
+app.use(async (err: any, req: any, res: any, next: any) => {
+  console.error('[GLOBAL ERROR HANDLER] Unhandled server error:', err);
+  
+  // Capture and email the error
+  await captureServerError(err, {
+    endpoint: req.path,
+    method: req.method,
+    userId: req.user?.id?.toString(),
+    requestBody: req.body,
+    headers: req.headers
+  });
+  
+  // Send error response to client
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // For all non-API routes, serve the index.html file (for SPA routing)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
@@ -1263,8 +1419,30 @@ app.get('*', (req, res, next) => {
   res.sendFile(join(frontendDistPath, 'index.html'));
 });
 
+// Global unhandled promise rejection handler
+process.on('unhandledRejection', async (reason: any, promise) => {
+  console.error('[UNHANDLED PROMISE REJECTION]', reason);
+  await captureServerError(new Error(`Unhandled Promise Rejection: ${reason}`), {
+    endpoint: 'Promise Rejection',
+    method: 'PROMISE',
+    requestBody: { reason: reason, promise: promise.toString() }
+  });
+});
+
+// Global uncaught exception handler
+process.on('uncaughtException', async (error) => {
+  console.error('[UNCAUGHT EXCEPTION]', error);
+  await captureServerError(error, {
+    endpoint: 'Uncaught Exception',
+    method: 'EXCEPTION'
+  });
+  // Exit process after handling uncaught exception
+  process.exit(1);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Access the application at: http://localhost:${PORT}`);
+  console.log(`🚨 Global error capture system is active - errors will be emailed to ernest@shieldlytics.com`);
 });
