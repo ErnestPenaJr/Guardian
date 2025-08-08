@@ -31,6 +31,14 @@ class ErrorCapture {
   private readonly API_BASE = process.env.NODE_ENV === 'development' 
     ? 'http://localhost:3001' 
     : window.location.origin;
+  
+  // Infinite loop protection
+  private isProcessingError = false;
+  private errorQueue: Set<string> = new Set();
+  private lastErrorTime = 0;
+  private errorCount = 0;
+  private readonly MAX_ERRORS_PER_MINUTE = 10;
+  private readonly DEBOUNCE_TIME = 1000; // 1 second
 
   private constructor() {
     this.setupGlobalErrorHandlers();
@@ -100,12 +108,28 @@ class ErrorCapture {
       // Call original console.error first
       originalConsoleError.apply(console, args);
       
+      // Prevent recursive error capture
+      if (this.isProcessingError) {
+        return;
+      }
+      
       // Only capture if it's not from our error capture system
       const message = args.join(' ');
-      if (!message.includes('Error in error capture system') && 
-          !message.includes('Failed to send error email') &&
-          !message.includes('[API]')) {
-        
+      const excludePatterns = [
+        'Error in error capture system',
+        'Failed to send error email',
+        'Error sending error email',
+        '[API]',
+        '🚨 Error Captured', // Our own debug logs
+        'ErrorCapture',
+        'GUARDIAN_ERROR'
+      ];
+      
+      const shouldExclude = excludePatterns.some(pattern => 
+        message.includes(pattern)
+      );
+      
+      if (!shouldExclude && !this.isDuplicateError(message)) {
         try {
           this.handleError({
             error: new Error(message),
@@ -116,7 +140,7 @@ class ErrorCapture {
             errorType: 'console',
           });
         } catch (e) {
-          // Prevent infinite loops
+          // Prevent infinite loops - silently fail
         }
       }
     };
@@ -124,6 +148,54 @@ class ErrorCapture {
     // Store the original methods for potential restoration
     (window as any).__ORIGINAL_CONSOLE_ERROR__ = originalConsoleError;
     (window as any).__ORIGINAL_CONSOLE_WARN__ = originalConsoleWarn;
+  }
+
+  // Helper method to detect duplicate errors
+  private isDuplicateError(message: string): boolean {
+    const errorHash = this.hashString(message);
+    
+    if (this.errorQueue.has(errorHash)) {
+      return true;
+    }
+    
+    this.errorQueue.add(errorHash);
+    
+    // Clean up old errors after 5 minutes
+    setTimeout(() => {
+      this.errorQueue.delete(errorHash);
+    }, 5 * 60 * 1000);
+    
+    return false;
+  }
+
+  // Simple hash function for error deduplication
+  private hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString();
+  }
+
+  // Rate limiting check
+  private shouldProcessError(): boolean {
+    const now = Date.now();
+    
+    // Reset counter every minute
+    if (now - this.lastErrorTime > 60000) {
+      this.errorCount = 0;
+      this.lastErrorTime = now;
+    }
+    
+    // Check rate limit
+    if (this.errorCount >= this.MAX_ERRORS_PER_MINUTE) {
+      return false;
+    }
+    
+    this.errorCount++;
+    return true;
   }
 
   private handleError(errorEvent: {
@@ -140,22 +212,47 @@ class ErrorCapture {
     apiRequestData?: any;
     apiResponseData?: any;
   }): void {
+    // Prevent recursive error handling
+    if (this.isProcessingError) {
+      return;
+    }
+    
+    // Rate limiting
+    if (!this.shouldProcessError()) {
+      return;
+    }
+    
+    // Mark as processing to prevent recursion
+    this.isProcessingError = true;
+    
     try {
       const errorDetails = this.extractErrorDetails(errorEvent);
-      this.sendErrorEmail(errorDetails);
       
-      // Also log to console for development
+      // Send error email (async, don't await to avoid blocking)
+      this.sendErrorEmail(errorDetails).catch(() => {
+        // Silently fail email sending to prevent loops
+      });
+      
+      // Also log to console for development (use original console to avoid recursion)
       if (process.env.NODE_ENV === 'development') {
-        console.group('🚨 Error Captured');
-        console.error('Main Error:', errorDetails.mainError);
-        console.log('Page:', errorDetails.pageName);
-        console.log('Function:', errorDetails.functionName);
-        console.log('Line:', errorDetails.lineNumber);
-        console.log('Stack:', errorDetails.stackTrace);
-        console.groupEnd();
+        const originalConsoleError = (window as any).__ORIGINAL_CONSOLE_ERROR__ || console.error;
+        const originalConsoleLog = console.log;
+        
+        originalConsoleLog('🚨 GUARDIAN_ERROR: Error Captured');
+        originalConsoleError('GUARDIAN_ERROR - Main Error:', errorDetails.mainError);
+        originalConsoleLog('GUARDIAN_ERROR - Page:', errorDetails.pageName);
+        originalConsoleLog('GUARDIAN_ERROR - Function:', errorDetails.functionName);
+        originalConsoleLog('GUARDIAN_ERROR - Line:', errorDetails.lineNumber);
       }
     } catch (captureError) {
-      console.error('Error in error capture system:', captureError);
+      // Use original console.error to avoid recursion
+      const originalConsoleError = (window as any).__ORIGINAL_CONSOLE_ERROR__ || console.error;
+      originalConsoleError('GUARDIAN_ERROR: Error in error capture system:', captureError);
+    } finally {
+      // Always reset the processing flag
+      setTimeout(() => {
+        this.isProcessingError = false;
+      }, this.DEBOUNCE_TIME);
     }
   }
 
@@ -256,6 +353,10 @@ class ErrorCapture {
     try {
       const emailBody = this.formatErrorEmail(errorDetails);
       
+      // Use fetch with timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(`${this.API_BASE}/api/send-error-email`, {
         method: 'POST',
         headers: {
@@ -267,13 +368,24 @@ class ErrorCapture {
           errorDetails: errorDetails,
           htmlBody: emailBody,
         }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        console.warn('Failed to send error email:', response.statusText);
+        // Don't log warnings that could trigger more error captures
+        if (process.env.NODE_ENV === 'development') {
+          const originalConsoleError = (window as any).__ORIGINAL_CONSOLE_ERROR__ || console.error;
+          originalConsoleError('GUARDIAN_ERROR: Failed to send error email:', response.statusText);
+        }
       }
     } catch (emailError) {
-      console.warn('Error sending error email:', emailError);
+      // Don't log warnings that could trigger more error captures
+      if (process.env.NODE_ENV === 'development') {
+        const originalConsoleError = (window as any).__ORIGINAL_CONSOLE_ERROR__ || console.error;
+        originalConsoleError('GUARDIAN_ERROR: Error sending error email:', emailError);
+      }
     }
   }
 

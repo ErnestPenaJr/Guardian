@@ -7,6 +7,40 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient } = require('@prisma/client');
 
+// Enhanced security-hardened email validation function
+const validateEmailServer = (email) => {
+    // Input length protection (125 character limit)
+    if (!email || email.length > 125) {
+        return { valid: false, reason: 'Invalid email length' };
+    }
+    
+    // Normalize and sanitize
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Injection attack protection
+    if (normalizedEmail.match(/[\x00-\x1f\x7f-\x9f]/) || 
+        normalizedEmail.includes('\n') || 
+        normalizedEmail.includes('\r') ||
+        normalizedEmail.includes('\t')) {
+        return { valid: false, reason: 'Invalid characters detected' };
+    }
+    
+    // Enhanced regex pattern (security-hardened)
+    const secureEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    
+    if (!secureEmailRegex.test(normalizedEmail)) {
+        return { valid: false, reason: 'Invalid email format' };
+    }
+    
+    // Additional domain validation
+    const domain = normalizedEmail.split('@')[1];
+    if (domain.length > 253 || domain.startsWith('-') || domain.endsWith('-')) {
+        return { valid: false, reason: 'Invalid domain format' };
+    }
+    
+    return { valid: true, email: normalizedEmail };
+};
+
 // Email service using Resend
 let sendVerificationEmail, sendInviteEmail;
 
@@ -489,11 +523,22 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Query the database using raw SQL for GUARDIAN schema
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for login: ${email}`);
+            return res.status(401).json({
+                error: 'Invalid email or password'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
+        // Query the database using raw SQL for GUARDIAN schema with normalized email
         const users = await prisma.$queryRaw`
             SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID
             FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
         `;
 
         if (users.length === 0) {
@@ -3469,22 +3514,22 @@ app.post('/api/validate-email', async (req, res) => {
             });
         }
 
-        // Basic email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const isValidFormat = emailRegex.test(email);
-
-        if (!isValidFormat) {
+        // Enhanced email format validation
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
             return res.json({
                 valid: false,
-                reason: 'Invalid email format'
+                reason: emailValidation.reason
             });
         }
+
+        const normalizedEmail = emailValidation.email;
 
         // For registration, check if user already exists
         if (purpose === 'register') {
             const existingUser = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS 
-                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
             `;
 
             if (existingUser.length > 0) {
@@ -4438,6 +4483,17 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for registration: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
         // Check if user already exists
         const existingUser = await prisma.$queryRaw`
             SELECT USER_ID FROM GUARDIAN.USERS 
@@ -4446,7 +4502,7 @@ app.post('/api/register', async (req, res) => {
 
         if (existingUser.length > 0) {
             return res.status(400).json({
-                error: 'User with this email already exists'
+                error: 'An account with this email already exists'
             });
         }
 
@@ -4531,9 +4587,9 @@ app.post('/api/register', async (req, res) => {
         console.log(`✅ User created in database with ID: ${user.USER_ID}, verification code: ${verificationCode}`);
 
         // Send actual email with verification code using Resend
-        const emailSent = await sendVerificationEmail(email, verificationCode);
+        const emailSent = await sendVerificationEmail(normalizedEmail, verificationCode);
         if (!emailSent) {
-            console.log(`⚠️ Failed to send email to ${email}, but user created in database (code available in dev mode)`);
+            console.log(`⚠️ Failed to send email to ${normalizedEmail}, but user created in database (code available in dev mode)`);
         }
 
         res.json({
@@ -4566,16 +4622,27 @@ app.post('/api/verify-email', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for verification: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
         // Look up user in database
-        console.log(`🔍 Looking up user in database for email: ${email}`);
+        console.log(`🔍 Looking up user in database for email: ${normalizedEmail}`);
         const user = await prisma.uSERS.findFirst({
-            where: { EMAIL: email }
+            where: { EMAIL: normalizedEmail }
         });
 
         if (!user) {
-            console.log(`❌ No user found with email: ${email}`);
+            console.log(`❌ No user found with email: ${normalizedEmail}`);
             return res.status(400).json({
-                error: 'No user found with this email'
+                error: 'Invalid verification request'
             });
         }
 
@@ -4584,7 +4651,7 @@ app.post('/api/verify-email', async (req, res) => {
         console.log(`⏰ Token expiry: ${user.EMAIL_VALIDATION_TOKEN_EXPIRY}`);
 
         if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
-            console.log(`❌ No verification code found for email: ${email}`);
+            console.log(`❌ No verification code found for email: ${normalizedEmail}`);
             return res.status(400).json({
                 error: 'No verification code found for this email'
             });
@@ -4705,9 +4772,21 @@ app.post('/api/request-password-reset', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for password reset: ${email}`);
+            return res.json({
+                success: true,
+                message: 'If an account with this email exists, you will receive a password reset link.'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
         // Check if user exists
         const user = await prisma.uSERS.findFirst({
-            where: { EMAIL: email }
+            where: { EMAIL: normalizedEmail }
         });
 
         if (!user) {
@@ -4737,9 +4816,9 @@ app.post('/api/request-password-reset', async (req, res) => {
         });
 
         // Send reset email
-        const emailSent = await sendVerificationEmail(email, resetCode);
+        const emailSent = await sendVerificationEmail(normalizedEmail, resetCode);
         if (!emailSent) {
-            console.log(`⚠️ Failed to send reset email to ${email}, but continuing (code available in dev mode)`);
+            console.log(`⚠️ Failed to send reset email to ${normalizedEmail}, but continuing (code available in dev mode)`);
         }
 
         console.log(`✅ Password reset code generated for ${email}: ${resetCode}`);
@@ -4748,7 +4827,7 @@ app.post('/api/request-password-reset', async (req, res) => {
             success: true,
             message: 'If an account with this email exists, you will receive a password reset link.',
             // In development, return the code for testing
-            ...(process.env.NODE_ENV === 'development' && { resetCode })
+            ...(process.env.NODE_ENV === 'development' && { verificationCode: resetCode })
         });
 
     } catch (error) {
@@ -4773,9 +4852,21 @@ app.post('/api/verify-reset-code', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for reset code verification: ${email}`);
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid request format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
         // Find user
         const user = await prisma.uSERS.findFirst({
-            where: { EMAIL: email }
+            where: { EMAIL: normalizedEmail }
         });
 
         if (!user) {
@@ -4841,9 +4932,20 @@ app.post('/api/reset-password', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for password reset: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid request format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
         // Find user
         const user = await prisma.uSERS.findFirst({
-            where: { EMAIL: email }
+            where: { EMAIL: normalizedEmail }
         });
 
         if (!user) {
@@ -5101,7 +5203,7 @@ app.post('/api/invite/accept', async (req, res) => {
 
         if (existingUser.length > 0) {
             return res.status(400).json({
-                error: 'User with this email already exists'
+                error: 'An account with this email already exists'
             });
         }
 

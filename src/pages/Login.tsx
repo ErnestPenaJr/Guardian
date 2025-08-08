@@ -14,6 +14,10 @@ function Login() {
     password: ''
   });
   
+  // Client-side rate limiting awareness
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
+  
   // Validation states
   const [validation, setValidation] = useState<{
     email: {
@@ -39,10 +43,42 @@ function Login() {
     }
   });
 
-  // Validate email format
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  // Enhanced email validation with security hardening
+  const validateEmail = (email: string): { valid: boolean; message: string } => {
+    // Normalize input by trimming spaces
+    const normalizedEmail = email ? email.trim() : '';
+    
+    // Security: Prevent extremely long emails (125 character limit)
+    if (!normalizedEmail || normalizedEmail.length > 125) {
+      return { valid: false, message: 'Email address must be 125 characters or less.' };
+    }
+    
+    // Security: Prevent email injection attacks
+    if (normalizedEmail.includes('\n') || normalizedEmail.includes('\r') || normalizedEmail.includes('\t')) {
+      return { valid: false, message: 'Invalid characters in email address.' };
+    }
+    
+    // Enhanced RFC 5322 compliant pattern (more restrictive and secure)
+    const strictEmailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    
+    if (!strictEmailRegex.test(normalizedEmail)) {
+      return { valid: false, message: 'Please provide a valid email address.' };
+    }
+    
+    // Security: Prevent common attack vectors
+    const suspiciousPatterns = [
+      /\.{2,}/, // Multiple consecutive dots
+      /^\.|\.$/,  // Starting or ending with dot
+      /^@|@$/     // Starting or ending with @
+    ];
+    
+    for (const pattern of suspiciousPatterns) {
+      if (pattern.test(normalizedEmail)) {
+        return { valid: false, message: 'Please provide a valid email address.' };
+      }
+    }
+    
+    return { valid: true, message: 'Looks good!' };
   };
 
   // Validate password (at least 6 characters)
@@ -50,35 +86,69 @@ function Login() {
     return password.length >= 6;
   };
 
-  // Update validation whenever credentials change
-  useEffect(() => {
-    if (validation.email.touched) {
+  // Client-side rate limiting check
+  const checkRateLimit = () => {
+    if (lockoutUntil && new Date() < lockoutUntil) {
+      const remainingTime = Math.ceil((lockoutUntil.getTime() - Date.now()) / 1000);
+      throw new Error(`Too many attempts. Try again in ${remainingTime} seconds.`);
+    }
+    
+    if (failedAttempts >= 5) {
+      const lockoutTime = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+      setLockoutUntil(lockoutTime);
+      throw new Error('Too many failed attempts. Account temporarily locked for 15 minutes.');
+    }
+  };
+
+  // Validate field helper function
+  const validateField = (fieldName: string, value: string) => {
+    if (fieldName === 'email') {
+      const emailValidation = validateEmail(value);
       setValidation(prev => ({
         ...prev,
         email: {
           ...prev.email,
-          valid: validateEmail(credentials.email),
-          message: validateEmail(credentials.email) ? '' : 'Please provide a valid email address.'
+          valid: emailValidation.valid,
+          message: emailValidation.message
         }
       }));
-    }
-
-    if (validation.password.touched) {
+    } else if (fieldName === 'password') {
       setValidation(prev => ({
         ...prev,
         password: {
           ...prev.password,
-          valid: validatePassword(credentials.password),
-          message: validatePassword(credentials.password) ? '' : 'Please provide your password.'
+          valid: validatePassword(value),
+          message: validatePassword(value) ? '' : 'Please provide your password.'
         }
       }));
     }
-  }, [credentials, validation.email.touched, validation.password.touched]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      // Client-side rate limiting check
+      try {
+        checkRateLimit();
+      } catch (rateLimitError: any) {
+        await Swal.fire({
+          title: 'Rate Limited',
+          text: rateLimitError.message,
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          customClass: {
+            popup: 'swal2-popup',
+            title: 'swal2-title',
+            htmlContainer: 'swal2-html-container',
+            confirmButton: 'swal2-confirm'
+          },
+          buttonsStyling: true,
+          allowOutsideClick: false
+        });
+        return;
+      }
+      
       // Mark all fields as touched to trigger validation
       setValidation(prev => ({
         email: { ...prev.email, touched: true },
@@ -86,7 +156,7 @@ function Login() {
       }));
       
       // Check if form is valid
-      if (!validateEmail(credentials.email) || !validatePassword(credentials.password)) {
+      if (!validateEmail(credentials.email).valid || !validatePassword(credentials.password)) {
         await Swal.fire({
           title: 'Validation Error',
           text: 'Please correct the errors in the form.',
@@ -123,6 +193,10 @@ function Login() {
       if (companyId) localStorage.setItem('companyId', companyId.toString());
       if (companyName) localStorage.setItem('companyName', companyName);
 
+      // Reset rate limiting on successful login
+      setFailedAttempts(0);
+      setLockoutUntil(null);
+
       // Show success message
       Swal.fire({
         title: 'Success',
@@ -146,14 +220,14 @@ function Login() {
       console.error('Error response data:', error.response?.data);
       console.error('Error status:', error.response?.status);
       
-      // Capture error for email notification
+      // Capture error for email notification (now with infinite loop protection)
       try {
         errorCapture.captureLoginError(error, { 
           email: credentials.email,
-          attempts: 1 
+          attempts: failedAttempts + 1
         });
       } catch (captureErr) {
-        console.warn('Failed to capture error:', captureErr);
+        // Silently fail error capture to prevent loops
       }
       
       // Prevent any potential page reload by stopping here if needed
@@ -166,109 +240,62 @@ function Login() {
         const statusCode = error.response.status;
         const errorMessage = error.response.data?.message || error.response.data?.error || 'Authentication failed';
         
-        // Show appropriate error message based on status code
-        switch (statusCode) {
-          case 401:
-            if (shouldShowAlert) {
-              await Swal.fire({
-                title: 'Authentication Failed',
-                text: 'Invalid email or password. Please try again.',
-                icon: 'error',
-                confirmButtonText: 'OK',
-                customClass: {
-                  popup: 'swal2-popup',
-                  title: 'swal2-title',
-                  htmlContainer: 'swal2-html-container',
-                  confirmButton: 'swal2-confirm'
-                },
-                buttonsStyling: true,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                returnFocus: false
-              });
-            }
-            // Reset password field but keep email
-            setCredentials(prev => ({ ...prev, password: '' }));
-            // Focus back to password field after a short delay
-            setTimeout(() => {
-              const passwordInput = document.getElementById('password');
-              if (passwordInput) passwordInput.focus();
-            }, 300);
-            break;
-          case 403:
-            if (shouldShowAlert) {
-              await Swal.fire({
-                title: 'Account Issue',
-                text: 'Your account is not active or email is not verified.',
-                icon: 'warning',
-                confirmButtonText: 'OK',
-                customClass: {
-                  popup: 'swal2-popup',
-                  title: 'swal2-title',
-                  htmlContainer: 'swal2-html-container',
-                  confirmButton: 'swal2-confirm'
-                },
-                buttonsStyling: true,
-                returnFocus: false
-              });
-            }
-            break;
-          case 404:
-            if (shouldShowAlert) {
-              await Swal.fire({
-                title: 'User Not Found',
-                text: 'User not found. Please check your email or register a new account.',
-                icon: 'error',
-                confirmButtonText: 'OK',
-                customClass: {
-                  popup: 'swal2-popup',
-                  title: 'swal2-title',
-                  htmlContainer: 'swal2-html-container',
-                  confirmButton: 'swal2-confirm'
-                },
-                buttonsStyling: true,
-                returnFocus: false
-              });
-            }
-            break;
-          case 429:
-            if (shouldShowAlert) {
-              await Swal.fire({
-                title: 'Too Many Attempts',
-                text: 'Too many login attempts. Please try again later.',
-                icon: 'warning',
-                confirmButtonText: 'OK',
-                customClass: {
-                  popup: 'swal2-popup',
-                  title: 'swal2-title',
-                  htmlContainer: 'swal2-html-container',
-                  confirmButton: 'swal2-confirm'
-                },
-                buttonsStyling: true,
-                returnFocus: false
-              });
-            }
-            break;
-          default:
-            if (shouldShowAlert) {
-              await Swal.fire({
-                title: 'Login Error',
-                text: errorMessage,
-                icon: 'error',
-                confirmButtonText: 'OK',
-                customClass: {
-                  popup: 'swal2-popup',
-                  title: 'swal2-title',
-                  htmlContainer: 'swal2-html-container',
-                  confirmButton: 'swal2-confirm'
-                },
-                buttonsStyling: true,
-                returnFocus: false
-              });
-            }
+        // SECURITY FIX: Use generic error messages to prevent user enumeration attacks
+        // All authentication failures now show the same message regardless of the reason
+        if (statusCode === 429) {
+          // Rate limiting gets a specific message for user experience
+          if (shouldShowAlert) {
+            await Swal.fire({
+              title: 'Too Many Attempts',
+              text: 'Too many login attempts. Please try again later.',
+              icon: 'warning',
+              confirmButtonText: 'OK',
+              customClass: {
+                popup: 'swal2-popup',
+                title: 'swal2-title',
+                htmlContainer: 'swal2-html-container',
+                confirmButton: 'swal2-confirm'
+              },
+              buttonsStyling: true,
+              returnFocus: false
+            });
+          }
+        } else {
+          // Increment failed attempts for authentication failures
+          setFailedAttempts(prev => prev + 1);
+          
+          // Generic error message for all other authentication failures (401, 403, 404, etc.)
+          if (shouldShowAlert) {
+            await Swal.fire({
+              title: 'Authentication Failed',
+              text: 'Invalid credentials. Please check your email and password and try again.',
+              icon: 'error',
+              confirmButtonText: 'OK',
+              customClass: {
+                popup: 'swal2-popup',
+                title: 'swal2-title',
+                htmlContainer: 'swal2-html-container',
+                confirmButton: 'swal2-confirm'
+              },
+              buttonsStyling: true,
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              returnFocus: false
+            });
+          }
+          // Reset password field but keep email for better UX
+          setCredentials(prev => ({ ...prev, password: '' }));
+          // Focus back to password field after a short delay
+          setTimeout(() => {
+            const passwordInput = document.getElementById('password');
+            if (passwordInput) passwordInput.focus();
+          }, 300);
         }
       } else if (error.request) {
         // The request was made but no response was received
+        // Increment failed attempts for network errors (potential attack)
+        setFailedAttempts(prev => prev + 1);
+        
         if (shouldShowAlert) {
           await Swal.fire({
             title: 'Network Error',
@@ -287,6 +314,9 @@ function Login() {
         }
       } else {
         // Something happened in setting up the request that triggered an Error
+        // Increment failed attempts for unexpected errors
+        setFailedAttempts(prev => prev + 1);
+        
         if (shouldShowAlert) {
           await Swal.fire({
             title: 'Unexpected Error',
@@ -316,7 +346,7 @@ function Login() {
       [name]: value
     }));
     
-    // Mark field as touched to trigger validation
+    // Mark field as touched and validate
     setValidation(prev => ({
       ...prev,
       [name]: {
@@ -324,6 +354,9 @@ function Login() {
         touched: true
       }
     }));
+    
+    // Validate the field after marking as touched
+    setTimeout(() => validateField(name, value), 0);
   };
 
   return (
@@ -358,6 +391,7 @@ function Login() {
                 value={credentials.email}
                 onChange={handleChange}
                 name="email"
+                maxLength={125}
                 className={`w-full px-4 py-3 rounded-lg border ${
                   validation.email.touched
                     ? validation.email.valid

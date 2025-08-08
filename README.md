@@ -14,7 +14,7 @@ Guardian MVP is a comprehensive request management platform designed for enterpr
 - **Request Management**: Full lifecycle management from creation to completion with progress tracking
 - **Task Management**: Comprehensive task system with status tracking, assignments, and batch operations
 - **User Management**: Role-based access control with invite system
-- **Workflow Management**: Customizable forms and templates for different request types
+- **Workflow Management**: Customizable forms and templates for different request types with first-time admin onboarding
 - **Real-time Notifications**: Email notifications and in-app alerts for assignments and task updates
 - **Field Management**: Advanced field types including addresses, banking info, and custom validation
 
@@ -30,8 +30,9 @@ Guardian MVP is a comprehensive request management platform designed for enterpr
 
 ### Security & Authentication
 - **JWT-Based Authentication**: Secure token-based access control
-- **Password Reset Flow**: Email-based password recovery system
-- **Email Verification**: Required email verification for new accounts
+- **Enhanced Email Validation**: Security-hardened email validation with 125 character limit and rate limiting
+- **Password Reset Flow**: Streamlined email-based password recovery system with improved user experience
+- **Email Verification**: Required email verification for new accounts with anti-enumeration protection
 - **Role-Based Permissions**: Granular access control based on user roles
 - **Cross-Company Security**: Prevents unauthorized access to other company data
 
@@ -192,6 +193,36 @@ GET /api/health                   - Health check
 GET /api/test                     - API test endpoint
 GET /api/debug/endpoints          - List all available endpoints
 ```
+
+## User Experience Features
+
+### First-Time Admin Onboarding (New - 2025-08-08)
+
+Guardian MVP provides a guided onboarding experience for first-time administrators to help them get started with workflow template creation:
+
+#### Automatic Detection
+- **Admin Role Detection**: Automatically identifies users with Admin (role ID 1) or Super Admin (role ID 6) permissions
+- **Template Check**: Checks for existing form templates using company-based data isolation (COMPANY_ID filtering)
+- **First-Time Experience**: Triggers guided setup when no company templates exist
+
+#### Guided Workflow Creation
+- **Wizard Modal**: Uses the familiar NewRequestModal component as a step-by-step form creation wizard
+- **Template Types**: Offers three primary form types:
+  - **Requests**: Standard request fulfillment forms
+  - **Self-Service**: Self-service user forms
+  - **Notice**: Notification and announcement forms
+- **Progressive Setup**: Guides users through: Select Type → Create Title → Build Form Fields
+
+#### Key Benefits
+- **Reduced Complexity**: Replaces advanced WorkflowManagementModal with simpler guided experience
+- **Company Isolation**: Maintains security with proper company-based data filtering
+- **TypeScript Safety**: Implements proper typing without type assertions
+- **Seamless Integration**: Works with existing form service infrastructure
+
+#### Technical Implementation
+- **Form Service Integration**: Updated formService.ts with COMPANY_ID support for proper data filtering
+- **Database Schema**: Updated DbForm interface to include COMPANY_ID field
+- **Security**: All operations filtered by user's company ID for multi-tenant security
 
 ## Installation & Setup
 
@@ -509,9 +540,41 @@ For technical support or questions:
 - **Company Isolation**: All operations filtered by user's company for security
 - **Role-Based Access**: Processor, Manager, User, and Admin role permissions
 
+## Recent Enhancements (2025-08-08)
+
+### Authentication & Security Improvements
+- **Enhanced Email Validation**: Implemented security-hardened email validation with:
+  - 125 character maximum length limit
+  - Client-side rate limiting (5 attempts, 15-minute lockout)
+  - Generic error messages to prevent user enumeration vulnerabilities
+  - Updated validation across all 3 server environments
+- **Improved Password Reset Flow**: Streamlined user experience with:
+  - Direct navigation from email request to verification form
+  - Enhanced resend functionality that generates new codes and resets countdown
+  - Removed unnecessary success modal steps for faster workflow
+
+### First-Time Admin Experience
+- **Guided Template Creation**: New first-time admin detection and onboarding:
+  - Automatic identification of admins without existing form templates
+  - Guided wizard using familiar NewRequestModal interface
+  - Company-based template filtering for proper multi-tenant security
+  - Step-by-step form creation: Type Selection → Title → Field Building
+- **Form Service Enhancements**: Updated database integration:
+  - Added COMPANY_ID field to DbForm interface for proper data isolation
+  - Enhanced form filtering logic using company-based queries
+  - Maintained backward compatibility with existing form management
+
+### Security & Data Protection
+- **Company-Based Data Isolation**: Enhanced security measures:
+  - All form template operations filtered by user's company ID
+  - Proper TypeScript typing without unsafe type assertions
+  - Multi-tenant architecture ensures cross-company data protection
+- **Anti-Enumeration Protection**: Generic error messages prevent user account discovery
+- **Rate Limiting**: Client-side protection against brute force login attempts
+
 ---
 
-**Last Updated**: 2025-08-07  
+**Last Updated**: 2025-08-08  
 **Version**: 2.5.0  
 **Node.js Compatibility**: 18+  
 **Database**: Microsoft SQL Server  

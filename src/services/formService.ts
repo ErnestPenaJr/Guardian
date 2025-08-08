@@ -31,6 +31,7 @@ export interface DbForm {
   FORM_NAME: string;
   FORM_DESCRIPTION?: string;
   ORGANIZATION_ID?: number;
+  COMPANY_ID?: number;
   IS_PUBLIC: boolean;
   IS_ACTIVE: boolean;
   IS_DELETED: boolean;

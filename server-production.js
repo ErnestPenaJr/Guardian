@@ -7,6 +7,40 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient } = require('@prisma/client');
 
+// Enhanced security-hardened email validation function
+const validateEmailServer = (email) => {
+    // Input length protection (125 character limit)
+    if (!email || email.length > 125) {
+        return { valid: false, reason: 'Invalid email length' };
+    }
+    
+    // Normalize and sanitize
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Injection attack protection
+    if (normalizedEmail.match(/[\x00-\x1f\x7f-\x9f]/) || 
+        normalizedEmail.includes('\n') || 
+        normalizedEmail.includes('\r') ||
+        normalizedEmail.includes('\t')) {
+        return { valid: false, reason: 'Invalid characters detected' };
+    }
+    
+    // Enhanced regex pattern (security-hardened)
+    const secureEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    
+    if (!secureEmailRegex.test(normalizedEmail)) {
+        return { valid: false, reason: 'Invalid email format' };
+    }
+    
+    // Additional domain validation
+    const domain = normalizedEmail.split('@')[1];
+    if (domain.length > 253 || domain.startsWith('-') || domain.endsWith('-')) {
+        return { valid: false, reason: 'Invalid domain format' };
+    }
+    
+    return { valid: true, email: normalizedEmail };
+};
+
 // Email service using Resend
 let sendVerificationEmail, sendInviteEmail;
 
@@ -149,7 +183,7 @@ try {
     };
 }
 
-console.log('=== GUARDIAN AZURE SERVER STARTING ===');
+console.log('=== GUARDIAN SIMPLE SERVER STARTING ===');
 console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`Port: ${process.env.PORT || 3000}`);
@@ -192,43 +226,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Authentication middleware to get user's company
-const getAuthenticatedUserCompany = async (req, res, next) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'No valid authentication token provided' });
-        }
-
-        const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
-        
-        // Get user's company ID from token
-        if (!decoded.companyId) {
-            return res.status(401).json({ error: 'No company ID in token' });
-        }
-
-        // Get user roles for admin permissions
-        const users = await prisma.$queryRaw`
-            SELECT STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${decoded.userId} AND ur.STATUS = 'P'
-        `;
-        
-        req.user = decoded;
-        req.userId = decoded.userId;
-        req.companyId = decoded.companyId;
-        req.userRoleIds = users.length > 0 && users[0].ROLE_IDS ? 
-            users[0].ROLE_IDS.split(',').map(id => parseInt(id)) : [];
-        next();
-    } catch (error) {
-        console.error('Authentication error:', error);
-        return res.status(401).json({ error: 'Invalid authentication token' });
-    }
-};
-
 // === STATIC FILE SERVING ===
-// For Azure App Service, serve static files from current directory
+// Serve static files from current directory (where dist contents are deployed)
 app.use(express.static('.', {
   index: 'index.html',
   setHeaders: (res, path) => {
@@ -240,6 +239,117 @@ app.use(express.static('.', {
 }));
 
 // === API ROUTES ===
+
+// Basic health check (no database required)
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok', 
+        timestamp: new Date().toISOString(), 
+        server: 'Guardian MVP Simple Server', 
+        port: PORT,
+        nodeVersion: process.version,
+        uptime: process.uptime()
+    });
+});
+
+
+// Basic test endpoint
+app.get('/api/test', (req, res) => {
+    res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
+});
+
+app.get('/api/debug/endpoints', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Development server running latest code with all endpoints',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        endpoints: [
+            '/api/users', '/api/users/company/:companyId', '/api/invites', 
+            '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
+            '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
+            '/api/validate-email', '/api/send-verification-email', 
+            '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
+        ]
+    });
+});
+
+// Middleware to get authenticated user's company ID
+const getAuthenticatedUserCompany = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No valid authentication token provided' });
+        }
+
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        
+        // Get user's company ID and roles from database using raw SQL
+        const users = await prisma.$queryRaw`
+            SELECT u.USER_ID, u.COMPANY_ID, u.EMAIL,
+                   STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
+            WHERE u.USER_ID = ${decoded.userId}
+            GROUP BY u.USER_ID, u.COMPANY_ID, u.EMAIL
+        `;
+        const user = users.length > 0 ? users[0] : null;
+
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+
+        req.user = user;
+        req.userId = user.USER_ID;
+        req.companyId = user.COMPANY_ID;
+        req.userRoleIds = user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : [];
+        next();
+    } catch (error) {
+        console.error('Authentication error:', error);
+        return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+};
+
+// Debug endpoint to check user authentication and roles
+app.get('/api/debug/user', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('🔍 Debug user endpoint called');
+        
+        // Get user's roles
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID, r.NAME as ROLE_NAME
+            FROM GUARDIAN.USER_ROLES ur 
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6);
+        
+        res.json({
+            userId: req.userId,
+            companyId: req.companyId,
+            roles: userRoles,
+            roleIds: roleIds,
+            isAdmin: isAdmin,
+            canAccessGlobalForms: isAdmin
+        });
+    } catch (error) {
+        console.error('Debug user endpoint error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Debug endpoint without authentication to check server status
+app.get('/api/debug/status', (req, res) => {
+    console.log('🔍 Debug status endpoint called');
+    res.json({
+        server: 'running',
+        timestamp: new Date().toISOString(),
+        headers: req.headers.authorization ? 'has auth header' : 'no auth header'
+    });
+});
 
 // === NOTIFICATION ENDPOINTS ===
 
@@ -400,79 +510,6 @@ app.put('/api/notifications/read-all', getAuthenticatedUserCompany, async (req, 
     }
 });
 
-// Basic health check (no database required)
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok', 
-        timestamp: new Date().toISOString(), 
-        server: 'Guardian MVP Azure Server', 
-        port: PORT,
-        nodeVersion: process.version,
-        uptime: process.uptime()
-    });
-});
-
-// Basic test endpoint
-app.get('/api/test', (req, res) => {
-    res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
-});
-
-// Debug endpoint to check server version
-app.get('/api/debug/endpoints', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Azure server running latest code with all endpoints',
-        timestamp: new Date().toISOString(),
-        version: '2.0.0',
-        endpoints: [
-            '/api/users', '/api/users/company/:companyId', '/api/invites', 
-            '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
-            '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
-            '/api/validate-email', '/api/send-verification-email', 
-            '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
-        ]
-    });
-});
-
-app.get('/api/debug/user', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        console.log('🔍 Debug user endpoint called');
-        
-        // Get user's roles
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID, r.NAME as ROLE_NAME
-            FROM GUARDIAN.USER_ROLES ur 
-            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-            WHERE ur.USER_ID = ${req.userId}
-        `;
-        
-        const roleIds = userRoles.map(role => role.ROLE_ID);
-        const isAdmin = roleIds.includes(6);
-        
-        res.json({
-            userId: req.userId,
-            companyId: req.companyId,
-            roles: userRoles,
-            roleIds: roleIds,
-            isAdmin: isAdmin,
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('❌ Error in debug user endpoint:', error);
-        res.status(500).json({ error: 'Debug user failed', message: error.message });
-    }
-});
-
-app.get('/api/debug/status', (req, res) => {
-    console.log('🔍 Debug status endpoint called');
-    res.json({
-        server: 'running',
-        timestamp: new Date().toISOString(),
-        headers: req.headers.authorization ? 'has auth header' : 'no auth header'
-    });
-});
-
 // Real database authentication
 app.post('/api/login', async (req, res) => {
     try {
@@ -486,11 +523,22 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Query the database using raw SQL for GUARDIAN schema
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for login: ${email}`);
+            return res.status(401).json({
+                error: 'Invalid email or password'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
+        // Query the database using raw SQL for GUARDIAN schema with normalized email
         const users = await prisma.$queryRaw`
             SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID
             FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
         `;
 
         if (users.length === 0) {
@@ -586,148 +634,6 @@ app.post('/api/login', async (req, res) => {
             error: 'Server error during login',
             message: error.message
         });
-    }
-});
-
-// User logout endpoint
-app.post('/logout', async (req, res) => {
-    try {
-        console.log('🚪 Logout request received');
-        
-        // Since we're using JWT tokens (stateless), logout is mainly handled client-side
-        // The client should remove the token from localStorage/sessionStorage
-        // Here we can log the logout event or perform any server-side cleanup if needed
-        
-        res.json({
-            success: true,
-            message: 'Logged out successfully'
-        });
-
-    } catch (error) {
-        console.error('❌ Logout error:', error);
-        res.status(500).json({
-            error: 'Failed to logout',
-            message: error.message
-        });
-    }
-});
-
-// Real requests endpoint with database query
-app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const startTime = Date.now();
-        console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
-
-        // OPTIMIZED: Single query with proper JOINs and timeout handling
-        const requests = await Promise.race([
-            prisma.$queryRaw`
-                SELECT 
-                    r.REQUEST_ID,
-                    r.REQUEST_NAME,
-                    r.REQUEST_DESCRIPTION,
-                    r.EXTERNAL_USER,
-                    r.SUBMITTED_DATE,
-                    r.REQUESTOR_ID,
-                    r.ASSIGNED_ID,
-                    r.STATUS,
-                    r.CREATE_DATE,
-                    r.UPDATE_DATE,
-                    r.CREATE_USER_ID,
-                    r.UPDATE_USER_ID,
-                    r.TRACKINGID,
-                    r.ABBREVIATION,
-                    r.COMPANY_ID,
-                    r.FORM_ID,
-                    requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
-                    requestor.LAST_NAME as REQUESTOR_LAST_NAME,
-                    requestor.EMAIL as REQUESTOR_EMAIL,
-                    assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
-                    assigned.LAST_NAME as ASSIGNED_LAST_NAME,
-                    assigned.EMAIL as ASSIGNED_EMAIL,
-                    creator.FIRST_NAME as CREATOR_FIRST_NAME,
-                    creator.LAST_NAME as CREATOR_LAST_NAME,
-                    creator.EMAIL as CREATOR_EMAIL
-                FROM GUARDIAN.REQUESTS r
-                LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID AND requestor.COMPANY_ID = ${req.companyId}
-                LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID AND assigned.COMPANY_ID = ${req.companyId}
-                LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID AND creator.COMPANY_ID = ${req.companyId}
-                WHERE r.COMPANY_ID = ${req.companyId}
-                ORDER BY r.CREATE_DATE DESC
-            `,
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Query timeout after 8 seconds')), 8000)
-            )
-        ]);
-
-        const queryTime = Date.now() - startTime;
-        console.log(`✅ Found ${requests.length} requests in database (query took ${queryTime}ms)`);
-        
-        if (queryTime > 2000) {
-            console.warn(`⚠️ Slow query detected: ${queryTime}ms for company ${req.companyId}`);
-        }
-
-        // Format the data to match frontend expectations exactly
-        const formattedRequests = requests.map(req => ({
-            REQUEST_ID: req.REQUEST_ID,
-            REQUEST_NAME: req.REQUEST_NAME || 'Untitled Request',
-            STATUS: req.STATUS,
-            FORM_ID: req.FORM_ID,
-            REQUESTOR_ID: req.REQUESTOR_ID,
-            ASSIGNED_ID: req.ASSIGNED_ID,
-            SUBMITTED_DATE: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
-            CREATE_DATE: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
-            UPDATE_DATE: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
-            CREATE_USER_ID: req.CREATE_USER_ID,
-            UPDATE_USER_ID: req.UPDATE_USER_ID,
-            TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
-            EXTERNAL_USER: req.EXTERNAL_USER,
-            
-            requestor: req.REQUESTOR_FIRST_NAME ? {
-                FIRST_NAME: req.REQUESTOR_FIRST_NAME,
-                LAST_NAME: req.REQUESTOR_LAST_NAME,
-                EMAIL: req.REQUESTOR_EMAIL || ''
-            } : null,
-            
-            assigned: req.ASSIGNED_FIRST_NAME ? {
-                FIRST_NAME: req.ASSIGNED_FIRST_NAME,
-                LAST_NAME: req.ASSIGNED_LAST_NAME,
-                EMAIL: req.ASSIGNED_EMAIL || ''
-            } : null,
-            
-            requestorName: req.REQUESTOR_FIRST_NAME ? 
-                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
-                'Unknown',
-            assignedName: req.ASSIGNED_FIRST_NAME ? 
-                `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}` : 
-                null
-        }));
-
-        console.log(`📤 Sending ${formattedRequests.length} formatted requests to frontend`);
-        res.json(formattedRequests);
-
-    } catch (error) {
-        console.error('❌ Error fetching requests:', error);
-        
-        // Handle different types of errors
-        if (error.message.includes('timeout')) {
-            console.error('⏱️ Database query timeout - possible performance issue');
-            res.status(408).json({
-                error: 'Request timeout',
-                message: 'Database query took too long. Please try again or contact support if this persists.'
-            });
-        } else if (error.message.includes('connection')) {
-            console.error('🔌 Database connection error');
-            res.status(503).json({
-                error: 'Database connection error',
-                message: 'Unable to connect to database. Please try again later.'
-            });
-        } else {
-            res.status(500).json({
-                error: 'Failed to fetch requests',
-                message: error.message,
-                timestamp: new Date().toISOString()
-            });
-        }
     }
 });
 
@@ -868,12 +774,11 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
     }
 });
 
-// Create new request
+// Create new request endpoint
 app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
         console.log(`📝 Creating new request for company: ${req.companyId}`, req.body);
-        
-        // Extract fields from request body (support multiple formats)
+
         const {
             REQUEST_NAME,
             name,
@@ -883,9 +788,10 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             ABBREVIATION,
             abbreviation,
             templateType,
+            FORM_ID,
             templateId,
-            companyId,
-            userId,
+            REQUESTOR_ID,
+            requestorId,
             ASSIGNED_ID,
             assignedId,
             STATUS,
@@ -1018,42 +924,503 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 SUBMITTED_DATE: newRequest.SUBMITTED_DATE,
                 REQUESTOR_ID: newRequest.REQUESTOR_ID,
                 ASSIGNED_ID: newRequest.ASSIGNED_ID,
-                CREATE_DATE: newRequest.CREATE_DATE,
-                UPDATE_DATE: newRequest.UPDATE_DATE,
-                CREATE_USER_ID: newRequest.CREATE_USER_ID,
-                UPDATE_USER_ID: newRequest.UPDATE_USER_ID,
                 TRACKINGID: newRequest.TRACKINGID,
                 COMPANY_ID: newRequest.COMPANY_ID,
-                EXTERNAL_USER: newRequest.EXTERNAL_USER,
-                FORM_ID: newRequest.FORM_ID
+                FORM_ID: newRequest.FORM_ID,
+                CREATE_DATE: newRequest.CREATE_DATE,
+                UPDATE_DATE: newRequest.UPDATE_DATE
             }
         });
 
     } catch (error) {
-        console.error(`❌ Error creating request:`, error);
+        console.error('❌ Error creating request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while creating request',
+            error: error.message
+        });
+    }
+});
+
+// Real requests endpoint with database query
+app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const startTime = Date.now();
+        console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
+
+        // OPTIMIZED: Single query with proper JOINs and timeout handling
+        const requests = await Promise.race([
+            prisma.$queryRaw`
+                SELECT 
+                    r.REQUEST_ID,
+                    r.REQUEST_NAME,
+                    r.REQUEST_DESCRIPTION,
+                    r.EXTERNAL_USER,
+                    r.SUBMITTED_DATE,
+                    r.REQUESTOR_ID,
+                    r.ASSIGNED_ID,
+                    r.STATUS,
+                    r.CREATE_DATE,
+                    r.UPDATE_DATE,
+                    r.CREATE_USER_ID,
+                    r.UPDATE_USER_ID,
+                    r.TRACKINGID,
+                    r.ABBREVIATION,
+                    r.COMPANY_ID,
+                    r.FORM_ID,
+                    requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
+                    requestor.LAST_NAME as REQUESTOR_LAST_NAME,
+                    requestor.EMAIL as REQUESTOR_EMAIL,
+                    assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
+                    assigned.LAST_NAME as ASSIGNED_LAST_NAME,
+                    assigned.EMAIL as ASSIGNED_EMAIL,
+                    creator.FIRST_NAME as CREATOR_FIRST_NAME,
+                    creator.LAST_NAME as CREATOR_LAST_NAME,
+                    creator.EMAIL as CREATOR_EMAIL
+                FROM GUARDIAN.REQUESTS r
+                LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID AND requestor.COMPANY_ID = ${req.companyId}
+                LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID AND assigned.COMPANY_ID = ${req.companyId}
+                LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID AND creator.COMPANY_ID = ${req.companyId}
+                WHERE r.COMPANY_ID = ${req.companyId}
+                ORDER BY r.CREATE_DATE DESC
+            `,
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Query timeout after 8 seconds')), 8000)
+            )
+        ]);
+
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ Found ${requests.length} requests in database (query took ${queryTime}ms)`);
         
-        // Handle specific database errors
-        if (error.code === 'P2002') {
-            return res.status(409).json({
-                error: 'Duplicate request',
-                message: 'A request with this information already exists',
-                details: error.message
+        if (queryTime > 2000) {
+            console.warn(`⚠️ Slow query detected: ${queryTime}ms for company ${req.companyId}`);
+        }
+
+        // Format the data to match frontend expectations exactly
+        const formattedRequests = requests.map(req => ({
+            REQUEST_ID: req.REQUEST_ID,
+            REQUEST_NAME: req.REQUEST_NAME || 'Untitled Request',
+            STATUS: req.STATUS,
+            FORM_ID: req.FORM_ID,
+            REQUESTOR_ID: req.REQUESTOR_ID,
+            ASSIGNED_ID: req.ASSIGNED_ID,
+            SUBMITTED_DATE: req.SUBMITTED_DATE ? new Date(req.SUBMITTED_DATE).toISOString() : null,
+            CREATE_DATE: req.CREATE_DATE ? new Date(req.CREATE_DATE).toISOString() : null,
+            UPDATE_DATE: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
+            CREATE_USER_ID: req.CREATE_USER_ID,
+            UPDATE_USER_ID: req.UPDATE_USER_ID,
+            TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
+            EXTERNAL_USER: req.EXTERNAL_USER,
+            
+            requestor: req.REQUESTOR_FIRST_NAME ? {
+                FIRST_NAME: req.REQUESTOR_FIRST_NAME,
+                LAST_NAME: req.REQUESTOR_LAST_NAME,
+                EMAIL: req.REQUESTOR_EMAIL || ''
+            } : null,
+            
+            assigned: req.ASSIGNED_FIRST_NAME ? {
+                FIRST_NAME: req.ASSIGNED_FIRST_NAME,
+                LAST_NAME: req.ASSIGNED_LAST_NAME,
+                EMAIL: req.ASSIGNED_EMAIL || ''
+            } : null,
+            
+            requestorName: req.REQUESTOR_FIRST_NAME ? 
+                `${req.REQUESTOR_FIRST_NAME} ${req.REQUESTOR_LAST_NAME}` : 
+                'Unknown',
+            assignedName: req.ASSIGNED_FIRST_NAME ? 
+                `${req.ASSIGNED_FIRST_NAME} ${req.ASSIGNED_LAST_NAME}` : 
+                null
+        }));
+
+        console.log(`📤 Sending ${formattedRequests.length} formatted requests to frontend`);
+        res.json(formattedRequests);
+
+    } catch (error) {
+        console.error('❌ Error fetching requests:', error);
+        
+        // Handle different types of errors
+        if (error.message.includes('timeout')) {
+            console.error('⏱️ Database query timeout - possible performance issue');
+            res.status(408).json({
+                error: 'Request timeout',
+                message: 'Database query took too long. Please try again or contact support if this persists.'
+            });
+        } else if (error.message.includes('connection')) {
+            console.error('🔌 Database connection error');
+            res.status(503).json({
+                error: 'Database connection error',
+                message: 'Unable to connect to database. Please try again later.'
+            });
+        } else {
+            res.status(500).json({
+                error: 'Failed to fetch requests',
+                message: error.message,
+                timestamp: new Date().toISOString()
             });
         }
+    }
+});
+
+// Get all users (for backward compatibility)
+app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`👥 Fetching users for company ID: ${req.companyId}`);
+
+        // First get all users
+        const users = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                u.CREATE_DATE
+            FROM GUARDIAN.USERS u
+            WHERE u.STATUS = 'A' AND u.COMPANY_ID = ${req.companyId}
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        console.log(`✅ Found ${users.length} users`);
+
+        // OPTIMIZED: Get all user roles in single query to avoid N+1 problem
+        const userIds = users.map(u => u.USER_ID);
+        let allRoles = [];
         
-        if (error.code === 'P2003') {
-            return res.status(400).json({
-                error: 'Invalid reference',
-                message: 'Referenced user, form, or company does not exist',
-                details: error.message
+        if (userIds.length > 0) {
+            // Build dynamic query using template literals - more reliable than $queryRawUnsafe
+            const userIdList = userIds.join(', ');
+            allRoles = await prisma.$queryRawUnsafe(`
+                SELECT 
+                    ur.USER_ID,
+                    r.ROLE_ID as id,
+                    r.NAME as name,
+                    r.DISPLAY_NAME as displayName
+                FROM GUARDIAN.USER_ROLES ur
+                JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                WHERE ur.USER_ID IN (${userIdList}) AND ur.STATUS = 'P'
+                ORDER BY ur.USER_ID, r.ROLE_ID
+            `);
+        }
+        
+        // Group roles by user ID for efficient lookup
+        const rolesByUserId = {};
+        allRoles.forEach(role => {
+            if (!rolesByUserId[role.USER_ID]) {
+                rolesByUserId[role.USER_ID] = [];
+            }
+            rolesByUserId[role.USER_ID].push({
+                id: role.id,
+                name: role.name,
+                displayName: role.displayName
+            });
+        });
+        
+        // Map users with their roles efficiently
+        const usersWithRoles = users.map(user => {
+            const userRoles = rolesByUserId[user.USER_ID] || [];
+            
+            return {
+                USER_ID: user.USER_ID,
+                EMAIL: user.EMAIL,
+                FIRST_NAME: user.FIRST_NAME,
+                LAST_NAME: user.LAST_NAME,
+                FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+                COMPANY_ID: user.COMPANY_ID,
+                STATUS: user.STATUS,
+                CREATE_DATE: user.CREATE_DATE,
+                ROLE_NAMES: userRoles.map(role => role.name).join(', ') || 'No roles assigned',
+                id: user.USER_ID,
+                firstName: user.FIRST_NAME,
+                lastName: user.LAST_NAME,
+                email: user.EMAIL,
+                companyId: user.COMPANY_ID,
+                status: user.STATUS,
+                createdAt: user.CREATE_DATE,
+                roles: userRoles
+            };
+        });
+
+        res.json({
+            success: true,
+            data: usersWithRoles,
+            count: usersWithRoles.length
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching users:', error);
+        res.status(500).json({
+            error: 'Failed to fetch users',
+            message: error.message
+        });
+    }
+});
+
+// Get users by company ID (for assignment dropdowns)
+app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        console.log(`👥 Fetching users for company ID: ${companyId}`);
+
+        // Security check: users can only access their own company's users
+        if (companyId !== req.companyId) {
+            return res.status(403).json({
+                error: 'Access denied: You can only view users from your own company'
             });
         }
 
+        if (!companyId || isNaN(companyId)) {
+            return res.status(400).json({
+                error: 'Valid company ID is required'
+            });
+        }
+
+        const users = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                STRING_AGG(r.NAME, ', ') as ROLE_NAMES
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.COMPANY_ID = ${companyId} 
+            AND u.STATUS = 'A'
+            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        console.log(`✅ Found ${users.length} users for company ${companyId}`);
+
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            EMAIL: user.EMAIL,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            COMPANY_ID: user.COMPANY_ID,
+            ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`,
+            subtitle: user.ROLE_NAMES || 'No roles'
+        }));
+
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('❌ Error fetching company users:', error);
         res.status(500).json({
-            error: 'Failed to create request',
-            message: 'An internal server error occurred while creating the request',
-            details: error.message,
-            timestamp: new Date().toISOString()
+            error: 'Failed to fetch users',
+            message: error.message
+        });
+    }
+});
+
+// Get invites endpoint
+app.get('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📧 Fetching invites for company ID: ${req.companyId}`);
+
+        const invites = await prisma.$queryRaw`
+            SELECT 
+                i.INVITE_ID,
+                i.EMAIL,
+                i.ROLE_ID,
+                i.COMPANY_ID,
+                i.TOKEN,
+                i.STATUS,
+                i.EXPIRES_AT,
+                i.USED_AT,
+                i.CREATED_AT,
+                r.NAME as ROLE_NAME,
+                r.DISPLAY_NAME as ROLE_DISPLAY_NAME
+            FROM GUARDIAN.INVITES i
+            LEFT JOIN GUARDIAN.ROLES r ON i.ROLE_ID = r.ROLE_ID
+            WHERE i.COMPANY_ID = ${req.companyId}
+            ORDER BY i.CREATED_AT DESC
+        `;
+
+        console.log(`✅ Found ${invites.length} invites`);
+
+        const formattedInvites = invites.map(invite => ({
+            INVITE_ID: invite.INVITE_ID,
+            EMAIL: invite.EMAIL,
+            ROLE_ID: invite.ROLE_ID,
+            COMPANY_ID: invite.COMPANY_ID,
+            TOKEN: invite.TOKEN,
+            STATUS: invite.STATUS,
+            EXPIRES_AT: invite.EXPIRES_AT,
+            USED_AT: invite.USED_AT,
+            CREATED_AT: invite.CREATED_AT,
+            ROLE_NAME: invite.ROLE_NAME,
+            ROLE_DISPLAY_NAME: invite.ROLE_DISPLAY_NAME,
+            // Add frontend-friendly aliases
+            id: invite.INVITE_ID,
+            email: invite.EMAIL,
+            roleId: invite.ROLE_ID,
+            roleName: invite.ROLE_DISPLAY_NAME || invite.ROLE_NAME,
+            status: invite.STATUS,
+            expiresAt: invite.EXPIRES_AT,
+            usedAt: invite.USED_AT,
+            createdAt: invite.CREATED_AT,
+            companyId: invite.COMPANY_ID
+        }));
+
+        res.json(formattedInvites);
+
+    } catch (error) {
+        console.error('❌ Error fetching invites:', error);
+        res.status(500).json({
+            error: 'Failed to fetch invites',
+            message: error.message
+        });
+    }
+});
+
+// Send invites endpoint
+app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { invites } = req.body;
+        console.log(`📧 Processing ${invites?.length || 0} invite requests for company ${req.companyId}`);
+
+        if (!invites || !Array.isArray(invites) || invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invites array is required and must not be empty'
+            });
+        }
+
+        const results = [];
+        const errors = [];
+
+        for (const invite of invites) {
+            try {
+                const { email, roleId } = invite;
+
+                if (!email || !roleId) {
+                    errors.push(`Invalid invite data: email and roleId required`);
+                    continue;
+                }
+
+                // Check if user already exists
+                const existingUser = await prisma.$queryRaw`
+                    SELECT USER_ID FROM GUARDIAN.USERS 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                `;
+
+                if (existingUser.length > 0) {
+                    errors.push(`User with email ${email} already exists`);
+                    continue;
+                }
+
+                // Check if there's already a pending invite
+                const existingInvite = await prisma.$queryRaw`
+                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
+                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+                `;
+
+                if (existingInvite.length > 0) {
+                    errors.push(`Pending invite already exists for ${email}`);
+                    continue;
+                }
+
+                // Generate unique token
+                const crypto = require('crypto');
+                const token = crypto.randomBytes(32).toString('hex');
+                
+                // Set expiration to 7 days from now
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+
+                // Insert the invite
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
+                    VALUES (${email}, ${roleId}, ${req.companyId}, ${token}, 'P', ${expiresAt})
+                `;
+
+                results.push({
+                    email: email,
+                    roleId: roleId,
+                    token: token,
+                    status: 'sent'
+                });
+
+                console.log(`✅ Invite sent to ${email} for role ${roleId}`);
+
+            } catch (inviteError) {
+                console.error(`❌ Error processing invite for ${invite.email}:`, inviteError);
+                errors.push(`Failed to send invite to ${invite.email}: ${inviteError.message}`);
+            }
+        }
+
+        // Return results
+        const response = {
+            success: true,
+            sent: results.length,
+            errors: errors.length,
+            results: results
+        };
+
+        if (errors.length > 0) {
+            response.errors = errors;
+        }
+
+        console.log(`📧 Invite processing complete: ${results.length} sent, ${errors.length} errors`);
+        
+        res.json(response);
+
+    } catch (error) {
+        console.error('❌ Error processing invites:', error);
+        res.status(500).json({
+            error: 'Failed to process invites',
+            message: error.message
+        });
+    }
+});
+
+// Delete an invite
+app.delete('/api/invites/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const inviteId = parseInt(req.params.id);
+        const companyId = req.companyId;
+
+        console.log(`🗑️ Deleting invite ${inviteId} for company ${companyId}`);
+
+        // Verify invite exists and belongs to the company
+        const invite = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, COMPANY_ID 
+            FROM GUARDIAN.INVITES 
+            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
+        `;
+
+        if (invite.length === 0) {
+            console.log(`❌ Invite ${inviteId} not found or not authorized for company ${companyId}`);
+            return res.status(404).json({
+                error: 'Invite not found or not authorized'
+            });
+        }
+
+        // Delete the invite
+        const result = await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.INVITES 
+            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
+        `;
+
+        console.log(`✅ Invite ${inviteId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Invite deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting invite:', error);
+        res.status(500).json({
+            error: 'Failed to delete invite',
+            message: error.message
         });
     }
 });
@@ -1115,13 +1482,8 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                     WHERE REQUEST_ID = ${requestId}
                 `;
 
-                console.log(`🔍 Request details query returned ${requestDetails.length} results`);
                 if (requestDetails.length > 0) {
                     const request = requestDetails[0];
-                    console.log(`📋 Request details:`, {
-                        REQUEST_NAME: request.REQUEST_NAME,
-                        TRACKINGID: request.TRACKINGID
-                    });
                     await prisma.$executeRaw`
                         INSERT INTO GUARDIAN.NOTIFICATIONS (
                             USER_ID, 
@@ -1146,7 +1508,6 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                     console.log(`🔔 Notification created for user ${assignedUserId} about request assignment`);
                     
                     // Send email notification
-                    console.log(`🔄 Starting email notification process for user ${assignedUserId}`);
                     try {
                         // Get assigned user's email and name
                         const assignedUser = await prisma.$queryRaw`
@@ -1161,9 +1522,6 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                             FROM GUARDIAN.USERS 
                             WHERE USER_ID = ${req.userId}
                         `;
-                        
-                        console.log(`👤 Assigned user query returned ${assignedUser.length} results`);
-                        console.log(`👤 Assigning user query returned ${assigningUser.length} results`);
                         
                         if (assignedUser.length > 0 && assigningUser.length > 0) {
                             const assigned = assignedUser[0];
@@ -1599,6 +1957,45 @@ app.put('/api/progress/:progressId', getAuthenticatedUserCompany, async (req, re
                 error: 'You are not authorized to update this progress entry'
             });
         }
+
+        // Build update query dynamically
+        const updates = [];
+        const values = [];
+
+        if (title !== undefined) {
+            updates.push('TITLE = ?');
+            values.push(title);
+        }
+        if (description !== undefined) {
+            updates.push('DESCRIPTION = ?');
+            values.push(description);
+        }
+        if (hoursWorked !== undefined) {
+            updates.push('HOURS_WORKED = ?');
+            values.push(hoursWorked ? parseFloat(hoursWorked) : null);
+        }
+        if (statusUpdate !== undefined) {
+            updates.push('STATUS_UPDATE = ?');
+            values.push(statusUpdate);
+        }
+        if (isMilestone !== undefined) {
+            updates.push('IS_MILESTONE = ?');
+            values.push(isMilestone === 'true' || isMilestone === true ? 1 : 0);
+        }
+        if (isVisibleToRequestor !== undefined) {
+            updates.push('IS_VISIBLE_TO_REQUESTOR = ?');
+            values.push(isVisibleToRequestor === 'true' || isVisibleToRequestor === true ? 1 : 0);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({
+                error: 'No valid fields provided for update'
+            });
+        }
+
+        updates.push('UPDATE_DATE = GETDATE()');
+        updates.push('UPDATE_USER_ID = ?');
+        values.push(req.userId);
 
         await prisma.$executeRaw`
             UPDATE GUARDIAN.WORK_PROGRESS 
@@ -2424,159 +2821,736 @@ app.delete('/api/attachments/:id', getAuthenticatedUserCompany, async (req, res)
     }
 });
 
-// Get users by specific company ID
-app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req, res) => {
+// Get form for a specific request (for form fulfillment)
+app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        const companyId = parseInt(req.params.companyId);
-        console.log(`👥 Fetching users for company ID: ${companyId}`);
+        const requestId = parseInt(req.params.id);
+        console.log(`📋 Fetching form for request ${requestId} (Company: ${req.companyId})`);
 
-        // Security check: users can only access their own company's users
-        if (companyId !== req.companyId) {
-            return res.status(403).json({
-                error: 'Access denied: You can only view users from your own company'
-            });
-        }
-
-        if (!companyId || isNaN(companyId)) {
+        if (!requestId || isNaN(requestId)) {
             return res.status(400).json({
-                error: 'Valid company ID is required'
+                error: 'Valid request ID is required'
             });
         }
 
-        const users = await prisma.$queryRaw`
-            SELECT 
-                u.USER_ID,
-                u.EMAIL,
-                u.FIRST_NAME,
-                u.LAST_NAME,
-                u.STATUS,
-                u.COMPANY_ID,
-                STRING_AGG(r.NAME, ', ') as ROLE_NAMES
-            FROM GUARDIAN.USERS u
-            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
-            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-            WHERE u.COMPANY_ID = ${companyId} 
-            AND u.STATUS = 'A'
-            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID
-            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        // Get the request details
+        console.log(`🔍 Querying for request ${requestId} in company ${req.companyId}`);
+        const requests = await prisma.$queryRaw`
+            SELECT r.REQUEST_ID, r.REQUEST_NAME, r.FORM_ID, r.STATUS, r.REQUESTOR_ID, r.ASSIGNED_ID,
+                   r.CREATE_DATE, r.UPDATE_DATE, r.COMPANY_ID, r.REQUEST_DESCRIPTION
+            FROM GUARDIAN.REQUESTS r
+            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
         `;
 
-        console.log(`✅ Found ${users.length} users for company ${companyId}`);
+        console.log(`🔍 Found ${requests.length} requests matching criteria`);
+        if (!requests.length) {
+            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
 
-        const formattedUsers = users.map(user => ({
-            USER_ID: user.USER_ID,
-            EMAIL: user.EMAIL,
-            FIRST_NAME: user.FIRST_NAME,
-            LAST_NAME: user.LAST_NAME,
-            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
-            COMPANY_ID: user.COMPANY_ID,
-            ROLE_NAMES: user.ROLE_NAMES || 'No roles assigned',
-            value: user.USER_ID,
-            label: `${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`,
-            subtitle: user.ROLE_NAMES || 'No roles'
-        }));
+        const request = requests[0];
+        console.log(`✅ Found request with FORM_ID: ${request.FORM_ID}`);
 
-        res.json(formattedUsers);
+        if (!request.FORM_ID) {
+            console.log(`❌ Request ${requestId} has no form associated`);
+            return res.status(404).json({
+                error: 'No form associated with this request'
+            });
+        }
+
+        // Get the form details (check both company-specific and global forms)
+        console.log(`🔍 Querying for form ${request.FORM_ID} (company-specific or global)`);
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${request.FORM_ID} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+        `;
+
+        console.log(`🔍 Found ${forms.length} forms matching criteria`);
+        if (!forms.length) {
+            console.log(`❌ Form ${request.FORM_ID} not found for organization ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Form template not found or access denied',
+                details: `Request ${requestId} references form ${request.FORM_ID} which is not available for your organization`,
+                requestId: requestId,
+                formId: request.FORM_ID,
+                companyId: req.companyId
+            });
+        }
+
+        const form = forms[0];
+
+        // Get fields specific to this form using the FORMS_FIELDS junction table
+        console.log(`🔍 Querying fields for form ${request.FORM_ID} using junction table`);
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
+                   ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${request.FORM_ID}
+            AND (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
+            AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
+        `;
+        console.log(`✅ Found ${fields.length} form-specific fields for form ${request.FORM_ID}`);
+
+        // Check for existing form instance and values
+        console.log(`🔍 Checking for existing form instance for request ${requestId}`);
+        
+        // Admin roles (1, 3, 4, 6) can see all form instances, others only see their own
+        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
+        
+        let existingInstances;
+        // Look for existing form instance for this specific request
+        existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
+            FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
+        console.log(`🔍 Fetching form instance for request ${requestId}`);
+
+        let existingValues = {};
+        let formInstanceId = null;
+        let formStatus = 'new'; // new, in_progress, completed
+
+        if (existingInstances.length > 0) {
+            formInstanceId = existingInstances[0].FORM_INSTANCE_ID;
+            const submittedDate = existingInstances[0].SUBMITTED_DATE;
+            
+            console.log(`📋 Found existing form instance: ${formInstanceId}`);
+            
+            // Get existing field values
+            const savedValues = await prisma.$queryRaw`
+                SELECT FIELD_ID, VALUE
+                FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+                WHERE FORM_INSTANCE_ID = ${formInstanceId}
+            `;
+            
+            // Convert to object with field IDs as keys (for backend processing)
+            const existingValuesByFieldId = savedValues.reduce((acc, value) => {
+                acc[value.FIELD_ID] = value.VALUE;
+                return acc;
+            }, {});
+            
+            // Also create a mapping by field name (for frontend usage)
+            existingValues = savedValues.reduce((acc, value) => {
+                // Find the field with this FIELD_ID to get its name
+                const field = fields.find(f => f.FIELD_ID === value.FIELD_ID);
+                if (field) {
+                    acc[field.FIELD_NAME] = value.VALUE;
+                }
+                return acc;
+            }, {});
+            
+            console.log(`📊 Found ${savedValues.length} existing field values`);
+            
+            // Determine form completion status
+            const requiredFields = fields.filter(f => f.FORM_IS_REQUIRED || f.IS_REQUIRED);
+            const filledRequiredFields = requiredFields.filter(f => 
+                existingValuesByFieldId[f.FIELD_ID] && existingValuesByFieldId[f.FIELD_ID].trim() !== ''
+            );
+            
+            if (submittedDate && filledRequiredFields.length === requiredFields.length) {
+                formStatus = 'completed';
+            } else if (savedValues.length > 0) {
+                formStatus = 'in_progress';
+            }
+            
+            console.log(`📈 Form status: ${formStatus} (${filledRequiredFields.length}/${requiredFields.length} required fields filled)`);
+        } else {
+            console.log(`📝 No existing form instance found - new form`);
+        }
+
+        console.log(`✅ Found request ${requestId} with form ${request.FORM_ID} containing ${fields.length} fields`);
+
+        // Prepare response in expected format
+        const response = {
+            request: {
+                REQUEST_ID: request.REQUEST_ID,
+                REQUEST_NAME: request.REQUEST_NAME,
+                STATUS: request.STATUS,
+                FORM_ID: request.FORM_ID,
+                REQUESTOR_ID: request.REQUESTOR_ID,
+                ASSIGNED_ID: request.ASSIGNED_ID,
+                CREATE_DATE: request.CREATE_DATE,
+                UPDATE_DATE: request.UPDATE_DATE,
+                REQUEST_DESCRIPTION: request.REQUEST_DESCRIPTION
+            },
+            form: {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
+                IS_ACTIVE: form.IS_ACTIVE,
+                IS_PUBLIC: form.IS_PUBLIC,
+                IS_DELETED: form.IS_DELETED
+            },
+            fields: fields.map(field => ({
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.FORM_IS_REQUIRED || field.IS_REQUIRED, // Use form-specific requirement
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                SORT_ORDER: field.SORT_ORDER,
+                CREATE_DATE: field.CREATE_DATE,
+                UPDATE_DATE: field.UPDATE_DATE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID
+            })),
+            values: existingValues, // Include existing values for form pre-filling
+            formInstanceId: formInstanceId,
+            formStatus: formStatus, // new, in_progress, completed
+            isCompleted: formStatus === 'completed',
+            hasExistingData: Object.keys(existingValues).length > 0
+        };
+
+        console.log(`📤 Sending form data for request ${requestId} to frontend`);
+        res.json(response);
 
     } catch (error) {
-        console.error('❌ Error fetching company users:', error);
+        console.error(`❌ Error fetching form for request ${req.params.id}:`, error);
         res.status(500).json({
-            error: 'Failed to fetch users',
+            error: 'Failed to fetch request form',
             message: error.message
         });
     }
 });
 
-// Get all users (for backward compatibility)
-app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
+// Submit form data for a specific request
+app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log(`👥 Fetching users for company ID: ${req.companyId}`);
+        const requestId = parseInt(req.params.id);
+        const { fieldValues, isComplete = false, isDraft = false } = req.body;
 
-        // First get all users
-        const users = await prisma.$queryRaw`
-            SELECT 
-                u.USER_ID,
-                u.EMAIL,
-                u.FIRST_NAME,
-                u.LAST_NAME,
-                u.STATUS,
-                u.COMPANY_ID,
-                u.CREATE_DATE
-            FROM GUARDIAN.USERS u
-            WHERE u.STATUS = 'A' AND u.COMPANY_ID = ${req.companyId}
-            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        console.log(`📝 Submitting form data for request ${requestId} (Company: ${req.companyId})`);
+        console.log(`📋 Field values:`, JSON.stringify(fieldValues, null, 2));
+        console.log(`📊 Submission type: ${isComplete ? 'Complete' : isDraft ? 'Draft' : 'Auto-save'}`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        if (!fieldValues || typeof fieldValues !== 'object') {
+            return res.status(400).json({
+                error: 'Field values are required'
+            });
+        }
+
+        // Get the request details to verify ownership and get form ID
+        const requests = await prisma.$queryRaw`
+            SELECT r.REQUEST_ID, r.FORM_ID, r.ASSIGNED_ID, r.COMPANY_ID
+            FROM GUARDIAN.REQUESTS r
+            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
         `;
 
-        console.log(`✅ Found ${users.length} users`);
-
-        // OPTIMIZED: Get all user roles in single query to avoid N+1 problem
-        const userIds = users.map(u => u.USER_ID);
-        let allRoles = [];
-        
-        if (userIds.length > 0) {
-            // Build dynamic query using template literals - more reliable than $queryRawUnsafe
-            const userIdList = userIds.join(', ');
-            allRoles = await prisma.$queryRawUnsafe(`
-                SELECT 
-                    ur.USER_ID,
-                    r.ROLE_ID as id,
-                    r.NAME as name,
-                    r.DISPLAY_NAME as displayName
-                FROM GUARDIAN.USER_ROLES ur
-                JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-                WHERE ur.USER_ID IN (${userIdList}) AND ur.STATUS = 'P'
-                ORDER BY ur.USER_ID, r.ROLE_ID
-            `);
-        }
-        
-        // Group roles by user ID for efficient lookup
-        const rolesByUserId = {};
-        allRoles.forEach(role => {
-            if (!rolesByUserId[role.USER_ID]) {
-                rolesByUserId[role.USER_ID] = [];
-            }
-            rolesByUserId[role.USER_ID].push({
-                id: role.id,
-                name: role.name,
-                displayName: role.displayName
+        if (!requests.length) {
+            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Request not found or access denied'
             });
-        });
+        }
+
+        const request = requests[0];
         
-        // Map users with their roles efficiently
-        const usersWithRoles = users.map(user => {
-            const userRoles = rolesByUserId[user.USER_ID] || [];
+        if (!request.FORM_ID) {
+            return res.status(400).json({
+                error: 'No form associated with this request'
+            });
+        }
+
+        // Check if form instance already exists for this request
+        // Admin roles (1, 3, 4, 6) can see all form instances, others only see their own
+        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
+        
+        let existingInstances;
+        // Look for existing form instance for this specific request
+        existingInstances = await prisma.$queryRaw`
+            SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
+
+        let formInstanceId;
+
+        if (existingInstances.length > 0) {
+            formInstanceId = existingInstances[0].FORM_INSTANCE_ID;
+            console.log(`📋 Using existing form instance: ${formInstanceId}`);
             
-            return {
-                USER_ID: user.USER_ID,
-                EMAIL: user.EMAIL,
-                FIRST_NAME: user.FIRST_NAME,
-                LAST_NAME: user.LAST_NAME,
-                FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
-                COMPANY_ID: user.COMPANY_ID,
-                STATUS: user.STATUS,
-                CREATE_DATE: user.CREATE_DATE,
-                ROLE_NAMES: userRoles.map(role => role.name).join(', ') || 'No roles assigned',
-                id: user.USER_ID,
-                firstName: user.FIRST_NAME,
-                lastName: user.LAST_NAME,
-                email: user.EMAIL,
-                companyId: user.COMPANY_ID,
-                status: user.STATUS,
-                createdAt: user.CREATE_DATE,
-                roles: userRoles
-            };
-        });
+            // Update the existing instance with appropriate submitted date
+            if (isComplete) {
+                // Set submitted date for completed forms
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.FORMS_INSTANCE 
+                    SET SUBMITTED_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+                    WHERE FORM_INSTANCE_ID = ${formInstanceId}
+                `;
+                console.log(`✅ Marked form instance as completed`);
+            } else {
+                // For drafts/in-progress, update timestamp but keep submitted_date NULL
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.FORMS_INSTANCE 
+                    SET UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+                    WHERE FORM_INSTANCE_ID = ${formInstanceId}
+                `;
+                console.log(`📝 Updated form instance as in-progress`);
+            }
+        } else {
+            // Create new form instance
+            if (isComplete) {
+                // Complete submission
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                console.log(`📋 Created new completed form instance`);
+            } else {
+                // Draft/in-progress submission (no submitted date)
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                console.log(`📋 Created new draft form instance`);
+            }
+
+            // Get the new instance ID
+            let newInstances;
+            if (isAdmin) {
+                newInstances = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE FORM_ID = ${request.FORM_ID} AND COMPANY_ID = ${req.companyId}
+                    ORDER BY CREATE_DATE DESC
+                `;
+            } else {
+                newInstances = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID} AND COMPANY_ID = ${req.companyId}
+                    ORDER BY CREATE_DATE DESC
+                `;
+            }
+            
+            formInstanceId = newInstances[0].FORM_INSTANCE_ID;
+        }
+
+        // Delete existing field values for this instance
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+            WHERE FORM_INSTANCE_ID = ${formInstanceId}
+        `;
+
+        // Insert new field values
+        let savedCount = 0;
+        for (const [fieldId, value] of Object.entries(fieldValues)) {
+            if (value !== null && value !== undefined && value !== '') {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
+                        FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${formInstanceId}, ${parseInt(fieldId)}, ${String(value)}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                savedCount++;
+            }
+        }
+
+        // Determine the final status
+        const finalStatus = isComplete ? 'completed' : (savedCount > 0 ? 'in_progress' : 'new');
+        const statusMessage = isComplete ? 'Form completed successfully' : 
+                            isDraft ? 'Draft saved successfully' : 
+                            'Form data saved successfully';
+
+        console.log(`✅ Form submitted successfully for request ${requestId}: ${savedCount} field values saved (Status: ${finalStatus})`);
 
         res.json({
             success: true,
-            data: usersWithRoles,
-            count: usersWithRoles.length
+            message: statusMessage,
+            formInstanceId: formInstanceId,
+            savedFieldCount: savedCount,
+            formStatus: finalStatus,
+            isComplete: isComplete,
+            isDraft: isDraft
         });
 
     } catch (error) {
-        console.error('❌ Error fetching users:', error);
+        console.error(`❌ Error submitting form for request ${req.params.id}:`, error);
         res.status(500).json({
-            error: 'Failed to fetch users',
+            error: 'Failed to submit form data',
+            message: error.message
+        });
+    }
+});
+
+// Get specific form by ID
+app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        console.log(`📋 Fetching form ${formId} from database for company:`, req.companyId);
+
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({
+                error: 'Valid form ID is required'
+            });
+        }
+
+        // Get user's roles to check for admin access
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
+        
+        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
+        
+        // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
+        let forms;
+        
+        if (isAdmin) {
+            // Admin users can access both company forms and global forms
+            forms = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            `;
+        } else {
+            // Regular users can only access their company's forms
+            forms = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND ORGANIZATION_ID = ${req.companyId}
+            `;
+        }
+
+        if (!forms.length) {
+            console.log(`❌ Form ${formId} not found for company ${req.companyId}. Checking if form exists at all...`);
+            
+            // Check if form exists but belongs to different company
+            const anyForm = await prisma.$queryRaw`
+                SELECT FORM_ID, ORGANIZATION_ID FROM GUARDIAN.FORMS WHERE FORM_ID = ${formId}
+            `;
+            
+            if (anyForm.length > 0) {
+                console.log(`📋 Form ${formId} exists but belongs to company ${anyForm[0].ORGANIZATION_ID}, user is in company ${req.companyId}`);
+            } else {
+                console.log(`📋 Form ${formId} does not exist in database at all`);
+            }
+            
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        const form = forms[0];
+
+        // Get the form fields - join with FORMS_FIELDS to get only fields that belong to this specific form
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, ff.IS_REQUIRED, f.IS_SENSITIVE, 
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID, ff.SORT_ORDER
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${formId}
+            AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
+        `;
+
+        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
+
+        const response = {
+            form: {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
+                IS_ACTIVE: form.IS_ACTIVE,
+                IS_PUBLIC: form.IS_PUBLIC,
+                IS_DELETED: form.IS_DELETED
+            },
+            fields: fields.map(field => ({
+                FIELD_ID: field.FIELD_ID,
+                FIELD_NAME: field.FIELD_NAME,
+                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
+                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                HAS_LOOKUP: field.HAS_LOOKUP,
+                IS_PUBLIC: field.IS_PUBLIC,
+                IS_ACTIVE: field.IS_ACTIVE,
+                IS_DELETED: field.IS_DELETED,
+                IS_REQUIRED: field.IS_REQUIRED,
+                IS_SENSITIVE: field.IS_SENSITIVE,
+                SORT_ORDER: field.SORT_ORDER,
+                CREATE_DATE: field.CREATE_DATE,
+                UPDATE_DATE: field.UPDATE_DATE,
+                ORGANIZATION_ID: field.ORGANIZATION_ID
+            }))
+        };
+
+        console.log(`📤 Sending form ${formId} data to frontend`);
+        res.json(response);
+
+    } catch (error) {
+        console.error(`❌ Error fetching form ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch form',
+            message: error.message
+        });
+    }
+});
+
+// Update form template endpoint
+app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        const { name, description, formFields } = req.body;
+        
+        console.log(`📝 Updating form template ${formId} for company:`, req.companyId);
+        console.log(`📝 New data: name="${name}", description="${description}", fields count=${formFields?.length || 0}`);
+
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({
+                error: 'Valid form ID is required'
+            });
+        }
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({
+                error: 'Form name is required'
+            });
+        }
+
+        // Get user's roles to check for admin access
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
+        
+        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
+        
+        // Check if form exists and user has permission to edit it
+        let existingForm;
+        
+        if (isAdmin) {
+            // Admin users can edit both company forms and global forms
+            existingForm = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            `;
+        } else {
+            // Regular users can only edit their company's forms
+            existingForm = await prisma.$queryRaw`
+                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
+                FROM GUARDIAN.FORMS 
+                WHERE FORM_ID = ${formId} 
+                AND ORGANIZATION_ID = ${req.companyId}
+            `;
+        }
+
+        if (!existingForm.length) {
+            console.log(`❌ Form ${formId} not found or access denied for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Update form basic details
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET FORM_NAME = ${name.trim()}, 
+                FORM_DESCRIPTION = ${description?.trim() || ''},
+                UPDATE_DATE = GETDATE()
+            WHERE FORM_ID = ${formId}
+        `;
+
+        console.log(`✅ Form ${formId} basic details updated successfully`);
+
+        // TODO: Handle form fields update
+        // This would involve updating the FORM_FIELDS table or similar
+        console.log(`📝 Form fields update not yet implemented (${formFields?.length || 0} fields provided)`);
+
+        res.json({
+            success: true,
+            message: 'Form template updated successfully',
+            formId: formId
+        });
+
+    } catch (error) {
+        console.error(`❌ Error updating form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to update form template',
+            message: error.message
+        });
+    }
+});
+
+// Get specific form by ID (alternative endpoint for compatibility)
+app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`📋 Fetching form ${formId} for company:`, req.companyId);
+
+        // Get the form
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+            AND IS_DELETED = ${false}
+        `;
+
+        if (forms.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found'
+            });
+        }
+
+        // Get the form fields
+        const fields = await prisma.$queryRaw`
+            SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
+                   ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FORM_FIELDS ff
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
+            ORDER BY ff.SEQUENCE, ff.FIELD_ID
+        `;
+
+        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
+
+        res.json({
+            success: true,
+            form: forms[0],
+            fields: fields
+        });
+
+    } catch (error) {
+        console.error(`❌ Error fetching form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch form',
+            message: error.message
+        });
+    }
+});
+
+// Delete a form (soft delete)
+app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.formId);
+        console.log(`🗑️ Deleting form ${formId} for company:`, req.companyId);
+
+        // Verify form belongs to the user's company
+        const existingForm = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
+        `;
+
+        if (existingForm.length === 0) {
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        // Soft delete the form and its fields
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORM_FIELDS 
+            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
+            WHERE FORM_ID = ${formId}
+        `;
+
+        console.log(`✅ Form ${formId} deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Form deleted successfully'
+        });
+
+    } catch (error) {
+        console.error(`❌ Error deleting form ${req.params.formId}:`, error);
+        res.status(500).json({
+            error: 'Failed to delete form',
+            message: error.message
+        });
+    }
+});
+
+// Email validation endpoint (for frontend compatibility)
+app.post('/api/validate-email', async (req, res) => {
+    try {
+        const { email, purpose = 'register' } = req.body;
+        console.log(`📧 Email validation request for: ${email} (purpose: ${purpose})`);
+
+        if (!email) {
+            return res.status(400).json({
+                valid: false,
+                reason: 'Email is required'
+            });
+        }
+
+        // Enhanced email format validation
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            return res.json({
+                valid: false,
+                reason: emailValidation.reason
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
+        // For registration, check if user already exists
+        if (purpose === 'register') {
+            const existingUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+            `;
+
+            if (existingUser.length > 0) {
+                return res.json({
+                    valid: false,
+                    reason: 'User with this email already exists'
+                });
+            }
+        }
+
+        // Email is valid
+        res.json({
+            valid: true,
+            reason: 'Email is valid'
+        });
+
+    } catch (error) {
+        console.error('❌ Email validation error:', error);
+        res.status(500).json({
+            valid: false,
+            reason: 'Server error during email validation',
             message: error.message
         });
     }
@@ -2747,7 +3721,7 @@ app.put('/api/users/:id', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
-// Get roles endpoint
+// Get roles endpoint for invite forms
 app.get('/api/roles', async (req, res) => {
     try {
         console.log('🎭 Fetching roles from database...');
@@ -2761,6 +3735,7 @@ app.get('/api/roles', async (req, res) => {
 
         console.log(`✅ Found ${roles.length} roles in database`);
 
+        // Format the data to match frontend expectations
         const formattedRoles = roles.map(role => ({
             id: role.ROLE_ID,
             ROLE_ID: role.ROLE_ID,
@@ -2774,6 +3749,7 @@ app.get('/api/roles', async (req, res) => {
             STATUS: role.STATUS
         }));
 
+        console.log(`📤 Sending ${formattedRoles.length} formatted roles to frontend`);
         res.json({
             success: true,
             data: formattedRoles,
@@ -2789,430 +3765,7 @@ app.get('/api/roles', async (req, res) => {
     }
 });
 
-// Get invites endpoint
-app.get('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        console.log(`📧 Fetching invites for company ID: ${req.companyId}`);
-
-        const invites = await prisma.$queryRaw`
-            SELECT 
-                i.INVITE_ID,
-                i.EMAIL,
-                i.ROLE_ID,
-                i.COMPANY_ID,
-                i.TOKEN,
-                i.STATUS,
-                i.EXPIRES_AT,
-                i.USED_AT,
-                i.CREATED_AT,
-                r.NAME as ROLE_NAME,
-                r.DISPLAY_NAME as ROLE_DISPLAY_NAME
-            FROM GUARDIAN.INVITES i
-            LEFT JOIN GUARDIAN.ROLES r ON i.ROLE_ID = r.ROLE_ID
-            WHERE i.COMPANY_ID = ${req.companyId}
-            ORDER BY i.CREATED_AT DESC
-        `;
-
-        console.log(`✅ Found ${invites.length} invites`);
-
-        const formattedInvites = invites.map(invite => ({
-            INVITE_ID: invite.INVITE_ID,
-            EMAIL: invite.EMAIL,
-            ROLE_ID: invite.ROLE_ID,
-            COMPANY_ID: invite.COMPANY_ID,
-            TOKEN: invite.TOKEN,
-            STATUS: invite.STATUS,
-            EXPIRES_AT: invite.EXPIRES_AT,
-            USED_AT: invite.USED_AT,
-            CREATED_AT: invite.CREATED_AT,
-            ROLE_NAME: invite.ROLE_NAME,
-            ROLE_DISPLAY_NAME: invite.ROLE_DISPLAY_NAME,
-            // Add frontend-friendly aliases
-            id: invite.INVITE_ID,
-            email: invite.EMAIL,
-            roleId: invite.ROLE_ID,
-            roleName: invite.ROLE_DISPLAY_NAME || invite.ROLE_NAME,
-            status: invite.STATUS,
-            expiresAt: invite.EXPIRES_AT,
-            usedAt: invite.USED_AT,
-            createdAt: invite.CREATED_AT,
-            companyId: invite.COMPANY_ID
-        }));
-
-        res.json(formattedInvites);
-
-    } catch (error) {
-        console.error('❌ Error fetching invites:', error);
-        res.status(500).json({
-            error: 'Failed to fetch invites',
-            message: error.message
-        });
-    }
-});
-
-// Send invites endpoint
-app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const { invites } = req.body;
-        console.log(`📧 Processing ${invites?.length || 0} invite requests for company ${req.companyId}`);
-
-        if (!invites || !Array.isArray(invites) || invites.length === 0) {
-            return res.status(400).json({
-                error: 'Invites array is required and must not be empty'
-            });
-        }
-
-        const results = [];
-        const errors = [];
-
-        for (const invite of invites) {
-            try {
-                const { email, roleId } = invite;
-
-                if (!email || !roleId) {
-                    errors.push(`Invalid invite data: email and roleId required`);
-                    continue;
-                }
-
-                // Check if user already exists
-                const existingUser = await prisma.$queryRaw`
-                    SELECT USER_ID FROM GUARDIAN.USERS 
-                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-                `;
-
-                if (existingUser.length > 0) {
-                    errors.push(`User with email ${email} already exists`);
-                    continue;
-                }
-
-                // Check if there's already a pending invite
-                const existingInvite = await prisma.$queryRaw`
-                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
-                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
-                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
-                `;
-
-                if (existingInvite.length > 0) {
-                    errors.push(`Pending invite already exists for ${email}`);
-                    continue;
-                }
-
-                // Generate unique token
-                const crypto = require('crypto');
-                const token = crypto.randomBytes(32).toString('hex');
-                
-                // Set expiration to 7 days from now
-                const expiresAt = new Date();
-                expiresAt.setDate(expiresAt.getDate() + 7);
-
-                // Insert the invite
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
-                    VALUES (${email}, ${roleId}, ${req.companyId}, ${token}, 'P', ${expiresAt})
-                `;
-
-                console.log(`✅ Invite created for ${email} with role ${roleId}`);
-                
-                // Send actual invite email using Resend
-                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
-                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
-
-                results.push({
-                    email: email,
-                    roleId: roleId,
-                    token: token,
-                    status: status
-                });
-
-                console.log(`✅ Invite ${status} to ${email} for role ${roleId}`);
-
-            } catch (inviteError) {
-                console.error(`❌ Error processing invite for ${invite.email}:`, inviteError);
-                errors.push(`Failed to send invite to ${invite.email}: ${inviteError.message}`);
-            }
-        }
-
-        // Return results
-        const response = {
-            success: true,
-            sent: results.length,
-            errors: errors.length,
-            results: results
-        };
-
-        if (errors.length > 0) {
-            response.errors = errors;
-        }
-
-        console.log(`📧 Invite processing complete: ${results.length} sent, ${errors.length} errors`);
-        
-        res.json(response);
-
-    } catch (error) {
-        console.error('❌ Error processing invites:', error);
-        res.status(500).json({
-            error: 'Failed to process invites',
-            message: error.message
-        });
-    }
-});
-
-// Delete an invite
-app.delete('/api/invites/:id', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const inviteId = parseInt(req.params.id);
-        const companyId = req.companyId;
-
-        console.log(`🗑️ Deleting invite ${inviteId} for company ${companyId}`);
-
-        // Verify invite exists and belongs to the company
-        const invite = await prisma.$queryRaw`
-            SELECT INVITE_ID, EMAIL, COMPANY_ID 
-            FROM GUARDIAN.INVITES 
-            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
-        `;
-
-        if (invite.length === 0) {
-            console.log(`❌ Invite ${inviteId} not found or not authorized for company ${companyId}`);
-            return res.status(404).json({
-                error: 'Invite not found or not authorized'
-            });
-        }
-
-        // Delete the invite
-        const result = await prisma.$executeRaw`
-            DELETE FROM GUARDIAN.INVITES 
-            WHERE INVITE_ID = ${inviteId} AND COMPANY_ID = ${companyId}
-        `;
-
-        console.log(`✅ Invite ${inviteId} deleted successfully`);
-
-        res.json({
-            success: true,
-            message: 'Invite deleted successfully'
-        });
-
-    } catch (error) {
-        console.error('❌ Error deleting invite:', error);
-        res.status(500).json({
-            error: 'Failed to delete invite',
-            message: error.message
-        });
-    }
-});
-
-// Accept invitation endpoint
-app.post('/api/invite/accept', async (req, res) => {
-    try {
-        const { token, firstName, lastName, password } = req.body;
-        console.log(`📩 Processing invite acceptance with token: ${token}`);
-
-        if (!token || !firstName || !lastName || !password) {
-            return res.status(400).json({
-                error: 'Token, first name, last name, and password are required'
-            });
-        }
-
-        // Find and validate invite
-        const invites = await prisma.$queryRaw`
-            SELECT INVITE_ID, EMAIL, ROLE_ID, COMPANY_ID, STATUS, EXPIRES_AT
-            FROM GUARDIAN.INVITES 
-            WHERE TOKEN = ${token} AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
-        `;
-
-        if (invites.length === 0) {
-            return res.status(400).json({
-                error: 'Invalid or expired invite token'
-            });
-        }
-
-        const invite = invites[0];
-
-        // Check if user already exists
-        const existingUser = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
-        `;
-
-        if (existingUser.length > 0) {
-            return res.status(400).json({
-                error: 'User with this email already exists'
-            });
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 12);
-
-        // Create user account
-        await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USERS (
-                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
-                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
-            )
-            VALUES (
-                ${invite.EMAIL}, ${hashedPassword}, ${firstName}, ${lastName},
-                'A', ${invite.COMPANY_ID}, GETDATE(), GETDATE()
-            )
-        `;
-
-        // Get the newly created user ID
-        const newUser = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
-        `;
-
-        const userId = newUser[0].USER_ID;
-
-        // Assign the role from the invite
-        await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
-            VALUES (${userId}, ${invite.ROLE_ID}, GETDATE(), GETDATE())
-        `;
-
-        // Mark invite as used
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.INVITES 
-            SET STATUS = 'U', USED_AT = GETDATE()
-            WHERE INVITE_ID = ${invite.INVITE_ID}
-        `;
-
-        console.log(`✅ Invite accepted successfully for: ${invite.EMAIL} (User ID: ${userId})`);
-
-        res.json({
-            success: true,
-            message: 'Invite accepted successfully. You can now log in.',
-            user: {
-                id: userId,
-                email: invite.EMAIL,
-                firstName: firstName,
-                lastName: lastName,
-                companyId: invite.COMPANY_ID,
-                roleId: invite.ROLE_ID
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Invite acceptance error:', error);
-        res.status(500).json({
-            error: 'Failed to accept invite',
-            message: error.message
-        });
-    }
-});
-
-// Send invites endpoint (alternative endpoint)
-app.post('/invites/send', async (req, res) => {
-    try {
-        const { invites } = req.body;
-        console.log(`📧 Processing ${invites?.length || 0} invite requests`);
-
-        if (!invites || !Array.isArray(invites) || invites.length === 0) {
-            return res.status(400).json({
-                error: 'Invites array is required and must not be empty'
-            });
-        }
-
-        const results = [];
-        const errors = [];
-
-        for (const invite of invites) {
-            try {
-                const { email, roleId } = invite;
-
-                if (!email || !roleId) {
-                    errors.push(`Invalid invite data: email and roleId required`);
-                    continue;
-                }
-
-                // Check if user already exists
-                const existingUser = await prisma.$queryRaw`
-                    SELECT USER_ID FROM GUARDIAN.USERS 
-                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-                `;
-
-                if (existingUser.length > 0) {
-                    errors.push(`User with email ${email} already exists`);
-                    continue;
-                }
-
-                // Check if there's already a pending invite
-                const existingInvite = await prisma.$queryRaw`
-                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
-                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
-                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
-                `;
-
-                if (existingInvite.length > 0) {
-                    errors.push(`Active invite already exists for ${email}`);
-                    continue;
-                }
-
-                // Generate unique token
-                const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-                
-                // Set expiration to 7 days from now
-                const expiresAt = new Date();
-                expiresAt.setDate(expiresAt.getDate() + 7);
-
-                // For now, default to company ID 1 - you may want to get this from the authenticated user
-                const companyId = 1;
-
-                // Insert invite record
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
-                    VALUES (${email}, ${roleId}, ${companyId}, ${token}, 'P', ${expiresAt})
-                `;
-
-                console.log(`✅ Invite created for ${email} with role ${roleId}`);
-                
-                // Send actual invite email using Resend
-                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
-                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
-                
-                results.push({
-                    email: email,
-                    status: status,
-                    token: token,
-                    expiresAt: expiresAt.toISOString(),
-                    emailSent: emailSent
-                });
-
-                if (!emailSent) {
-                    console.log(`⚠️ Failed to send invite email to ${email}, but invite record created`);
-                    console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
-                }
-
-            } catch (inviteError) {
-                console.error(`❌ Error processing invite for ${invite?.email}:`, inviteError);
-                errors.push(`Failed to process invite for ${invite?.email}: ${inviteError.message}`);
-            }
-        }
-
-        const response = {
-            success: results.length > 0,
-            message: `Processed ${invites.length} invite(s). ${results.length} sent, ${errors.length} failed.`,
-            results: results,
-            errors: errors.length > 0 ? errors : undefined
-        };
-
-        console.log(`📤 Invite processing complete:`, response);
-
-        if (results.length === 0 && errors.length > 0) {
-            return res.status(400).json(response);
-        }
-
-        res.json(response);
-
-    } catch (error) {
-        console.error('❌ Error in invite endpoint:', error);
-        res.status(500).json({
-            error: 'Failed to process invites',
-            message: error.message
-        });
-    }
-});
-
-// Get field types
+// Get field types endpoint
 app.get('/api/field-types', getAuthenticatedUserCompany, async (req, res) => {
     try {
         console.log('🔧 Fetching field types from database...');
@@ -3244,7 +3797,7 @@ app.get('/api/field-types', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
-// Get fields
+// Get fields endpoint
 app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
     try {
         console.log('📝 Fetching fields from database for company:', req.companyId);
@@ -3312,20 +3865,20 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             CAN_SELECT_MULIPLE,
             SORT_ORDER
         } = req.body;
-
+        
         // Validation
         if (!FIELD_NAME || !FIELD_NAME.trim()) {
             return res.status(400).json({
                 error: 'Field name is required'
             });
         }
-
+        
         if (!FIELD_TYPE_ID) {
             return res.status(400).json({
                 error: 'Field type is required'
             });
         }
-
+        
         // Check for duplicate field names within the same company/organization
         const existingField = await prisma.$queryRaw`
             SELECT FIELD_ID, FIELD_NAME FROM GUARDIAN.FIELDS 
@@ -3333,7 +3886,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
             AND IS_DELETED = 0
         `;
-
+        
         if (existingField.length > 0) {
             return res.status(409).json({
                 error: 'Field name already exists',
@@ -3341,7 +3894,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                 existingField: existingField[0].FIELD_NAME
             });
         }
-
+        
         // Create the new field
         const currentDate = new Date();
         
@@ -3386,9 +3939,9 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                 error: 'Failed to create field - no ID returned'
             });
         }
-
+        
         console.log(`✅ Field created successfully with ID: ${insertedId}`);
-
+        
         // Get the newly created field with field type information
         const newField = await prisma.$queryRaw`
             SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
@@ -3399,7 +3952,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
             WHERE f.FIELD_ID = ${insertedId}
         `;
-
+        
         if (newField.length > 0) {
             const field = newField[0];
             const formattedField = {
@@ -3421,14 +3974,13 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                     FIELD_TYPE_ID: field.FIELD_TYPE_ID
                 }
             };
-
+            
             res.status(201).json(formattedField);
         } else {
             res.status(500).json({
                 error: 'Field created but could not be retrieved'
             });
         }
-
     } catch (error) {
         console.error('❌ Error creating field:', error);
         res.status(500).json({
@@ -3814,15 +4366,15 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         }
 
         // Insert the form first
-        const formResult = await prisma.$queryRaw`
+        const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
-                ${form.FORM_NAME}, 
-                ${form.FORM_DESCRIPTION || ''}, 
+                '${form.FORM_NAME}', 
+                '${form.FORM_DESCRIPTION || ''}', 
                 ${req.companyId}, 
                 ${form.IS_PUBLIC || false}, 
                 ${form.IS_ACTIVE !== false}, 
@@ -3832,7 +4384,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 ${req.user.userId}, 
                 ${req.user.userId}
             )
-        `;
+        `);
 
         const formId = formResult[0].FORM_ID;
         console.log(`✅ Created form with ID: ${formId}`);
@@ -3843,18 +4395,18 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             for (let i = 0; i < fields.length; i++) {
                 const field = fields[i];
                 
-                const fieldResult = await prisma.$queryRaw`
-                    INSERT INTO GUARDIAN.FIELDS (
+                const fieldResult = await prisma.$queryRawUnsafe(`
+                    INSERT INTO GUARDIAN.FORM_FIELDS (
                         FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
                         IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
                     )
                     OUTPUT INSERTED.FIELD_ID
                     VALUES (
                         ${formId},
-                        ${field.FIELD_NAME},
+                        '${field.FIELD_NAME}',
                         ${field.FIELD_TYPE_ID},
                         ${field.IS_REQUIRED || false},
-                        ${field.OPTIONS || null},
+                        ${field.OPTIONS ? `'${JSON.stringify(field.OPTIONS)}'` : 'NULL'},
                         ${field.SEQUENCE || i + 1},
                         ${field.IS_ACTIVE !== false},
                         ${false},
@@ -3863,7 +4415,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                         ${req.user.userId},
                         ${req.user.userId}
                     )
-                `;
+                `);
 
                 createdFields.push({
                     ...field,
@@ -3894,237 +4446,30 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
-// Update an existing form with fields
-app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
+// Logout endpoint
+app.post('/logout', async (req, res) => {
     try {
-        const formId = parseInt(req.params.formId);
-        const { form, fields } = req.body;
-        console.log(`📝 Updating form ${formId} with fields for company:`, req.companyId);
-
-        if (!form || !form.FORM_NAME) {
-            return res.status(400).json({
-                error: 'Form name is required'
-            });
-        }
-
-        // Verify form belongs to the user's company
-        const existingForm = await prisma.$queryRaw`
-            SELECT FORM_ID FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
-        `;
-
-        if (existingForm.length === 0) {
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
-        }
-
-        // Update the form
-        await prisma.$queryRaw`
-            UPDATE GUARDIAN.FORMS 
-            SET 
-                FORM_NAME = ${form.FORM_NAME},
-                FORM_DESCRIPTION = ${form.FORM_DESCRIPTION || ''},
-                IS_PUBLIC = ${form.IS_PUBLIC || false},
-                IS_ACTIVE = ${form.IS_ACTIVE !== false},
-                UPDATE_DATE = GETDATE(),
-                UPDATE_USER_ID = ${req.user.userId}
-            WHERE FORM_ID = ${formId}
-        `;
-
-        console.log(`✅ Updated form ${formId}`);
-
-        // Handle fields if provided
-        const updatedFields = [];
-        if (fields && Array.isArray(fields)) {
-            // First, mark all existing fields as deleted
-            await prisma.$queryRaw`
-                UPDATE GUARDIAN.FIELDS 
-                SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
-                WHERE FORM_ID = ${formId}
-            `;
-
-            // Then insert/update the new fields
-            for (let i = 0; i < fields.length; i++) {
-                const field = fields[i];
-                
-                if (field.FIELD_ID) {
-                    // Update existing field
-                    await prisma.$queryRaw`
-                        UPDATE GUARDIAN.FIELDS 
-                        SET 
-                            FIELD_NAME = ${field.FIELD_NAME},
-                            FIELD_TYPE_ID = ${field.FIELD_TYPE_ID},
-                            IS_REQUIRED = ${field.IS_REQUIRED || false},
-                            OPTIONS = ${field.OPTIONS || null},
-                            SEQUENCE = ${field.SEQUENCE || i + 1},
-                            IS_ACTIVE = ${field.IS_ACTIVE !== false},
-                            IS_DELETED = ${false},
-                            UPDATE_DATE = GETDATE(),
-                            UPDATE_USER_ID = ${req.user.userId}
-                        WHERE FIELD_ID = ${field.FIELD_ID} AND FORM_ID = ${formId}
-                    `;
-
-                    updatedFields.push({
-                        ...field,
-                        FORM_ID: formId
-                    });
-                } else {
-                    // Insert new field
-                    const fieldResult = await prisma.$queryRaw`
-                        INSERT INTO GUARDIAN.FIELDS (
-                            FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
-                            IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
-                        )
-                        OUTPUT INSERTED.FIELD_ID
-                        VALUES (
-                            ${formId},
-                            ${field.FIELD_NAME},
-                            ${field.FIELD_TYPE_ID},
-                            ${field.IS_REQUIRED || false},
-                            ${field.OPTIONS || null},
-                            ${field.SEQUENCE || i + 1},
-                            ${field.IS_ACTIVE !== false},
-                            ${false},
-                            GETDATE(),
-                            GETDATE(),
-                            ${req.user.userId},
-                            ${req.user.userId}
-                        )
-                    `;
-
-                    updatedFields.push({
-                        ...field,
-                        FIELD_ID: fieldResult[0].FIELD_ID,
-                        FORM_ID: formId
-                    });
-                }
-            }
-        }
-
-        console.log(`✅ Updated ${updatedFields.length} fields for form ${formId}`);
-
+        console.log('🚪 Logout request received');
+        
+        // Since we're using JWT tokens (stateless), logout is mainly handled client-side
+        // The client should remove the token from localStorage/sessionStorage
+        // Here we can log the logout event or perform any server-side cleanup if needed
+        
         res.json({
             success: true,
-            form: {
-                ...form,
-                FORM_ID: formId,
-                ORGANIZATION_ID: req.companyId
-            },
-            fields: updatedFields
+            message: 'Logged out successfully'
         });
 
     } catch (error) {
-        console.error(`❌ Error updating form ${req.params.formId}:`, error);
+        console.error('❌ Logout error:', error);
         res.status(500).json({
-            error: 'Failed to update form',
+            error: 'Failed to logout',
             message: error.message
         });
     }
 });
 
-// Get a specific form by ID with its fields
-app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const formId = parseInt(req.params.formId);
-        console.log(`📋 Fetching form ${formId} for company:`, req.companyId);
-
-        // Get the form (include global forms with ORGANIZATION_ID = NULL or COMPANY_ID = NULL)
-        const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
-            AND IS_DELETED = ${false}
-        `;
-
-        if (forms.length === 0) {
-            return res.status(404).json({
-                error: 'Form not found'
-            });
-        }
-
-        // Get the form fields using the junction table
-        const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
-                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
-                   ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER,
-                   ft.FIELD_TYPE_DESC
-            FROM GUARDIAN.FIELDS f
-            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE ff.FORM_ID = ${formId}
-            AND (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
-            AND f.IS_DELETED = 0
-            ORDER BY ff.SORT_ORDER, f.FIELD_ID
-        `;
-
-        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
-
-        res.json({
-            success: true,
-            form: forms[0],
-            fields: fields
-        });
-
-    } catch (error) {
-        console.error(`❌ Error fetching form ${req.params.formId}:`, error);
-        res.status(500).json({
-            error: 'Failed to fetch form',
-            message: error.message
-        });
-    }
-});
-
-// Delete a form (soft delete)
-app.delete('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const formId = parseInt(req.params.formId);
-        console.log(`🗑️ Deleting form ${formId} for company:`, req.companyId);
-
-        // Verify form belongs to the user's company
-        const existingForm = await prisma.$queryRaw`
-            SELECT FORM_ID FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} AND ORGANIZATION_ID = ${req.companyId}
-        `;
-
-        if (existingForm.length === 0) {
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
-        }
-
-        // Soft delete the form and its fields
-        await prisma.$queryRaw`
-            UPDATE GUARDIAN.FORMS 
-            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
-            WHERE FORM_ID = ${formId}
-        `;
-
-        await prisma.$queryRaw`
-            UPDATE GUARDIAN.FIELDS 
-            SET IS_DELETED = ${true}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.user.userId}
-            WHERE FORM_ID = ${formId}
-        `;
-
-        console.log(`✅ Deleted form ${formId} and its fields`);
-
-        res.json({
-            success: true,
-            message: 'Form deleted successfully'
-        });
-
-    } catch (error) {
-        console.error(`❌ Error deleting form ${req.params.formId}:`, error);
-        res.status(500).json({
-            error: 'Failed to delete form',
-            message: error.message
-        });
-    }
-});
-
-// Registration endpoints for Azure production
+// Registration endpoints
 
 // Start registration process
 app.post('/api/register', async (req, res) => {
@@ -4138,6 +4483,17 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for registration: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
         // Check if user already exists
         const existingUser = await prisma.$queryRaw`
             SELECT USER_ID FROM GUARDIAN.USERS 
@@ -4146,7 +4502,7 @@ app.post('/api/register', async (req, res) => {
 
         if (existingUser.length > 0) {
             return res.status(400).json({
-                error: 'User with this email already exists'
+                error: 'An account with this email already exists'
             });
         }
 
@@ -4162,7 +4518,7 @@ app.post('/api/register', async (req, res) => {
         // Get name parts from email
         const firstName = email.split('@')[0].split('.')[0];
         const lastName = email.split('@')[0].split('.')[1] || '';
-        
+
         // Extract domain for company name
         let companyNameToUse = 'Default Company';
         if (email && email.includes('@')) {
@@ -4185,104 +4541,55 @@ app.post('/api/register', async (req, res) => {
             }
           }
         }
-        
-        // Find existing company or create new one
-        let companies = await prisma.$queryRaw`
-            SELECT COMPANY_ID, NAME FROM GUARDIAN.COMPANY 
-            WHERE NAME = ${companyNameToUse}
-        `;
-        
-        let companyId;
-        if (companies.length > 0) {
-            companyId = companies[0].COMPANY_ID;
-            console.log(`✅ Found existing company: ${companyNameToUse} (ID: ${companyId})`);
-        } else {
-            // Create new company
-            await prisma.$executeRaw`
-                INSERT INTO GUARDIAN.COMPANY (NAME, CREATED_AT, UPDATED_AT)
-                VALUES (${companyNameToUse}, GETDATE(), GETDATE())
-            `;
-            
-            // Get the newly created company ID
-            const newCompanies = await prisma.$queryRaw`
-                SELECT COMPANY_ID FROM GUARDIAN.COMPANY 
-                WHERE NAME = ${companyNameToUse}
-            `;
-            companyId = newCompanies[0].COMPANY_ID;
-            console.log(`✅ Created new company: ${companyNameToUse} (ID: ${companyId})`);
+
+        // Create company
+        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
+        if (!company) {
+          company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
         }
-        
+
         // Create user in database
-        await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USERS (
-                FIRST_NAME, LAST_NAME, EMAIL, PASSWORD_HASH, CREATE_DATE, UPDATE_DATE, 
-                STATUS, EMAIL_VALIDATED, EMAIL_VALIDATION_TOKEN, EMAIL_VALIDATION_TOKEN_EXPIRY, COMPANY_ID
-            ) VALUES (
-                ${firstName}, ${lastName}, ${email}, ${passwordHash}, GETDATE(), GETDATE(),
-                'P', ${false}, ${hashedCode}, ${tokenExpiry}, ${companyId}
-            )
-        `;
-        
-        // Get the newly created user ID
-        const users = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-        `;
-        const userId = users[0].USER_ID;
-        console.log(`✅ User created with ID: ${userId}`);
-        
+        const user = await prisma.uSERS.create({
+          data: {
+            EMAIL: email,
+            PASSWORD_HASH: passwordHash,
+            EMAIL_VALIDATION_TOKEN: hashedCode,
+            EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+            EMAIL_VALIDATED: false,
+            STATUS: 'P',
+            CREATE_DATE: new Date(),
+            UPDATE_DATE: new Date(),
+            FIRST_NAME: firstName,
+            LAST_NAME: lastName,
+            COMPANY_ID: company.COMPANY_ID
+          }
+        });
+
         // Create company_info entry
-        await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, CREATED_AT, UPDATED_AT)
-            VALUES (${userId}, ${companyId}, GETDATE(), GETDATE())
-        `;
-        
-        // Find Admin role or create it
-        let adminRoles = await prisma.$queryRaw`
-            SELECT ROLE_ID FROM GUARDIAN.ROLES 
-            WHERE NAME = 'Admin'
-        `;
-        
-        let adminRoleId;
-        if (adminRoles.length > 0) {
-            adminRoleId = adminRoles[0].ROLE_ID;
-            console.log(`✅ Found existing Admin role (ID: ${adminRoleId})`);
-        } else {
-            // Create Admin role
-            await prisma.$executeRaw`
-                INSERT INTO GUARDIAN.ROLES (NAME, DISPLAY_NAME, DESCRIPTION, STATUS, CREATE_DATE, UPDATE_DATE)
-                VALUES ('Admin', 'Administrator', 'Default admin role', 'A', GETDATE(), GETDATE())
-            `;
-            
-            // Get the newly created role ID
-            const newAdminRoles = await prisma.$queryRaw`
-                SELECT ROLE_ID FROM GUARDIAN.ROLES 
-                WHERE NAME = 'Admin'
-            `;
-            adminRoleId = newAdminRoles[0].ROLE_ID;
-            console.log(`✅ Created new Admin role (ID: ${adminRoleId})`);
+        await prisma.cOMPANY_INFO.create({
+          data: {
+            USER_ID: user.USER_ID,
+            COMPANY_ID: company.COMPANY_ID,
+          }
+        });
+
+        // Assign Admin role
+        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+        if (!adminRole) {
+          adminRole = await prisma.rOLES.create({ 
+            data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } 
+          });
         }
-        
-        // Assign Admin role to user
-        await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
-            VALUES (${userId}, ${adminRoleId}, GETDATE(), GETDATE())
-        `;
-        
-        console.log(`✅ User created in database with ID: ${userId}, verification code: ${verificationCode}`);
-        
-        // For production, also store the code in memory temporarily for backward compatibility
-        global.verificationCodes = global.verificationCodes || {};
-        global.verificationCodes[email] = {
-            code: verificationCode,
-            expiresAt: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
-            verified: false
-        };
+        await prisma.uSER_ROLES.create({ 
+          data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } 
+        });
+
+        console.log(`✅ User created in database with ID: ${user.USER_ID}, verification code: ${verificationCode}`);
 
         // Send actual email with verification code using Resend
-        const emailSent = await sendVerificationEmail(email, verificationCode);
+        const emailSent = await sendVerificationEmail(normalizedEmail, verificationCode);
         if (!emailSent) {
-            console.log(`⚠️ Failed to send email to ${email}, but user created in database (code available in dev mode)`);
+            console.log(`⚠️ Failed to send email to ${normalizedEmail}, but user created in database (code available in dev mode)`);
         }
 
         res.json({
@@ -4306,47 +4613,85 @@ app.post('/api/verify-email', async (req, res) => {
     try {
         const { email, verificationCode } = req.body;
         console.log(`🔍 Email verification attempt for: ${email}`);
+        console.log(`📧 Request body:`, JSON.stringify(req.body, null, 2));
 
         if (!email || !verificationCode) {
+            console.log(`❌ Missing required fields - email: ${!!email}, verificationCode: ${!!verificationCode}`);
             return res.status(400).json({
                 error: 'Email and verification code are required'
             });
         }
 
-        // Check verification code from memory
-        global.verificationCodes = global.verificationCodes || {};
-        const storedData = global.verificationCodes[email];
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for verification: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
 
-        if (!storedData) {
+        const normalizedEmail = emailValidation.email;
+
+        // Look up user in database
+        console.log(`🔍 Looking up user in database for email: ${normalizedEmail}`);
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: normalizedEmail }
+        });
+
+        if (!user) {
+            console.log(`❌ No user found with email: ${normalizedEmail}`);
+            return res.status(400).json({
+                error: 'Invalid verification request'
+            });
+        }
+
+        console.log(`✅ User found - ID: ${user.USER_ID}, Email Validated: ${user.EMAIL_VALIDATED}`);
+        console.log(`🔑 Has validation token: ${!!user.EMAIL_VALIDATION_TOKEN}`);
+        console.log(`⏰ Token expiry: ${user.EMAIL_VALIDATION_TOKEN_EXPIRY}`);
+
+        if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            console.log(`❌ No verification code found for email: ${normalizedEmail}`);
             return res.status(400).json({
                 error: 'No verification code found for this email'
             });
         }
 
-        if (new Date() > storedData.expiresAt) {
-            delete global.verificationCodes[email];
+        if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
+            console.log(`❌ Verification code expired for ${email}. Expired at: ${user.EMAIL_VALIDATION_TOKEN_EXPIRY}`);
             return res.status(400).json({
                 error: 'Verification code has expired'
             });
         }
 
-        if (storedData.code !== verificationCode) {
+        // Hash the provided code and compare with stored hash
+        const crypto = require('crypto');
+        const hashedProvidedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        
+        console.log(`🔍 Comparing codes for ${email}:`);
+        console.log(`📥 Provided code: ${verificationCode}`);
+        console.log(`🔐 Hashed provided: ${hashedProvidedCode}`);
+        console.log(`💾 Stored hash: ${user.EMAIL_VALIDATION_TOKEN}`);
+        console.log(`✅ Codes match: ${user.EMAIL_VALIDATION_TOKEN === hashedProvidedCode}`);
+
+        if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
+            console.log(`❌ Invalid verification code for ${email}`);
             return res.status(400).json({
                 error: 'Invalid verification code'
             });
         }
 
-        // Mark as verified in memory
-        storedData.verified = true;
-        
-        // Update database to mark email as validated
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.USERS 
-            SET EMAIL_VALIDATED = 1 
-            WHERE EMAIL = ${email}
-        `;
-        
-        console.log(`✅ Database updated: EMAIL_VALIDATED set to 1 for ${email}`);
+        // Mark user as verified in database
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                EMAIL_VALIDATED: true,
+                EMAIL_VALIDATION_TOKEN: null,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: null,
+                STATUS: 'A', // Active
+                UPDATE_DATE: new Date()
+            }
+        });
         console.log(`✅ Email verified successfully for: ${email}`);
 
         res.json({
@@ -4358,248 +4703,6 @@ app.post('/api/verify-email', async (req, res) => {
         console.error('❌ Email verification error:', error);
         res.status(500).json({
             error: 'Failed to verify email',
-            message: error.message
-        });
-    }
-});
-
-// Complete registration after email verification
-app.post('/api/complete-registration', async (req, res) => {
-    try {
-        const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
-        console.log(`👤 Completing registration for: ${email}`);
-        console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
-
-        // Validate required fields
-        console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
-        if (!email || !password || !fullName || !workspaceName) {
-            console.log(`❌ Missing required fields for complete-registration`);
-            return res.status(400).json({
-                error: 'Email, password, full name, and workspace name are required'
-            });
-        }
-
-        // Check if email was verified (memory-based for production)
-        global.verificationCodes = global.verificationCodes || {};
-        const storedData = global.verificationCodes[email];
-
-        if (!storedData || !storedData.verified) {
-            return res.status(400).json({
-                error: 'Email must be verified before completing registration'
-            });
-        }
-
-        // Check if user exists in database
-        console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
-        let existingUser;
-        try {
-            const users = await prisma.$queryRaw`
-                SELECT USER_ID, EMAIL, PASSWORD_HASH, EMAIL_VALIDATED, COMPANY_ID
-                FROM GUARDIAN.USERS 
-                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-            `;
-            existingUser = users.length > 0 ? users[0] : null;
-            console.log(`✅ Database query successful for user lookup`);
-        } catch (dbError) {
-            console.error(`❌ Database error during user lookup:`, dbError);
-            return res.status(500).json({
-                error: 'Database connection error',
-                details: dbError.message
-            });
-        }
-
-        console.log(`🔍 Checking user existence for: ${email}`);
-        if (!existingUser) {
-            console.log(`❌ No user found for email: ${email}`);
-            return res.status(400).json({
-                error: 'User not found. Please register first.'
-            });
-        }
-
-        console.log(`✅ User found - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}`);
-        console.log(`📧 Email validated: ${existingUser.EMAIL_VALIDATED}`);
-        console.log(`🔐 Has password: ${!!existingUser.PASSWORD_HASH}`);
-
-        if (!existingUser.EMAIL_VALIDATED) {
-            console.log(`❌ Email not validated for: ${email}`);
-            return res.status(400).json({
-                error: 'Email must be verified before completing registration'
-            });
-        }
-
-        console.log(`✅ Email validation check passed`);
-
-        // Allow profile updates even if user already has a password
-        if (existingUser.PASSWORD_HASH && existingUser.PASSWORD_HASH !== '') {
-            console.log(`ℹ️ User already has password, will update profile information for: ${email}`);
-        }
-
-        console.log(`✅ Password check passed - ready to update user`);
-        
-        // Hash password
-        console.log(`🔐 Starting password hashing process`);
-        const hashedPassword = await bcrypt.hash(password, 12);
-        console.log(`✅ Password hashed successfully`);
-
-        // Split full name into first and last name
-        console.log(`📝 Processing name: ${fullName}`);
-        const nameParts = fullName.trim().split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ') || '';
-        console.log(`✅ Name parsed - First: ${firstName}, Last: ${lastName}`);
-
-        // Update the existing user with password and name
-        console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.USERS 
-            SET PASSWORD_HASH = ${hashedPassword}, 
-                FIRST_NAME = ${firstName}, 
-                LAST_NAME = ${lastName}, 
-                STATUS = 'A', 
-                UPDATE_DATE = GETDATE()
-            WHERE USER_ID = ${existingUser.USER_ID}
-        `;
-        console.log(`✅ User updated successfully in database`);
-
-        const userId = existingUser.USER_ID;
-
-        // Check if user already has roles, if not assign Admin role
-        const existingRoles = await prisma.$queryRaw`
-            SELECT USER_ROLE_ID FROM GUARDIAN.USER_ROLES 
-            WHERE USER_ID = ${userId}
-        `;
-
-        if (existingRoles.length === 0) {
-            // Assign Admin role if no roles exist
-            const adminRoles = await prisma.$queryRaw`
-                SELECT ROLE_ID FROM GUARDIAN.ROLES 
-                WHERE NAME = 'Admin'
-            `;
-            
-            if (adminRoles.length > 0) {
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
-                    VALUES (${userId}, ${adminRoles[0].ROLE_ID}, GETDATE(), GETDATE())
-                `;
-                console.log(`✅ Admin role assigned to user ${userId}`);
-            }
-        }
-
-        // Update company info if provided
-        console.log(`📝 Updating company info for user ${userId}`);
-        if (role || teamSize || companySize || workspaceName) {
-            const existingCompanyInfo = await prisma.$queryRaw`
-                SELECT COMPANY_INFO_ID FROM GUARDIAN.COMPANY_INFO 
-                WHERE USER_ID = ${userId}
-            `;
-
-            if (existingCompanyInfo.length > 0) {
-                console.log(`✅ Found existing company info record with ID: ${existingCompanyInfo[0].COMPANY_INFO_ID}`);
-                // Update existing record using the unique COMPANY_INFO_ID - single efficient query
-                const companyInfoId = existingCompanyInfo[0].COMPANY_INFO_ID;
-                
-                // Log values being saved
-                console.log(`📝 Updating company info with values:`, {
-                    companyInfoId,
-                    workspaceName: workspaceName || 'NULL',
-                    role: role || 'NULL',
-                    teamSize: teamSize || 'NULL',
-                    companySize: companySize || 'NULL'
-                });
-                
-                // Single UPDATE query for all fields
-                const updateResult = await prisma.$executeRaw`
-                    UPDATE GUARDIAN.COMPANY_INFO 
-                    SET WORKSPACE_NAME = ${workspaceName || null}, 
-                        ROLE = ${role || null}, 
-                        TEAM_SIZE = ${teamSize || null}, 
-                        COMPANY_SIZE = ${companySize || null}, 
-                        UPDATED_AT = GETDATE()
-                    WHERE COMPANY_INFO_ID = ${companyInfoId}
-                `;
-                
-                console.log(`✅ Company info updated successfully - Rows affected: ${updateResult}`);
-            } else {
-                console.log(`❌ No existing company info found for user ${userId}`);
-            }
-        }
-
-        // Clean up verification code
-        delete global.verificationCodes[email];
-
-        console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
-
-        res.json({
-            success: true,
-            message: 'Registration completed successfully',
-            user: {
-                id: userId,
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
-                companyId: existingUser.COMPANY_ID
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Complete registration error:', error);
-        res.status(500).json({
-            error: 'Failed to complete registration',
-            message: error.message
-        });
-    }
-});
-
-// Email validation endpoint (for frontend compatibility)
-app.post('/api/validate-email', async (req, res) => {
-    try {
-        const { email, purpose = 'register' } = req.body;
-        console.log(`📧 Email validation request for: ${email} (purpose: ${purpose})`);
-
-        if (!email) {
-            return res.status(400).json({
-                valid: false,
-                reason: 'Email is required'
-            });
-        }
-
-        // Basic email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const isValidFormat = emailRegex.test(email);
-
-        if (!isValidFormat) {
-            return res.json({
-                valid: false,
-                reason: 'Invalid email format'
-            });
-        }
-
-        // For registration, check if user already exists
-        if (purpose === 'register') {
-            const existingUser = await prisma.$queryRaw`
-                SELECT USER_ID FROM GUARDIAN.USERS 
-                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-            `;
-
-            if (existingUser.length > 0) {
-                return res.json({
-                    valid: false,
-                    reason: 'User with this email already exists'
-                });
-            }
-        }
-
-        // Email is valid
-        res.json({
-            valid: true,
-            reason: 'Email is valid'
-        });
-
-    } catch (error) {
-        console.error('❌ Email validation error:', error);
-        res.status(500).json({
-            valid: false,
-            reason: 'Server error during email validation',
             message: error.message
         });
     }
@@ -4669,46 +4772,62 @@ app.post('/api/request-password-reset', async (req, res) => {
             });
         }
 
-        // Check if user exists
-        const users = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
-        `;
-
-        if (users.length === 0) {
-            // Don't reveal if email exists or not for security
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for password reset: ${email}`);
             return res.json({
                 success: true,
-                message: 'If an account with this email exists, you will receive a password reset code.'
+                message: 'If an account with this email exists, you will receive a password reset link.'
             });
         }
 
-        const user = users[0];
+        const normalizedEmail = emailValidation.email;
+
+        // Check if user exists
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: normalizedEmail }
+        });
+
+        if (!user) {
+            // Don't reveal if email exists or not for security
+            return res.json({
+                success: true,
+                message: 'If an account with this email exists, you will receive a password reset link.'
+            });
+        }
 
         // Generate a 6-digit reset code
         const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // For production, store the code in memory temporarily
-        global.resetCodes = global.resetCodes || {};
-        global.resetCodes[email] = {
-            code: resetCode,
-            expiresAt: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
-            userId: user.USER_ID
-        };
+        // Hash the reset code for secure storage
+        const crypto = require('crypto');
+        const hashedCode = crypto.createHash('sha256').update(resetCode).digest('hex');
+        const resetExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+
+        // Store reset code in user record
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                EMAIL_VALIDATION_TOKEN: hashedCode,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: resetExpiry,
+                UPDATE_DATE: new Date()
+            }
+        });
 
         // Send reset email
-        const emailSent = await sendVerificationEmail(email, resetCode);
+        const emailSent = await sendVerificationEmail(normalizedEmail, resetCode);
         if (!emailSent) {
-            console.log(`⚠️ Failed to send reset email to ${email}, but continuing (code available in dev mode)`);
+            console.log(`⚠️ Failed to send reset email to ${normalizedEmail}, but continuing (code available in dev mode)`);
         }
 
         console.log(`✅ Password reset code generated for ${email}: ${resetCode}`);
 
         res.json({
             success: true,
-            message: 'If an account with this email exists, you will receive a password reset code.',
+            message: 'If an account with this email exists, you will receive a password reset link.',
             // In development, return the code for testing
-            ...(process.env.NODE_ENV === 'development' && { resetCode })
+            ...(process.env.NODE_ENV === 'development' && { verificationCode: resetCode })
         });
 
     } catch (error) {
@@ -4733,26 +4852,49 @@ app.post('/api/verify-reset-code', async (req, res) => {
             });
         }
 
-        // Check reset code from memory
-        global.resetCodes = global.resetCodes || {};
-        const storedData = global.resetCodes[email];
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for reset code verification: ${email}`);
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid request format'
+            });
+        }
 
-        if (!storedData) {
+        const normalizedEmail = emailValidation.email;
+
+        // Find user
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: normalizedEmail }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid reset request'
+            });
+        }
+
+        if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
             return res.status(400).json({
                 success: false,
                 error: 'No active password reset request found'
             });
         }
 
-        if (new Date() > storedData.expiresAt) {
-            delete global.resetCodes[email];
+        if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
             return res.status(400).json({
                 success: false,
                 error: 'Verification code has expired'
             });
         }
 
-        if (storedData.code !== code) {
+        // Verify reset code
+        const crypto = require('crypto');
+        const hashedProvidedCode = crypto.createHash('sha256').update(code).digest('hex');
+
+        if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid verification code'
@@ -4790,24 +4932,45 @@ app.post('/api/reset-password', async (req, res) => {
             });
         }
 
-        // Check reset code from memory
-        global.resetCodes = global.resetCodes || {};
-        const storedData = global.resetCodes[email];
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for password reset: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid request format'
+            });
+        }
 
-        if (!storedData) {
+        const normalizedEmail = emailValidation.email;
+
+        // Find user
+        const user = await prisma.uSERS.findFirst({
+            where: { EMAIL: normalizedEmail }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                error: 'Invalid reset request'
+            });
+        }
+
+        if (!user.EMAIL_VALIDATION_TOKEN || !user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
             return res.status(400).json({
                 error: 'No active password reset request found'
             });
         }
 
-        if (new Date() > storedData.expiresAt) {
-            delete global.resetCodes[email];
+        if (new Date() > user.EMAIL_VALIDATION_TOKEN_EXPIRY) {
             return res.status(400).json({
                 error: 'Password reset code has expired'
             });
         }
 
-        if (storedData.code !== verificationCode) {
+        // Verify reset code
+        const crypto = require('crypto');
+        const hashedProvidedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+
+        if (user.EMAIL_VALIDATION_TOKEN !== hashedProvidedCode) {
             return res.status(400).json({
                 error: 'Invalid reset code'
             });
@@ -4816,15 +4979,16 @@ app.post('/api/reset-password', async (req, res) => {
         // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-        // Update password in database
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.USERS 
-            SET PASSWORD_HASH = ${hashedPassword}, UPDATE_DATE = GETDATE()
-            WHERE USER_ID = ${storedData.userId}
-        `;
-
-        // Clear reset code
-        delete global.resetCodes[email];
+        // Update password and clear reset token
+        await prisma.uSERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                PASSWORD_HASH: hashedPassword,
+                EMAIL_VALIDATION_TOKEN: null,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: null,
+                UPDATE_DATE: new Date()
+            }
+        });
 
         console.log(`✅ Password reset successful for: ${email}`);
 
@@ -4842,507 +5006,381 @@ app.post('/api/reset-password', async (req, res) => {
     }
 });
 
-// Get form for a specific request (for form fulfillment)
-app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) => {
+// Complete registration after email verification
+app.post('/api/complete-registration', async (req, res) => {
     try {
-        const requestId = parseInt(req.params.id);
-        console.log(`📋 Fetching form for request ${requestId} (Company: ${req.companyId})`);
+        const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
+        console.log(`👤 Completing registration for: ${email}`);
+        console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
 
-        if (!requestId || isNaN(requestId)) {
+        // Validate required fields
+        console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
+        if (!email || !password || !fullName || !workspaceName) {
+            console.log(`❌ Missing required fields for complete-registration`);
             return res.status(400).json({
-                error: 'Valid request ID is required'
+                error: 'Email, password, full name, and workspace name are required'
             });
         }
 
-        // Get the request details
-        console.log(`🔍 Querying for request ${requestId} in company ${req.companyId}`);
-        const requests = await prisma.$queryRaw`
-            SELECT r.REQUEST_ID, r.REQUEST_NAME, r.FORM_ID, r.STATUS, r.REQUESTOR_ID, r.ASSIGNED_ID,
-                   r.CREATE_DATE, r.UPDATE_DATE, r.COMPANY_ID, r.REQUEST_DESCRIPTION
-            FROM GUARDIAN.REQUESTS r
-            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
-        `;
-
-        console.log(`🔍 Found ${requests.length} requests matching criteria`);
-        if (!requests.length) {
-            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Request not found or access denied'
+        // Check if user exists and email was verified
+        console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
+        let existingUser;
+        try {
+            existingUser = await prisma.uSERS.findFirst({
+                where: { EMAIL: email }
+            });
+            console.log(`✅ Database query successful for user lookup`);
+        } catch (dbError) {
+            console.error(`❌ Database error during user lookup:`, dbError);
+            return res.status(500).json({
+                error: 'Database connection error',
+                details: dbError.message
             });
         }
 
-        const request = requests[0];
-        console.log(`✅ Found request with FORM_ID: ${request.FORM_ID}`);
-
-        if (!request.FORM_ID) {
-            console.log(`❌ Request ${requestId} has no form associated`);
-            return res.status(404).json({
-                error: 'No form associated with this request'
+        console.log(`🔍 Checking user existence for: ${email}`);
+        if (!existingUser) {
+            console.log(`❌ No user found for email: ${email}`);
+            return res.status(400).json({
+                error: 'User not found. Please register first.'
             });
         }
 
-        // Get the form details (check both company-specific and global forms)
-        console.log(`🔍 Querying for form ${request.FORM_ID} (company-specific or global)`);
-        const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${request.FORM_ID} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
-        `;
+        console.log(`✅ User found - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}`);
+        console.log(`📧 Email validated: ${existingUser.EMAIL_VALIDATED}`);
+        console.log(`🔐 Has password: ${!!existingUser.PASSWORD_HASH}`);
 
-        console.log(`🔍 Found ${forms.length} forms matching criteria`);
-        if (!forms.length) {
-            console.log(`❌ Form ${request.FORM_ID} not found for organization ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Form template not found or access denied',
-                details: `Request ${requestId} references form ${request.FORM_ID} which is not available for your organization`,
-                requestId: requestId,
-                formId: request.FORM_ID,
-                companyId: req.companyId
+        if (!existingUser.EMAIL_VALIDATED) {
+            console.log(`❌ Email not validated for: ${email}`);
+            return res.status(400).json({
+                error: 'Email must be verified before completing registration'
             });
         }
 
-        const form = forms[0];
+        console.log(`✅ Email validation check passed`);
 
-        // Get fields specific to this form using the FORMS_FIELDS junction table
-        console.log(`🔍 Querying fields for form ${request.FORM_ID} using junction table`);
-        const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
-                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
-                   ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER
-            FROM GUARDIAN.FIELDS f
-            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-            WHERE ff.FORM_ID = ${request.FORM_ID}
-            AND (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
-            AND f.IS_DELETED = 0
-            ORDER BY ff.SORT_ORDER, f.FIELD_ID
-        `;
-        console.log(`✅ Found ${fields.length} form-specific fields for form ${request.FORM_ID}`);
+        // Allow profile updates even if user already has a password
+        if (existingUser.PASSWORD_HASH && existingUser.PASSWORD_HASH !== '') {
+            console.log(`ℹ️ User already has password, will update profile information for: ${email}`);
+        }
 
-        // Check for existing form instance and values
-        console.log(`🔍 Checking for existing form instance for request ${requestId}`);
+        console.log(`✅ Password check passed - ready to update user`);
         
-        // Admin roles (1, 3, 4, 6) can see all form instances, others only see their own
-        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
-        
-        let existingInstances;
-        // Look for existing form instance for this specific request
-        existingInstances = await prisma.$queryRaw`
-            SELECT FORM_INSTANCE_ID, SUBMITTED_DATE, CREATE_DATE, UPDATE_DATE, ASSIGNED_ID
-            FROM GUARDIAN.FORMS_INSTANCE 
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
-            ORDER BY CREATE_DATE DESC
-        `;
-        console.log(`🔍 Fetching form instance for request ${requestId}`);
+        // Hash password
+        console.log(`🔐 Starting password hashing process`);
+        const hashedPassword = await bcrypt.hash(password, 12);
+        console.log(`✅ Password hashed successfully`);
 
-        let existingValues = {};
-        let formInstanceId = null;
-        let formStatus = 'new'; // new, in_progress, completed
+        // Split full name into first and last name
+        console.log(`📝 Processing name: ${fullName}`);
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+        console.log(`✅ Name parsed - First: ${firstName}, Last: ${lastName}`);
 
-        if (existingInstances.length > 0) {
-            formInstanceId = existingInstances[0].FORM_INSTANCE_ID;
-            const submittedDate = existingInstances[0].SUBMITTED_DATE;
-            
-            console.log(`📋 Found existing form instance: ${formInstanceId}`);
-            
-            // Get existing field values
-            const savedValues = await prisma.$queryRaw`
-                SELECT FIELD_ID, VALUE
-                FROM GUARDIAN.FORMS_INSTANCE_VALUES 
-                WHERE FORM_INSTANCE_ID = ${formInstanceId}
-            `;
-            
-            // Convert to object with field IDs as keys (for backend processing)
-            const existingValuesByFieldId = savedValues.reduce((acc, value) => {
-                acc[value.FIELD_ID] = value.VALUE;
-                return acc;
-            }, {});
-            
-            // Also create a mapping by field name (for frontend usage)
-            existingValues = savedValues.reduce((acc, value) => {
-                // Find the field with this FIELD_ID to get its name
-                const field = fields.find(f => f.FIELD_ID === value.FIELD_ID);
-                if (field) {
-                    acc[field.FIELD_NAME] = value.VALUE;
-                }
-                return acc;
-            }, {});
-            
-            console.log(`📊 Found ${savedValues.length} existing field values`);
-            
-            // Determine form completion status
-            const requiredFields = fields.filter(f => f.FORM_IS_REQUIRED || f.IS_REQUIRED);
-            const filledRequiredFields = requiredFields.filter(f => 
-                existingValuesByFieldId[f.FIELD_ID] && existingValuesByFieldId[f.FIELD_ID].trim() !== ''
-            );
-            
-            if (submittedDate && filledRequiredFields.length === requiredFields.length) {
-                formStatus = 'completed';
-            } else if (savedValues.length > 0) {
-                formStatus = 'in_progress';
+        // Update the existing user with password and name
+        console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
+        await prisma.uSERS.update({
+            where: { USER_ID: existingUser.USER_ID },
+            data: {
+                PASSWORD_HASH: hashedPassword,
+                FIRST_NAME: firstName,
+                LAST_NAME: lastName,
+                STATUS: 'A', // Active
+                UPDATE_DATE: new Date()
             }
-            
-            console.log(`📈 Form status: ${formStatus} (${filledRequiredFields.length}/${requiredFields.length} required fields filled)`);
-        } else {
-            console.log(`📝 No existing form instance found - new form`);
-        }
-
-        console.log(`✅ Found request ${requestId} with form ${request.FORM_ID} containing ${fields.length} fields`);
-
-        // Prepare response in expected format
-        const response = {
-            request: {
-                REQUEST_ID: request.REQUEST_ID,
-                REQUEST_NAME: request.REQUEST_NAME,
-                STATUS: request.STATUS,
-                FORM_ID: request.FORM_ID,
-                REQUESTOR_ID: request.REQUESTOR_ID,
-                ASSIGNED_ID: request.ASSIGNED_ID,
-                CREATE_DATE: request.CREATE_DATE,
-                UPDATE_DATE: request.UPDATE_DATE,
-                REQUEST_DESCRIPTION: request.REQUEST_DESCRIPTION
-            },
-            form: {
-                FORM_ID: form.FORM_ID,
-                FORM_NAME: form.FORM_NAME,
-                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
-                IS_ACTIVE: form.IS_ACTIVE,
-                IS_PUBLIC: form.IS_PUBLIC,
-                IS_DELETED: form.IS_DELETED
-            },
-            fields: fields.map(field => ({
-                FIELD_ID: field.FIELD_ID,
-                FIELD_NAME: field.FIELD_NAME,
-                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
-                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
-                HAS_LOOKUP: field.HAS_LOOKUP,
-                IS_PUBLIC: field.IS_PUBLIC,
-                IS_ACTIVE: field.IS_ACTIVE,
-                IS_DELETED: field.IS_DELETED,
-                IS_REQUIRED: field.FORM_IS_REQUIRED || field.IS_REQUIRED, // Use form-specific requirement
-                IS_SENSITIVE: field.IS_SENSITIVE,
-                SORT_ORDER: field.SORT_ORDER,
-                CREATE_DATE: field.CREATE_DATE,
-                UPDATE_DATE: field.UPDATE_DATE,
-                ORGANIZATION_ID: field.ORGANIZATION_ID
-            })),
-            values: existingValues, // Include existing values for form pre-filling
-            formInstanceId: formInstanceId,
-            formStatus: formStatus, // new, in_progress, completed
-            isCompleted: formStatus === 'completed',
-            hasExistingData: Object.keys(existingValues).length > 0
-        };
-
-        console.log(`📤 Sending form data for request ${requestId} to frontend`);
-        res.json(response);
-
-    } catch (error) {
-        console.error(`❌ Error fetching form for request ${req.params.id}:`, error);
-        res.status(500).json({
-            error: 'Failed to fetch request form',
-            message: error.message
         });
-    }
-});
+        console.log(`✅ User updated successfully in database`);
 
-// Submit form data for a specific request
-app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const { fieldValues, isComplete = false, isDraft = false } = req.body;
+        const userId = existingUser.USER_ID;
 
-        console.log(`📝 Submitting form data for request ${requestId} (Company: ${req.companyId})`);
-        console.log(`📋 Field values:`, JSON.stringify(fieldValues, null, 2));
-        console.log(`📊 Submission type: ${isComplete ? 'Complete' : isDraft ? 'Draft' : 'Auto-save'}`);
+        // Check if user already has roles, if not assign Admin role (they already have it from registration)
+        const existingRoles = await prisma.uSER_ROLES.findMany({
+            where: { USER_ID: userId }
+        });
 
-        if (!requestId || isNaN(requestId)) {
-            return res.status(400).json({
-                error: 'Valid request ID is required'
-            });
+        if (existingRoles.length === 0) {
+            // Assign Admin role if no roles exist
+            let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+            if (adminRole) {
+                await prisma.uSER_ROLES.create({
+                    data: { USER_ID: userId, ROLE_ID: adminRole.ROLE_ID }
+                });
+            }
         }
 
-        if (!fieldValues || typeof fieldValues !== 'object') {
-            return res.status(400).json({
-                error: 'Field values are required'
+        // Update company info if provided
+        console.log(`📝 Updating company info for user ${userId}`);
+        if (role || teamSize || companySize || workspaceName) {
+            const existingCompanyInfo = await prisma.cOMPANY_INFO.findFirst({
+                where: { USER_ID: userId }
             });
-        }
 
-        // Get the request details to verify ownership and get form ID
-        const requests = await prisma.$queryRaw`
-            SELECT r.REQUEST_ID, r.FORM_ID, r.ASSIGNED_ID, r.COMPANY_ID
-            FROM GUARDIAN.REQUESTS r
-            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
-        `;
-
-        if (!requests.length) {
-            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Request not found or access denied'
-            });
-        }
-
-        const request = requests[0];
-        
-        if (!request.FORM_ID) {
-            return res.status(400).json({
-                error: 'No form associated with this request'
-            });
-        }
-
-        // Check if form instance already exists for this request
-        // Admin roles (1, 3, 4, 6) can see all form instances, others only see their own
-        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 3, 4, 6].includes(roleId));
-        
-        let existingInstances;
-        // Look for existing form instance for this specific request
-        existingInstances = await prisma.$queryRaw`
-            SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
-            ORDER BY CREATE_DATE DESC
-        `;
-
-        let formInstanceId;
-
-        if (existingInstances.length > 0) {
-            formInstanceId = existingInstances[0].FORM_INSTANCE_ID;
-            console.log(`📋 Using existing form instance: ${formInstanceId}`);
-            
-            // Update the existing instance with appropriate submitted date
-            if (isComplete) {
-                // Set submitted date for completed forms
-                await prisma.$executeRaw`
-                    UPDATE GUARDIAN.FORMS_INSTANCE 
-                    SET SUBMITTED_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
-                    WHERE FORM_INSTANCE_ID = ${formInstanceId}
-                `;
-                console.log(`✅ Marked form instance as completed`);
+            if (existingCompanyInfo) {
+                console.log(`✅ Found existing company info record with ID: ${existingCompanyInfo.COMPANY_INFO_ID}`);
+                
+                // Log values being saved
+                console.log(`📝 Updating company info with values:`, {
+                    companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
+                    workspaceName: workspaceName || 'NULL',
+                    role: role || 'NULL',
+                    teamSize: teamSize || 'NULL',
+                    companySize: companySize || 'NULL'
+                });
+                
+                // Update existing record using the unique COMPANY_INFO_ID
+                const updateResult = await prisma.cOMPANY_INFO.update({
+                    where: { COMPANY_INFO_ID: existingCompanyInfo.COMPANY_INFO_ID },
+                    data: {
+                        ...(workspaceName && { WORKSPACE_NAME: workspaceName }),
+                        ...(role && { ROLE: role }),
+                        ...(teamSize && { TEAM_SIZE: teamSize }),
+                        ...(companySize && { COMPANY_SIZE: companySize }),
+                        UPDATED_AT: new Date()
+                    }
+                });
+                console.log(`✅ Company info updated successfully - Updated record:`, updateResult);
             } else {
-                // For drafts/in-progress, update timestamp but keep submitted_date NULL
-                await prisma.$executeRaw`
-                    UPDATE GUARDIAN.FORMS_INSTANCE 
-                    SET UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
-                    WHERE FORM_INSTANCE_ID = ${formInstanceId}
-                `;
-                console.log(`📝 Updated form instance as in-progress`);
-            }
-        } else {
-            // Create new form instance
-            if (isComplete) {
-                // Complete submission
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
-                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
-                    ) VALUES (
-                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
-                    )
-                `;
-                console.log(`📋 Created new completed form instance`);
-            } else {
-                // Draft/in-progress submission (no submitted date)
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
-                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
-                    ) VALUES (
-                        ${requestId}, ${request.FORM_ID}, ${request.ASSIGNED_ID || req.userId}, ${req.companyId}, NULL, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
-                    )
-                `;
-                console.log(`📋 Created new draft form instance`);
-            }
-
-            // Get the new instance ID
-            let newInstances;
-            if (isAdmin) {
-                newInstances = await prisma.$queryRaw`
-                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                    WHERE FORM_ID = ${request.FORM_ID} AND COMPANY_ID = ${req.companyId}
-                    ORDER BY CREATE_DATE DESC
-                `;
-            } else {
-                newInstances = await prisma.$queryRaw`
-                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-                    WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID = ${request.ASSIGNED_ID} AND COMPANY_ID = ${req.companyId}
-                    ORDER BY CREATE_DATE DESC
-                `;
-            }
-            
-            formInstanceId = newInstances[0].FORM_INSTANCE_ID;
-        }
-
-        // Delete existing field values for this instance
-        await prisma.$executeRaw`
-            DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES 
-            WHERE FORM_INSTANCE_ID = ${formInstanceId}
-        `;
-
-        // Insert new field values
-        let savedCount = 0;
-        for (const [fieldId, value] of Object.entries(fieldValues)) {
-            if (value !== null && value !== undefined && value !== '') {
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
-                        FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
-                    ) VALUES (
-                        ${formInstanceId}, ${parseInt(fieldId)}, ${String(value)}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
-                    )
-                `;
-                savedCount++;
+                console.log(`❌ No existing company info found for user ${userId}`);
             }
         }
 
-        // Determine the final status
-        const finalStatus = isComplete ? 'completed' : (savedCount > 0 ? 'in_progress' : 'new');
-        const statusMessage = isComplete ? 'Form completed successfully' : 
-                            isDraft ? 'Draft saved successfully' : 
-                            'Form data saved successfully';
-
-        console.log(`✅ Form submitted successfully for request ${requestId}: ${savedCount} field values saved (Status: ${finalStatus})`);
+        console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
 
         res.json({
             success: true,
-            message: statusMessage,
-            formInstanceId: formInstanceId,
-            savedFieldCount: savedCount,
-            formStatus: finalStatus,
-            isComplete: isComplete,
-            isDraft: isDraft
+            message: 'Registration completed successfully',
+            user: {
+                id: userId,
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                companyId: existingUser.COMPANY_ID
+            }
         });
 
     } catch (error) {
-        console.error(`❌ Error submitting form for request ${req.params.id}:`, error);
+        console.error('❌ Complete registration error:', error);
         res.status(500).json({
-            error: 'Failed to submit form data',
+            error: 'Failed to complete registration',
             message: error.message
         });
     }
 });
 
-// Get specific form by ID (enhanced version)
-app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+// Accept invite
+app.post('/api/invite/accept', async (req, res) => {
     try {
-        const formId = parseInt(req.params.id);
-        console.log(`📋 Fetching form ${formId} from database for company:`, req.companyId);
+        const { token, firstName, lastName, password } = req.body;
+        console.log(`📩 Processing invite acceptance with token: ${token}`);
 
-        if (!formId || isNaN(formId)) {
+        if (!token || !firstName || !lastName || !password) {
             return res.status(400).json({
-                error: 'Valid form ID is required'
+                error: 'Token, first name, last name, and password are required'
             });
         }
 
-        // Get user's roles to check for admin access
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
+        // Find and validate invite
+        const invites = await prisma.$queryRaw`
+            SELECT INVITE_ID, EMAIL, ROLE_ID, COMPANY_ID, STATUS, EXPIRES_AT
+            FROM GUARDIAN.INVITES 
+            WHERE TOKEN = ${token} AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
         `;
-        
-        const roleIds = userRoles.map(role => role.ROLE_ID);
-        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
-        
-        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
 
-        // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
-        let forms;
-        
-        if (isAdmin) {
-            // Admin users can access both company forms and global forms
-            forms = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
-            `;
-        } else {
-            // Regular users can only access their company's forms
-            forms = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND ORGANIZATION_ID = ${req.companyId}
-            `;
+        if (invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invalid or expired invite token'
+            });
         }
 
-        if (!forms.length) {
-            console.log(`❌ Form ${formId} not found for company ${req.companyId}. Checking if form exists at all...`);
-            
-            // Check if form exists but belongs to different company
-            const anyForm = await prisma.$queryRaw`
-                SELECT FORM_ID, ORGANIZATION_ID FROM GUARDIAN.FORMS WHERE FORM_ID = ${formId}
-            `;
-            
-            if (anyForm.length > 0) {
-                console.log(`📋 Form ${formId} exists but belongs to company ${anyForm[0].ORGANIZATION_ID}, user is in company ${req.companyId}`);
-            } else {
-                console.log(`📋 Form ${formId} does not exist in database at all`);
+        const invite = invites[0];
+
+        // Check if user already exists
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({
+                error: 'An account with this email already exists'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Create user account
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME, 
+                STATUS, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${invite.EMAIL}, ${hashedPassword}, ${firstName}, ${lastName},
+                'A', ${invite.COMPANY_ID}, GETDATE(), GETDATE()
+            )
+        `;
+
+        // Get the newly created user ID
+        const newUser = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${invite.EMAIL}))
+        `;
+
+        const userId = newUser[0].USER_ID;
+
+        // Assign the role from the invite
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, ${invite.ROLE_ID}, GETDATE(), GETDATE())
+        `;
+
+        // Mark invite as used
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.INVITES 
+            SET STATUS = 'U', USED_AT = GETDATE()
+            WHERE INVITE_ID = ${invite.INVITE_ID}
+        `;
+
+        console.log(`✅ Invite accepted successfully for: ${invite.EMAIL} (User ID: ${userId})`);
+
+        res.json({
+            success: true,
+            message: 'Invite accepted successfully. You can now log in.',
+            user: {
+                id: userId,
+                email: invite.EMAIL,
+                firstName: firstName,
+                lastName: lastName,
+                companyId: invite.COMPANY_ID,
+                roleId: invite.ROLE_ID
             }
-            
-            return res.status(404).json({
-                error: 'Form not found or access denied'
+        });
+
+    } catch (error) {
+        console.error('❌ Invite acceptance error:', error);
+        res.status(500).json({
+            error: 'Failed to accept invite',
+            message: error.message
+        });
+    }
+});
+
+// Send invites endpoint
+app.post('/invites/send', async (req, res) => {
+    try {
+        const { invites } = req.body;
+        console.log(`📧 Processing ${invites?.length || 0} invite requests`);
+
+        if (!invites || !Array.isArray(invites) || invites.length === 0) {
+            return res.status(400).json({
+                error: 'Invites array is required and must not be empty'
             });
         }
 
-        const form = forms[0];
+        const results = [];
+        const errors = [];
 
-        // Get the form fields - using junction table for proper field assignment
-        const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
-                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
-                   ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER
-            FROM GUARDIAN.FIELDS f
-            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-            WHERE ff.FORM_ID = ${formId}
-            AND (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
-            AND f.IS_DELETED = 0
-            ORDER BY ff.SORT_ORDER, f.FIELD_ID
-        `;
+        for (const invite of invites) {
+            try {
+                const { email, roleId } = invite;
 
-        console.log(`✅ Found form ${formId} with ${fields.length} fields`);
+                if (!email || !roleId) {
+                    errors.push(`Invalid invite data: email and roleId required`);
+                    continue;
+                }
+
+                // Check if user already exists
+                const existingUser = await prisma.$queryRaw`
+                    SELECT USER_ID FROM GUARDIAN.USERS 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                `;
+
+                if (existingUser.length > 0) {
+                    errors.push(`User with email ${email} already exists`);
+                    continue;
+                }
+
+                // Check if there's already a pending invite
+                const existingInvite = await prisma.$queryRaw`
+                    SELECT INVITE_ID FROM GUARDIAN.INVITES 
+                    WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email})) 
+                    AND STATUS = 'P' AND EXPIRES_AT > GETDATE()
+                `;
+
+                if (existingInvite.length > 0) {
+                    errors.push(`Active invite already exists for ${email}`);
+                    continue;
+                }
+
+                // Generate unique token
+                const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+                
+                // Set expiration to 7 days from now
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+
+                // For now, default to company ID 1 - you may want to get this from the authenticated user
+                const companyId = 1;
+
+                // Insert invite record
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.INVITES (EMAIL, ROLE_ID, COMPANY_ID, TOKEN, STATUS, EXPIRES_AT)
+                    VALUES (${email}, ${roleId}, ${companyId}, ${token}, 'P', ${expiresAt})
+                `;
+
+                console.log(`✅ Invite created for ${email} with role ${roleId}`);
+                
+                // Send actual invite email using Resend
+                const emailSent = await sendInviteEmail(email, token, 'User'); // TODO: Get actual role name from roleId
+                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
+                
+                results.push({
+                    email: email,
+                    status: status,
+                    token: token,
+                    expiresAt: expiresAt.toISOString(),
+                    emailSent: emailSent
+                });
+
+                if (!emailSent) {
+                    console.log(`⚠️ Failed to send invite email to ${email}, but invite record created`);
+                    console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                }
+
+            } catch (inviteError) {
+                console.error(`❌ Error processing invite for ${invite?.email}:`, inviteError);
+                errors.push(`Failed to process invite for ${invite?.email}: ${inviteError.message}`);
+            }
+        }
 
         const response = {
-            form: {
-                FORM_ID: form.FORM_ID,
-                FORM_NAME: form.FORM_NAME,
-                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
-                IS_ACTIVE: form.IS_ACTIVE,
-                IS_PUBLIC: form.IS_PUBLIC,
-                IS_DELETED: form.IS_DELETED
-            },
-            fields: fields.map(field => ({
-                FIELD_ID: field.FIELD_ID,
-                FIELD_NAME: field.FIELD_NAME,
-                FIELD_TYPE_ID: field.FIELD_TYPE_ID,
-                DISPLAY_FORMAT: field.DISPLAY_FORMAT,
-                HAS_LOOKUP: field.HAS_LOOKUP,
-                IS_PUBLIC: field.IS_PUBLIC,
-                IS_ACTIVE: field.IS_ACTIVE,
-                IS_DELETED: field.IS_DELETED,
-                IS_REQUIRED: field.FORM_IS_REQUIRED || field.IS_REQUIRED,
-                IS_SENSITIVE: field.IS_SENSITIVE,
-                SORT_ORDER: field.SORT_ORDER,
-                CREATE_DATE: field.CREATE_DATE,
-                UPDATE_DATE: field.UPDATE_DATE,
-                ORGANIZATION_ID: field.ORGANIZATION_ID
-            }))
+            success: results.length > 0,
+            message: `Processed ${invites.length} invite(s). ${results.length} sent, ${errors.length} failed.`,
+            results: results,
+            errors: errors.length > 0 ? errors : undefined
         };
 
-        console.log(`📤 Sending form ${formId} data to frontend`);
+        console.log(`📤 Invite processing complete:`, response);
+
+        if (results.length === 0 && errors.length > 0) {
+            return res.status(400).json(response);
+        }
+
         res.json(response);
 
     } catch (error) {
-        console.error(`❌ Error fetching form ${formId}:`, error);
+        console.error('❌ Error in invite endpoint:', error);
         res.status(500).json({
-            error: 'Failed to fetch form',
+            error: 'Failed to process invites',
             message: error.message
         });
     }
 });
 
-// === SPA FALLBACK ROUTE ===
-// Handle all non-API routes for React Router (must be last!)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// === NO CATCH-ALL ROUTE ===
+// IIS handles SPA routing via web.config
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -5351,13 +5389,19 @@ app.use((err, req, res, next) => {
 });
 
 // Start server immediately, don't wait for database
-console.log('🚀 Starting Azure Express server...');
+console.log('🚀 Starting Express server...');
+// === SPA FALLBACK ROUTE ===
+// Handle all non-API routes for React Router (must be last!)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const server = app.listen(PORT, () => {
-    console.log(`✅ Azure server running on port ${PORT}`);
-    console.log(`📁 Static files served from current directory`);
+    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`📁 Static files: ${path.join(__dirname, 'dist')}`);
     console.log(`🌐 Health check: /api/health`);
-    console.log(`🧪 Debug endpoints: /api/debug/endpoints`);
-    console.log('🎉 Azure server startup complete!');
+    console.log(`🧪 Simple test: /api/simple-test`);
+    console.log('🎉 Server startup complete!');
 });
 
 // Graceful shutdown

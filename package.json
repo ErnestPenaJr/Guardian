@@ -68,7 +68,7 @@
     "react-router-dom": "^7.5.0",
     "react-toastify": "^11.0.5",
     "react-tooltip": "^5.28.1",
-    "resend": "^4.6.0",
+    "resend": "^6.0.0",
     "styled-components": "^6.1.17",
     "sweetalert2": "^11.6.13",
     "sweetalert2-react-content": "^5.1.0",

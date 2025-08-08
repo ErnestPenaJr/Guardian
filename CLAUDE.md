@@ -146,12 +146,18 @@ Automatic Response: Use testing-qa-specialist to:
 8. User clicks the "Register" button
 9. User is redirected to the login page
 
-### User Login
+### User Login (Enhanced - 2025-08-08)
 
 1. User visits the login page
-2. User fills out user email and password form
+2. User fills out user email and password form (with enhanced validation)
 3. User clicks the "Login" button
 4. User is redirected to roles based dashboard
+
+#### Enhanced Security Features (Added 2025-08-08)
+- **Email Validation**: 125 character limit with security-hardened validation
+- **Rate Limiting**: 5 login attempts maximum with 15-minute lockout period
+- **Anti-Enumeration**: Generic error messages to prevent user account discovery
+- **Input Sanitization**: Client and server-side validation across all environments
 
 ### User Logout
 
@@ -161,6 +167,18 @@ Automatic Response: Use testing-qa-specialist to:
 
 
 ### User Request Fulfillment Workflow
+
+#### First-Time Admin Onboarding (New - 2025-08-08)
+For administrators logging in for the first time:
+1. System automatically detects Admin (role ID 1) or Super Admin (role ID 6) users
+2. System checks for existing company form templates using COMPANY_ID filtering
+3. If no templates exist, displays "Configure your first form!" wizard modal
+4. **Guided Form Creation Process:**
+   - **Step 1**: Select form type (Requests, Self-Service, Notice)
+   - **Step 2**: Create form title and description
+   - **Step 3**: Build form fields using familiar interface
+5. Form template is saved with proper company isolation
+6. User can then proceed with normal dashboard functionality
 
 #### Standard Request Creation Flow
 1. User visits the dashboard
@@ -259,13 +277,13 @@ This project uses a **two-environment configuration** with distinct server setup
 
 Both environments support the same complete set of API endpoints:
 
-### Authentication & Registration
-- `POST /api/login` - User authentication
+### Authentication & Registration (Enhanced Security - 2025-08-08)
+- `POST /api/login` - User authentication with enhanced email validation and rate limiting
 - `POST /api/register` - Start registration process
 - `POST /api/verify-email` - Verify email with code
 - `POST /api/complete-registration` - Complete user registration
-- `POST /api/request-password-reset` - Request password reset
-- `POST /api/verify-reset-code` - Verify reset code
+- `POST /api/request-password-reset` - Request password reset (streamlined flow)
+- `POST /api/verify-reset-code` - Verify reset code (enhanced resend functionality)
 - `POST /api/reset-password` - Reset password with code
 - `POST /api/send-verification-email` - Resend verification email
 - `POST /logout` - User logout
@@ -305,8 +323,8 @@ Both environments support the same complete set of API endpoints:
 - **Export Functionality**: CSV and Excel export of task data
 - **Company Isolation**: All task operations filtered by user's company for security
 
-### Forms & Fields
-- `GET /api/forms` - Get forms (company-filtered)
+### Forms & Fields (Enhanced Company Isolation - 2025-08-08)
+- `GET /api/forms` - Get forms (company-filtered with COMPANY_ID support)
 - `GET /api/forms/:id` - Get specific form with fields
 - `GET /api/fields` - Get fields (company-filtered)
 - `POST /api/fields` - Create new field with duplicate name checking and validation (Added 2025-07-29)
@@ -368,11 +386,22 @@ The application uses these key tables:
 - `GUARDIAN.FORMS_INSTANCE` - Form instances
 - `GUARDIAN.FORMS_INSTANCE_VALUES` - Form instance values
 
-## Global Forms Templates
-- Global Forms Templates are stored in the `GUARDIAN.FORMS` table with `COMPANY_ID` set to `null`
-- Global Forms Templates can be created and edited in the `GUARDIAN.FORMS` table with `COMPANY_ID` set to `null` by users with role IDs 6 (Super Admin)
-- Company Forms Templates are stored in the `GUARDIAN.FORMS` table with `COMPANY_ID` set to the company ID
-- Company Forms Templates can be created and edited in the `GUARDIAN.FORMS` table with `COMPANY_ID` set to the company ID by users with role IDs 1 (Admin) and 6 (Super Admin)
+## Forms Templates & Company Isolation (Enhanced - 2025-08-08)
+
+### Template Types & Access Control
+- **Global Forms Templates**: Stored in `GUARDIAN.FORMS` table with `COMPANY_ID` set to `null`
+  - Can be created and edited by users with role ID 6 (Super Admin)
+  - Available to all companies as base templates
+- **Company Forms Templates**: Stored in `GUARDIAN.FORMS` table with `COMPANY_ID` set to the company ID
+  - Can be created and edited by users with role IDs 1 (Admin) and 6 (Super Admin)
+  - Isolated by company for multi-tenant security
+
+### First-Time Admin Template Creation (New - 2025-08-08)
+- **Automatic Detection**: System checks for existing company templates using COMPANY_ID filtering
+- **Guided Creation**: First-time admins are guided through template creation process
+- **Form Service Integration**: Enhanced formService.ts supports both COMPANY_ID and ORGANIZATION_ID filtering
+- **Database Schema**: Updated DbForm interface includes COMPANY_ID field for proper data isolation
+- **Security**: All template operations filtered by user's company ID to prevent cross-company access
 
 ## Development Commands
 
@@ -453,8 +482,10 @@ bun server.js  # or node server.js
 7. **Field Management** - New CRUD operations for fields require proper validation and duplicate checking
 8. **Email Integration** - Resend API handles all transactional emails including assignments and verifications
 9. **Notification System** - Real-time notifications with database persistence and read tracking
-10. **Workflow Management** - Advanced form template management with role-based access control
+10. **Workflow Management** - Advanced form template management with role-based access control and first-time admin onboarding
 11. **Task Management System** - Comprehensive task system with flexible status management, batch operations, and automatic notification integration (Added 2025-08-07)
+12. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
+13. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
 
 ## Deployment
 
@@ -607,7 +638,33 @@ DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUA
 
 ## Recent Changes & Fixes
 
-### Latest Updates (2025-08-07)
+### Latest Updates (2025-08-08)
+
+#### First-Time Admin Workflow Template Creation
+- ✅ **Automatic Admin Detection**: System automatically identifies first-time admins (roles 1, 6) without existing form templates
+- ✅ **Company-Based Template Checking**: Uses COMPANY_ID filtering instead of ORGANIZATION_ID for proper multi-tenant security
+- ✅ **Guided Form Creation Wizard**: Replaces complex WorkflowManagementModal with step-by-step NewRequestModal interface
+- ✅ **Form Type Selection**: Supports Requests, Self-Service, and Notice template types with guided setup process
+- ✅ **Enhanced Form Service**: Updated formService.ts with COMPANY_ID field support and proper TypeScript typing
+- ✅ **Database Integration**: Updated DbForm interface to include COMPANY_ID for proper data isolation
+
+#### Enhanced Authentication & Security Features
+- ✅ **Security-Hardened Email Validation**: Implemented 125 character limit with comprehensive input sanitization
+- ✅ **Client-Side Rate Limiting**: 5 login attempts maximum with 15-minute lockout protection
+- ✅ **Anti-Enumeration Protection**: Generic error messages prevent user account discovery vulnerabilities
+- ✅ **Cross-Environment Validation**: Updated email validation across all 3 server files (server.cjs, server-production.js, server.js)
+
+#### Improved Password Reset User Experience
+- ✅ **Streamlined Flow**: ForgotPassword component bypasses success modal and navigates directly to verification
+- ✅ **Enhanced Resend Functionality**: VerifyForgotPassword "resend" generates new codes and resets countdown timer
+- ✅ **User Experience Optimization**: Removed unnecessary modal steps for faster password reset workflow
+
+#### Form Management System Enhancements
+- ✅ **Company Isolation**: All form operations now use COMPANY_ID filtering for proper multi-tenant security
+- ✅ **TypeScript Safety**: Eliminated unsafe type assertions with proper interface definitions
+- ✅ **Backward Compatibility**: Maintained existing form management functionality while adding new features
+
+### Previous Updates (2025-08-07)
 
 #### Comprehensive Task Management System Implementation
 - ✅ **Task Management Integration**: Full task system available from Request Details → Tasks tab in Work Progress Modal

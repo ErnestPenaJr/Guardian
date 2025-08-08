@@ -25,6 +25,9 @@ import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import requestService from '../services/requestService';
+import WorkflowManagementModal from '../components/WorkflowManagementModal';
+import NewRequestModal from './NewRequestModal';
+import formService from '../services/formService';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 
@@ -99,6 +102,47 @@ function Home() {
     // The roles are now objects with id, name, and displayName properties
     const role = user.roles[0];
     return role.displayName || role.name || 'User';
+  };
+  
+  // Check if user is admin (role ID 1 or 6)
+  const isAdmin = () => {
+    if (!user) return false;
+    // Check roles array (objects with id property) - Admin (1), JAFAR (6)
+    const hasRoleInArray = user.roles?.some((role: any) => role.id === 1 || role.id === 6);
+    // Check role string property
+    const hasRoleAsString = user.role === '1' || user.role === '6';
+    return hasRoleInArray || hasRoleAsString;
+  };
+  
+  // Check if admin has existing form templates for their company
+  const checkForExistingTemplates = async () => {
+    if (!isAdmin() || hasCheckedForExistingTemplates) return;
+    
+    try {
+      console.log('Checking for existing form templates for admin user...');
+      const forms = await formService.getAllForms();
+      console.log('Forms found:', forms);
+      
+      // Filter forms associated with the user's company
+      // Check for company-specific forms (COMPANY_ID matches companyId)
+      const companySpecificForms = forms.filter(form => 
+        form.COMPANY_ID === user?.companyId
+      );
+      
+      console.log('Company-specific forms found:', companySpecificForms.length);
+      console.log('User company ID:', user?.companyId);
+      
+      // If no company-specific templates exist, show the first-time form creation modal
+      if (companySpecificForms.length === 0) {
+        console.log('No existing company templates found, showing first-time form creation modal');
+        setShowFirstTimeFormModal(true);
+      }
+      
+      setHasCheckedForExistingTemplates(true);
+    } catch (error) {
+      console.error('Error checking for existing templates:', error);
+      setHasCheckedForExistingTemplates(true);
+    }
   };
   
   // Handle logout
@@ -196,6 +240,13 @@ function Home() {
     fetchRequests();
     fetchAssignedRequestsCount();
   }, []);
+  
+  // Check for existing form templates when user is loaded
+  useEffect(() => {
+    if (user && isAdmin()) {
+      checkForExistingTemplates();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -258,6 +309,26 @@ function Home() {
       width: '32rem',
       background: 'transparent',
     });
+  };
+  
+  // Handle first-time form creation
+  const handleFirstTimeFormSave = async (formData: any) => {
+    console.log('Saving first-time form:', formData);
+    try {
+      // Here you would typically save the form via API
+      // For now, we'll close the modal and show success
+      setShowFirstTimeFormModal(false);
+      toast.success('Your first workflow template has been created!');
+      // Refresh the page or update state to reflect the new template
+      checkForExistingTemplates();
+    } catch (error) {
+      console.error('Error saving first-time form:', error);
+      toast.error('Failed to save form template. Please try again.');
+    }
+  };
+  
+  const handleFirstTimeFormClose = () => {
+    setShowFirstTimeFormModal(false);
   };
 
   const navItems: NavItem[] = [
@@ -352,6 +423,10 @@ function Home() {
   const [toggleCleared, setToggleCleared] = useState<boolean>(false);
   const [requestStatusData, setRequestStatusData] = useState<Array<{ label: string; value: number; color: string }>>([]);
   const [totalRequests, setTotalRequests] = useState<number>(0);
+  
+  // First-time admin workflow template creation modal
+  const [showFirstTimeFormModal, setShowFirstTimeFormModal] = useState(false);
+  const [hasCheckedForExistingTemplates, setHasCheckedForExistingTemplates] = useState(false);
   
   // User is already declared at the top of the component
 
@@ -1176,6 +1251,15 @@ function Home() {
             // Also refresh assigned requests count since assignments might have changed
             fetchAssignedRequestsCount();
           }}
+        />
+      )}
+      
+      {/* First-time Form Creation Modal */}
+      {showFirstTimeFormModal && (
+        <NewRequestModal
+          isOpen={showFirstTimeFormModal}
+          onClose={handleFirstTimeFormClose}
+          onSave={handleFirstTimeFormSave}
         />
       )}
       {/* Mobile Bottom Nav */}

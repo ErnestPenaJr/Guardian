@@ -171,16 +171,8 @@ function ForgotPassword() {
         // Store in localStorage for the verification page to access
         localStorage.setItem('passwordResetData', JSON.stringify(passwordResetData));
         
-        Swal.fire({
-          icon: 'success',
-          title: 'Password Reset Code Sent',
-          text: 'A password reset code has been sent to your email. Please check your inbox.',
-          confirmButtonColor: '#0D9488',
-          confirmButtonText: 'Enter Verification Code'
-        }).then(() => {
-          // Navigate to the verification page with the email in state
-          navigate('/verify-forgot-password', { state: { email } });
-        });
+        // Navigate directly to the verification page without showing modal
+        navigate('/verify-forgot-password', { state: { email } });
       } else if (response.status === 403 && data.error) {
         Swal.fire({
           icon: 'warning',

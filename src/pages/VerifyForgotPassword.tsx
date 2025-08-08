@@ -109,8 +109,8 @@ const VerifyForgotPassword = () => {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerify = async (e?: React.FormEvent, codeOverride?: string) => {
+    e?.preventDefault();
     setIsLoading(true);
     setError('');
     try {
@@ -142,17 +142,36 @@ const VerifyForgotPassword = () => {
       }
       // Get the stored email for verification
       
+      // Use the code override if provided (for auto-submit), otherwise use state
+      const codeToUse = codeOverride || verificationCode;
+      
+      // Debug logging
+      console.log('🔍 Verification attempt:', {
+        storedEmail: data.email,
+        enteredCode: codeToUse,
+        codeLength: codeToUse.length,
+        usingOverride: !!codeOverride
+      });
+      
       // Verify the code with the server instead of just comparing locally
       const response = await fetch('/api/verify-reset-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           email: data.email, 
-          code: verificationCode 
+          code: codeToUse 
         })
       });
       
       const result = await response.json();
+      
+      // Debug logging for response
+      console.log('📥 Verification response:', {
+        status: response.status,
+        success: result.success,
+        error: result.error,
+        fullResult: result
+      });
       
       if (!response.ok || !result.success) {
         setError('Invalid verification code. Please check your email and try again.');
@@ -201,6 +220,9 @@ const VerifyForgotPassword = () => {
     setIsResendDisabled(true);
     setResendCountdown(60); // 1 minute cooldown
     
+    // Clear any existing verification code input to ensure user enters new code
+    setVerificationCode('');
+    
     try {
       // Get pending password reset data
       const passwordResetData = localStorage.getItem('passwordResetData');
@@ -219,24 +241,6 @@ const VerifyForgotPassword = () => {
       
       const data = JSON.parse(passwordResetData);
       
-      // Check if we need a new code or can reuse the existing one
-      let verificationData;
-      
-      if (data.expiryTime && new Date(data.expiryTime).getTime() > Date.now()) {
-        // Reuse existing code if it hasn't expired
-        verificationData = {
-          code: data.verificationCode,
-          expiryTime: data.expiryTime
-        };
-      } else {
-        // Generate new code if expired
-        verificationData = sendgrid.getOrCreateVerificationCode();
-      }
-      
-      // Update the expiration time in state
-      const timeRemaining = Math.max(0, new Date(verificationData.expiryTime).getTime() - Date.now());
-      setTimeLeft(Math.floor(timeRemaining / 1000));
-      
       // Get the email from the pending password reset
       const userEmail = data.email;
       
@@ -254,46 +258,39 @@ const VerifyForgotPassword = () => {
       
       console.log(`Resending verification code to: ${userEmail}`);
       
-      // Update the pending password reset with new code
-      const updatedData = {
-        ...data,
-        verificationCode: verificationData.code,
-        expiryTime: verificationData.expiryTime
-      };
+      // Call backend API to generate and send new verification code (uses Resend)
+      const response = await fetch('/api/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail })
+      });
       
-      localStorage.setItem('passwordResetData', JSON.stringify(updatedData));
+      const result = await response.json();
       
-      try {
-        // Send verification email
-        const emailSent = await sendgrid.sendVerificationEmail(userEmail, verificationData.code);
+      if (response.ok && result.success) {
+        // Update localStorage with new verification code and expiry
+        const expiryTime = new Date();
+        expiryTime.setMinutes(expiryTime.getMinutes() + 15); // 15 minutes expiry
         
-        if (emailSent) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Code Resent',
-            text: `Verification code resent to ${userEmail}`,
-            confirmButtonColor: '#0D9488'
-          });
-        } else {
-          // For development purposes, show the verification code in the console
-          console.log(`[DEV MODE] Verification code for ${userEmail}: ${verificationData.code}`);
-          Swal.fire({
-            icon: 'warning',
-            title: 'Email Service Unavailable',
-            text: 'Email service unavailable. Check console for verification code (development only).',
-            confirmButtonColor: '#0D9488'
-          });
-        }
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        // For development purposes, show the verification code in the console
-        console.log(`[DEV MODE] Verification code for ${userEmail}: ${verificationData.code}`);
+        const updatedData = {
+          email: userEmail,
+          verificationCode: result.verificationCode, // From backend response
+          expiryTime: expiryTime.toISOString()
+        };
+        
+        localStorage.setItem('passwordResetData', JSON.stringify(updatedData));
+        
+        // Update the expiration time in component state
+        setTimeLeft(15 * 60); // 15 minutes in seconds
+        
         Swal.fire({
-          icon: 'error',
-          title: 'Email Error',
-          text: 'Error sending verification email. Please try again.',
+          icon: 'success',
+          title: 'New Code Sent',
+          text: `A new verification code has been sent to ${userEmail}`,
           confirmButtonColor: '#0D9488'
         });
+      } else {
+        throw new Error(result.error || 'Failed to send new verification code');
       }
     } catch (error) {
       console.error('Resend code error:', error);
@@ -327,6 +324,14 @@ const VerifyForgotPassword = () => {
     if (value && index < 5) {
       inputRefs[index + 1].current?.focus();
     }
+    
+    // Auto-submit when all 6 digits are entered
+    if (updatedCode.length === 6 && !isLoading) {
+      // Small delay to ensure UI updates, then trigger verification with the updated code
+      setTimeout(() => {
+        handleVerify(undefined, updatedCode);
+      }, 100);
+    }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -346,6 +351,14 @@ const VerifyForgotPassword = () => {
       
       // Focus the last input
       inputRefs[5].current?.focus();
+      
+      // Auto-submit when 6-digit code is pasted
+      if (!isLoading) {
+        // Small delay to ensure UI updates, then trigger verification with the pasted code
+        setTimeout(() => {
+          handleVerify(undefined, pastedData);
+        }, 100);
+      }
     }
   };
 
@@ -442,7 +455,7 @@ const VerifyForgotPassword = () => {
               className={`text-secondary text-body-sm hover:text-secondary/80 transition-colors ${isResendDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={isResendDisabled || isLoading}
             >
-              {isResendDisabled ? `Resend code in ${resendCountdown}s` : 'Resend code'}
+              {isResendDisabled ? `Send new code in ${resendCountdown}s` : 'Send new code'}
             </button>
           </div>
         </form>
