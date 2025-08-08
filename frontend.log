@@ -184,3 +184,4 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 8:16:49 AM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+9:01:12 AM [vite] (client) hmr update /src/pages/VerifyForgotPassword.tsx, /src/index.css

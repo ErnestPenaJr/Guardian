@@ -378,7 +378,7 @@ const VerifyForgotPassword = () => {
           <span className="text-h4 font-display font-bold text-primary">Guardian</span>
         </div>
 
-        <h1 className="text-h3 font-display font-bold text-center mb-2">Verify Your Email</h1>
+        <h1 className="text-h3 font-display font-bold text-center mb-2">Verify Your Code</h1>
         <p className="text-center text-gray-2 mb-8">
           We've sent a 6-digit verification code to <span className="font-semibold">{email}</span>. 
           Enter the code below to continue.
