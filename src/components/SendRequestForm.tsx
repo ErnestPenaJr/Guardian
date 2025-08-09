@@ -78,7 +78,7 @@ const SendRequestForm: React.FC<SendRequestFormProps> = ({ onSubmit, onCancel })
   const handleDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type, checked } = e.target;
     setDetails(d => {
-      let next = { ...d, [name]: type === 'checkbox' ? checked : value };
+      const next = { ...d, [name]: type === 'checkbox' ? checked : value };
       if (name === 'name') {
         // Only auto-update abbreviation if user hasn't manually edited it
         if (!d.abbreviation || d.abbreviation === generateAbbreviation(d.name)) {

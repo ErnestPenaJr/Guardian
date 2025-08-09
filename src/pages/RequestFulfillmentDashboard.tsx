@@ -12,7 +12,7 @@ import Modal from '../components/Modal';
 import WorkProgressTable from '../components/WorkProgressTable';
 import TaskTable from '../components/TaskTable';
 import { toast } from 'react-toastify';
-import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList, CheckSquare } from 'lucide-react';
+import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList, CheckSquare, Filter, Download, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
 import './RequestFulfillmentDashboard.css';
 
 interface Request {
@@ -56,8 +56,6 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
-  const [sortField, setSortField] = useState<string>('SUBMITTED_DATE');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   // Form handling state
   const [showFormModal, setShowFormModal] = useState(false);
@@ -69,10 +67,21 @@ const RequestFulfillmentDashboard: React.FC = () => {
   // Work progress state
   const [showWorkProgressModal, setShowWorkProgressModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'form' | 'progress' | 'tasks'>('details');
+  
+  // Table state for sorting and pagination
+  const [sortField, setSortField] = useState<keyof Request>('SUBMITTED_DATE');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchAssignedRequests();
   }, [statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [statusFilter, searchTerm]);
 
   const fetchAssignedRequests = async () => {
     try {
@@ -274,8 +283,8 @@ const RequestFulfillmentDashboard: React.FC = () => {
     }
     
     if (request.STATUS === 'P' || request.STATUS === 'A') {
-      actions.push({ type: 'form', label: 'Start Assignment', icon: FileText, variant: 'primary' });
-      actions.push({ type: 'work-progress', label: 'Work Progress', icon: ClipboardList, variant: 'secondary' });
+      actions.push({ type: 'form', label: 'Start', icon: FileText, variant: 'primary' });
+      actions.push({ type: 'work-progress', label: 'Add Details', icon: ClipboardList, variant: 'secondary' });
     }
     
     return actions;
@@ -285,42 +294,125 @@ const RequestFulfillmentDashboard: React.FC = () => {
     return new Date(dateString).toISOString().split('T')[0];
   };
 
-  const handleSort = (field: string) => {
+  // Table sorting and filtering functions
+  const handleSort = (field: keyof Request) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
+    setCurrentPage(1);
   };
 
   const clearFiltersAndSort = () => {
     setStatusFilter('all');
+    setSearchTerm('');
     setSortField('SUBMITTED_DATE');
     setSortDirection('desc');
+    setCurrentPage(1);
   };
 
-  const sortedRequests = [...requests].sort((a, b) => {
-    let aValue = a[sortField as keyof Request];
-    let bValue = b[sortField as keyof Request];
-    
-    if (sortField === 'SUBMITTED_DATE') {
-      aValue = new Date(a.SUBMITTED_DATE).getTime();
-      bValue = new Date(b.SUBMITTED_DATE).getTime();
+  // Export functionality
+  const handleExport = (format: 'csv' | 'excel') => {
+    const csvContent = [
+      ['Request ID', 'Date/Time', 'Request Name', 'Status', 'Assigned To'].join(','),
+      ...filteredAndSortedRequests.map(request => [
+        request.TRACKINGID,
+        formatDateTime(request.SUBMITTED_DATE),
+        `"${request.REQUEST_NAME}"`,
+        getStatusText(request.STATUS),
+        request.assignedTo || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `assigned-requests.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Helper functions for table display
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return { dateStr, timeStr };
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'P': return 'Pending';
+      case 'A': return 'In Progress';
+      case 'C': return 'Complete';
+      case 'R': return 'Canceled';
+      default: return status;
     }
-    
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+  };
+
+  // Filter and sort requests
+  const filteredAndSortedRequests = React.useMemo(() => {
+    const filtered = requests.filter(request => {
+      const matchesStatus = statusFilter === 'all' || request.STATUS === statusFilter;
+      const matchesSearch = searchTerm === '' || 
+        request.REQUEST_NAME.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.REQUEST_DESCRIPTION?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.TRACKINGID.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+
+    return filtered.sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      if (sortField === 'SUBMITTED_DATE') {
+        aValue = new Date(aValue as string).getTime();
+        bValue = new Date(bValue as string).getTime();
+      }
+      
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+      }
+      if (typeof bValue === 'string') {
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [requests, statusFilter, searchTerm, sortField, sortDirection]);
+
+  // Pagination
+  const totalItems = filteredAndSortedRequests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRequests = filteredAndSortedRequests.slice(startIndex, endIndex);
+
+  const getSortIcon = (field: keyof Request) => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={14} className="text-muted ms-1" />;
     }
-    
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-    }
-    
-    return 0;
-  });
+    return sortDirection === 'asc' 
+      ? <ChevronUp size={14} className="text-primary ms-1" />
+      : <ChevronDown size={14} className="text-primary ms-1" />;
+  };
+
+  const handleRowClick = (request: Request) => {
+    setSelectedRequest(request);
+    setShowActionModal(true);
+  };
 
   if (loading) {
     return (
@@ -331,131 +423,259 @@ const RequestFulfillmentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Assigned Requests</h1>
-        <div className="flex gap-3 items-center">
-          <Button 
-            onClick={clearFiltersAndSort} 
-            variant="secondary"
-            className="rounded-md whitespace-nowrap"
-          >
-            Clear Filters
-          </Button>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-48"
-          >
-            <option value="all">All Requests</option>
-            <option value="P">Pending</option>
-            <option value="A">In Progress</option>
-            <option value="C">Complete</option>
-            <option value="R">Canceled</option>
-          </Select>
+    <div className="fulfillment-dashboard">
+      {/* Page Header */}
+      <div className="dashboard-header">
+        <div className="header-content">
+          <div className="title-section">
+            <ClipboardList className="title-icon" size={32} />
+            <div>
+              <h1 className="dashboard-title">My Assigned Requests</h1>
+              <p className="dashboard-subtitle">
+                Manage and track your assigned requests efficiently
+              </p>
+            </div>
+          </div>
+          
+          <div className="header-controls">
+            <div className="filter-container">
+              <label className="filter-label">Status Filter</label>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="status-filter"
+              >
+                <option value="all">All Requests</option>
+                <option value="P">Pending</option>
+                <option value="A">In Progress</option>
+                <option value="C">Complete</option>
+                <option value="R">Canceled</option>
+              </Select>
+            </div>
+            
+            <Button 
+              onClick={clearFiltersAndSort} 
+              variant="secondary"
+              className="btn-clear-filters"
+            >
+              <Filter size={16} className="me-2" />
+              Clear Filters
+            </Button>
+            
+            {/* Search Bar moved into header controls */}
+            <div className="search-controls">
+              <Input
+                type="text"
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+
+            {/* Export dropdown removed as requested */}
+          </div>
         </div>
       </div>
 
 
-      <div className="requests-table-container">
+
+      
+
+      {/* HTML Table */}
+      <div className="table-container">
         <table className="requests-table">
           <thead>
             <tr>
               <th 
-                className="cursor-pointer hover:bg-gray-50" 
+                className="sortable-header" 
                 onClick={() => handleSort('TRACKINGID')}
               >
-                ID {sortField === 'TRACKINGID' && (sortDirection === 'asc' ? '↑' : '↓')}
+                <div className="header-content">
+                  <span>Request ID</span>
+                  {getSortIcon('TRACKINGID')}
+                  <Filter size={12} className="filter-icon" />
+                </div>
               </th>
               <th 
-                className="cursor-pointer hover:bg-gray-50" 
+                className="sortable-header" 
                 onClick={() => handleSort('SUBMITTED_DATE')}
               >
-                Submitted Date {sortField === 'SUBMITTED_DATE' && (sortDirection === 'asc' ? '↑' : '↓')}
+                <div className="header-content">
+                  <span>Date/Time</span>
+                  {getSortIcon('SUBMITTED_DATE')}
+                  <Filter size={12} className="filter-icon" />
+                </div>
               </th>
               <th 
-                className="cursor-pointer hover:bg-gray-50" 
+                className="sortable-header" 
                 onClick={() => handleSort('REQUEST_NAME')}
               >
-                Request {sortField === 'REQUEST_NAME' && (sortDirection === 'asc' ? '↑' : '↓')}
+                <div className="header-content">
+                  <span>Request Name</span>
+                  {getSortIcon('REQUEST_NAME')}
+                  <Filter size={12} className="filter-icon" />
+                </div>
               </th>
               <th 
-                className="cursor-pointer hover:bg-gray-50" 
+                className="sortable-header" 
                 onClick={() => handleSort('STATUS')}
               >
-                Status {sortField === 'STATUS' && (sortDirection === 'asc' ? '↑' : '↓')}
+                <div className="header-content">
+                  <span>Status</span>
+                  {getSortIcon('STATUS')}
+                  <Filter size={12} className="filter-icon" />
+                </div>
               </th>
-              <th 
-                className="cursor-pointer hover:bg-gray-50" 
-                onClick={() => handleSort('assignedTo')}
-              >
-                Assigned {sortField === 'assignedTo' && (sortDirection === 'asc' ? '↑' : '↓')}
+              <th className="header-content">
+                <span>Assigned</span>
+                <Filter size={12} className="filter-icon" />
               </th>
-              <th>Actions</th>
+              <th className="actions-header">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {sortedRequests.map((request) => (
-              <tr 
-                key={request.REQUEST_ID} 
-                className="request-row cursor-pointer hover:bg-gray-50" 
-                onClick={() => {
-                  setSelectedRequest(request);
-                  setShowActionModal(true);
-                }}
-              >
-                <td className="px-4 py-3 text-center">
-                  {request.TRACKINGID}
-                </td>
-                <td className="px-4 py-3">
-                  {formatDate(request.SUBMITTED_DATE)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="font-medium">
-                    {request.REQUEST_NAME}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {getStatusBadge(request.STATUS)}
-                </td>
-                <td className="px-4 py-3">
-                  {request.assignedTo}
-                </td>
-                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex gap-2">
-                    {getAvailableActions(request).map((action) => (
-                      <button
-                        key={action.type}
-                        className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
-                          action.variant === 'primary' 
-                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                            : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                        }`}
-                        onClick={() => {
-                          if (action.type === 'form') {
-                            loadRequestForm(request);
-                          } else if (action.type === 'work-progress') {
-                            openWorkProgressModal(request);
-                          } else {
-                            setSelectedRequest(request);
-                            setActionType(action.type as any);
-                            setNotes('');
-                            setShowActionModal(true);
-                          }
-                        }}
-                        title={action.label}
-                      >
-                        <action.icon className="w-3 h-3 inline mr-1" />
-                        {action.label}
-                      </button>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {paginatedRequests.map((request) => {
+              const { dateStr, timeStr } = formatDateTime(request.SUBMITTED_DATE);
+              const actions = getAvailableActions(request);
+              
+              return (
+                <tr 
+                  key={request.REQUEST_ID} 
+                  className="table-row" 
+                  onClick={() => handleRowClick(request)}
+                >
+                  <td className="request-id-cell">
+                    <span className="fw-medium text-primary">{request.TRACKINGID}</span>
+                  </td>
+                  <td className="date-cell">
+                    <div className="d-flex align-items-center">
+                      <Calendar size={16} className="text-muted me-2" />
+                      <div>
+                        <div className="date-main">{dateStr}</div>
+                        <div className="date-time text-muted">{timeStr}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="request-name-cell">
+                    <div className="request-name">{request.REQUEST_NAME}</div>
+                    {request.REQUEST_DESCRIPTION && (
+                      <div className="request-description text-muted">
+                        {request.REQUEST_DESCRIPTION.length > 80 
+                          ? request.REQUEST_DESCRIPTION.substring(0, 80) + '...' 
+                          : request.REQUEST_DESCRIPTION
+                        }
+                      </div>
+                    )}
+                  </td>
+                  <td className="status-cell">
+                    {getStatusBadge(request.STATUS)}
+                  </td>
+                  <td className="assigned-to-cell">
+                    <div className="d-flex align-items-center">
+                      <User size={16} className="text-muted me-2" />
+                      <span>{request.assignedTo}</span>
+                    </div>
+                  </td>
+                  <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
+                    <div className="actions-container">
+                      {actions.map((action) => (
+                        <button
+                          key={action.type}
+                          className={`btn btn-sm action-btn ${
+                            action.variant === 'primary' 
+                              ? 'btn-primary' 
+                              : 'btn-outline-secondary'
+                          }`}
+                          onClick={() => {
+                            if (action.type === 'form') {
+                              loadRequestForm(request);
+                            } else if (action.type === 'work-progress') {
+                              openWorkProgressModal(request);
+                            } else {
+                              setSelectedRequest(request);
+                              setActionType(action.type as any);
+                              setNotes('');
+                              setShowActionModal(true);
+                            }
+                          }}
+                          title={action.label}
+                        >
+                          <action.icon className="btn-icon" size={14} />
+                          <span className="btn-text">{action.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        
+        {paginatedRequests.length === 0 && (
+          <div className="empty-table-message">
+            <Clock className="empty-icon" size={48} />
+            <h3>No requests found</h3>
+            <p>
+              {statusFilter === 'all' 
+                ? searchTerm 
+                  ? `No requests match "${searchTerm}"` 
+                  : 'You have no assigned requests at this time.'
+                : `No ${getStatusText(statusFilter).toLowerCase()} requests found.`
+              }
+            </p>
+          </div>
+        )}
       </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} requests
+          </div>
+          <div className="pagination-controls">
+            <button 
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => {
+                const start = Math.max(1, currentPage - 2);
+                const end = Math.min(totalPages, currentPage + 2);
+                return page >= start && page <= end;
+              })
+              .map(page => (
+                <button
+                  key={page}
+                  className={`btn btn-sm ${
+                    page === currentPage ? 'btn-primary' : 'btn-outline-secondary'
+                  }`}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              ))
+            }
+            
+            <button 
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+          <div className="pagination-footer">
+            <div className="teal-footer">Page {currentPage} of {totalPages}</div>
+          </div>
+        </div>
+      )}
 
       {requests.length === 0 && (
         <div className="text-center py-12">

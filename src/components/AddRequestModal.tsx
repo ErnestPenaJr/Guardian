@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
+import '../styles/Modal.css';
 import { toast } from 'react-toastify';
 import { FaUser, FaMoneyBill, FaHome, FaSpinner } from 'react-icons/fa';
 import formService from '../services/formService';
@@ -597,7 +598,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       </div>
       
       <form onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}>
-        <div className="modal-body" style={{ maxHeight: 'none', overflow: 'visible' }}>
+        <div className="modal-body" style={{ maxHeight: 'none', overflow: 'visible', padding: '16px 20px' }}>
           {step === 1 && (
             <>
           <div className="mb-4">
@@ -608,7 +609,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                 height: '300px',
                 maxHeight: '300px',
                 overflowY: 'auto',
-                paddingRight: '10px',
+                padding: '12px',
                 marginBottom: '15px',
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#dee2e6 transparent',

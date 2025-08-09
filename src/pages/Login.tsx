@@ -231,7 +231,7 @@ function Login() {
       }
       
       // Prevent any potential page reload by stopping here if needed
-      let shouldShowAlert = true;
+      const shouldShowAlert = true;
       
       // Handle different error scenarios with specific messages
       if (error.response) {

@@ -8,19 +8,45 @@
 - **Maintain simplicity** - every change should impact minimal code
 - **Company isolation first** - always ensure data security and proper filtering
 
+### Guardian MVP Specialized Agents Directory
+
+The project includes 11 specialized agents located in `.claude/agents/` that provide expert capabilities across all aspects of the Guardian MVP system:
+
+**Frontend Development:**
+- `frontend-react-expert` - Senior frontend engineer specializing in React, Tailwind CSS, and ShadCN/UI for modern, responsive, and accessible user interfaces
+- `react-specialist` - Guardian MVP React component expert for TypeScript, form builders, data tables, and project-specific UI patterns
+
+**Backend & API Development:**
+- `api-specialist` - Expert in Guardian MVP API endpoints, Express.js server management, and critical multi-server synchronization across development, testing, and production environments
+- `database-specialist` - SQL Server and Prisma ORM specialist focused on Guardian MVP's company-based data isolation and security architecture
+- `security-specialist` - JWT authentication, role-based access control, and company-based data isolation security expert
+- `resend-email-specialist` - Resend API integration expert for transactional emails, templates, verification workflows, and email deliverability optimization
+
+**Infrastructure & Deployment:**
+- `deployment-specialist` - Azure App Service, DevOps pipelines, and IIS configuration expert with deep knowledge of Guardian MVP's unique three-server deployment architecture
+- `error-monitor-specialist` - Application debugging, error analysis, and system monitoring specialist for production issue resolution
+
+**Quality Assurance & Documentation:**
+- `testing-qa-specialist` - Government-grade testing coverage, quality assurance validation, and comprehensive test strategy development
+- `doc-updater` - Documentation maintenance specialist that automatically updates READMEs, CLAUDE.md, and project documentation after any code changes
+- `typescript-pro` - Advanced TypeScript expert for complex type systems, enterprise patterns, and type safety optimization
+
 ### Automatic Sub-Agent Usage Patterns
 
 **Frontend Development:**
 - Use `frontend-react-expert` for React components, UI optimization, and responsive design
 - Use `react-specialist` for Guardian-specific React patterns, TypeScript fixes, and form builders
+- Use `typescript-pro` proactively for complex TypeScript architectures and type optimization
 
 **Backend Development:**
 - Use `api-specialist` for API endpoints, Express server management, and multi-server synchronization
 - Use `database-specialist` for database operations, Prisma queries, and company-based data isolation
 - Use `security-specialist` for authentication, authorization, and security reviews
+- Use `resend-email-specialist` for any email functionality including verification, notifications, and deliverability issues
 
 **Infrastructure & Deployment:**
 - Use `deployment-specialist` proactively for Azure deployment issues, pipeline failures, and IIS configuration
+- Use `error-monitor-specialist` for production errors, debugging, and system monitoring
 - Use `doc-updater` automatically after ANY code changes to update documentation
 
 **Quality Assurance & Testing:**
@@ -31,11 +57,14 @@
 | Task Type | Primary Agent | Secondary Agent | Use When |
 |-----------|---------------|-----------------|----------|
 | React Component Creation | `frontend-react-expert` | `react-specialist` | Building/modifying UI components |
+| TypeScript Architecture | `typescript-pro` | `frontend-react-expert` | Complex type systems, enterprise patterns |
 | API Endpoint Changes | `api-specialist` | `security-specialist` | Adding/modifying endpoints across server files |
 | Database Schema/Queries | `database-specialist` | `security-specialist` | Any database operations or schema changes |
 | Form Builder Features | `react-specialist` | `database-specialist` | Form templates, field management, validation |
 | Authentication/Security | `security-specialist` | `database-specialist` | Auth flows, JWT tokens, company isolation |
+| Email Integration | `resend-email-specialist` | `api-specialist` | Verification emails, notifications, deliverability |
 | Testing & Quality Assurance | `testing-qa-specialist` | `security-specialist` | Test coverage, QA validation, pre-deployment testing |
+| Production Errors | `error-monitor-specialist` | `deployment-specialist` | Debugging, monitoring, error analysis |
 | Deployment Issues | `deployment-specialist` | `api-specialist` | Pipeline failures, Azure/IIS problems |
 | Documentation Updates | `doc-updater` | N/A | After any code changes (MANDATORY) |
 
@@ -94,8 +123,9 @@ User Request: "Create a user profile modal component"
 Automatic Response: Use frontend-react-expert to:
 1. Build responsive modal with Guardian design patterns
 2. Use react-specialist for TypeScript integration
-3. Use database-specialist if data fetching needed
-4. Use doc-updater to document component usage
+3. Use typescript-pro for complex type definitions
+4. Use database-specialist if data fetching needed
+5. Use doc-updater to document component usage
 ```
 
 **Example 3: Database Schema Change**
@@ -109,7 +139,29 @@ Automatic Response: Use database-specialist to:
 5. Use doc-updater to update schema documentation
 ```
 
-**Example 4: Quality Assurance & Testing**
+**Example 4: Email Integration**
+```
+User Request: "Add email verification to user registration"
+Automatic Response: Use resend-email-specialist to:
+1. Configure Resend API integration
+2. Create responsive email templates
+3. Use api-specialist for verification endpoints
+4. Use security-specialist for token security
+5. Use doc-updater to document email workflows
+```
+
+**Example 5: Production Error Resolution**
+```
+User Request: "Users are getting 500 errors on the requests page"
+Automatic Response: Use error-monitor-specialist to:
+1. Analyze error logs and identify root cause
+2. Use deployment-specialist for server-side issues
+3. Use database-specialist for query problems
+4. Use api-specialist for endpoint fixes
+5. Use testing-qa-specialist for validation
+```
+
+**Example 6: Quality Assurance & Testing**
 ```
 User Request: "I just implemented a new authentication endpoint and need thorough testing"
 Automatic Response: Use testing-qa-specialist to:
@@ -124,14 +176,15 @@ Automatic Response: Use testing-qa-specialist to:
 
 **Concurrent Agent Execution:**
 - Run independent agents in parallel using single message with multiple tool calls  
-- Example: api-specialist + database-specialist + security-specialist + testing-qa-specialist simultaneously
+- Example: api-specialist + database-specialist + security-specialist + testing-qa-specialist + resend-email-specialist simultaneously
 - Avoid sequential execution when tasks don't depend on each other
 
 **Agent Specialization Benefits:**
-- Reduced context switching and improved focus
-- Specialized knowledge and patterns for each domain
-- Automatic adherence to Guardian MVP conventions
-- Built-in security and company isolation validation
+- **11 Specialized Domains**: Complete coverage from frontend React to production monitoring
+- **Reduced Context Switching**: Each agent maintains deep focus in their expertise area
+- **Guardian MVP Conventions**: Automatic adherence to project patterns and security requirements
+- **Built-in Validation**: Security, company isolation, and quality standards enforced automatically
+- **Production-Ready**: Error monitoring, deployment, and testing specialists ensure reliability
 
 
 ### User Registration

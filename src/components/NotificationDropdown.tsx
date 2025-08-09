@@ -37,10 +37,14 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchNotificationCount();
-    // Poll for notifications every 30 seconds
-    const interval = setInterval(fetchNotificationCount, 30000);
-    return () => clearInterval(interval);
+    // Only fetch notifications if user is authenticated
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchNotificationCount();
+      // Poll for notifications every 30 seconds
+      const interval = setInterval(fetchNotificationCount, 30000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   useEffect(() => {
@@ -68,10 +72,19 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
 
   const fetchNotificationCount = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // No token available, skip API call
+        return;
+      }
+      
       const response = await notificationService.getNotificationCount();
       setUnreadCount(response.unreadCount);
     } catch (error) {
-      console.error('Error fetching notification count:', error);
+      // Only log error if it's not an authentication issue
+      if (error?.response?.status !== 401) {
+        console.error('Error fetching notification count:', error);
+      }
     }
   };
 
@@ -79,12 +92,21 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
     if (loading) return;
     
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // No token available, skip API call
+        return;
+      }
+      
       setLoading(true);
       const response = await notificationService.getNotifications({ limit: 20 });
       setNotifications(response.data);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
+      // Only show error toast and log if it's not an authentication issue
+      if (error?.response?.status !== 401) {
+        console.error('Error fetching notifications:', error);
+        toast.error('Failed to load notifications');
+      }
     } finally {
       setLoading(false);
     }

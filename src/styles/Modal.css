@@ -67,3 +67,8 @@
     padding: 12px 16px;
   }
 }
+
+/* Ensure padding for AddRequestModal body regardless of Bootstrap overrides */
+#AddRequestModal .modal-body {
+  padding: 16px 20px !important;
+}
