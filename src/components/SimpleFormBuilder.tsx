@@ -80,6 +80,13 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       fields: ['first_name', 'middle_name', 'last_name', 'dob', 'ssn']
     },
     {
+      id: 'vehicle',
+      name: 'VEHICLE',
+      description: 'Make, Model, Year, VIN, License Plate',
+      icon: <FaIdBadge />,
+      fields: ['make', 'model', 'year', 'vin', 'license_plate']
+    },
+    {
       id: 'financial',
       name: 'FINANCIAL',
       description: 'Bank Name, Account #, Routing #',
@@ -195,7 +202,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       canDelete: true
     }));
     
-    const updatedFields = [...fields, ...templateFields];
+    // Replace existing fields with the template fields
+    const updatedFields = [...templateFields];
     setFields(updatedFields);
     onChange(updatedFields);
     
@@ -400,6 +408,16 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     <div className="form-builder-container">
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
+        {/* Preset Forms section */}
+        <div className="forms-section">
+          <h4 className="mb-2">WORKFLOW TEMPLATES</h4>
+          <div className="forms-grid">
+            <button type="button" className="form-btn subject" onClick={() => applyTemplate('subject')}>Subject</button>
+            <button type="button" className="form-btn financial" onClick={() => applyTemplate('financial')}>Financial</button>
+            <button type="button" className="form-btn vehicle" onClick={() => applyTemplate('vehicle')}>Vehicle</button>
+            <button type="button" className="form-btn address" onClick={() => applyTemplate('address')}>Address</button>
+          </div>
+        </div>
         <h4 className="mb-3">FIELDS</h4>
         <div className="field-grid">
           {dbFields.map((field) => (

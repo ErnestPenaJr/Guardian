@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- Added preset FORMS section above the fields column in `src/components/SimpleFormBuilder.tsx` with buttons to quickly preload common templates (Subject, Financial, Vehicle, Address)
+- Added new `vehicle` template (Make, Model, Year, VIN, License Plate)
 - Created EnhancedFormBuilder component with improved UI and functionality
 - Added drag-and-drop field reordering in EnhancedFormBuilder
 - Added field editing modal with improved styling
