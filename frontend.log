@@ -201,3 +201,5 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 2:37:10 PM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
 2:38:42 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
 2:39:25 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+2:45:43 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+2:48:15 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css

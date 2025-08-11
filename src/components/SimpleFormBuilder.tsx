@@ -410,7 +410,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       <div className="form-builder-sidebar">
         {/* Preset Forms section */}
         <div className="forms-section">
-          <h4 className="mb-2">WORKFLOW TEMPLATES</h4>
+          <h4 className="mb-2">PREDEFINED TEMPLATES</h4>
           <div className="forms-grid">
             <button type="button" className="form-btn subject" onClick={() => applyTemplate('subject')}>Subject</button>
             <button type="button" className="form-btn financial" onClick={() => applyTemplate('financial')}>Financial</button>
@@ -418,7 +418,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             <button type="button" className="form-btn address" onClick={() => applyTemplate('address')}>Address</button>
           </div>
         </div>
-        <h4 className="mb-3">FIELDS</h4>
+        <h4 className="mb-3">ADDITIONAL FIELDS</h4>
         <div className="field-grid">
           {dbFields.map((field) => (
             <div
