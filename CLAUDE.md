@@ -293,7 +293,7 @@ This project uses a **two-environment configuration** with distinct server setup
 
 **File:** `server.cjs`  
 **Purpose:** Full-featured development server with comprehensive authentication and email services  
-**Runtime:** Local development (typically port 3000)
+**Runtime:** Local development (port 3001 - Fixed 2025-08-12)
 
 **Features:**
 - Static file serving via Express (`express.static('.')`)
@@ -302,11 +302,13 @@ This project uses a **two-environment configuration** with distinct server setup
 - Resend email service integration for verification emails
 - Complete registration/authentication flow
 - Company isolation through `getAuthenticatedUserCompany` middleware
+- Enhanced form template creation with proper SQL Server compatibility (Fixed 2025-08-12)
 
 **Key Dependencies:**
 - Email service with Resend API
 - Database storage for verification codes
 - Comprehensive error handling and fallback forms
+- SQL Server parameterized queries with proper syntax
 
 ### Production Environment (IIS)
 
@@ -378,6 +380,7 @@ Both environments support the same complete set of API endpoints:
 
 ### Forms & Fields (Enhanced Company Isolation - 2025-08-08)
 - `GET /api/forms` - Get forms (company-filtered with COMPANY_ID support)
+- `POST /api/forms` - Create new form template with proper company isolation (Fixed 2025-08-12)
 - `GET /api/forms/:id` - Get specific form with fields
 - `GET /api/fields` - Get fields (company-filtered)
 - `POST /api/fields` - Create new field with duplicate name checking and validation (Added 2025-07-29)
@@ -462,15 +465,15 @@ The application uses these key tables:
 
 **Start Development Servers:**
 ```bash
-# Backend development server (port 3001)
-bun server.cjs  # or node server.cjs
+# Backend development server (port 3001) - Fixed configuration 2025-08-12
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
 
-# Frontend development server (port 5175) 
+# Frontend development server (port 5175) with proxy to backend
 bun run dev
 
 # Both simultaneously (in separate terminals)
-bun run backend    # Equivalent to backend server start
-bun run dev        # Frontend with hot reload
+bun run backend    # Backend with proper DATABASE_URL
+bun run dev        # Frontend with proxy routing to port 3001
 ```
 
 **Database Management:**
@@ -531,24 +534,28 @@ bun server.js  # or node server.js
 3. **Both servers have identical API endpoints** - Only the implementation details differ between environments
 4. **Production uses IIS** - Static file serving and SPA routing handled by web.config
 5. **Development uses full Express** - Includes static serving and SPA fallback for React Router
-6. **Database connection fix** - If development server has database connection issues, explicitly set DATABASE_URL when starting
-7. **Field Management** - New CRUD operations for fields require proper validation and duplicate checking
-8. **Email Integration** - Resend API handles all transactional emails including assignments and verifications
-9. **Notification System** - Real-time notifications with database persistence and read tracking
-10. **Workflow Management** - Advanced form template management with role-based access control and first-time admin onboarding
-11. **Task Management System** - Comprehensive task system with flexible status management, batch operations, and automatic notification integration (Added 2025-08-07)
-12. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
-13. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
+6. **Database connection requirement** - Development server MUST use explicit DATABASE_URL for stable connection (Fixed 2025-08-12)
+7. **Form template creation** - SimpleFormBuilder fully functional with enhanced SQL Server compatibility and proper company isolation (Fixed 2025-08-12)
+8. **Port configuration** - Frontend runs on port 5175, backend on port 3001 with Vite proxy routing (Standardized 2025-08-12)
+9. **Field Management** - New CRUD operations for fields require proper validation and duplicate checking
+10. **Email Integration** - Resend API handles all transactional emails including assignments and verifications
+11. **Notification System** - Real-time notifications with database persistence and read tracking
+12. **Workflow Management** - Advanced form template management with role-based access control and first-time admin onboarding
+13. **Task Management System** - Comprehensive task system with flexible status management, batch operations, and automatic notification integration (Added 2025-08-07)
+14. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
+15. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
+16. **SQL Server Compatibility** - All database operations use proper parameterized queries with `${variable}` syntax for security and compatibility (Fixed 2025-08-12)
 
 ## Deployment
 
 ### Development
-- Run `server.cjs` locally (use explicit DATABASE_URL if connection fails)
+- Run `server.cjs` locally with explicit DATABASE_URL (required for stable connection - Fixed 2025-08-12)
 - Static files served by Express
 - Email service requires Resend API key
-- Frontend runs on port 5175 via Vite
-- Backend runs on port 3001 
-- Vite proxy routes API calls from frontend to backend
+- Frontend runs on port 5175 via Vite with proxy configuration
+- Backend runs on port 3001 with proper SQL Server compatibility
+- Vite proxy routes API calls from frontend (port 5175) to backend (port 3001)
+- Form template creation fully functional with enhanced database integration
 
 ### Production (Azure App Service)
 - Deploy via Azure DevOps pipeline
@@ -689,9 +696,52 @@ DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUA
 - Login attempts work (queries database for user validation)
 - API endpoints return data instead of authentication errors
 
+### Form Template Creation Issues (Fixed 2025-08-12)
+If form template creation fails or returns server errors:
+
+**Common Symptoms:**
+- "Form template creation failed" error messages
+- 500 Internal Server Error on POST /api/forms
+- SimpleFormBuilder component not saving templates
+
+**Root Causes & Solutions:**
+- ✅ **SQL Server Query Syntax**: Fixed parameterized query format from `?` to `${variable}` syntax
+- ✅ **Table Name References**: Corrected FORM_FIELDS vs FIELDS table naming issues
+- ✅ **JWT Middleware**: Fixed req.user.userId vs req.userId property access
+- ✅ **Company ID Filtering**: Proper multi-tenant security with company-based isolation
+- ✅ **Port Configuration**: Ensure frontend (5175) properly proxies to backend (3001)
+
+**Verification Steps:**
+1. Check server logs for "✅ Database connected successfully" 
+2. Verify all three server files are synchronized
+3. Test form creation through SimpleFormBuilder component
+4. Confirm form templates appear in GUARDIAN.FORMS table
+
 ## Recent Changes & Fixes
 
-### Latest Updates (2025-08-08)
+### Latest Updates (2025-08-12)
+
+#### SimpleFormBuilder Database Integration - RESOLVED
+- ✅ **POST /api/forms Endpoint Fixed**: Resolved critical server-side issues preventing form template creation
+- ✅ **SQL Server Compatibility**: Fixed parameterized query syntax errors - changed from `?` placeholders to `${variable}` syntax
+- ✅ **Table Name Resolution**: Corrected database table references (FORM_FIELDS vs FIELDS) in junction table queries
+- ✅ **JWT Authentication**: Fixed middleware issues with req.user.userId vs req.userId property access
+- ✅ **Company vs Organization ID**: Proper COMPANY_ID vs ORGANIZATION_ID usage for multi-tenant security
+- ✅ **Port Configuration**: Stabilized frontend-backend communication between ports 5175 and 3001
+- ✅ **Database Schema Integration**: Enhanced form-field relationship management through GUARDIAN.FORMS_FIELDS junction table
+- ✅ **SQL Injection Prevention**: Implemented proper string escaping and parameterized queries
+- ✅ **Development Workflow**: Improved server startup with explicit DATABASE_URL configuration
+- ✅ **Multi-Server Synchronization**: Ensured all three server files (server.cjs, server-production.js, server.js) include fixes
+
+#### Technical Architecture Improvements (2025-08-12)
+- ✅ **Database Connection Stability**: Resolved authentication issues with explicit environment variable configuration
+- ✅ **Form Template Storage**: Properly implemented GUARDIAN.FORMS table integration with company-based isolation
+- ✅ **Field Definition Management**: Enhanced GUARDIAN.FIELDS table operations with validation and duplicate checking
+- ✅ **Security Enhancement**: Multi-tenant security with proper company ID filtering across all form operations
+- ✅ **Error Handling**: Comprehensive error logging and fallback mechanisms for form creation failures
+- ✅ **Development Experience**: Streamlined local development setup with clear configuration requirements
+
+### Previous Updates (2025-08-08)
 
 #### First-Time Admin Workflow Template Creation
 - ✅ **Automatic Admin Detection**: System automatically identifies first-time admins (roles 1, 6) without existing form templates

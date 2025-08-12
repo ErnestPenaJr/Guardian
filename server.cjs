@@ -4343,15 +4343,31 @@ app.delete('/api/forms-groups/:groupId', getAuthenticatedUserCompany, async (req
 app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     try {
         console.log('📋 Fetching forms from database for company:', req.companyId);
+        console.log('🔍 Company ID type:', typeof req.companyId);
 
         const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS 
-            WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+            WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
             ORDER BY FORM_NAME
         `;
 
         console.log(`✅ Found ${forms.length} forms for company ${req.companyId}`);
+        
+        // Debug: Log raw database results with extensive details
+        console.log('🔍 ===== RAW DATABASE FORMS DATA =====');
+        forms.forEach((form, index) => {
+            console.log(`🔍 Form ${index + 1} raw data:`, {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                ORGANIZATION_ID: form.ORGANIZATION_ID,
+                COMPANY_ID: form.COMPANY_ID,
+                COMPANY_ID_TYPE: typeof form.COMPANY_ID,
+                COMPANY_ID_IS_NULL: form.COMPANY_ID === null,
+                COMPANY_ID_IS_UNDEFINED: form.COMPANY_ID === undefined,
+                COMPANY_ID_VALUE: form.COMPANY_ID
+            });
+        });
 
         // Format the data to match frontend expectations
         const formattedForms = forms.map(form => ({
@@ -4361,9 +4377,21 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             IS_ACTIVE: form.IS_ACTIVE,
             IS_PUBLIC: form.IS_PUBLIC,
             IS_DELETED: form.IS_DELETED,
-            ORGANIZATION_ID: form.ORGANIZATION_ID
+            ORGANIZATION_ID: form.ORGANIZATION_ID,
+            COMPANY_ID: form.COMPANY_ID
         }));
 
+        console.log('🔍 ===== FORMATTED FORMS BEFORE SENDING =====');
+        formattedForms.forEach((form, index) => {
+            console.log(`🔍 Form ${index + 1} formatted:`, {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                COMPANY_ID: form.COMPANY_ID,
+                COMPANY_ID_TYPE: typeof form.COMPANY_ID,
+                COMPANY_ID_IS_NULL: form.COMPANY_ID === null,
+                COMPANY_ID_IS_UNDEFINED: form.COMPANY_ID === undefined
+            });
+        });
         console.log(`📤 Sending ${formattedForms.length} formatted forms to frontend`);
         res.json(formattedForms);
 

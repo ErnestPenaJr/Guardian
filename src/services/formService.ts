@@ -200,10 +200,21 @@ const formService = {
   // Get all forms
   getAllForms: async (): Promise<DbForm[]> => {
     try {
+      console.log('🌐 Making API call to /api/forms...');
       const response = await api.get('/api/forms');
+      console.log('🌐 API response status:', response.status);
+      console.log('🌐 API response data type:', typeof response.data);
+      console.log('🌐 API response data length:', response.data?.length);
+      console.log('🌐 API response data:', response.data);
+      
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        console.log('🌐 First form in response:', response.data[0]);
+        console.log('🌐 Available properties in first form:', Object.keys(response.data[0]));
+      }
+      
       return response.data;
     } catch (error) {
-      console.error('Error fetching all forms:', error);
+      console.error('❌ Error fetching all forms:', error);
       // Return empty array instead of throwing error
       return [];
     }

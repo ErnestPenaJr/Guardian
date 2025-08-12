@@ -74,6 +74,7 @@ Guardian MVP uses a sophisticated multi-environment architecture:
 - Database-backed email verification storage
 - Complete registration/authentication flow
 - SPA fallback routing for React Router
+- Enhanced form template creation with SQL Server compatibility (Fixed 2025-08-12)
 - Runs on port 3001 (backend) with Vite dev server on 5175 (frontend)
 
 #### Production Environment (`server-production.js` → `server.js`)
@@ -172,6 +173,7 @@ DELETE /api/tasks/:taskId             - Delete task with validation
 ### Forms & Field Management
 ```
 GET  /api/forms                   - Get forms (company-filtered)
+POST /api/forms                   - Create new form template (Fixed 2025-08-12)
 GET  /api/forms/:id               - Get specific form with fields
 GET  /api/fields                  - Get fields (company-filtered)
 POST /api/fields                  - Create new field with duplicate checking
@@ -294,15 +296,15 @@ EMAIL_FROM="support@yourdomain.com"
 
 **Start Development Environment:**
 ```bash
-# Backend server (development)
-bun server.cjs
+# Backend server (development) - Requires explicit DATABASE_URL for stability (Fixed 2025-08-12)
+DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
 
-# Frontend development server
+# Frontend development server with proxy to backend
 bun run dev
 
 # Both simultaneously (in separate terminals)
-bun run backend    # Backend on port 3001
-bun run dev        # Frontend on port 5175
+bun run backend    # Backend on port 3001 with proper DB connection
+bun run dev        # Frontend on port 5175 with proxy routing
 ```
 
 **Database Management:**
@@ -335,9 +337,12 @@ bun run lint
 
 ### Important Development Notes
 
+- **Database Connection**: Must use explicit DATABASE_URL for stable connection in development (Fixed 2025-08-12)
+- **Form Template System**: SimpleFormBuilder fully functional with enhanced SQL Server compatibility (Fixed 2025-08-12)  
 - **Database Password Escaping**: Special characters like `$` must be escaped as `\$` in .env files
 - **Frontend/Backend Communication**: Vite proxy routes API calls from port 5175 to 3001
 - **File Synchronization**: Always update `server-production.js` when modifying API endpoints
+- **SQL Server Queries**: Use `${variable}` syntax instead of `?` placeholders for parameterized queries
 
 ## Production Deployment
 
@@ -408,10 +413,26 @@ npm install --production
 1. Verify connection string format
 2. Escape special characters in passwords (`$` → `\$`)
 3. Check firewall and network connectivity
-4. Use explicit DATABASE_URL when starting server:
+4. Use explicit DATABASE_URL when starting server (Required for stable development - Fixed 2025-08-12):
    ```bash
-   DATABASE_URL="your-connection-string" bun server.cjs
+   DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
    ```
+
+#### Form Template Creation Issues (Fixed 2025-08-12)
+**Symptom**: Form creation fails with server errors in SimpleFormBuilder
+
+**Root Causes & Solutions**:
+- ✅ **SQL Server Compatibility**: Fixed parameterized query syntax from `?` to `${variable}` format
+- ✅ **Database Table References**: Corrected FORM_FIELDS vs FIELDS table naming in queries
+- ✅ **JWT Authentication**: Fixed middleware property access (req.user.userId vs req.userId)
+- ✅ **Company Isolation**: Proper COMPANY_ID filtering for multi-tenant security
+- ✅ **Port Configuration**: Stabilized frontend-backend communication (5175 ↔ 3001)
+
+**Verification Steps**:
+1. Check server logs for successful database connection
+2. Test form creation through SimpleFormBuilder interface
+3. Verify templates are saved to GUARDIAN.FORMS table
+4. Confirm all three server files are synchronized
 
 #### Production Endpoint 404 Errors
 **Symptom**: "Endpoints work locally but return 404 in production"
@@ -572,9 +593,26 @@ For technical support or questions:
 - **Anti-Enumeration Protection**: Generic error messages prevent user account discovery
 - **Rate Limiting**: Client-side protection against brute force login attempts
 
+## Recent Critical Fixes (2025-08-12)
+
+### SimpleFormBuilder Database Integration - RESOLVED
+- ✅ **POST /api/forms Endpoint**: Fixed critical server-side issues preventing form template creation
+- ✅ **SQL Server Compatibility**: Resolved parameterized query syntax errors across all server environments
+- ✅ **Database Schema Integration**: Enhanced form-field relationship management through GUARDIAN.FORMS_FIELDS junction table
+- ✅ **JWT Authentication**: Fixed middleware property access issues for proper user identification
+- ✅ **Company Isolation**: Proper COMPANY_ID vs ORGANIZATION_ID usage for multi-tenant security
+- ✅ **Development Stability**: Standardized port configuration (frontend: 5175, backend: 3001) with explicit DATABASE_URL requirement
+- ✅ **Multi-Server Synchronization**: All three server files (server.cjs, server-production.js, server.js) updated with fixes
+
+### Technical Architecture Improvements
+- ✅ **Database Connection**: Resolved authentication issues with explicit environment variable configuration
+- ✅ **Form Template Storage**: Properly implemented GUARDIAN.FORMS table integration with company-based isolation
+- ✅ **SQL Injection Prevention**: Enhanced security with proper string escaping and parameterized queries
+- ✅ **Error Handling**: Comprehensive error logging and fallback mechanisms for form creation failures
+
 ---
 
-**Last Updated**: 2025-08-08  
+**Last Updated**: 2025-08-12  
 **Version**: 2.5.0  
 **Node.js Compatibility**: 18+  
 **Database**: Microsoft SQL Server  

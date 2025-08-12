@@ -116,33 +116,134 @@ function Home() {
   
   // Check if admin has existing form templates for their company
   const checkForExistingTemplates = async () => {
-    if (!isAdmin() || hasCheckedForExistingTemplates) return;
+    if (!isAdmin() || hasCheckedForExistingTemplates) {
+      console.log('🔍 ===== SKIPPING TEMPLATE CHECK =====');
+      console.log('🔍 isAdmin():', isAdmin());
+      console.log('🔍 hasCheckedForExistingTemplates:', hasCheckedForExistingTemplates);
+      return;
+    }
     
     try {
-      console.log('Checking for existing form templates for admin user...');
+      console.log('🔍 ===== CHECKING FOR EXISTING FORM TEMPLATES =====');
+      console.log('🔍 User object:', user);
+      console.log('🔍 User company ID:', user?.companyId, 'Type:', typeof user?.companyId);
+      
       const forms = await formService.getAllForms();
-      console.log('Forms found:', forms);
+      console.log('🔍 ===== FORMS FROM API =====');
+      console.log('🔍 Raw forms from API:', forms);
+      console.log('🔍 Forms array length:', forms?.length);
+      console.log('🔍 Forms is array?', Array.isArray(forms));
+      
+      if (forms && forms.length > 0) {
+        console.log('🔍 ===== FIRST FORM ANALYSIS =====');
+        console.log('🔍 First form structure:', forms[0]);
+        console.log('🔍 Available form properties:', Object.keys(forms[0]));
+        
+        // Log each form's COMPANY_ID for debugging
+        console.log('🔍 ===== ALL FORMS DETAILED ANALYSIS =====');
+        forms.forEach((form, index) => {
+          console.log(`🔍 Form ${index + 1}:`, {
+            FORM_ID: form.FORM_ID,
+            FORM_NAME: form.FORM_NAME,
+            COMPANY_ID: form.COMPANY_ID,
+            ORGANIZATION_ID: form.ORGANIZATION_ID,
+            IS_ACTIVE: form.IS_ACTIVE,
+            IS_DELETED: form.IS_DELETED,
+            CompanyIdType: typeof form.COMPANY_ID,
+            CompanyIdValue: form.COMPANY_ID,
+            CompanyIdIsNull: form.COMPANY_ID === null,
+            CompanyIdIsUndefined: form.COMPANY_ID === undefined
+          });
+        });
+      }
+      
+      console.log('🔍 ===== FILTERING LOGIC =====');
+      console.log('🔍 Looking for forms where COMPANY_ID matches user companyId...');
       
       // Filter forms associated with the user's company
       // Check for company-specific forms (COMPANY_ID matches companyId)
-      const companySpecificForms = forms.filter(form => 
-        form.COMPANY_ID === user?.companyId
-      );
+      // Handle potential type mismatches (string vs number)
+      const companySpecificForms = forms.filter(form => {
+        const formCompanyId = form.COMPANY_ID;
+        const userCompanyId = user?.companyId;
+        
+        console.log(`🔍 ===== FORM COMPARISON =====`);
+        console.log(`🔍 Form: "${form.FORM_NAME}" (ID: ${form.FORM_ID})`);
+        console.log(`🔍 Form COMPANY_ID: ${formCompanyId} (${typeof formCompanyId})`);
+        console.log(`🔍 User companyId: ${userCompanyId} (${typeof userCompanyId})`);
+        console.log(`🔍 Form COMPANY_ID === null: ${formCompanyId === null}`);
+        console.log(`🔍 Form COMPANY_ID === undefined: ${formCompanyId === undefined}`);
+        console.log(`🔍 User companyId === null: ${userCompanyId === null}`);
+        console.log(`🔍 User companyId === undefined: ${userCompanyId === undefined}`);
+        
+        // Early return if either value is null/undefined
+        if (formCompanyId == null || userCompanyId == null) {
+          console.log(`🔍 ❌ Skipping form due to null/undefined values`);
+          return false;
+        }
+        
+        // Handle type conversion for comparison - check both exact and loose equality
+        const strictMatch = formCompanyId === userCompanyId;
+        const looseMatch = formCompanyId == userCompanyId;
+        const stringMatch = String(formCompanyId) === String(userCompanyId);
+        const numberMatch = Number(formCompanyId) === Number(userCompanyId);
+        
+        console.log(`🔍 Match tests - strict: ${strictMatch}, loose: ${looseMatch}, string: ${stringMatch}, number: ${numberMatch}`);
+        
+        // Additional validation: ensure both values are valid numbers if they should be
+        const formCompanyIdNumber = Number(formCompanyId);
+        const userCompanyIdNumber = Number(userCompanyId);
+        const bothAreNumbers = !isNaN(formCompanyIdNumber) && !isNaN(userCompanyIdNumber);
+        const numberMatches = bothAreNumbers && formCompanyIdNumber === userCompanyIdNumber;
+        
+        console.log(`🔍 Number validation - formCompanyIdNumber: ${formCompanyIdNumber}, userCompanyIdNumber: ${userCompanyIdNumber}`);
+        console.log(`🔍 Number validation - bothAreNumbers: ${bothAreNumbers}, numberMatches: ${numberMatches}`);
+        
+        // Use multiple comparison strategies to handle type mismatches
+        const finalMatch = strictMatch || looseMatch || stringMatch || numberMatch || numberMatches;
+        
+        console.log(`🔍 Final match result: ${finalMatch}`);
+        console.log(`🔍 ===== END FORM COMPARISON =====`);
+        
+        return finalMatch;
+      });
       
-      console.log('Company-specific forms found:', companySpecificForms.length);
-      console.log('User company ID:', user?.companyId);
+      console.log('🔍 ===== FILTERING RESULTS =====');
+      console.log('🔍 Company-specific forms found:', companySpecificForms.length);
+      console.log('🔍 Company-specific forms:', companySpecificForms);
       
       // If no company-specific templates exist, show the first-time form creation modal
       if (companySpecificForms.length === 0) {
-        console.log('No existing company templates found, showing first-time form creation modal');
+        console.log('🚨 ===== SHOWING MODAL =====');
+        console.log('🚨 No existing company templates found, showing first-time form creation modal');
         setShowFirstTimeFormModal(true);
+      } else {
+        console.log('✅ ===== NOT SHOWING MODAL =====');
+        console.log('✅ Found existing company templates, not showing modal');
+        console.log('✅ Templates found:', companySpecificForms.map(f => ({ id: f.FORM_ID, name: f.FORM_NAME, companyId: f.COMPANY_ID })));
       }
       
       setHasCheckedForExistingTemplates(true);
+      console.log('🔍 ===== CHECK COMPLETE =====');
     } catch (error) {
-      console.error('Error checking for existing templates:', error);
+      console.error('❌ ===== ERROR IN TEMPLATE CHECK =====');
+      console.error('❌ Error checking for existing templates:', error);
       setHasCheckedForExistingTemplates(true);
     }
+  };
+  
+  // Debug function to manually trigger template check (for testing)
+  const debugCheckTemplates = () => {
+    console.log('🔧 ===== MANUAL DEBUG TRIGGER =====');
+    setHasCheckedForExistingTemplates(false);
+    checkForExistingTemplates();
+  };
+  
+  // Debug function to manually show/hide modal (for testing)
+  const debugToggleModal = () => {
+    console.log('🔧 ===== MANUAL MODAL TOGGLE =====');
+    console.log('🔧 Current showFirstTimeFormModal:', showFirstTimeFormModal);
+    setShowFirstTimeFormModal(!showFirstTimeFormModal);
   };
   
   // Handle logout
@@ -1226,8 +1327,28 @@ function Home() {
             </div>
           </div>
         ) : mobileNav === 'search' ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl gap-4">
             Search (coming soon)
+            {/* Debug buttons - remove after testing */}
+            {isAdmin() && (
+              <div className="flex flex-col gap-2 text-sm">
+                <button 
+                  onClick={debugCheckTemplates}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  🔧 Debug: Check Templates
+                </button>
+                <button 
+                  onClick={debugToggleModal}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  🔧 Debug: Toggle Modal
+                </button>
+                <div className="text-xs text-gray-600">
+                  Modal State: {showFirstTimeFormModal ? 'SHOWING' : 'HIDDEN'}
+                </div>
+              </div>
+            )}
           </div>
         ) : mobileNav === 'notifications' ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
