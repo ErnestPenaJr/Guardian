@@ -80,8 +80,8 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   // Handle creating new workflow template
   const handleCreateNewTemplate = () => {
     console.log('Creating new workflow template');
-    setEditingFormId(undefined);
-    setTemplateEditorModalOpen(true);
+    setEditingFormData(null); // Clear any existing editing data
+    setNewRequestModalOpen(true); // Open the workflow creation modal
   };
 
   // Handle template editor save/close
@@ -128,7 +128,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
                 setNewRequestModalOpen(true);
               }}
             >
-              Workflow templates
+              Create Workflow Templates
             </li>
             <li 
               className="cursor-pointer hover:text-secondary transition-colors"
