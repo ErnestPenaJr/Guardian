@@ -700,7 +700,7 @@ const AdminFields: React.FC<AdminFieldsProps> = ({ isModal = false }) => {
         )}
 
         {/* Content */}
-        <div className={isModal ? "h-full p-4" : "bg-white shadow rounded-lg p-6"}>
+        <div className={isModal ? "h-full p-4" : "bg-white shadow-lg rounded-xl border border-gray-200 p-6"}>
           {/* Grid header with search filter and Add button */}
           <div className="flex items-center mb-6 gap-4">
             {/* Left side: Header */}

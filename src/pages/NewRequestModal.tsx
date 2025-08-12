@@ -229,10 +229,10 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         templateId: formData.templateId || formData.FORM_ID || null // Include template ID
       });
       
-      // Show success message with request ID
+      // Show success message
       Swal.fire({
         title: 'Success!',
-        text: `Request submitted successfully! Your request ID is: ${requestData.TRACKINGID}`,
+        text: 'Your request has been submitted successfully!',
         icon: 'success',
         confirmButtonText: 'OK',
         confirmButtonColor: '#1a5b87'
@@ -458,9 +458,9 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         <h3 className="modal-title m-0">
           {isTemplateForm ? `Fill out ${formData.name}` : (
             <>
-              {step === 0 && 'Configure your first form!'}
-              {step === 1 && `Set up your: ${formData.formType} Form`}
-              {step === 2 && 'Create your form'}
+              {step === 0 && 'Step 1: SELECT Workflow Type'}
+              {step === 1 && 'Step 2: Create your Workflow'}
+              {step === 2 && 'Step 3: Select Workflow Fields'}
             </>
           )}
         </h3>
@@ -479,9 +479,9 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
           </div>
           
           <div className="step-labels mb-4">
-            <div className="step-label">Select form type</div>
-            <div className="step-label">Create a title</div>
-            <div className="step-label">Create your form</div>
+            <div className="step-label">Step 1: SELECT Workflow Type</div>
+            <div className="step-label">Step 2: Create your Workflow</div>
+            <div className="step-label">Step 3: Select Workflow Fields</div>
           </div>
         </>
       )}

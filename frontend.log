@@ -248,3 +248,146 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:22:42 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:22:47 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:23:31 AM [vite] (client) hmr update /src/components/MobileNavBar.tsx, /src/index.css
+7:23:54 AM [vite] (client) page reload tailwind.config.js
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:24:12 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:24:20 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:24:25 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:24:32 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:24:39 AM [vite] (client) hmr update /src/components/MobileNavBar.tsx, /src/index.css
+7:24:45 AM [vite] (client) hmr update /src/components/MobileNavBar.tsx, /src/index.css
+7:28:48 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:29:00 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:29:08 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:29:17 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:29:28 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:29:33 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:29:52 AM [vite] (client) hmr update /src/components/MobileNavBar.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:34:13 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:34:18 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:34:23 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:34:43 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:35:08 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:35:18 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:35:29 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:35:42 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:35:56 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:36:02 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:36:08 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:36:13 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:40:11 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:40:18 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:40:39 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:43:46 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:43:51 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:44:02 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:44:26 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:44:33 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:48:51 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:49:17 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+7:49:56 AM [vite] (client) page reload src/pages/GeneralUserDashboard.tsx
+7:50:00 AM [vite] (client) page reload src/pages/ManagerDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:50:03 AM [vite] (client) page reload src/pages/ProcessorDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:50:11 AM [vite] (client) page reload src/pages/UserDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:50:24 AM [vite] (client) page reload src/pages/ExternalUserDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:50:49 AM [vite] (client) hmr update /src/components/Modal.tsx, /src/index.css
+7:50:56 AM [vite] (client) page reload src/components/ui/Card.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:51:07 AM [vite] (client) hmr update /src/components/ConfirmationModal.tsx, /src/index.css
+7:51:22 AM [vite] (client) hmr update /src/components/NotificationDropdown.tsx, /src/index.css
+7:51:43 AM [vite] (client) hmr update /src/components/AdminFormsGroupsModal.tsx, /src/index.css
+7:52:06 AM [vite] (client) page reload src/components/request_modal.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:52:10 AM [vite] (client) page reload src/components/request_modal.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:52:28 AM [vite] (client) hmr update /src/pages/AdminFields.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:53:42 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+7:53:50 AM [vite] (client) hmr update /src/pages/Health.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:56:18 AM [vite] (client) page reload src/components/ui/Card.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:56:23 AM [vite] (client) page reload src/components/ui/Card.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:56:41 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+7:56:46 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+7:56:50 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+7:56:56 AM [vite] (client) page reload src/pages/GeneralUserDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:56:59 AM [vite] (client) page reload src/pages/ManagerDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:57:02 AM [vite] (client) page reload src/pages/ProcessorDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:57:06 AM [vite] (client) page reload src/pages/UserDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:57:14 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:57:25 AM [vite] (client) hmr update /src/components/Modal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+11:18:49 AM [vite] (client) hmr update /src/pages/NewRequestModal.tsx, /src/index.css
+11:22:21 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+11:22:24 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+11:28:17 AM [vite] (client) hmr update /src/pages/NewRequestModal.tsx, /src/index.css
+11:30:46 AM [vite] (client) hmr update /src/pages/NewRequestModal.tsx, /src/index.css
+11:30:51 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

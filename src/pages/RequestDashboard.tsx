@@ -543,7 +543,7 @@ const RequestDashboard: React.FC = () => {
           }
         }
         
-        toast.success(`Request created successfully! ID: ${newRequest.TRACKINGID || newRequest.REQUEST_ID}`);
+        toast.success('Your request has been created successfully!');
       } else {
         console.log('📋 Processing form template creation');
         
@@ -569,7 +569,7 @@ const RequestDashboard: React.FC = () => {
         }));
         
         await formService.createForm(formToSave, fieldsToSave);
-        toast.success('Form template created successfully');
+        toast.success('Your Workflow Template has been created.');
       }
       
       fetchRequests(); // Refresh the requests list

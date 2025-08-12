@@ -25,7 +25,7 @@ const AdminFormsGroupsModal: React.FC<AdminFormsGroupsModalProps> = ({ isOpen, o
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-7xl h-5/6 flex flex-col" style={{ maxHeight: '90vh' }}>
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 w-11/12 max-w-7xl h-5/6 flex flex-col" style={{ maxHeight: '90vh' }}>
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-2xl font-bold">Manage Field Groups</h2>
           <button

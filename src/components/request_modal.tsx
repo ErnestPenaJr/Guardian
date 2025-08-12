@@ -117,7 +117,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
     >
       <div className="relative w-full max-w-2xl mx-auto my-6">
         {/* Modal content */}
-        <div className="relative flex flex-col w-full bg-white border-0 rounded-lg shadow-lg outline-none focus:outline-none">
+        <div className="relative flex flex-col w-full bg-white border-0 rounded-xl shadow-lg outline-none focus:outline-none border border-gray-200">
           {/* Header with tracking ID and close button */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 rounded-t bg-gray-50">
             <h3 className="text-xl font-semibold text-gray-900 flex items-center">
@@ -148,7 +148,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
               {/* Request and User Information in two columns */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left column: Request Information */}
-                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-lg">
                   <h4 className="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center">
                     <span className="mr-2">📝</span>Request Information
                   </h4>
@@ -188,7 +188,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
                 </div>
                 
                 {/* Right column: User Information */}
-                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-lg">
                   <h4 className="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center">
                     <span className="mr-2">👤</span>User Information
                   </h4>
@@ -239,7 +239,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
               </div>
               
               {/* Full-width Description Section */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-lg">
                 <h4 className="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center">
                   <span className="mr-2">📄</span>Request Description
                 </h4>

@@ -29,7 +29,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     <Modal
       isOpen={isOpen}
       onRequestClose={onClose}
-      className="bg-white rounded-lg shadow-xl max-w-md mx-auto mt-20 p-6 relative"
+      className="bg-white rounded-xl shadow-lg max-w-md mx-auto mt-20 p-6 relative border border-gray-200"
       overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     >
       <div>

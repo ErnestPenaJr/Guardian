@@ -268,7 +268,7 @@ const ManagerDashboard: React.FC = () => {
         </Tab>
         
         <Tab eventKey="requests" title="Requests">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Group Requests</h5>
@@ -319,7 +319,7 @@ const ManagerDashboard: React.FC = () => {
         </Tab>
         
         <Tab eventKey="notices" title="Notices">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Group Notices</h5>
@@ -365,7 +365,7 @@ const ManagerDashboard: React.FC = () => {
         </Tab>
         
         <Tab eventKey="tasks" title="Tasks">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Group Tasks</h5>
@@ -414,7 +414,7 @@ const ManagerDashboard: React.FC = () => {
         </Tab>
         
         <Tab eventKey="reports" title="Reports">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <h5 className="mb-0">Group Reports</h5>
             </Card.Header>

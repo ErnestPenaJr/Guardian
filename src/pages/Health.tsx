@@ -56,7 +56,7 @@ const Health = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="bg-blue-600 px-6 py-4">
           <h1 className="text-white text-xl font-bold">Guardian System Health</h1>
         </div>

@@ -115,7 +115,7 @@ const GeneralUserDashboard: React.FC = () => {
 
       <Row className="mb-4">
         <Col md={4}>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
@@ -134,7 +134,7 @@ const GeneralUserDashboard: React.FC = () => {
         </Col>
         
         <Col md={4}>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
@@ -153,7 +153,7 @@ const GeneralUserDashboard: React.FC = () => {
         </Col>
         
         <Col md={4}>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
@@ -178,7 +178,7 @@ const GeneralUserDashboard: React.FC = () => {
         className="mb-4"
       >
         <Tab eventKey="requests" title="My Requests">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">My Requests</h5>
@@ -244,7 +244,7 @@ const GeneralUserDashboard: React.FC = () => {
         </Tab>
         
         <Tab eventKey="notices" title="My Notices">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <h5 className="mb-0">My Notices</h5>
             </Card.Header>
@@ -300,7 +300,7 @@ const GeneralUserDashboard: React.FC = () => {
         </Tab>
         
         <Tab eventKey="tasks" title="My Tasks">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
             <Card.Header className="bg-white">
               <h5 className="mb-0">My Tasks</h5>
             </Card.Header>

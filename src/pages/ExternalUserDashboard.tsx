@@ -121,7 +121,7 @@ const ExternalUserDashboard: React.FC = () => {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <Card className="shadow-sm mb-4">
+      <Card className="shadow-lg rounded-3 border border-gray-200 mb-4">
         <Card.Header className="bg-primary text-white">
           <h4 className="mb-0">Welcome, {user?.firstName || 'Guest'}</h4>
         </Card.Header>
@@ -153,7 +153,7 @@ const ExternalUserDashboard: React.FC = () => {
 
       <Row>
         <Col md={6}>
-          <Card className="shadow-sm mb-4">
+          <Card className="shadow-lg rounded-3 border border-gray-200 mb-4">
             <Card.Header className="bg-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">
@@ -209,7 +209,7 @@ const ExternalUserDashboard: React.FC = () => {
         </Col>
 
         <Col md={6}>
-          <Card className="shadow-sm mb-4">
+          <Card className="shadow-lg rounded-3 border border-gray-200 mb-4">
             <Card.Header className="bg-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">

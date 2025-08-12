@@ -442,7 +442,7 @@ function Home() {
       await formService.createForm(formToSave, fieldsToSave);
       
       setShowFirstTimeFormModal(false);
-      toast.success('Your first workflow template has been created successfully!');
+      toast.success('Your Workflow Template has been created.');
       
       // Refresh the templates check to update the UI
       checkForExistingTemplates();
@@ -561,34 +561,43 @@ function Home() {
     setShowRequestModal(true);
   };
   
-  // Define columns for the requests table
+  // Define columns for the requests table - optimized for mobile
   const requestColumns = [
     {
       name: 'Request ID',
       selector: (row: Request) => row.TRACKINGID || 'N/A',
       sortable: true,
-      width: '300px',
-      wrap: true, // Enable text wrapping
+      minWidth: '140px',
+      maxWidth: '200px',
+      wrap: true,
       cell: (row: Request) => {
         const trackingId = row.TRACKINGID || 'N/A';
         return (
-          <div className="tracking-id-cell">
+          <div className="tracking-id-cell text-xs sm:text-sm break-words leading-tight py-1">
             {trackingId}
           </div>
         );
       }
     },
     {
-      name: 'Type',
+      name: 'Request Name',
       selector: (row: Request) => row.REQUEST_NAME || 'N/A',
       sortable: true,
-      width: '180px',
+      minWidth: '120px',
+      maxWidth: '180px',
+      wrap: true,
+      cell: (row: Request) => (
+        <div className="text-xs sm:text-sm break-words py-1">
+          {row.REQUEST_NAME || 'N/A'}
+        </div>
+      )
     },
     {
       name: 'Status',
       selector: (row: Request) => row.STATUS,
       sortable: true,
-      width: '130px',
+      minWidth: '100px',
+      maxWidth: '120px',
       cell: (row: Request) => {
         const statusColor = {
           'P': 'bg-yellow-200 text-yellow-800',
@@ -600,16 +609,16 @@ function Home() {
         }[row.STATUS] || 'bg-gray-200 text-gray-800';
         
         const statusText = {
-          'P': 'In Progress',
+          'P': 'Progress',
           'A': 'Approved',
           'R': 'Rejected',
-          'C': 'Completed',
+          'C': 'Complete',
           'N': 'New',
           'X': 'Cancelled'
         }[row.STATUS] || 'Unknown';
 
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+          <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${statusColor} inline-block whitespace-nowrap`}>
             {statusText}
           </span>
         );
@@ -619,19 +628,43 @@ function Home() {
       name: 'Date',
       selector: (row: Request) => new Date(row.CREATE_DATE).toLocaleDateString(),
       sortable: true,
-      width: '120px',
+      minWidth: '80px',
+      maxWidth: '100px',
+      cell: (row: Request) => (
+        <div className="text-xs py-1 whitespace-nowrap">
+          {new Date(row.CREATE_DATE).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: '2-digit'
+          })}
+        </div>
+      )
     },
     {
       name: 'Requestor',
       selector: (row: Request) => row.requestorName,
       sortable: true,
-      width: '180px',
+      minWidth: '100px',
+      maxWidth: '150px',
+      wrap: true,
+      cell: (row: Request) => (
+        <div className="text-xs sm:text-sm break-words py-1">
+          {row.requestorName}
+        </div>
+      )
     },
     {
-      name: 'Assigned To',
+      name: 'Assigned',
       selector: (row: Request) => row.assignedName || 'Unassigned',
       sortable: true,
-      width: '180px',
+      minWidth: '100px',
+      maxWidth: '150px',
+      wrap: true,
+      cell: (row: Request) => (
+        <div className="text-xs sm:text-sm break-words py-1">
+          {row.assignedName || 'Unassigned'}
+        </div>
+      )
     }
   ];
 
@@ -934,7 +967,7 @@ function Home() {
             </button>
           {/* Dropdown Menu */}
           {profileMenuOpen && (
-            <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100 animate-fade-in">
+            <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-sm border-t-4 border-t-secondary py-2 z-50 border border-gray-100 animate-fade-in">
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Account Settings */}}>
                 <Settings size={16} /> Account Settings
               </button>
@@ -969,7 +1002,7 @@ function Home() {
                 </button>
                 {themeMenuOpen && (
                   <div
-                    className={`absolute ${themeMenuDirection==='right' ? 'left-full ml-1' : 'right-full mr-1'} top-0 mt-0 w-40 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 animate-fade-in`}
+                    className={`absolute ${themeMenuDirection==='right' ? 'left-full ml-1' : 'right-full mr-1'} top-0 mt-0 w-40 bg-white rounded-lg shadow-sm border-t-4 border-t-secondary border border-gray-100 py-1 z-50 animate-fade-in`}
                     onMouseEnter={handleThemeMenuOpen}
                     onMouseLeave={() => setThemeMenuOpen(false)}
                     role="menu"
@@ -994,72 +1027,155 @@ function Home() {
           )}
         </div>
       </header>
-      {/* Sidebar: collapses to bottom bar on mobile */}
-      <nav aria-label="Sidebar navigation" className={`hidden sm:flex flex-col items-center pt-1 ${isNavExpanded ? 'w-48' : 'w-16'} min-w-[56px] md:min-w-[64px] bg-[#6DEBE8] h-[calc(100vh-4rem)] fixed top-16 left-0 z-50 transition-all duration-300 ease-in-out`}>
-        {/* Expand/Collapse Button */}
-        <button
-          onClick={() => setIsNavExpanded(!isNavExpanded)}
-          className="mb-1 py-0.5 px-1 hover:bg-[#4AB0B9]/70 rounded transition-colors"
-          aria-label={isNavExpanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isNavExpanded ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-        </button>
-        <div className="flex flex-col items-center w-full flex-1">
+      {/* Enhanced Professional Sidebar */}
+      <nav 
+        aria-label="Main navigation" 
+        role="navigation"
+        className={`hidden sm:flex flex-col ${isNavExpanded ? 'w-64' : 'w-16'} min-w-[64px] 
+          bg-gradient-to-br from-secondary/20 via-secondary/15 to-secondary/10
+          shadow-xl shadow-secondary/10 border-r border-secondary/20
+          h-[calc(100vh-4rem)] fixed top-16 left-0 z-50 
+          transition-all duration-500 ease-out backdrop-blur-xl
+          bg-white/95`}
+      >
+        {/* Professional Header Section */}
+        <div className="flex items-center justify-between px-3 py-4 border-b border-secondary/20">
+          <button
+            onClick={() => setIsNavExpanded(!isNavExpanded)}
+            className="group flex items-center justify-center w-10 h-10 
+              bg-secondary/10 hover:bg-secondary/20 active:bg-secondary/25
+              rounded-xl transition-all duration-300 ease-out
+              backdrop-blur-sm border border-secondary/30
+              shadow-sm border-t-4 border-t-secondary hover:shadow-xl hover:shadow-secondary/25
+              focus:outline-none focus:ring-2 focus:ring-secondary/50"
+            aria-label={isNavExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {isNavExpanded ? (
+              <ChevronLeft className="w-5 h-5 text-secondary/80 group-hover:text-secondary transition-colors" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-secondary/80 group-hover:text-secondary transition-colors" />
+            )}
+          </button>
+          {isNavExpanded && (
+            <div className="flex items-center space-x-3 opacity-100 animate-fade-in">
+              <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+              <span className="text-secondary font-semibold tracking-wide text-sm">MENU</span>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Items */}
+        <div className="flex flex-col px-2 py-4 flex-1 space-y-1" role="menu" aria-orientation="vertical">
           {navItems.map((item, index) => (
             <button
               key={index}
               onClick={item.onClick}
-              className={`flex items-center ${isNavExpanded ? 'justify-start px-4' : 'justify-center'} w-full h-10 mb-3 transition-all duration-150 relative ${
-                item.active ? 'bg-[#4AB0B9]' : 'hover:bg-[#4AB0B9]/70'
-              }`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  item.onClick();
+                }
+              }}
+              className={`group relative flex items-center w-full h-12 
+                ${isNavExpanded ? 'px-4' : 'justify-center px-0'} 
+                rounded-xl transition-all duration-300 ease-out
+                focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:ring-offset-2 focus:ring-offset-white/20
+                ${item.active 
+                  ? 'bg-gradient-to-r from-secondary/25 to-secondary/15 text-secondary border-l-4 border-secondary shadow-xl shadow-secondary/20 backdrop-blur-sm font-semibold' 
+                  : 'text-gray-600 hover:text-secondary hover:bg-secondary/10 hover:shadow-md focus:text-secondary focus:bg-secondary/15'
+                }`}
               aria-label={item.label}
+              aria-current={item.active ? 'page' : undefined}
+              tabIndex={0}
+              role="menuitem"
               data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
               data-tooltip-content={isNavExpanded ? undefined : item.label}
             >
-              <span className="text-xl" aria-hidden="true">
-                {item.icon}
-              </span>
-              {isNavExpanded && (
-                <span className="ml-3 text-sm font-medium">{item.label}</span>
+              {/* Active indicator line */}
+              {item.active && !isNavExpanded && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-secondary rounded-r-full shadow-sm border-t-4 border-t-secondary shadow-secondary/50"></div>
               )}
-              {item.badge && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                  {item.badge > 99 ? '99+' : item.badge}
+              
+              <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300
+                ${item.active ? 'bg-secondary/25 shadow-md shadow-secondary/20' : 'group-hover:bg-secondary/15'}`}>
+                <span className="text-xl" aria-hidden="true">
+                  {item.icon}
                 </span>
+              </div>
+              
+              {isNavExpanded && (
+                <span className="ml-4 text-body-sm font-medium tracking-wide opacity-100 animate-fade-in">
+                  {item.label}
+                </span>
+              )}
+              
+              {/* Enhanced badge system */}
+              {item.badge && (
+                <div className={`absolute ${isNavExpanded ? '-top-1 -right-1' : '-top-2 -right-2'} 
+                  bg-gradient-to-r from-error to-error/90 text-white text-xs 
+                  rounded-full min-w-[20px] h-5 px-1.5 
+                  flex items-center justify-center font-bold
+                  shadow-sm border-t-4 border-t-secondary shadow-error/40 border-2 border-white/20
+                  animate-pulse hover:animate-none transition-all duration-300`}>
+                  <span className="drop-shadow-sm">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                </div>
               )}
             </button>
           ))}
         </div>
-        <div className="flex flex-col items-center w-full pb-2 mt-auto">
+
+        {/* Professional Logout Section */}
+        <div className="px-2 py-4 border-t border-secondary/20">
           <button
-            className={`flex items-center ${isNavExpanded ? 'justify-start px-4' : 'justify-center'} w-full h-10 mb-3 transition-all duration-150 hover:bg-[#4AB0B9]/70`}
+            className={`group relative flex items-center w-full h-12 
+              ${isNavExpanded ? 'px-4' : 'justify-center px-0'} 
+              rounded-xl transition-all duration-300 ease-out
+              text-gray-500 hover:text-error hover:bg-error/10 hover:shadow-md
+              focus:outline-none focus:ring-2 focus:ring-error/50 focus:ring-offset-2 focus:ring-offset-white/20 focus:text-error focus:bg-error/10`}
             onClick={handleLogout}
-            aria-label="Logout"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleLogout();
+              }
+            }}
+            aria-label="Logout from application"
+            tabIndex={0}
             data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
             data-tooltip-content={isNavExpanded ? undefined : "Logout"}
           >
-            <span className="text-xl" aria-hidden="true">
-              <LogOut className="w-6 h-6" />
-            </span>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 group-hover:bg-error/20">
+              <LogOut className="w-5 h-5" />
+            </div>
             {isNavExpanded && (
-              <span className="ml-3 text-sm font-medium">Logout</span>
+              <span className="ml-4 text-body-sm font-medium tracking-wide opacity-100 animate-fade-in">
+                Logout
+              </span>
             )}
           </button>
         </div>
-        <Tooltip id="sidebar-tooltip" place="right" />
+        
+        <Tooltip 
+          id="sidebar-tooltip" 
+          place="right" 
+          className="!bg-secondary/95 !text-white !border !border-secondary/30 !shadow-xl !backdrop-blur-sm !rounded-lg"
+          arrowColor="transparent"
+        />
       </nav>
       {/* Main Content: Switchable Dashboard */}
-      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'ml-24' : 'ml-8'} transition-all duration-300 ease-in-out bg-gray-50`}>
+      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 pb-20 sm:pb-8 gap-4 sm:gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'sm:ml-64' : 'sm:ml-16'} transition-all duration-500 ease-out bg-gray-50 min-h-[calc(100vh-64px)]`}>
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
-          <div className="container">
-            <h1 className="text-2xl font-bold uppercase fs-2 mb-8">HOME</h1>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 gap-y-10 md:gap-y-14">
+          <div className="container max-w-full">
+            <h1 className="text-2xl font-bold uppercase fs-2 mb-4 sm:mb-8">HOME</h1>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
               {/* Request Overview Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-3 md:p-4 flex flex-col h-80 md:h-96`} data-component-name="Home">
-                <h2 className="text-sm md:text-base font-semibold mb-2 md:mb-3 text-center flex-shrink-0">Request Overview</h2>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-center flex-shrink-0">Request Overview</h2>
                 <div className="flex flex-col items-center justify-center flex-1 min-h-0">
-                  <div className="w-28 h-28 md:w-40 md:h-40 flex items-center justify-center relative flex-shrink-0" data-component-name="Home">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center relative flex-shrink-0" data-component-name="Home">
                     {loading ? (
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -1098,12 +1214,12 @@ function Home() {
                           responsive: true
                         }} />
                         <div className="absolute inset-0 flex items-center justify-center flex-col">
-                          <span className="text-2xl md:text-3xl font-bold">{totalRequests}</span>
+                          <span className="text-xl sm:text-2xl md:text-3xl font-bold">{totalRequests}</span>
                         </div>
                       </>
                     )}
                   </div>
-                  <div className="mt-3 flex justify-center gap-3 text-xs flex-shrink-0 flex-wrap">
+                  <div className="mt-2 sm:mt-3 flex justify-center gap-2 sm:gap-3 text-xs flex-shrink-0 flex-wrap">
                     {requestStatusData.map((s) => (
                       <div key={s.label} className="flex items-center gap-1">
                         <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></span>
@@ -1114,7 +1230,7 @@ function Home() {
                 </div>
               </section>
               {/* Request Queue Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow p-4 md:p-6 w-full md:col-span-3`} data-component-name="Home">
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 w-full md:col-span-3 border border-gray-200`} data-component-name="Home">
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Queue</h2>
                 
                 {error ? (
@@ -1125,7 +1241,7 @@ function Home() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                       <div className="flex items-center">
                         <button 
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
@@ -1147,7 +1263,7 @@ function Home() {
                           {isRefreshing ? 'Refreshing...' : 'Refresh'}
                         </button>
                       </div>
-                      <div className="relative w-64">
+                      <div className="relative w-full sm:w-64">
                         <input
                           type="text"
                           placeholder="Search requests..."
@@ -1173,144 +1289,147 @@ function Home() {
                       </div>
                     </div>
                     
-                    <DataTable
-                      columns={requestColumns}
-                      data={filteredRequests || requests}
-                      pagination
-                      paginationPerPage={10}
-                      paginationRowsPerPageOptions={[5, 10, 15, 20, 50]}
-                      paginationComponentOptions={{
-                        rowsPerPageText: 'Records per page:',
-                        rangeSeparatorText: 'of',
-                      }}
-                      selectableRows
-                      selectableRowsHighlight
-                      onSelectedRowsChange={(state) => {
-                        console.log('Selected Rows:', state.selectedRows);
-                        setSelectedRows(state.selectedRows);
-                      }}
-                      onRowClicked={handleViewRequest}
-                      pointerOnHover
-                      clearSelectedRows={toggleCleared}
-                      sortServer={false}
-                      defaultSortFieldId={1}
-                      defaultSortAsc={false}
-                      noDataComponent={
-                        <div className="p-4 text-center text-gray-500">No requests found</div>
-                      }
-                      customStyles={{
-                        table: {
-                          style: {
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '1px solid #e2e8f0',
-                            width: '100%',
+                    <div className="w-full mb-8">
+                      <DataTable
+                        columns={requestColumns}
+                        data={filteredRequests || requests}
+                        pagination
+                        paginationPerPage={10}
+                        paginationRowsPerPageOptions={[5, 10, 15, 20, 50]}
+                        paginationComponentOptions={{
+                          rowsPerPageText: 'Records per page:',
+                          rangeSeparatorText: 'of',
+                        }}
+                        selectableRows
+                        selectableRowsHighlight
+                        onSelectedRowsChange={(state) => {
+                          console.log('Selected Rows:', state.selectedRows);
+                          setSelectedRows(state.selectedRows);
+                        }}
+                        onRowClicked={handleViewRequest}
+                        pointerOnHover
+                        clearSelectedRows={toggleCleared}
+                        sortServer={false}
+                        defaultSortFieldId={1}
+                        defaultSortAsc={false}
+                        responsive
+                        noDataComponent={
+                          <div className="p-4 text-center text-gray-500">No requests found</div>
+                        }
+                        customStyles={{
+                          table: {
+                            style: {
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid #e2e8f0',
+                              width: '100%',
+                            },
                           },
-                        },
-                        cells: {
-                          style: {
-                            paddingLeft: '8px',
-                            paddingRight: '8px',
-                            overflow: 'visible',
-                            whiteSpace: 'normal',
+                          cells: {
+                            style: {
+                              paddingLeft: '8px',
+                              paddingRight: '8px',
+                              overflow: 'visible',
+                              whiteSpace: 'normal',
+                              fontSize: '14px',
+                            },
                           },
-                        },
-
-                        header: {
-                          style: {
-                            padding: '0',
+                          header: {
+                            style: {
+                              padding: '0',
+                            },
                           },
-                        },
-                        subHeader: {
-                          style: {
-                            padding: '0',
+                          subHeader: {
+                            style: {
+                              padding: '0',
+                            },
                           },
-                        },
-                        headRow: {
-                          style: {
-                            backgroundColor: '#f8fafc',
-                            borderBottomWidth: '1px',
-                            borderBottomStyle: 'solid',
-                            borderBottomColor: '#e2e8f0',
-                            color: '#475569',
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          },
-                        },
-                        headCells: {
-                          style: {
-                            paddingLeft: '16px',
-                            paddingRight: '16px',
-                            paddingTop: '12px',
-                            paddingBottom: '12px',
-                            fontWeight: 'bold',
-                          },
-                        },
-                        rows: {
-                          style: {
-                            backgroundColor: '#ffffff',
-                            '&:not(:last-of-type)': {
-                              borderBottomStyle: 'solid',
+                          headRow: {
+                            style: {
+                              backgroundColor: '#f8fafc',
                               borderBottomWidth: '1px',
+                              borderBottomStyle: 'solid',
                               borderBottomColor: '#e2e8f0',
-                            },
-                            '&:hover': {
-                              backgroundColor: '#f1f5f9',
-                              cursor: 'pointer',
-                            },
-                          },
-                          // Removed duplicate highlightOnHoverStyle
-                        },
-                        // Removed duplicate cells style
-                        pagination: {
-                          style: {
-                            borderTopStyle: 'solid',
-                            borderTopWidth: '1px',
-                            borderTopColor: '#e2e8f0',
-                            backgroundColor: '#f8fafc',
-                          },
-                          pageButtonsStyle: {
-                            color: '#0284c7',
-                            fill: '#0284c7',
-                            '&:disabled': {
-                              color: '#cbd5e1',
-                              fill: '#cbd5e1',
-                            },
-                            '&:hover:not(:disabled)': {
-                              backgroundColor: '#e0f2fe',
-                            },
-                            '&:focus': {
-                              outline: 'none',
-                              backgroundColor: '#e0f2fe',
+                              color: '#475569',
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
                             },
                           },
-                        },
-                      }}
-                    />
+                          headCells: {
+                            style: {
+                              paddingLeft: '12px',
+                              paddingRight: '12px',
+                              paddingTop: '12px',
+                              paddingBottom: '12px',
+                              fontWeight: 'bold',
+                            },
+                          },
+                          rows: {
+                            style: {
+                              backgroundColor: '#ffffff',
+                              minHeight: '52px',
+                              '&:not(:last-of-type)': {
+                                borderBottomStyle: 'solid',
+                                borderBottomWidth: '1px',
+                                borderBottomColor: '#e2e8f0',
+                              },
+                              '&:hover': {
+                                backgroundColor: '#f1f5f9',
+                                cursor: 'pointer',
+                              },
+                            },
+                          },
+                          pagination: {
+                            style: {
+                              borderTopStyle: 'solid',
+                              borderTopWidth: '1px',
+                              borderTopColor: '#e2e8f0',
+                              backgroundColor: '#f8fafc',
+                              padding: '8px 12px',
+                            },
+                            pageButtonsStyle: {
+                              color: '#0284c7',
+                              fill: '#0284c7',
+                              '&:disabled': {
+                                color: '#cbd5e1',
+                                fill: '#cbd5e1',
+                              },
+                              '&:hover:not(:disabled)': {
+                                backgroundColor: '#e0f2fe',
+                              },
+                              '&:focus': {
+                                outline: 'none',
+                                backgroundColor: '#e0f2fe',
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
                     
                     {selectedRows && selectedRows.length > 0 && (
-                      <div className="mt-4 p-3 bg-gray-100 rounded-md">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">{selectedRows.length} request(s) selected</span>
-                          <div className="flex gap-2">
+                      <div className="mt-4 p-3 bg-gray-100 rounded-md mb-8">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+                          <span className="font-medium text-sm">{selectedRows.length} request(s) selected</span>
+                          <div className="flex gap-2 flex-wrap">
                             <button 
-                              className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                              className="px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
                               onClick={handleProcessRequests}
                               disabled={selectedRows.length === 0}
                             >
                               Process
                             </button>
                             <button 
-                              className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
                               onClick={handleDeleteRequests}
                               disabled={selectedRows.length === 0}
                             >
                               Delete
                             </button>
                             <button 
-                              className="px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                              className="px-3 py-1.5 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm"
                               onClick={() => {
                                 setToggleCleared(!toggleCleared);
                               }}
@@ -1327,8 +1446,8 @@ function Home() {
             </div>
           </div>
         ) : mobileNav === 'search' ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl gap-4">
-            Search (coming soon)
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl gap-4 mb-6 px-4">
+            <div className="text-center">Search (coming soon)</div>
             {/* Debug buttons - remove after testing */}
             {isAdmin() && (
               <div className="flex flex-col gap-2 text-sm">
@@ -1351,33 +1470,33 @@ function Home() {
             )}
           </div>
         ) : mobileNav === 'notifications' ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
-            Notifications (coming soon)
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl mb-6 px-4">
+            <div className="text-center">Notifications (coming soon)</div>
           </div>
         ) : mobileNav === 'profile' ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl">
-            Profile (coming soon)
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl mb-6 px-4">
+            <div className="text-center">Profile (coming soon)</div>
           </div>
         ) : (
           // Existing desktop logic
           selectedSection === 'workorder' ? (
-            <div className="mt-4 md:mt-6">
+            <div className="mt-4 md:mt-6 mb-6">
               <RequestDashboard />
             </div>
           ) : selectedSection === 'myRequests' ? (
-            <div className="mt-4 md:mt-6">
+            <div className="mt-4 md:mt-6 mb-6">
               <RequestFulfillmentDashboard />
             </div>
           ) : selectedSection === 'admin' && user && ((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') ? (
-            <div className="mt-4 md:mt-6">
+            <div className="mt-4 md:mt-6 mb-6">
               <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
-            <div className="mt-4 md:mt-6">
+            <div className="mt-4 md:mt-6 mb-6">
               <AdminUserManagement />
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 text-2xl">
+            <div className="flex items-center justify-center h-full text-gray-400 text-2xl mb-6">
               Select a section from the left nav
             </div>
           )

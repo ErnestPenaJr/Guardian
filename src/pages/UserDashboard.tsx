@@ -108,7 +108,7 @@ const UserDashboard: React.FC = () => {
         <Col md={8}>
           <Row>
             <Col md={4}>
-              <Card className="mb-4 shadow-sm">
+              <Card className="mb-4 shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
@@ -127,7 +127,7 @@ const UserDashboard: React.FC = () => {
             </Col>
             
             <Col md={4}>
-              <Card className="mb-4 shadow-sm">
+              <Card className="mb-4 shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
@@ -146,7 +146,7 @@ const UserDashboard: React.FC = () => {
             </Col>
             
             <Col md={4}>
-              <Card className="mb-4 shadow-sm">
+              <Card className="mb-4 shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
@@ -167,7 +167,7 @@ const UserDashboard: React.FC = () => {
 
           <Row>
             <Col md={12}>
-              <Card className="mb-4 shadow-sm">
+              <Card className="mb-4 shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
                 <Card.Header className="bg-white">
                   <h5 className="mb-0">Recent Requests</h5>
                 </Card.Header>
@@ -213,7 +213,7 @@ const UserDashboard: React.FC = () => {
 
           <Row>
             <Col md={12}>
-              <Card className="mb-4 shadow-sm">
+              <Card className="mb-4 shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
                 <Card.Header className="bg-white">
                   <h5 className="mb-0">My Tasks</h5>
                 </Card.Header>

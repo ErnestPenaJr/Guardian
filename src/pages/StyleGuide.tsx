@@ -37,7 +37,7 @@ const StyleGuide: React.FC = () => {
 
         <div className="grid grid-cols-1 gap-8">
           {/* Colors Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
+          <section className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-h5 font-display font-bold text-primary mb-6">01. Colors</h2>
             
             <div className="space-y-8">
@@ -153,7 +153,7 @@ const StyleGuide: React.FC = () => {
           </section>
 
           {/* Typography Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
+          <section className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-h5 font-display font-bold text-primary mb-6">02. Typography</h2>
             
             <div className="space-y-8">
@@ -278,7 +278,7 @@ const StyleGuide: React.FC = () => {
           </section>
 
           {/* Buttons Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
+          <section className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-h5 font-display font-bold text-primary mb-6">03. Buttons</h2>
             
             <div className="space-y-8">
@@ -365,7 +365,7 @@ const StyleGuide: React.FC = () => {
           </section>
 
           {/* Textfields Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
+          <section className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-h5 font-display font-bold text-primary mb-6">04. Textfields</h2>
             
             <div className="space-y-8">
@@ -511,7 +511,7 @@ const StyleGuide: React.FC = () => {
           </section>
 
           {/* Selectors Section */}
-          <section className="bg-white p-6 rounded-lg shadow-md">
+          <section className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-h5 font-display font-bold text-primary mb-6">05. Selectors</h2>
             
             <div className="space-y-8">
