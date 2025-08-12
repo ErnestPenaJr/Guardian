@@ -385,6 +385,7 @@ const formService = {
 // Helper function to get field type ID by name
 export function getFieldTypeIdByName(fieldTypeName: string): number {
   const fieldTypeMap: Record<string, number> = {
+    // Basic field types
     'text': 1,
     'textarea': 2,
     'number': 3,
@@ -393,7 +394,26 @@ export function getFieldTypeIdByName(fieldTypeName: string): number {
     'checkbox': 6,
     'date': 7,
     'email': 8,
-    'file': 9
+    'file': 9,
+    // Special field types from templates (map to appropriate base types)
+    'first_name': 1, // Text field
+    'middle_name': 1, // Text field
+    'last_name': 1, // Text field
+    'dob': 7, // Date field
+    'ssn': 1, // Text field (will be handled with special formatting)
+    'make': 1, // Text field
+    'model': 1, // Text field
+    'year': 3, // Number field
+    'vin': 1, // Text field
+    'license_plate': 1, // Text field
+    'bank_name': 1, // Text field
+    'account_number': 1, // Text field (special formatting)
+    'routing_number': 1, // Text field (special formatting)
+    'address_line_1': 1, // Text field
+    'address_line_2': 1, // Text field
+    'city': 1, // Text field
+    'state': 1, // Text field
+    'zip_code': 1 // Text field
   };
   
   return fieldTypeMap[fieldTypeName] || 1; // Default to text (1) if not found

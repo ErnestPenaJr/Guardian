@@ -315,15 +315,39 @@ function Home() {
   const handleFirstTimeFormSave = async (formData: any) => {
     console.log('Saving first-time form:', formData);
     try {
-      // Here you would typically save the form via API
-      // For now, we'll close the modal and show success
+      // Create the form template using the formService
+      const formToSave: any = {
+        FORM_NAME: formData.name,
+        FORM_DESCRIPTION: formData.description,
+        COMPANY_ID: user?.companyId, // Company-specific form template
+        IS_PUBLIC: true,
+        IS_ACTIVE: true,
+        IS_DELETED: false,
+        FORM_TYPE: formData.formType?.toLowerCase() || 'request'
+      };
+      
+      // Convert form fields to DB fields format
+      const fieldsToSave = formData.formFields.map((field: any, index: number) => ({
+        FIELD_NAME: field.fieldName,
+        FIELD_TYPE_ID: field.fieldTypeId || field.dbFieldTypeId || 1, // Use fieldTypeId from SimpleFormBuilder, fallback to dbFieldTypeId or text
+        IS_REQUIRED: field.required || false,
+        OPTIONS: field.options || null,
+        SEQUENCE: index + 1,
+        IS_ACTIVE: true,
+        IS_DELETED: false
+      }));
+      
+      // Save the form template to the database
+      await formService.createForm(formToSave, fieldsToSave);
+      
       setShowFirstTimeFormModal(false);
-      toast.success('Your first workflow template has been created!');
-      // Refresh the page or update state to reflect the new template
+      toast.success('Your first workflow template has been created successfully!');
+      
+      // Refresh the templates check to update the UI
       checkForExistingTemplates();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving first-time form:', error);
-      toast.error('Failed to save form template. Please try again.');
+      toast.error(error.response?.data?.error || error.message || 'Failed to save form template. Please try again.');
     }
   };
   

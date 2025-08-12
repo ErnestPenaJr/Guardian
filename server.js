@@ -279,11 +279,28 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.error('❌ No valid auth header found:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
             return res.status(401).json({ error: 'No valid authentication token provided' });
         }
 
         const token = authHeader.substring(7);
+        console.log(`🔍 Attempting to verify JWT token (length: ${token.length}, first 20 chars: ${token.substring(0, 20)}...)`);
+        
+        // Add additional token validation before JWT verification
+        if (token.length < 10) {
+            console.error('❌ Token too short:', token.length);
+            return res.status(401).json({ error: 'Invalid token format' });
+        }
+        
+        // Check if token looks like a proper JWT (has 3 parts separated by dots)
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+            console.error('❌ Token does not have 3 parts:', tokenParts.length);
+            return res.status(401).json({ error: 'Invalid token structure' });
+        }
+        
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        console.log('✅ JWT token verified successfully for user:', decoded.userId);
         
         // Get user's company ID and roles from database using raw SQL
         const users = await prisma.$queryRaw`
@@ -297,16 +314,22 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         const user = users.length > 0 ? users[0] : null;
 
         if (!user) {
+            console.error('❌ User not found in database for userId:', decoded.userId);
             return res.status(401).json({ error: 'User not found' });
         }
 
+        console.log(`✅ Authentication successful for user ${user.USER_ID} in company ${user.COMPANY_ID}`);
         req.user = user;
         req.userId = user.USER_ID;
         req.companyId = user.COMPANY_ID;
         req.userRoleIds = user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : [];
         next();
     } catch (error) {
-        console.error('Authentication error:', error);
+        console.error('❌ Authentication error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack?.split('\n')[0] // Just first line of stack trace
+        });
         return res.status(401).json({ error: 'Invalid authentication token' });
     }
 };
@@ -4365,24 +4388,18 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Insert the form first
+        // Insert the form first - escape strings properly for SQL injection prevention
+        const escapedFormName = form.FORM_NAME.replace(/'/g, "''");
+        const escapedFormDescription = (form.FORM_DESCRIPTION || '').replace(/'/g, "''");
+        
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
-                FORM_NAME, FORM_DESCRIPTION, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
-                '${form.FORM_NAME}', 
-                '${form.FORM_DESCRIPTION || ''}', 
-                ${req.companyId}, 
-                ${form.IS_PUBLIC || false}, 
-                ${form.IS_ACTIVE !== false}, 
-                ${false},
-                GETDATE(), 
-                GETDATE(), 
-                ${req.user.userId}, 
-                ${req.user.userId}
+                '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
 
@@ -4395,31 +4412,36 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             for (let i = 0; i < fields.length; i++) {
                 const field = fields[i];
                 
+                // First, create the field in GUARDIAN.FIELDS table - escape strings for SQL injection prevention
+                const escapedFieldName = field.FIELD_NAME.replace(/'/g, "''");
+                
                 const fieldResult = await prisma.$queryRawUnsafe(`
-                    INSERT INTO GUARDIAN.FORM_FIELDS (
-                        FORM_ID, FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, SEQUENCE,
-                        IS_ACTIVE, IS_DELETED, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                    INSERT INTO GUARDIAN.FIELDS (
+                        FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED,
+                        CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID, ORGANIZATION_ID
                     )
                     OUTPUT INSERTED.FIELD_ID
                     VALUES (
-                        ${formId},
-                        '${field.FIELD_NAME}',
-                        ${field.FIELD_TYPE_ID},
-                        ${field.IS_REQUIRED || false},
-                        ${field.OPTIONS ? `'${JSON.stringify(field.OPTIONS)}'` : 'NULL'},
-                        ${field.SEQUENCE || i + 1},
-                        ${field.IS_ACTIVE !== false},
-                        ${false},
-                        GETDATE(),
-                        GETDATE(),
-                        ${req.user.userId},
-                        ${req.user.userId}
+                        '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
+                    )
+                `);
+                
+                const fieldId = fieldResult[0].FIELD_ID;
+                
+                // Then, create the relationship in GUARDIAN.FORMS_FIELDS junction table
+                await prisma.$queryRawUnsafe(`
+                    INSERT INTO GUARDIAN.FORMS_FIELDS (
+                        FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
+                        CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                    )
+                    VALUES (
+                        ${formId}, ${fieldId}, ${field.IS_REQUIRED ? 1 : 0}, ${field.SEQUENCE || i + 1}, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
                     )
                 `);
 
                 createdFields.push({
                     ...field,
-                    FIELD_ID: fieldResult[0].FIELD_ID,
+                    FIELD_ID: fieldId,
                     FORM_ID: formId
                 });
             }
@@ -4432,7 +4454,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             form: {
                 ...form,
                 FORM_ID: formId,
-                ORGANIZATION_ID: req.companyId
+                COMPANY_ID: req.companyId
             },
             fields: createdFields
         });

@@ -203,3 +203,18 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 2:39:25 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
 2:45:43 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
 2:48:15 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+2:51:35 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+3:00:41 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+3:01:26 PM [vite] (client) hmr update /src/pages/NewRequestModal.tsx, /src/index.css
+3:01:57 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+3:01:58 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+3:01:59 PM [vite] (client) hmr update /src/pages/NewRequestModal.tsx, /src/index.css
+3:01:59 PM [vite] (client) hmr update /src/pages/NewRequestModal.tsx, /src/index.css
+3:04:37 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+3:05:02 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+3:05:08 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+3:05:56 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/RequestDashboard.tsx, /src/components/EnhancedFormBuilder.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/FormTemplateEditorModal.tsx, /src/components/AddRequestModal.tsx, /src/components/SelectFormModal.tsx, /src/pages/Home.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

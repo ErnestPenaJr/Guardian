@@ -21,8 +21,6 @@
 - Reverted RequestDashboard to use SimpleFormBuilder as originally implemented
 - Using SimpleFormBuilder.css for styling the form builder interface
 - Updated heading in `src/pages/VerifyForgotPassword.tsx` from "Verify Your Email" to "Verify Your Code" to align with verification-code flow
-- Renamed sidebar section title in `src/components/SimpleFormBuilder.tsx` from "WORKFLOW TEMPLATES" to "PREDEFINED TEMPLATES"
- - Renamed sidebar fields header in `src/components/SimpleFormBuilder.tsx` from "FIELDS" to "ADDITIONAL FIELDS"
 
 ### Fixed
 - Fixed TypeScript error in `server/index.ts` by adding an explicit type (`{ id: number; name: string } | null`) to the `company` variable declaration within the `/api/me` route handler, resolving an issue where an object was assigned to a variable inferred as `null`.

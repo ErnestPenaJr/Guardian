@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FormField } from '../types/formBuilder';
 import fieldTypeService, { UiFieldType } from '../services/fieldTypeService';
 import fieldsService, { UiField } from '../services/fieldsService';
+import { getFieldTypeIdByName } from '../services/formService';
 import '../styles/SimpleFormBuilder.css';
 import { 
   FaFont, 
@@ -160,6 +161,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       id: uuidv4(),
       fieldName: customName || `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
       fieldType: type,
+      fieldTypeId: getFieldTypeIdByName(type), // Add field type ID for database saving
       required: false,
       options: '',
       canDelete: true
@@ -197,6 +199,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       id: uuidv4(),
       fieldName: fieldType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
       fieldType,
+      fieldTypeId: getFieldTypeIdByName(fieldType), // Add field type ID for database saving
       required: false,
       options: '',
       canDelete: true
@@ -410,7 +413,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       <div className="form-builder-sidebar">
         {/* Preset Forms section */}
         <div className="forms-section">
-          <h4 className="mb-2">PREDEFINED TEMPLATES</h4>
+          <h4 className="mb-2">WORKFLOW TEMPLATES</h4>
           <div className="forms-grid">
             <button type="button" className="form-btn subject" onClick={() => applyTemplate('subject')}>Subject</button>
             <button type="button" className="form-btn financial" onClick={() => applyTemplate('financial')}>Financial</button>
@@ -418,7 +421,7 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             <button type="button" className="form-btn address" onClick={() => applyTemplate('address')}>Address</button>
           </div>
         </div>
-        <h4 className="mb-3">ADDITIONAL FIELDS</h4>
+        <h4 className="mb-3">FIELDS</h4>
         <div className="field-grid">
           {dbFields.map((field) => (
             <div
