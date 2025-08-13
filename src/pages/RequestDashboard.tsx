@@ -345,6 +345,7 @@ const RequestDashboard: React.FC = () => {
         <div className="d-flex gap-2">
           <button 
             className="btn btn-sm btn-outline-primary"
+            style={{ display: 'none' }}
             onClick={() => {
               // View request details in modal
               setSelectedRequest(row);
@@ -677,7 +678,7 @@ const RequestDashboard: React.FC = () => {
               setShowAddRequestModal(true);
             }}
           >
-            Add Request
+            Create Request
           </button>
         )}
 

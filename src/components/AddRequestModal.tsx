@@ -585,9 +585,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       overlayClassName="modal-overlay"
       id="AddRequestModal"
     >
-      <div className="modal-header">
+      <div className="modal-header" style={{ paddingTop: '20px', paddingLeft: '20px', paddingRight: '20px' }}>
         <h2 className="modal-title">
-          {step === 1 ? 'Add New Request' : `Fill Request Form - ${requestName}`}
+{step === 1 ? 'Create Request' : `Fill Request Form - ${requestName}`}
         </h2>
         <button 
           type="button" 
@@ -602,7 +602,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
           {step === 1 && (
             <>
           <div className="mb-4">
-            <label htmlFor="formTemplate" className="form-label">Form Template</label>
+            <label htmlFor="formTemplate" className="form-label">Select Workflow</label>
             <div
               className="d-flex flex-column gap-2 template-selection-container"
               style={{
@@ -694,10 +694,10 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                 required
               />
             </div>
-            <div style={{ flex: '1', minWidth: '120px' }}>
+            <div style={{ flex: '1', minWidth: '120px', display: 'none' }}>
               <label htmlFor="abbreviation" className="form-label">Abbreviation *</label>
               <input
-                type="text"
+                type="hidden"
                 className="form-control"
                 id="abbreviation"
                 value={abbreviation}
@@ -722,11 +722,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             ></textarea>
           </div>
           
-          {selectedTemplate && (
-            <div className="alert alert-info mt-3 mb-3" style={{ backgroundColor: '#e6f7ff', border: 'none', borderRadius: '0.5rem' }}>
-              <p className="mb-0">The {formTemplates.find(t => t.id === selectedTemplate)?.name} template will be attached to this request.</p>
-            </div>
-          )}
+
           
           {/* Submit button for step 1 */}
           <div className="d-flex justify-content-end gap-2 mt-4">

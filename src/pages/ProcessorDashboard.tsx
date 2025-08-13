@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Badge, Button, Alert, Tabs, Tab, Spinner, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Badge, Button, Alert, Tabs, Tab, Spinner } from 'react-bootstrap';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
-import { FaEye, FaEdit, FaCheck, FaUserCog, FaClipboardList, FaBell, FaTasks, FaFilter } from 'react-icons/fa';
+import { FaEye, FaEdit, FaPlus, FaClipboardList, FaBell, FaTasks, FaUser, FaPlay, FaCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import ConsistentCard from '../components/ui/ConsistentCard';
 import Swal from 'sweetalert2';
 
 // Define types for our data
@@ -202,45 +203,51 @@ const ProcessorDashboard: React.FC = () => {
 
       <Row className="mb-4">
         <Col md={4}>
-          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="card-title">Pending Requests</h5>
-                  <h2 className="mb-0">{requests.filter(r => r.STATUS === 'P').length}</h2>
-                </div>
-                <FaClipboardList size={40} className="text-warning" />
+          <ConsistentCard
+            title="Pending Requests"
+            subtitle={`${requests.filter(r => r.STATUS === 'P').length} requests awaiting processing`}
+            icon={<FaClipboardList />}
+            variant="warning"
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 className="mb-0 text-warning fw-bold">{requests.filter(r => r.STATUS === 'P').length}</h2>
+                <small className="text-muted">Awaiting Processing</small>
               </div>
-            </Card.Body>
-          </Card>
+            </div>
+          </ConsistentCard>
         </Col>
         
         <Col md={4}>
-          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="card-title">Active Requests</h5>
-                  <h2 className="mb-0">{requests.filter(r => r.STATUS === 'A').length}</h2>
-                </div>
-                <FaClipboardList size={40} className="text-primary" />
+          <ConsistentCard
+            title="Active Requests"
+            subtitle={`${requests.filter(r => r.STATUS === 'A').length} requests currently in progress`}
+            icon={<FaClipboardList />}
+            variant="primary"
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 className="mb-0 text-primary fw-bold">{requests.filter(r => r.STATUS === 'A').length}</h2>
+                <small className="text-muted">In Progress</small>
               </div>
-            </Card.Body>
-          </Card>
+            </div>
+          </ConsistentCard>
         </Col>
         
         <Col md={4}>
-          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="card-title">Pending Tasks</h5>
-                  <h2 className="mb-0">{tasks.filter(t => t.STATUS === 'P').length}</h2>
-                </div>
-                <FaTasks size={40} className="text-success" />
+          <ConsistentCard
+            title="Pending Tasks"
+            subtitle={`${tasks.filter(t => t.STATUS === 'P').length} tasks requiring your attention`}
+            icon={<FaTasks />}
+            variant="info"
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 className="mb-0 text-info fw-bold">{tasks.filter(t => t.STATUS === 'P').length}</h2>
+                <small className="text-muted">Requiring Attention</small>
               </div>
-            </Card.Body>
-          </Card>
+            </div>
+          </ConsistentCard>
         </Col>
       </Row>
 

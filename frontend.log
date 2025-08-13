@@ -393,3 +393,617 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 11:47:10 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
 11:51:01 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+3:20:50 PM [vite] (client) page reload src/pages/GeneralUserDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+3:21:21 PM [vite] (client) page reload src/pages/ProcessorDashboard.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:49:33 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:50:22 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:51:09 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:51:09 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Expected corresponding JSX closing tag for <span>. (1153:12)
+
+  1151 |                 </div>
+  1152 |               )}
+> 1153 |             </button>
+       |             ^
+  1154 |           ))}
+  1155 |         </div>
+  1156 |
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1153:12
+  1151|                  </div>
+  1152|                )}
+  1153|              </button>
+     |              ^
+  1154|            ))}
+  1155|          </div>
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12094:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+7:51:09 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Expected corresponding JSX closing tag for <span>. (1153:12)
+
+  1151 |                 </div>
+  1152 |               )}
+> 1153 |             </button>
+       |             ^
+  1154 |           ))}
+  1155 |         </div>
+  1156 |
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1153:12
+  1151|                  </div>
+  1152|                )}
+  1153|              </button>
+     |              ^
+  1154|            ))}
+  1155|          </div>
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12094:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+7:51:11 AM [vite] (client) Pre-transform error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Expected corresponding JSX closing tag for <span>. (1153:12)
+
+  1151 |                 </div>
+  1152 |               )}
+> 1153 |             </button>
+       |             ^
+  1154 |           ))}
+  1155 |         </div>
+  1156 |
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1153:12
+  1151|                  </div>
+  1152|                )}
+  1153|              </button>
+     |              ^
+  1154|            ))}
+  1155|          </div>
+7:51:11 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Expected corresponding JSX closing tag for <span>. (1153:12)
+
+  1151 |                 </div>
+  1152 |               )}
+> 1153 |             </button>
+       |             ^
+  1154 |           ))}
+  1155 |         </div>
+  1156 |
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1153:12
+  1151|                  </div>
+  1152|                )}
+  1153|              </button>
+     |              ^
+  1154|            ))}
+  1155|          </div>
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12094:24)
+      at TypeScriptParserMixin.parseArrowExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:51:36 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:51:37 AM [vite] Internal server error: Transform failed with 2 errors:
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1130:14: ERROR: The character "}" is not valid inside a JSX element
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1137:12: ERROR: The character ">" is not valid inside a JSX element
+  Plugin: vite:esbuild
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1111:17
+  
+  The character "}" is not valid inside a JSX element
+  1128|              'bg-gradient-to-r from-secondary/25 to-secondary/15 text-secondary border-l-4 border-secondary shadow-xl shadow-secondary/20 backdrop-blur-sm font-semibold' :
+  1129|              'text-gray-600 hover:text-secondary hover:bg-secondary/10 hover:shadow-md focus:text-secondary focus:bg-secondary/15'
+  1130|              }`}
+     |                ^
+  1131|                aria-label={item.label}
+  1132|                aria-current={item.active ? 'page' : undefined}
+  
+  The character ">" is not valid inside a JSX element
+  1135|                data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
+  1136|                data-tooltip-content={isNavExpanded ? undefined : item.label}
+  1137|              >
+     |              ^
+  1138|                {/* Active indicator line */}
+  1139|                {item.active && !isNavExpanded &&
+  
+      at failureErrorWithLog (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:1463:15)
+      at /Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:734:50
+      at responseCallbacks.<computed> (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:601:9)
+      at handleIncomingPacket (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:656:12)
+      at Socket.readFromStdout (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:579:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+7:51:38 AM [vite] Internal server error: Transform failed with 2 errors:
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1130:14: ERROR: The character "}" is not valid inside a JSX element
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1137:12: ERROR: The character ">" is not valid inside a JSX element
+  Plugin: vite:esbuild
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1111:17
+  
+  The character "}" is not valid inside a JSX element
+  1128|              'bg-gradient-to-r from-secondary/25 to-secondary/15 text-secondary border-l-4 border-secondary shadow-xl shadow-secondary/20 backdrop-blur-sm font-semibold' :
+  1129|              'text-gray-600 hover:text-secondary hover:bg-secondary/10 hover:shadow-md focus:text-secondary focus:bg-secondary/15'
+  1130|              }`}
+     |                ^
+  1131|                aria-label={item.label}
+  1132|                aria-current={item.active ? 'page' : undefined}
+  
+  The character ">" is not valid inside a JSX element
+  1135|                data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
+  1136|                data-tooltip-content={isNavExpanded ? undefined : item.label}
+  1137|              >
+     |              ^
+  1138|                {/* Active indicator line */}
+  1139|                {item.active && !isNavExpanded &&
+  
+      at failureErrorWithLog (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:1463:15)
+      at /Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:734:50
+      at responseCallbacks.<computed> (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:601:9)
+      at handleIncomingPacket (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:656:12)
+      at Socket.readFromStdout (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:579:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+7:51:38 AM [vite] (client) Pre-transform error: Transform failed with 2 errors:
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1130:14: ERROR: The character "}" is not valid inside a JSX element
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1137:12: ERROR: The character ">" is not valid inside a JSX element
+  Plugin: vite:esbuild
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1111:17
+  
+  The character "}" is not valid inside a JSX element
+  1128|              'bg-gradient-to-r from-secondary/25 to-secondary/15 text-secondary border-l-4 border-secondary shadow-xl shadow-secondary/20 backdrop-blur-sm font-semibold' :
+  1129|              'text-gray-600 hover:text-secondary hover:bg-secondary/10 hover:shadow-md focus:text-secondary focus:bg-secondary/15'
+  1130|              }`}
+     |                ^
+  1131|                aria-label={item.label}
+  1132|                aria-current={item.active ? 'page' : undefined}
+  
+  The character ">" is not valid inside a JSX element
+  1135|                data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
+  1136|                data-tooltip-content={isNavExpanded ? undefined : item.label}
+  1137|              >
+     |              ^
+  1138|                {/* Active indicator line */}
+  1139|                {item.active && !isNavExpanded &&
+  
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:52:04 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:52:04 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Unexpected token, expected "," (1152:12)
+
+  1150 |               )}
+  1151 |             </button>
+> 1152 |           ))}
+       |             ^
+  1153 |         </div>
+  1154 |
+  1155 |         {/* Professional Logout Section */}
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1152:12
+  1150|                )}
+  1151|              </button>
+  1152|            ))}
+     |              ^
+  1153|          </div>
+  1154|  
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.unexpected (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6647:16)
+      at TypeScriptParserMixin.expect (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6927:12)
+      at TypeScriptParserMixin.parseCallExpressionArguments (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11238:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11181:29)
+      at TypeScriptParserMixin.parseSubscript (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11115:19)
+      at TypeScriptParserMixin.parseSubscript (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9353:18)
+      at TypeScriptParserMixin.parseSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11089:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11080:17)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4662:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4741:36)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+7:52:15 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:52:15 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Unexpected token, expected "," (1152:12)
+
+  1150 |               )}
+  1151 |             </button>
+> 1152 |           ))}
+       |             ^
+  1153 |         </div>
+  1154 |
+  1155 |         {/* Professional Logout Section */}
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1152:12
+  1150|                )}
+  1151|              </button>
+  1152|            ))}
+     |              ^
+  1153|          </div>
+  1154|  
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.unexpected (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6647:16)
+      at TypeScriptParserMixin.expect (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6927:12)
+      at TypeScriptParserMixin.parseCallExpressionArguments (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11238:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11181:29)
+      at TypeScriptParserMixin.parseSubscript (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11115:19)
+      at TypeScriptParserMixin.parseSubscript (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9353:18)
+      at TypeScriptParserMixin.parseSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11089:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11080:17)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4662:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4741:36)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+7:52:23 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:52:23 AM [vite] Internal server error: /Users/epena1/Guardian MVP/src/pages/Home.tsx: Unexpected token, expected "," (1152:12)
+
+  1150 |               )}
+  1151 |             </button>
+> 1152 |           ))}
+       |             ^
+  1153 |         </div>
+  1154 |
+  1155 |         {/* Professional Logout Section */}
+  Plugin: vite:react-babel
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1152:12
+  1150|                )}
+  1151|              </button>
+  1152|            ))}
+     |              ^
+  1153|          </div>
+  1154|  
+      at constructor (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.unexpected (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6647:16)
+      at TypeScriptParserMixin.expect (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6927:12)
+      at TypeScriptParserMixin.parseCallExpressionArguments (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11238:14)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11181:29)
+      at TypeScriptParserMixin.parseSubscript (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11115:19)
+      at TypeScriptParserMixin.parseSubscript (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9353:18)
+      at TypeScriptParserMixin.parseSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11089:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11080:17)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4662:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4741:36)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/epena1/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+7:52:45 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:52:45 AM [vite] Internal server error: Transform failed with 2 errors:
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1130:14: ERROR: The character "}" is not valid inside a JSX element
+/Users/epena1/Guardian MVP/src/pages/Home.tsx:1137:12: ERROR: The character ">" is not valid inside a JSX element
+  Plugin: vite:esbuild
+  File: /Users/epena1/Guardian MVP/src/pages/Home.tsx:1111:17
+  
+  The character "}" is not valid inside a JSX element
+  1128|              'bg-gradient-to-r from-secondary/25 to-secondary/15 text-secondary border-l-4 border-secondary shadow-xl shadow-secondary/20 backdrop-blur-sm font-semibold' :
+  1129|              'text-gray-600 hover:text-secondary hover:bg-secondary/10 hover:shadow-md focus:text-secondary focus:bg-secondary/15'
+  1130|              }`}
+     |                ^
+  1131|                aria-label={item.label}
+  1132|                aria-current={item.active ? 'page' : undefined}
+  
+  The character ">" is not valid inside a JSX element
+  1135|                data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
+  1136|                data-tooltip-content={isNavExpanded ? undefined : item.label}
+  1137|              >
+     |              ^
+  1138|                {/* Active indicator line */}
+  1139|                {item.active && !isNavExpanded &&
+  
+      at failureErrorWithLog (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:1463:15)
+      at /Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:734:50
+      at responseCallbacks.<computed> (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:601:9)
+      at handleIncomingPacket (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:656:12)
+      at Socket.readFromStdout (/Users/epena1/Guardian MVP/node_modules/esbuild/lib/main.js:579:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+7:53:05 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:53:56 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:54:42 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+7:55:46 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:57:06 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+7:59:35 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+8:01:19 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+8:02:13 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+8:13:58 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+8:14:37 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+8:17:27 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+8:20:49 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+8:28:26 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+8:33:20 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+8:34:42 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+8:36:08 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+8:36:08 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+8:36:08 AM [vite] http proxy error: /api/requests/assigned/me?
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+8:36:08 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+8:36:08 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+8:36:08 AM [vite] http proxy error: /api/requests/assigned/me?
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+8:39:28 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:39:32 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css

@@ -368,10 +368,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
             </div>
             
-            <div className="mb-2">
-              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Status</div>
-              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{getStatusText(request.STATUS)}</div>
-            </div>
             
             <div className="mb-2">
               <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Requestor</div>
@@ -381,10 +377,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           
           {/* Right Column */}
           <div className="col-6">
-            <div className="mb-2">
-              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Type</div>
-              <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{getFormType()}</div>
-            </div>
             
             <div className="mb-2">
               <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Date Submitted</div>

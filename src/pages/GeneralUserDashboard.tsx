@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import { FaEye, FaEdit, FaPlus, FaClipboardList, FaBell, FaTasks, FaUser, FaReply } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import ConsistentCard from '../components/ui/ConsistentCard';
 
 // Define types for our data
 interface Request {
@@ -115,60 +116,66 @@ const GeneralUserDashboard: React.FC = () => {
 
       <Row className="mb-4">
         <Col md={4}>
-          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="card-title">My Requests</h5>
-                  <h2 className="mb-0">{myRequests.length}</h2>
-                </div>
-                <FaClipboardList size={40} className="text-primary" />
-              </div>
-            </Card.Body>
-            <Card.Footer className="bg-white">
+          <ConsistentCard
+            title="My Requests"
+            subtitle={`Manage and track your ${myRequests.length} requests efficiently`}
+            icon={<FaClipboardList />}
+            variant="primary"
+            headerControls={
               <Button variant="primary" size="sm" onClick={() => navigate('/requests/new')}>
                 <FaPlus className="me-1" /> New Request
               </Button>
-            </Card.Footer>
-          </Card>
+            }
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 className="mb-0 text-primary fw-bold">{myRequests.length}</h2>
+                <small className="text-muted">Total Requests</small>
+              </div>
+            </div>
+          </ConsistentCard>
         </Col>
         
         <Col md={4}>
-          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="card-title">My Notices</h5>
-                  <h2 className="mb-0">{myNotices.length}</h2>
-                </div>
-                <FaBell size={40} className="text-warning" />
-              </div>
-            </Card.Body>
-            <Card.Footer className="bg-white">
-              <Button variant="outline-warning" size="sm" onClick={() => navigate('/notices/my')}>
-                View My Notices
+          <ConsistentCard
+            title="My Notices"
+            subtitle={`Stay updated with ${myNotices.length} important notices`}
+            icon={<FaBell />}
+            variant="warning"
+            headerControls={
+              <Button variant="outline-secondary" size="sm">
+                <FaEye className="me-1" /> View All
               </Button>
-            </Card.Footer>
-          </Card>
+            }
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 className="mb-0 text-warning fw-bold">{myNotices.length}</h2>
+                <small className="text-muted">Active Notices</small>
+              </div>
+            </div>
+          </ConsistentCard>
         </Col>
         
         <Col md={4}>
-          <Card className="shadow-sm border-t-4 border-t-secondary rounded-3 border border-gray-200">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 className="card-title">My Tasks</h5>
-                  <h2 className="mb-0">{myTasks.length}</h2>
-                </div>
-                <FaTasks size={40} className="text-success" />
-              </div>
-            </Card.Body>
-            <Card.Footer className="bg-white">
-              <Button variant="outline-success" size="sm" onClick={() => navigate('/tasks/my')}>
-                View My Tasks
+          <ConsistentCard
+            title="My Tasks"
+            subtitle={`Complete your ${myTasks.length} pending tasks efficiently`}
+            icon={<FaTasks />}
+            variant="success"
+            headerControls={
+              <Button variant="outline-secondary" size="sm">
+                <FaEye className="me-1" /> View All
               </Button>
-            </Card.Footer>
-          </Card>
+            }
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 className="mb-0 text-success fw-bold">{myTasks.length}</h2>
+                <small className="text-muted">Pending Tasks</small>
+              </div>
+            </div>
+          </ConsistentCard>
         </Col>
       </Row>
 

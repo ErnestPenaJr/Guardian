@@ -459,7 +459,7 @@ function Home() {
   const navItems: NavItem[] = [
     {
       icon: <LayoutDashboard className="w-6 h-6" />,
-      label: 'Dashboard',
+      label: 'Home',
       onClick: () => setSelectedSection('dashboard'),
       active: selectedSection === 'dashboard',
     },
@@ -567,8 +567,6 @@ function Home() {
       name: 'Request ID',
       selector: (row: Request) => row.TRACKINGID || 'N/A',
       sortable: true,
-      minWidth: '140px',
-      maxWidth: '200px',
       wrap: true,
       cell: (row: Request) => {
         const trackingId = row.TRACKINGID || 'N/A';
@@ -583,8 +581,6 @@ function Home() {
       name: 'Request Name',
       selector: (row: Request) => row.REQUEST_NAME || 'N/A',
       sortable: true,
-      minWidth: '120px',
-      maxWidth: '180px',
       wrap: true,
       cell: (row: Request) => (
         <div className="text-xs sm:text-sm break-words py-1">
@@ -596,8 +592,6 @@ function Home() {
       name: 'Status',
       selector: (row: Request) => row.STATUS,
       sortable: true,
-      minWidth: '100px',
-      maxWidth: '120px',
       cell: (row: Request) => {
         const statusColor = {
           'P': 'bg-yellow-200 text-yellow-800',
@@ -628,8 +622,6 @@ function Home() {
       name: 'Date',
       selector: (row: Request) => new Date(row.CREATE_DATE).toLocaleDateString(),
       sortable: true,
-      minWidth: '80px',
-      maxWidth: '100px',
       cell: (row: Request) => (
         <div className="text-xs py-1 whitespace-nowrap">
           {new Date(row.CREATE_DATE).toLocaleDateString('en-US', { 
@@ -644,8 +636,6 @@ function Home() {
       name: 'Requestor',
       selector: (row: Request) => row.requestorName,
       sortable: true,
-      minWidth: '100px',
-      maxWidth: '150px',
       wrap: true,
       cell: (row: Request) => (
         <div className="text-xs sm:text-sm break-words py-1">
@@ -657,8 +647,6 @@ function Home() {
       name: 'Assigned',
       selector: (row: Request) => row.assignedName || 'Unassigned',
       sortable: true,
-      minWidth: '100px',
-      maxWidth: '150px',
       wrap: true,
       cell: (row: Request) => (
         <div className="text-xs sm:text-sm break-words py-1">
@@ -1070,6 +1058,7 @@ function Home() {
             <button
               key={index}
               onClick={item.onClick}
+              style={item.label === 'Invites' || item.label === 'Assignments' ? { display: 'none' } : undefined}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
