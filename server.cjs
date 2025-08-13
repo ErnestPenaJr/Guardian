@@ -3304,34 +3304,82 @@ app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) =>
         const request = existingRequest[0];
         console.log(`📋 Found request to delete: ${request.REQUEST_NAME}`);
 
-        // Delete only the request and its directly related data (no form instances)
-        
-        // 1. Delete tasks related to this request
-        await prisma.$executeRaw`
-            DELETE FROM GUARDIAN.TASKS
-            WHERE REQUEST_ID = ${requestId}
-        `;
-        console.log('✅ Deleted related tasks');
+        // Use a transaction to ensure all deletions succeed or all fail
+        await prisma.$transaction(async (tx) => {
+            
+            // 1. First, get all form instance IDs for this request
+            const formInstances = await tx.$queryRaw`
+                SELECT FORM_INSTANCE_ID 
+                FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`📋 Found ${formInstances.length} form instances to delete`);
 
-        // 2. Delete notifications related to this specific request
-        await prisma.$executeRaw`
-            DELETE FROM GUARDIAN.NOTIFICATIONS
-            WHERE MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
-        `;
-        console.log('✅ Deleted related notifications');
+            // 2. Delete form instance values for each form instance (avoid foreign key constraint issues)
+            let totalValuesDeleted = 0;
+            if (formInstances.length > 0) {
+                for (const instance of formInstances) {
+                    const deletedValues = await tx.$executeRaw`
+                        DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+                        WHERE FORM_INSTANCE_ID = ${instance.FORM_INSTANCE_ID}
+                    `;
+                    console.log(`🗑️ Deleted ${deletedValues} values for form instance ${instance.FORM_INSTANCE_ID}`);
+                    totalValuesDeleted += deletedValues;
+                }
+                console.log(`✅ Deleted total of ${totalValuesDeleted} form instance values`);
+            }
 
-        // 3. Delete attachments related to this request
-        await prisma.$executeRaw`
-            DELETE FROM GUARDIAN.ATTACHMENTS
-            WHERE REQUEST_ID = ${requestId}
-        `;
-        console.log('✅ Deleted related attachments');
+            // 3. Delete form instances (to avoid foreign key constraint with REQUEST_ID)
+            const deletedInstances = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.FORMS_INSTANCE
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedInstances} form instances`);
 
-        // 4. Finally, delete the request itself
-        await prisma.$executeRaw`
-            DELETE FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
-        `;
+            // Verify form instances are actually deleted
+            const remainingInstances = await tx.$queryRaw`
+                SELECT COUNT(*) as count 
+                FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`🔍 Remaining form instances: ${remainingInstances[0].count}`);
+            
+            if (remainingInstances[0].count > 0) {
+                throw new Error(`Failed to delete all form instances. ${remainingInstances[0].count} remain.`);
+            }
+
+            // 4. Delete tasks related to this request
+            const deletedTasks = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.TASKS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedTasks} related tasks`);
+
+            // 5. Delete notifications related to this specific request
+            const deletedNotifications = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.NOTIFICATIONS
+                WHERE MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
+            `;
+            console.log(`✅ Deleted ${deletedNotifications} related notifications`);
+
+            // 6. Delete attachments related to this request
+            const deletedAttachments = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.ATTACHMENTS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedAttachments} related attachments`);
+
+            // 7. Finally, delete the request itself
+            const deletedRequests = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.REQUESTS
+                WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            `;
+            console.log(`✅ Deleted ${deletedRequests} request(s)`);
+            
+            if (deletedRequests === 0) {
+                throw new Error(`Failed to delete request ${requestId}`);
+            }
+        });
 
         console.log(`✅ Successfully deleted request ${requestId}: ${request.REQUEST_NAME}`);
 
@@ -3376,23 +3424,14 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
         let forms;
         
-        if (isAdmin) {
-            // Admin users can access both company forms and global forms
-            forms = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
-            `;
-        } else {
-            // Regular users can only access their company's forms
-            forms = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND ORGANIZATION_ID = ${req.companyId}
-            `;
-        }
+        // All users can only access their company's forms - no exceptions for data isolation
+        forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} 
+            AND (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            AND IS_DELETED = 0
+        `;
 
         if (!forms.length) {
             console.log(`❌ Form ${formId} not found for company ${req.companyId}. Checking if form exists at all...`);
@@ -4108,7 +4147,8 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
+            WHERE f.ORGANIZATION_ID = ${req.companyId}
+            AND f.IS_DELETED = 0
             ORDER BY f.SORT_ORDER, f.FIELD_NAME
         `;
 
@@ -4633,7 +4673,8 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS 
-            WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+            WHERE (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            AND IS_DELETED = 0
             ORDER BY FORM_NAME
         `;
 
