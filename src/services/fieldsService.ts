@@ -55,6 +55,15 @@ const fieldsService = {
       
       console.log('Raw database fields:', dbFields);
       
+      // Check for duplicates in the raw data
+      const fieldIds = dbFields.map(f => f.FIELD_ID);
+      const uniqueFieldIds = [...new Set(fieldIds)];
+      if (fieldIds.length !== uniqueFieldIds.length) {
+        console.warn('⚠️  WARNING: Duplicate field IDs found in frontend service!');
+        console.warn(`Total fields: ${fieldIds.length}, Unique fields: ${uniqueFieldIds.length}`);
+        console.warn('Duplicate IDs:', fieldIds.filter((id, index) => fieldIds.indexOf(id) !== index));
+      }
+      
       console.log('Processed UI fields:', dbFields.map(field => ({
         id: field.FIELD_ID,
         name: field.FIELD_NAME,
@@ -62,7 +71,14 @@ const fieldsService = {
         fieldTypeId: field.FIELD_TYPE_ID
       })));
       
-      return dbFields.map(field => {
+      // Remove duplicates based on FIELD_NAME to avoid duplicate entries in the UI
+      const uniqueFields = dbFields.filter((field, index, self) => 
+        index === self.findIndex(f => f.FIELD_NAME === field.FIELD_NAME)
+      );
+      
+      console.log(`Removed ${dbFields.length - uniqueFields.length} duplicate fields`);
+      
+      return uniqueFields.map(field => {
         // Handle cases where FIELD_TYPE might be undefined
         let fieldTypeDesc = 'text'; // default fallback
         

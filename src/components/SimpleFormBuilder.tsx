@@ -49,12 +49,14 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   
   // Load fields from the database
   useEffect(() => {
+    console.log('🔍 DEBUG: SimpleFormBuilder useEffect triggered!');
     // Fetch fields from the database
     const fetchData = async () => {
       setIsLoading(true);
       try {
         // Fetch fields
         const fieldsData = await fieldsService.getUiFields();
+        console.log('🔍 DEBUG: Setting dbFields with', fieldsData.length, 'fields');
         setDbFields(fieldsData);
         
         // Also fetch field types as backup
@@ -423,9 +425,11 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         </div>
         <h4 className="mb-3">FIELDS</h4>
         <div className="field-grid">
-          {dbFields.map((field) => (
+          {console.log('🔍 DEBUG: Rendering dbFields:', dbFields.length, 'fields')}
+          {console.log('🔍 DEBUG: Field IDs:', dbFields.map(f => f.id))}
+          {dbFields.map((field, index) => (
             <div
-              key={field.id}
+              key={`${field.id}-${index}`}
               className="field-item"
               draggable
               onDragStart={(e) => handleDragStart(e, field.type, field.name)}

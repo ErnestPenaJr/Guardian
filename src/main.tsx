@@ -5,7 +5,7 @@ import './index.css'
 import './utils/errorCapture' // Initialize error capture system
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+  // <StrictMode>
     <App />
-  </StrictMode>,
+  // </StrictMode>,
 )
