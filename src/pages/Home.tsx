@@ -20,6 +20,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import SendInvitesForm from '../components/SendInvitesForm';
 import NotificationDropdown from '../components/NotificationDropdown';
+import RoleSwitcher from '../components/UserProfileSwitcher';
 import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
@@ -917,7 +918,13 @@ function Home() {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
-          <NotificationDropdown className="mr-4" />
+          <NotificationDropdown className="mr-2" />
+          
+          {/* User Profile Switcher - Only show for admins */}
+          {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') && (
+            <RoleSwitcher className="mr-2" />
+          )}
+          
           <div className="flex items-center gap-2 md:gap-3 relative cursor-pointer border border-gray-200 rounded-lg px-2 mr-4" onClick={() => setProfileMenuOpen(v => !v)} tabIndex={0} role="button" aria-haspopup="true" aria-expanded={profileMenuOpen}>
             {/* Profile */}
            

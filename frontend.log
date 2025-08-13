@@ -1007,3 +1007,38 @@ AggregateError [ECONNREFUSED]:
     at afterConnectMultiple (node:net:1715:7)
 8:39:28 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
 8:39:32 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:46:52 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:47:04 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:47:12 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:47:28 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:47:40 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+8:59:58 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+9:02:29 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+9:03:43 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+9:17:46 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+9:17:55 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+9:18:23 AM [vite] (client) hmr update /src/components/ProtectedRoute.tsx, /src/index.css, /src/pages/AdminFieldsLookupPage.tsx, /src/pages/AdminDashboard.tsx, /src/pages/AdminFields.tsx, /src/pages/Home.tsx, /src/pages/AdminFormGroupFieldsPage.tsx, /src/pages/AdminUserManagement.tsx, /src/pages/AdminFormsGroups.tsx, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/ApiAccessPortal.tsx, /src/pages/RequestDashboard.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/RequestModal.tsx, /src/components/WorkProgressTable.tsx, /src/components/SelectFormModal.tsx, /src/components/AddProgressModal.tsx, /src/components/TaskTable.tsx, /src/components/AddTaskModal.tsx, /src/components/UserProfileSwitcher.tsx
+9:18:36 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:20:00 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:20:10 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:20:21 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:20:29 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:20:42 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:21:06 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:22:51 AM [vite] (client) hmr update /src/components/ProtectedRoute.tsx, /src/index.css, /src/pages/AdminFieldsLookupPage.tsx, /src/pages/AdminDashboard.tsx, /src/pages/AdminFields.tsx, /src/pages/Home.tsx, /src/pages/AdminFormGroupFieldsPage.tsx, /src/pages/AdminUserManagement.tsx, /src/pages/AdminFormsGroups.tsx, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/ApiAccessPortal.tsx, /src/pages/RequestDashboard.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/RequestModal.tsx, /src/components/WorkProgressTable.tsx, /src/components/SelectFormModal.tsx, /src/components/AddProgressModal.tsx, /src/components/TaskTable.tsx, /src/components/AddTaskModal.tsx, /src/components/UserProfileSwitcher.tsx
+9:22:56 AM [vite] (client) hmr update /src/components/ProtectedRoute.tsx, /src/index.css, /src/pages/AdminFieldsLookupPage.tsx, /src/pages/AdminDashboard.tsx, /src/pages/AdminFields.tsx, /src/pages/Home.tsx, /src/pages/AdminFormGroupFieldsPage.tsx, /src/pages/AdminUserManagement.tsx, /src/pages/AdminFormsGroups.tsx, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/ApiAccessPortal.tsx, /src/pages/RequestDashboard.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/RequestModal.tsx, /src/components/WorkProgressTable.tsx, /src/components/SelectFormModal.tsx, /src/components/AddProgressModal.tsx, /src/components/TaskTable.tsx, /src/components/AddTaskModal.tsx, /src/components/UserProfileSwitcher.tsx
+9:23:00 AM [vite] (client) hmr update /src/components/UserProfileSwitcher.tsx, /src/index.css
+9:23:12 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+9:23:15 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

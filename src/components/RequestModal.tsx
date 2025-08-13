@@ -58,6 +58,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [formFieldValues, setFormFieldValues] = useState<FormFieldValue[]>([]);
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
+  const [isSavingForm, setIsSavingForm] = useState<boolean>(false);
+  const [formHasChanges, setFormHasChanges] = useState<boolean>(false);
   
   // Check if current user can assign requests (processor and above)
   const canAssignRequests = () => {
@@ -158,6 +160,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       console.log('🔄 Modal opened, checking permissions...');
       console.log('🔄 Current user in useEffect:', currentUser);
       console.log('🔄 Has assignment permission:', hasAssignPermission);
+      
+      // Reset form change tracking
+      setFormHasChanges(false);
       
       // Only fetch users if current user can assign requests
       if (hasAssignPermission) {
@@ -317,6 +322,53 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
 
+  // Handle form field value changes
+  const handleFieldValueChange = (fieldName: string, newValue: string) => {
+    setFormFieldValues(prevValues => {
+      const updatedValues = prevValues.map(field => 
+        field.fieldName === fieldName 
+          ? { ...field, fieldValue: newValue }
+          : field
+      );
+      
+      // Check if there are any changes from original values
+      setFormHasChanges(true);
+      
+      return updatedValues;
+    });
+  };
+
+  // Save form data to the server
+  const handleSaveFormData = async () => {
+    try {
+      setIsSavingForm(true);
+      
+      // Prepare form data for submission
+      const formData = formFieldValues.reduce((acc, field) => {
+        acc[field.fieldName] = field.fieldValue || '';
+        return acc;
+      }, {} as Record<string, string>);
+      
+      console.log('Saving form data for request:', request.REQUEST_ID, formData);
+      
+      // Submit form data
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/form-data`, formData);
+      
+      if (response.status === 200) {
+        console.log('✅ Form data saved successfully');
+        setFormHasChanges(false);
+        // Refresh the form data
+        await fetchFormFieldValues();
+      } else {
+        console.error('❌ Failed to save form data');
+      }
+    } catch (error) {
+      console.error('❌ Error saving form data:', error);
+    } finally {
+      setIsSavingForm(false);
+    }
+  };
+
   // Handle user assignment
   const handleAssignUser = async () => {
     if (!selectedUser) return;
@@ -425,13 +477,12 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                   <input
                     type="text"
                     className="form-control form-control-sm"
-                    value={hasValue ? field.fieldValue : ''}
-                    placeholder={hasValue ? '' : `Enter ${field.fieldName}`}
-                    readOnly
+                    value={field.fieldValue || ''}
+                    placeholder={`Enter ${field.fieldName}`}
+                    onChange={(e) => handleFieldValueChange(field.fieldName, e.target.value)}
                     style={{ 
-                      backgroundColor: hasValue ? 'white' : '#f8f9fa',
-                      color: hasValue ? '#212529' : '#6c757d',
-                      fontStyle: hasValue ? 'normal' : 'italic',
+                      backgroundColor: 'white',
+                      color: '#212529',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -468,6 +519,30 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               Form ID: {request.FORM_ID || 'None'}<br />
               Check the browser console for detailed API response information.
             </small>
+          </div>
+        )}
+
+        {/* Form Data Save Section */}
+        {formFieldValues.length > 0 && (
+          <div className="border-top pt-3 mt-3">
+            <div className="d-flex gap-2 justify-content-between align-items-center mb-3">
+              <div className="text-dark fw-semibold" style={{ fontSize: '0.9rem' }}>Form Data</div>
+              <Button 
+                variant="success" 
+                onClick={handleSaveFormData}
+                disabled={isSavingForm || !formHasChanges}
+                size="sm"
+                className="px-3"
+                style={{ fontSize: '0.85rem' }}
+              >
+                {isSavingForm ? 'Saving...' : 'Save Form Data'}
+              </Button>
+            </div>
+            {formHasChanges && (
+              <div className="alert alert-warning py-2 mb-3" style={{ fontSize: '0.8rem' }}>
+                <small>⚠️ You have unsaved changes to the form data.</small>
+              </div>
+            )}
           </div>
         )}
 

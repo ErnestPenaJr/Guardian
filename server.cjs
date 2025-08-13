@@ -1179,6 +1179,45 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Get all user profiles for profile switching (admin only)
+app.get('/api/users/all-profiles', getAuthenticatedUserCompany, async (req, res) => {
+  try {
+    console.log('🔄 Fetching all user profiles for profile switching...');
+    
+    // Only allow admins (role 1 or 6) to fetch all profiles
+    const userRoles = await prisma.$queryRaw`
+      SELECT ur.ROLE_ID 
+      FROM GUARDIAN.USER_ROLES ur 
+      WHERE ur.USER_ID = ${req.userId}
+    `;
+    const roleIds = userRoles.map(role => role.ROLE_ID);
+    const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+    
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied. Admin privileges required for profile switching.' });
+    }
+    
+    const allUsers = await prisma.$queryRaw`
+      SELECT u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.COMPANY_ID, u.STATUS,
+             CONCAT(u.FIRST_NAME, ' ', u.LAST_NAME) as FULL_NAME,
+             STRING_AGG(r.ROLE_NAME, ', ') as ROLE_NAMES,
+             u.CREATE_DATE, u.UPDATE_DATE
+      FROM GUARDIAN.USERS u
+      LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+      LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+      WHERE u.IS_ACTIVE = 1 AND u.IS_DELETED = 0
+      GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.COMPANY_ID, u.STATUS, u.CREATE_DATE, u.UPDATE_DATE
+      ORDER BY u.COMPANY_ID, u.LAST_NAME, u.FIRST_NAME
+    `;
+    
+    console.log(`✅ Found ${allUsers.length} user profiles for switching`);
+    res.json(allUsers);
+  } catch (error) {
+    console.error('❌ Error fetching all user profiles:', error);
+    res.status(500).json({ error: 'Failed to fetch user profiles' });
+  }
+});
+
 // Get users by company ID (for assignment dropdowns)
 app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -3783,6 +3822,58 @@ app.get('/api/roles', async (req, res) => {
         console.error('❌ Error fetching roles:', error);
         res.status(500).json({
             error: 'Failed to fetch roles',
+            message: error.message
+        });
+    }
+});
+
+// Get all roles endpoint for role switcher (admin access required)
+app.get('/api/roles/all', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('🎭 Fetching all roles for role switcher...');
+        
+        // Check if user has admin privileges (roles 1, 6 - Admin or Super Admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (!isAdmin) {
+            console.log('❌ User lacks admin privileges for role switching');
+            return res.status(403).json({
+                error: 'Admin privileges required for role switching'
+            });
+        }
+
+        // Fetch all active roles
+        const roles = await prisma.$queryRaw`
+            SELECT ROLE_ID, NAME as ROLE_NAME, DISPLAY_NAME, DESCRIPTION, STATUS
+            FROM GUARDIAN.ROLES 
+            WHERE STATUS = 'A'
+            ORDER BY DISPLAY_NAME
+        `;
+
+        console.log(`✅ Found ${roles.length} roles for role switcher`);
+
+        // Format the data to match RoleSwitcher expectations
+        const formattedRoles = roles.map(role => ({
+            ROLE_ID: role.ROLE_ID,
+            ROLE_NAME: role.ROLE_NAME,
+            DISPLAY_NAME: role.DISPLAY_NAME,
+            DESCRIPTION: role.DESCRIPTION
+        }));
+
+        console.log(`📤 Sending ${formattedRoles.length} roles for role switcher`);
+        res.json(formattedRoles);
+
+    } catch (error) {
+        console.error('❌ Error fetching all roles:', error);
+        res.status(500).json({
+            error: 'Failed to fetch all roles',
             message: error.message
         });
     }

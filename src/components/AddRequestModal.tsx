@@ -575,6 +575,160 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setTemplateFields([]);
     setFieldValues({});
   };
+
+  // Helper functions for input field formatting and validation
+  const getInputType = (fieldName: string, fieldTypeDesc: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // Date fields
+    if (lowerFieldName.includes('dob') || lowerFieldName.includes('date') || lowerFieldName.includes('birth') || fieldTypeDesc === 'date') {
+      return 'date';
+    }
+    
+    // Number fields
+    if (lowerFieldName.includes('ssn') || lowerFieldName.includes('social') || 
+        lowerFieldName.includes('phone') || lowerFieldName.includes('number') ||
+        lowerFieldName.includes('routing') || lowerFieldName.includes('account') ||
+        lowerFieldName.includes('zip') || lowerFieldName.includes('postal') ||
+        fieldTypeDesc === 'number') {
+      return 'tel'; // Use tel for better mobile experience with numbers
+    }
+    
+    // Email fields
+    if (lowerFieldName.includes('email') || fieldTypeDesc === 'email') {
+      return 'email';
+    }
+    
+    // URL fields
+    if (lowerFieldName.includes('url') || lowerFieldName.includes('website') || fieldTypeDesc === 'url') {
+      return 'url';
+    }
+    
+    return 'text';
+  };
+
+  const getPlaceholder = (fieldName: string, fieldId: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // Specific placeholders for known field types
+    if (fieldId === 'routing_number') return '123456789';
+    if (fieldId === 'bank_name') return 'USA';
+    if (fieldId === 'account_holder') return 'Ernest Pena';
+    
+    // Date fields
+    if (lowerFieldName.includes('dob') || lowerFieldName.includes('birth')) {
+      return 'MM/DD/YYYY';
+    }
+    
+    // SSN fields
+    if (lowerFieldName.includes('ssn') || lowerFieldName.includes('social')) {
+      return '123-45-6789';
+    }
+    
+    // Phone fields
+    if (lowerFieldName.includes('phone')) {
+      return '(555) 123-4567';
+    }
+    
+    // Zip code fields
+    if (lowerFieldName.includes('zip') || lowerFieldName.includes('postal')) {
+      return '12345';
+    }
+    
+    return `Enter ${fieldName}`;
+  };
+
+  const getInputPattern = (fieldName: string, fieldTypeDesc: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // SSN pattern
+    if (lowerFieldName.includes('ssn') || lowerFieldName.includes('social')) {
+      return '[0-9]{3}-?[0-9]{2}-?[0-9]{4}';
+    }
+    
+    // Phone pattern
+    if (lowerFieldName.includes('phone')) {
+      return '[0-9]{3}-?[0-9]{3}-?[0-9]{4}';
+    }
+    
+    // Zip code pattern
+    if (lowerFieldName.includes('zip') || lowerFieldName.includes('postal')) {
+      return '[0-9]{5}(-[0-9]{4})?';
+    }
+    
+    return undefined;
+  };
+
+  const getMinValue = (fieldName: string, fieldTypeDesc: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // Date minimums
+    if (lowerFieldName.includes('dob') || lowerFieldName.includes('birth')) {
+      return '1900-01-01';
+    }
+    
+    return undefined;
+  };
+
+  const getMaxValue = (fieldName: string, fieldTypeDesc: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // Date maximums
+    if (lowerFieldName.includes('dob') || lowerFieldName.includes('birth')) {
+      return new Date().toISOString().split('T')[0]; // Today's date
+    }
+    
+    return undefined;
+  };
+
+  const getStepValue = (fieldName: string, fieldTypeDesc: string) => {
+    // Add step values if needed for specific numeric fields
+    return undefined;
+  };
+
+  const getMaxLength = (fieldName: string, fieldTypeDesc: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // SSN max length
+    if (lowerFieldName.includes('ssn') || lowerFieldName.includes('social')) {
+      return 11; // 123-45-6789
+    }
+    
+    // Phone max length
+    if (lowerFieldName.includes('phone')) {
+      return 14; // (555) 123-4567
+    }
+    
+    // Zip code max length
+    if (lowerFieldName.includes('zip') || lowerFieldName.includes('postal')) {
+      return 10; // 12345-6789
+    }
+    
+    return undefined;
+  };
+
+  const getInputTitle = (fieldName: string, fieldTypeDesc: string) => {
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // Helpful title attributes for validation
+    if (lowerFieldName.includes('ssn') || lowerFieldName.includes('social')) {
+      return 'Please enter a valid Social Security Number (123-45-6789)';
+    }
+    
+    if (lowerFieldName.includes('phone')) {
+      return 'Please enter a valid phone number (555-123-4567)';
+    }
+    
+    if (lowerFieldName.includes('zip') || lowerFieldName.includes('postal')) {
+      return 'Please enter a valid zip code (12345 or 12345-6789)';
+    }
+    
+    if (lowerFieldName.includes('dob') || lowerFieldName.includes('birth')) {
+      return 'Please enter your date of birth';
+    }
+    
+    return undefined;
+  };
   
   return (
     <Modal
@@ -806,16 +960,17 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                         </select>
                       ) : (
                         <input
-                          type="text"
+                          type={getInputType(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
                           className="form-control"
-                          placeholder={
-                            fieldId === 'routing_number' ? '123456789' :
-                            fieldId === 'bank_name' ? 'USA' :
-                            fieldId === 'account_holder' ? 'Ernest Pena' :
-                            `Enter ${field.FIELD_NAME}`
-                          }
+                          placeholder={getPlaceholder(field.FIELD_NAME, fieldId)}
                           value={fieldValues[fieldId] || ''}
                           onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          pattern={getInputPattern(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          min={getMinValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          max={getMaxValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          step={getStepValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          maxLength={getMaxLength(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          title={getInputTitle(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
                           required
                         />
                       )}
@@ -834,16 +989,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                   disabled={isSubmitting}
                   style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
                 >
-                  {isSubmitting ? 'Starting...' : 'Start'}
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
-                  onClick={handleComplete}
-                  disabled={isSubmitting}
-                  style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
-                >
-                  {isSubmitting ? 'Completing...' : 'Complete'}
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
                 <button 
                   type="button" 
