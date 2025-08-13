@@ -66,6 +66,9 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
     try {
       console.log('🔄 Switching to role:', selectedRole);
       
+      // Enable role switcher for future sessions (so it stays visible in other roles)
+      localStorage.setItem('roleSwitcherEnabled', 'true');
+      
       // Update the authentication context with the new role
       if (switchUserRole) {
         await switchUserRole(selectedRole);

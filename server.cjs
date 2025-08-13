@@ -3258,6 +3258,118 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
     }
 });
 
+// Delete a specific request
+app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        console.log(`🗑️ Attempting to delete request ${requestId} for company ${req.companyId}`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Check if user has permission to delete (Admin, Manager, or Super Admin roles: 1, 3, 6)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const canDelete = roleIds.includes(1) || roleIds.includes(3) || roleIds.includes(6);
+        
+        if (!canDelete) {
+            console.log(`❌ User ${req.userId} lacks permission to delete requests`);
+            return res.status(403).json({
+                error: 'You do not have permission to delete requests'
+            });
+        }
+
+        // First, check if the request exists and belongs to the company
+        const existingRequest = await prisma.$queryRaw`
+            SELECT REQUEST_ID, REQUEST_NAME, FORM_ID
+            FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!existingRequest.length) {
+            console.log(`❌ Request ${requestId} not found for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        const request = existingRequest[0];
+        console.log(`📋 Found request to delete: ${request.REQUEST_NAME}`);
+
+        // Delete related data in the correct order to handle foreign key constraints
+        
+        // 1. Delete form instance values if they exist
+        if (request.FORM_ID) {
+            await prisma.$executeRaw`
+                DELETE fiv FROM GUARDIAN.FORMS_INSTANCE_VALUES fiv
+                INNER JOIN GUARDIAN.FORMS_INSTANCE fi ON fiv.FORM_INSTANCE_ID = fi.FORM_INSTANCE_ID
+                WHERE fi.FORM_ID = ${request.FORM_ID} AND fi.ASSIGNED_ID IN (
+                    SELECT ASSIGNED_ID FROM GUARDIAN.REQUESTS WHERE REQUEST_ID = ${requestId}
+                )
+            `;
+            console.log('✅ Deleted form instance values');
+
+            // 2. Delete form instances
+            await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.FORMS_INSTANCE
+                WHERE FORM_ID = ${request.FORM_ID} AND ASSIGNED_ID IN (
+                    SELECT ASSIGNED_ID FROM GUARDIAN.REQUESTS WHERE REQUEST_ID = ${requestId}
+                )
+            `;
+            console.log('✅ Deleted form instances');
+        }
+
+        // 3. Delete tasks related to this request
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.TASKS
+            WHERE REQUEST_ID = ${requestId}
+        `;
+        console.log('✅ Deleted related tasks');
+
+        // 4. Delete notifications related to this request
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.NOTIFICATIONS
+            WHERE MESSAGE LIKE '%Request ${requestId}%' OR MESSAGE LIKE '%${request.REQUEST_NAME}%'
+        `;
+        console.log('✅ Deleted related notifications');
+
+        // 5. Delete attachments related to this request
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.ATTACHMENTS
+            WHERE REQUEST_ID = ${requestId}
+        `;
+        console.log('✅ Deleted related attachments');
+
+        // 6. Finally, delete the request itself
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ Successfully deleted request ${requestId}: ${request.REQUEST_NAME}`);
+
+        res.json({
+            success: true,
+            message: `Request "${request.REQUEST_NAME}" has been deleted successfully`
+        });
+
+    } catch (error) {
+        console.error(`❌ Error deleting request ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to delete request',
+            message: error.message
+        });
+    }
+});
+
 // Get specific form by ID
 app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
     try {

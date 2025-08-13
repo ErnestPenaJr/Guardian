@@ -920,8 +920,9 @@ function Home() {
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
           <NotificationDropdown className="mr-2" />
           
-          {/* User Profile Switcher - Only show for admins */}
-          {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') && (
+          {/* Role Switcher - Show for testing purposes */}
+          {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' || 
+            localStorage.getItem('roleSwitcherEnabled') === 'true') && (
             <RoleSwitcher className="mr-2" />
           )}
           
