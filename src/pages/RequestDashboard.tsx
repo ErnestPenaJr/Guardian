@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import Swal from 'sweetalert2';
 
 import DataTable, { TableColumn } from 'react-data-table-component';
 import api from '../utils/api';

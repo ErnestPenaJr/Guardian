@@ -4699,6 +4699,144 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Delete a form/workflow template with cascading delete
+app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        console.log(`🗑️ Attempting to delete form/template ${formId} for company ${req.companyId}`);
+
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({
+                error: 'Valid form ID is required'
+            });
+        }
+
+        // Check if user has permission to delete (Admin or Super Admin roles: 1, 6)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const canDelete = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (!canDelete) {
+            console.log(`❌ User ${req.userId} lacks permission to delete forms`);
+            return res.status(403).json({
+                error: 'You do not have permission to delete forms'
+            });
+        }
+
+        // Check if the form exists and belongs to the company (or is global with null COMPANY_ID)
+        const existingForm = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, COMPANY_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${formId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+        `;
+
+        if (!existingForm.length) {
+            console.log(`❌ Form ${formId} not found for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Form not found or access denied'
+            });
+        }
+
+        const form = existingForm[0];
+        console.log(`📋 Found form to delete: ${form.FORM_NAME}`);
+
+        // CASCADING DELETE - Remove all related data in the correct order to handle foreign key constraints
+        
+        // 1. Delete form instance values related to this form
+        await prisma.$executeRaw`
+            DELETE fiv FROM GUARDIAN.FORMS_INSTANCE_VALUES fiv
+            INNER JOIN GUARDIAN.FORMS_INSTANCE fi ON fiv.FORM_INSTANCE_ID = fi.FORM_INSTANCE_ID
+            WHERE fi.FORM_ID = ${formId}
+        `;
+        console.log('✅ Deleted form instance values');
+
+        // 2. Delete form instances related to this form
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_INSTANCE
+            WHERE FORM_ID = ${formId}
+        `;
+        console.log('✅ Deleted form instances');
+
+        // 3. Delete requests that use this form
+        const requestsToDelete = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE FORM_ID = ${formId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        for (const request of requestsToDelete) {
+            const requestId = request.REQUEST_ID;
+            
+            // Delete tasks related to each request
+            await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.TASKS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            
+            // Delete notifications related to each request  
+            await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.NOTIFICATIONS
+                WHERE MESSAGE LIKE '%Request ${requestId}%'
+            `;
+            
+            // Delete attachments related to each request
+            await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.ATTACHMENTS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+        }
+
+        // 4. Delete the requests themselves
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.REQUESTS
+            WHERE FORM_ID = ${formId} AND COMPANY_ID = ${req.companyId}
+        `;
+        console.log('✅ Deleted related requests and their associated data');
+
+        // 5. Delete form-field relationships
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_FIELDS
+            WHERE FORM_ID = ${formId}
+        `;
+        console.log('✅ Deleted form-field relationships');
+
+        // 6. Delete fields that were created specifically for this form (company-specific fields)
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FIELDS
+            WHERE FIELD_ID IN (
+                SELECT DISTINCT ff.FIELD_ID
+                FROM GUARDIAN.FORMS_FIELDS ff
+                WHERE ff.FORM_ID = ${formId}
+            ) AND ORGANIZATION_ID = ${req.companyId}
+        `;
+        console.log('✅ Deleted company-specific fields');
+
+        // 7. Finally, delete the form itself
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+        `;
+
+        console.log(`✅ Successfully deleted form ${formId}: ${form.FORM_NAME} and all related data`);
+
+        res.json({
+            success: true,
+            message: `Form "${form.FORM_NAME}" has been deleted successfully along with all associated data`
+        });
+
+    } catch (error) {
+        console.error(`❌ Error deleting form ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to delete form',
+            message: error.message
+        });
+    }
+});
+
 // Logout endpoint
 app.post('/logout', async (req, res) => {
     try {

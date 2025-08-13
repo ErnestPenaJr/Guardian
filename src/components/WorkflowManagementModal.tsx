@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import formService from '../services/formService';
 import { FaSpinner, FaEdit, FaTrash, FaEye, FaPlus } from 'react-icons/fa';
 import { useAuth } from '../hooks/useAuth';
@@ -84,15 +85,56 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
   };
 
   const handleDeleteTemplate = async (formId: number, formName: string) => {
-    if (window.confirm(`Are you sure you want to delete the template "${formName}"?`)) {
+    // Show confirmation dialog with detailed warning
+    const result = await Swal.fire({
+      title: 'Delete Workflow Template?',
+      html: `
+        <div class="text-start">
+          <p><strong>Are you sure you want to delete "${formName}"?</strong></p>
+          <div class="alert alert-warning mt-3">
+            <strong>⚠️ Warning:</strong> This will permanently delete:
+            <ul class="mt-2 mb-0">
+              <li>The workflow template and all its fields</li>
+              <li>All requests created using this template</li>
+              <li>All form submissions and data</li>
+              <li>All tasks and attachments related to these requests</li>
+              <li>All notifications related to these requests</li>
+            </ul>
+          </div>
+          <p class="text-danger mt-2"><strong>This action cannot be undone!</strong></p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete everything',
+      cancelButtonText: 'Cancel',
+      width: 600
+    });
+
+    if (result.isConfirmed) {
       try {
-        // TODO: Implement delete functionality in formService
-        console.log('Deleting template:', formId);
-        toast.success('Template deleted successfully');
+        console.log('Deleting workflow template:', formId, formName);
+        await formService.deleteForm(formId);
+        
+        await Swal.fire({
+          title: 'Deleted!',
+          text: `Workflow template "${formName}" and all associated data has been deleted successfully.`,
+          icon: 'success',
+          timer: 3000,
+          showConfirmButton: false
+        });
+        
         fetchForms(); // Refresh the list
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting template:', error);
-        toast.error('Failed to delete template');
+        
+        await Swal.fire({
+          title: 'Delete Failed',
+          text: error.response?.data?.error || error.message || 'Failed to delete workflow template',
+          icon: 'error'
+        });
       }
     }
   };
