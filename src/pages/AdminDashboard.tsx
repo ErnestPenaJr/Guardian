@@ -139,26 +139,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             >
               Manage Workflows
             </li>
-            <li 
-              data-component-name="AdminDashboard"
-              className="cursor-pointer hover:text-secondary transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setAdminFieldsModalOpen(true);
-              }}
-            >
-              Manage Fields List
-            </li>
-            <li 
-              data-component-name="AdminDashboard"
-              className="cursor-pointer hover:text-secondary transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setFormsGroupsModalOpen(true);
-              }}
-            >
-              Manage Field Groups
-            </li>
+
           </ul>
         </div>
 

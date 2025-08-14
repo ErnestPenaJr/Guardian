@@ -153,6 +153,12 @@ const RequestDashboard: React.FC = () => {
   // Form fulfillment state
   const [showFormFulfillmentModal, setShowFormFulfillmentModal] = useState(false);
   const [fulfillmentFormData, setFulfillmentFormData] = useState<any>(null);
+  
+  // Function to handle viewing a request when row is clicked
+  const handleViewRequest = (request: Request) => {
+    setSelectedRequest(request);
+    setShowRequestModal(true);
+  };
   const [fulfillmentFormFields, setFulfillmentFormFields] = useState<any[]>([]);
   const [fulfillmentFormValues, setFulfillmentFormValues] = useState<Record<string, any>>({});
   const [fulfillmentFormLoading, setFulfillmentFormLoading] = useState(false);
@@ -748,6 +754,7 @@ const RequestDashboard: React.FC = () => {
         persistTableHead
         highlightOnHover
         pointerOnHover
+        onRowClicked={handleViewRequest}
         responsive
         striped
         defaultSortFieldId={1}

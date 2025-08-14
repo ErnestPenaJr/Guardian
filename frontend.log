@@ -1238,3 +1238,12 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 8:50:27 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
 8:50:32 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
 8:50:40 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:03:16 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+7:04:49 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+7:04:55 AM [vite] (client) hmr update /src/pages/RequestDashboard.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
