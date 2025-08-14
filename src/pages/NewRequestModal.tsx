@@ -428,12 +428,12 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       overlayClassName="modal-overlay"
       style={{
         content: {
-          width: '800px',
-          maxWidth: '90%',
+          width: step === 2 ? '1200px' : '800px', // Wider for form builder step
+          maxWidth: '95%',
           margin: '0',
           borderRadius: '8px',
-          padding: '20px',
-          maxHeight: '90vh',
+          padding: step === 2 ? '15px' : '20px', // Less padding for form builder to maximize space
+          maxHeight: '95vh', // Slightly taller for form builder
           overflow: 'auto',
           position: 'absolute',
           top: '50%',

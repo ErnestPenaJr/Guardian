@@ -58,12 +58,22 @@ const fieldTypeService = {
         return [];
       }
       
-      return dbFieldTypes.map(fieldType => ({
-        type: fieldType.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, '_'),
-        label: fieldType.FIELD_TYPE_DESC,
-        icon: getIconForFieldType(fieldType.FIELD_TYPE_DESC),
-        dbFieldTypeId: fieldType.FIELD_TYPE_ID
-      }));
+      console.log('🔍 DEBUG: Raw database field types:', dbFieldTypes.map(ft => ft.FIELD_TYPE_DESC));
+      
+      const uiFieldTypes = dbFieldTypes.map(fieldType => {
+        const transformedType = fieldType.FIELD_TYPE_DESC.toLowerCase().replace(/\s+/g, '_');
+        console.log(`🔍 DEBUG: Transforming "${fieldType.FIELD_TYPE_DESC}" -> "${transformedType}"`);
+        
+        return {
+          type: transformedType,
+          label: fieldType.FIELD_TYPE_DESC,
+          icon: getIconForFieldType(fieldType.FIELD_TYPE_DESC),
+          dbFieldTypeId: fieldType.FIELD_TYPE_ID
+        };
+      });
+      
+      console.log('🔍 DEBUG: Final UI field types:', uiFieldTypes.map(ft => `${ft.label} (${ft.type})`));
+      return uiFieldTypes;
     } catch (error) {
       console.error('Error mapping field types for UI:', error);
       return [];

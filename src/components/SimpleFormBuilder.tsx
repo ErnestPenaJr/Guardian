@@ -23,9 +23,11 @@ import {
   FaAddressCard,
   FaMoneyCheckAlt,
   FaIdBadge,
-  FaCog
+  FaCog,
+  FaQuestionCircle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import FormBuilderTour from './FormBuilderTour';
 
 interface SimpleFormBuilderProps {
   formFields: FormField[];
@@ -46,6 +48,26 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [customTemplates, setCustomTemplates] = useState<any[]>([]);
   const [loadingCustomTemplates, setLoadingCustomTemplates] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+
+  // Auto-launch disabled - users must manually start the tour
+  // useEffect(() => {
+  //   const hasSeenTour = localStorage.getItem('formBuilderTourCompleted');
+  //   if (!hasSeenTour && fields.length === 0) {
+  //     // Show tour automatically for first-time users on empty forms
+  //     const timer = setTimeout(() => {
+  //       setShowTour(true);
+  //     }, 1000); // Small delay to let the component fully render
+  //     
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [fields.length]);
+
+  // Handle tour completion
+  const handleTourEnd = () => {
+    setShowTour(false);
+    localStorage.setItem('formBuilderTourCompleted', 'true');
+  };
   
   // Helper function to check if user has role_id 6 (JAFAR)
   const isJafarUser = () => {
@@ -168,36 +190,116 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     // Determine icon based on field type (not field name)
     const typeNormalized = fieldType.toLowerCase().replace(/\s+/g, '_');
     
+    console.log('🔍 DEBUG: getIconComponent called with:', fieldType, '-> normalized:', typeNormalized);
+    
     switch (typeNormalized) {
+      // Text input types (matches database "Text Input")
       case 'text_input':
       case 'text':
+      case 'string':
         return <div className="icon-wrapper text"><FaFont /></div>;
+      
+      // Textarea types (matches database "Textarea")
       case 'textarea':
+      case 'paragraph':
+      case 'multi_line_text':
+      case 'long_text':
         return <div className="icon-wrapper textarea"><FaParagraph /></div>;
+      
+      // Number types (matches database "Number")
       case 'number':
-        return <div className="icon-wrapper hashtag"><FaHashtag /></div>;
+      case 'numeric':
+      case 'integer':
+      case 'decimal':
+        return <div className="icon-wrapper number"><FaHashtag /></div>;
+      
+      // Email types (matches database "Email")
       case 'email':
+      case 'email_address':
         return <div className="icon-wrapper email">@</div>;
+      
+      // Phone types (matches database "Phone") 
       case 'phone':
+      case 'phone_number':
+      case 'telephone':
         return <div className="icon-wrapper phone">📞</div>;
+      
+      // Date types (matches database "Date")
       case 'date':
-      case 'time':
-      case 'datetime':
+      case 'dob':
         return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
+      
+      // Time types (matches database "Time")
+      case 'time':
+        return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
+      
+      // DateTime types (matches database "DateTime")
+      case 'datetime':
+      case 'date_time':
+        return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
+      
+      // Dropdown types (matches database "Dropdown")
       case 'dropdown':
       case 'select':
+      case 'choice':
+      case 'options':
         return <div className="icon-wrapper dropdown"><FaListUl /></div>;
+      
+      // Radio button types (matches database "Radio Button")
       case 'radio_button':
       case 'radio':
+      case 'single_choice':
         return <div className="icon-wrapper radio"><FaDotCircle /></div>;
+      
+      // Checkbox types (matches database "Checkbox")
       case 'checkbox':
+      case 'boolean':
+      case 'yes_no':
         return <div className="icon-wrapper checkbox"><FaCheckSquare /></div>;
+      
+      // File upload types (matches database "File Upload")
       case 'file_upload':
       case 'file':
+      case 'attachment':
         return <div className="icon-wrapper file">📁</div>;
+      
+      // URL types (matches database "URL")
       case 'url':
+      case 'website':
+      case 'link':
         return <div className="icon-wrapper url">🔗</div>;
+      
+      // Legacy field types for existing forms
+      case 'first_name':
+      case 'middle_name':
+      case 'last_name':
+      case 'bank_name':
+      case 'address_line_1':
+      case 'address_line_2':
+      case 'city':
+      case 'state':
+      case 'zip_code':
+        return <div className="icon-wrapper text"><FaFont /></div>;
+      
+      case 'account_number':
+      case 'routing_number':
+        return <div className="icon-wrapper number"><FaHashtag /></div>;
+      
+      case 'address':
+      case 'location':
+        return <div className="icon-wrapper address"><FaHome /></div>;
+      
+      case 'account':
+        return <div className="icon-wrapper account"><FaMoneyBill /></div>;
+      
+      case 'ssn':
+      case 'social_security_number':
+      case 'social_security':
+        return <div className="icon-wrapper ssn"><FaIdCard /></div>;
+      
+      // Default fallback with detailed logging
       default:
+        console.log('⚠️ No icon mapping found for field type:', fieldType, '-> normalized:', typeNormalized, '- using default text icon');
         return <div className="icon-wrapper text"><FaFont /></div>;
     }
   };
@@ -614,8 +716,10 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         <h4 className="mb-3">FIELD TYPES</h4>
         <div className="field-grid">
           {console.log('🔍 DEBUG: Rendering fieldTypes:', fieldTypes.length, 'types')}
-          {console.log('🔍 DEBUG: Field types:', fieldTypes.map(t => t.label))}
-          {fieldTypes.map((fieldType, index) => (
+          {console.log('🔍 DEBUG: Field types:', fieldTypes.map(t => `${t.label} (type: ${t.type})`))}
+          {fieldTypes.map((fieldType, index) => {
+            console.log('🔍 DEBUG: Processing field type:', fieldType);
+            return (
             <div
               key={`${fieldType.dbFieldTypeId}-${index}`}
               className="field-item"
@@ -627,7 +731,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
               {getIconComponent(fieldType.type)}
               <div className="field-label">{fieldType.label}</div>
             </div>
-          ))}
+            );
+          })}
         </div>
         
         {/* Templates section hidden as requested */}
@@ -653,6 +758,51 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       
       {/* Main content area */}
       <div className="form-builder-main">
+        {/* Header with tour button */}
+        <div className="form-builder-header">
+          <h3>Form Preview</h3>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm tour-button"
+              onClick={() => setShowTour(true)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '20px'
+              }}
+              title="Take a guided tour of the form builder"
+            >
+              <FaQuestionCircle />
+              Take Tour
+            </button>
+            
+            {/* Development helper - only show in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => {
+                  localStorage.removeItem('formBuilderTourCompleted');
+                  toast.info('Tour reset! Refresh to see auto-tour on empty forms.');
+                }}
+                style={{ 
+                  fontSize: '11px',
+                  padding: '4px 8px',
+                  borderRadius: '12px'
+                }}
+                title="Reset tour for testing (development only)"
+              >
+                Reset Tour
+              </button>
+            )}
+          </div>
+        </div>
+        
         {/* Form preview */}
         <div 
           className={`form-preview ${dragOver ? 'drag-over' : ''}`}
@@ -660,7 +810,6 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <h3>Form Preview</h3>
           
           {fields.length === 0 ? (
             <div className="empty-form-message">
@@ -742,6 +891,12 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       
       {/* Field editor modal */}
       {renderFieldEditor()}
+      
+      {/* Form Builder Tour */}
+      <FormBuilderTour 
+        run={showTour} 
+        onTourEnd={handleTourEnd}
+      />
     </div>
   );
 };
