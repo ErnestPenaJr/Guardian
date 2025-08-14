@@ -71,12 +71,36 @@ const fieldsService = {
         fieldTypeId: field.FIELD_TYPE_ID
       })));
       
-      // Remove duplicates based on FIELD_NAME to avoid duplicate entries in the UI
-      const uniqueFields = dbFields.filter((field, index, self) => 
-        index === self.findIndex(f => f.FIELD_NAME === field.FIELD_NAME)
-      );
+      // Smart deduplication: Prefer company-specific fields over global fields
+      // but keep different field types with the same name
+      const uniqueFields = [];
+      const fieldNameMap = new Map();
       
-      console.log(`Removed ${dbFields.length - uniqueFields.length} duplicate fields`);
+      // Group fields by name and organization preference
+      dbFields.forEach(field => {
+        const key = `${field.FIELD_NAME}_${field.FIELD_TYPE_ID}`;
+        const existing = fieldNameMap.get(key);
+        
+        if (!existing) {
+          // First field with this name+type combination
+          fieldNameMap.set(key, field);
+          uniqueFields.push(field);
+        } else {
+          // Field with same name+type exists, prefer company-specific over global
+          if (field.ORGANIZATION_ID && !existing.ORGANIZATION_ID) {
+            // Replace global with company-specific
+            const index = uniqueFields.findIndex(f => f.FIELD_ID === existing.FIELD_ID);
+            if (index !== -1) {
+              uniqueFields[index] = field;
+              fieldNameMap.set(key, field);
+            }
+          }
+          // If both are company-specific or both are global, keep the first one
+        }
+      });
+      
+      console.log(`Smart field filtering: ${dbFields.length} → ${uniqueFields.length} fields`);
+      console.log(`Filtered fields:`, uniqueFields.map(f => `${f.FIELD_NAME} (${f.ORGANIZATION_ID || 'Global'})`));
       
       return uniqueFields.map(field => {
         // Handle cases where FIELD_TYPE might be undefined

@@ -1223,3 +1223,18 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:45:25 PM [vite] (client) hmr update /src/index.css, /src/components/SimpleFormBuilder.tsx
+7:45:25 PM [vite] (client) hmr update /src/index.css, /src/components/SimpleFormBuilder.tsx
+7:47:55 PM [vite] (client) hmr update /src/index.css, /src/components/SimpleFormBuilder.tsx
+8:44:46 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+8:44:59 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+8:45:14 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+8:46:07 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/RequestDashboard.tsx, /src/components/EnhancedFormBuilder.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/FormTemplateEditorModal.tsx, /src/components/AddRequestModal.tsx, /src/components/SelectFormModal.tsx, /src/pages/Home.tsx
+8:46:23 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/RequestDashboard.tsx, /src/components/EnhancedFormBuilder.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/FormTemplateEditorModal.tsx, /src/components/AddRequestModal.tsx, /src/components/SelectFormModal.tsx, /src/pages/Home.tsx
+8:46:31 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/RequestDashboard.tsx, /src/components/EnhancedFormBuilder.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/FormTemplateEditorModal.tsx, /src/components/AddRequestModal.tsx, /src/components/SelectFormModal.tsx, /src/pages/Home.tsx
+8:50:20 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+8:50:27 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+8:50:32 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+8:50:40 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FormField } from '../types/formBuilder';
 import fieldTypeService, { UiFieldType } from '../services/fieldTypeService';
-import fieldsService, { UiField } from '../services/fieldsService';
 import { getFieldTypeIdByName } from '../services/formService';
 import '../styles/SimpleFormBuilder.css';
 import { 
@@ -41,36 +40,41 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [fieldTypes, setFieldTypes] = useState<UiFieldType[]>([]);
-  const [dbFields, setDbFields] = useState<UiField[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // We use isLoading in the useEffect for API calls, even though it's not directly
-  // referenced elsewhere in the component at this time
-  
-  // Load fields from the database
+  // Load field types from the database - these are generic types like Text, Number, Date, etc.
   useEffect(() => {
-    console.log('🔍 DEBUG: SimpleFormBuilder useEffect triggered!');
-    // Fetch fields from the database
-    const fetchData = async () => {
+    console.log('🔍 DEBUG: SimpleFormBuilder useEffect triggered - loading field types!');
+    const fetchFieldTypes = async () => {
       setIsLoading(true);
       try {
-        // Fetch fields
-        const fieldsData = await fieldsService.getUiFields();
-        console.log('🔍 DEBUG: Setting dbFields with', fieldsData.length, 'fields');
-        setDbFields(fieldsData);
-        
-        // Also fetch field types as backup
+        // Fetch generic field types (not specific field instances)
         const types = await fieldTypeService.getUiFieldTypes();
-        setFieldTypes(types);
+        console.log('🔍 DEBUG: Loaded field types:', types.map(t => t.label));
+        
+        // Filter out Hidden and Password field types for MVP
+        const filteredTypes = types.filter(type => {
+          const normalizedType = type.type.toLowerCase();
+          const normalizedLabel = type.label.toLowerCase();
+          
+          // Exclude Hidden and Password field types
+          return !normalizedType.includes('hidden') && 
+                 !normalizedType.includes('password') &&
+                 !normalizedLabel.includes('hidden') &&
+                 !normalizedLabel.includes('password');
+        });
+        
+        console.log('🔍 DEBUG: Filtered field types (removed Hidden and Password):', filteredTypes.map(t => t.label));
+        setFieldTypes(filteredTypes);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load field data from database');
+        console.error('Error fetching field types:', error);
+        toast.error('Failed to load field types from database');
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchData();
+    fetchFieldTypes();
   }, []);
   
   // Template definitions
@@ -80,90 +84,114 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       name: 'SUBJECT',
       description: 'First Name, Middle Name, Last Name, DOB, SSN',
       icon: <FaUser />,
-      fields: ['first_name', 'middle_name', 'last_name', 'dob', 'ssn']
+      fields: ['text_input', 'text_input', 'text_input', 'date', 'text_input'] // Generic field types
     },
     {
       id: 'vehicle',
       name: 'VEHICLE',
       description: 'Make, Model, Year, VIN, License Plate',
       icon: <FaIdBadge />,
-      fields: ['make', 'model', 'year', 'vin', 'license_plate']
+      fields: ['text_input', 'text_input', 'number', 'text_input', 'text_input'] // Generic field types
     },
     {
       id: 'financial',
       name: 'FINANCIAL',
       description: 'Bank Name, Account #, Routing #',
       icon: <FaMoneyBill />,
-      fields: ['bank_name', 'account_number', 'routing_number']
+      fields: ['text_input', 'text_input', 'text_input'] // Generic field types
     },
     {
       id: 'address',
       name: 'ADDRESS',
       description: 'Address Line 1, Address Line 2, City, State, ZIP Code',
       icon: <FaHome />,
-      fields: ['address_line_1', 'address_line_2', 'city', 'state', 'zip_code']
+      fields: ['text_input', 'text_input', 'text_input', 'text_input', 'text_input'] // Generic field types
     }
   ];
   
   // Get icon component for a field type
-  const getIconComponent = (fieldName: string, fieldType: string) => {
-    // Determine icon based on field name patterns
-    const fieldNameLower = fieldName.toLowerCase();
+  const getIconComponent = (fieldType: string) => {
+    // Determine icon based on field type (not field name)
+    const typeNormalized = fieldType.toLowerCase().replace(/\s+/g, '_');
     
-    // Number fields
-    if (fieldNameLower.includes('account #') || 
-        fieldNameLower.includes('phone #') || 
-        fieldNameLower.includes('routing #') || 
-        fieldNameLower.includes('ssn')) {
-      return <div className="icon-wrapper hashtag">#</div>;
-    }
-    
-    // Date fields
-    if (fieldNameLower.includes('dob')) {
-      return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
-    }
-    
-    // Address-related fields
-    if (fieldNameLower.includes('address') || 
-        fieldNameLower.includes('city') || 
-        fieldNameLower.includes('state') || 
-        fieldNameLower.includes('zip')) {
-      return <div className="icon-wrapper address">A</div>;
-    }
-    
-    // Name fields
-    if (fieldNameLower.includes('name')) {
-      return <div className="icon-wrapper name">A</div>;
-    }
-    
-    // Default to showing letter based on type
-    switch (fieldType.toLowerCase()) {
+    switch (typeNormalized) {
+      case 'text_input':
       case 'text':
-      case 'paragraph':
-        return <div className="icon-wrapper text">A</div>;
+        return <div className="icon-wrapper text"><FaFont /></div>;
+      case 'textarea':
+        return <div className="icon-wrapper textarea"><FaParagraph /></div>;
       case 'number':
-        return <div className="icon-wrapper hashtag">#</div>;
+        return <div className="icon-wrapper hashtag"><FaHashtag /></div>;
+      case 'email':
+        return <div className="icon-wrapper email">@</div>;
+      case 'phone':
+        return <div className="icon-wrapper phone">📞</div>;
       case 'date':
+      case 'time':
+      case 'datetime':
         return <div className="icon-wrapper date"><FaCalendarAlt /></div>;
       case 'dropdown':
       case 'select':
         return <div className="icon-wrapper dropdown"><FaListUl /></div>;
+      case 'radio_button':
       case 'radio':
         return <div className="icon-wrapper radio"><FaDotCircle /></div>;
       case 'checkbox':
         return <div className="icon-wrapper checkbox"><FaCheckSquare /></div>;
+      case 'file_upload':
+      case 'file':
+        return <div className="icon-wrapper file">📁</div>;
+      case 'url':
+        return <div className="icon-wrapper url">🔗</div>;
       default:
-        return <div className="icon-wrapper text">A</div>;
+        return <div className="icon-wrapper text"><FaFont /></div>;
     }
   };
   
-  // Add a new field to the form
-  const addField = (type: string, customName?: string) => {
+  // Add a new field to the form from a field type
+  const addField = (fieldType: UiFieldType, customName?: string) => {
+    // Generate a user-friendly default name based on the field type
+    const generateDefaultName = (type: string) => {
+      switch (type.toLowerCase()) {
+        case 'text_input':
+        case 'text':
+          return 'Text Field';
+        case 'textarea':
+          return 'Text Area';
+        case 'number':
+          return 'Number Field';
+        case 'email':
+          return 'Email Address';
+        case 'phone':
+          return 'Phone Number';
+        case 'date':
+          return 'Date';
+        case 'time':
+          return 'Time';
+        case 'datetime':
+          return 'Date & Time';
+        case 'dropdown':
+          return 'Dropdown List';
+        case 'radio_button':
+        case 'radio':
+          return 'Radio Buttons';
+        case 'checkbox':
+          return 'Checkboxes';
+        case 'file_upload':
+        case 'file':
+          return 'File Upload';
+        case 'url':
+          return 'Website URL';
+        default:
+          return `${type} Field`;
+      }
+    };
+    
     const newField: FormField = {
       id: uuidv4(),
-      fieldName: customName || `New ${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-      fieldType: type,
-      fieldTypeId: getFieldTypeIdByName(type), // Add field type ID for database saving
+      fieldName: customName || generateDefaultName(fieldType.type),
+      fieldType: fieldType.type,
+      fieldTypeId: fieldType.dbFieldTypeId, // Use the database field type ID
       required: false,
       options: '',
       canDelete: true
@@ -196,16 +224,34 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     const template = templates.find(t => t.id === templateId);
     if (!template) return;
     
-    // Create fields based on the template
-    const templateFields = template.fields.map(fieldType => ({
-      id: uuidv4(),
-      fieldName: fieldType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-      fieldType,
-      fieldTypeId: getFieldTypeIdByName(fieldType), // Add field type ID for database saving
-      required: false,
-      options: '',
-      canDelete: true
-    }));
+    // Define field names for each template
+    const templateFieldNames = {
+      subject: ['First Name', 'Middle Name', 'Last Name', 'Date of Birth', 'SSN'],
+      vehicle: ['Make', 'Model', 'Year', 'VIN', 'License Plate'],
+      financial: ['Bank Name', 'Account Number', 'Routing Number'],
+      address: ['Address Line 1', 'Address Line 2', 'City', 'State', 'ZIP Code']
+    };
+    
+    const fieldNames = templateFieldNames[templateId as keyof typeof templateFieldNames] || [];
+    
+    // Create fields based on the template - find matching field types
+    const templateFields = template.fields.map((fieldTypeName, index) => {
+      // Find the corresponding field type from our loaded field types
+      const matchingFieldType = fieldTypes.find(ft => 
+        ft.type.toLowerCase() === fieldTypeName.toLowerCase() ||
+        ft.label.toLowerCase().replace(/\s+/g, '_') === fieldTypeName.toLowerCase()
+      );
+      
+      return {
+        id: uuidv4(),
+        fieldName: fieldNames[index] || `Field ${index + 1}`,
+        fieldType: matchingFieldType?.type || fieldTypeName,
+        fieldTypeId: matchingFieldType?.dbFieldTypeId || 1, // Default to text input if not found
+        required: false,
+        options: '',
+        canDelete: true
+      };
+    });
     
     // Replace existing fields with the template fields
     const updatedFields = [...templateFields];
@@ -216,9 +262,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   };
   
   // Handle drag start event
-  const handleDragStart = (e: React.DragEvent, type: string, fieldName?: string) => {
-    e.dataTransfer.setData('fieldType', type);
-    e.dataTransfer.setData('fieldName', fieldName || '');
+  const handleDragStart = (e: React.DragEvent, fieldType: UiFieldType) => {
+    e.dataTransfer.setData('fieldType', JSON.stringify(fieldType));
   };
   
   // Handle drag over event
@@ -237,11 +282,16 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     e.preventDefault();
     setDragOver(false);
     
-    const fieldType = e.dataTransfer.getData('fieldType');
-    const fieldName = e.dataTransfer.getData('fieldName');
+    const fieldTypeData = e.dataTransfer.getData('fieldType');
     
-    if (fieldType) {
-      addField(fieldType, fieldName || undefined);
+    if (fieldTypeData) {
+      try {
+        const fieldType: UiFieldType = JSON.parse(fieldTypeData);
+        addField(fieldType);
+      } catch (error) {
+        console.error('Error parsing dropped field type:', error);
+        toast.error('Invalid field type dropped');
+      }
     }
   };
   
@@ -349,9 +399,20 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
               value={editingField.fieldType}
               onChange={(e) => setEditingField({...editingField, fieldType: e.target.value})}
             >
-              {fieldTypes.map((type) => (
-                <option key={type.type} value={type.type}>{type.label}</option>
-              ))}
+              {fieldTypes
+                .filter(type => {
+                  const normalizedType = type.type.toLowerCase();
+                  const normalizedLabel = type.label.toLowerCase();
+                  // Filter out Hidden and Password field types from dropdown
+                  return !normalizedType.includes('hidden') && 
+                         !normalizedType.includes('password') &&
+                         !normalizedLabel.includes('hidden') &&
+                         !normalizedLabel.includes('password');
+                })
+                .map((type) => (
+                  <option key={type.type} value={type.type}>{type.label}</option>
+                ))
+              }
             </select>
           </div>
           
@@ -423,19 +484,21 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             <button type="button" className="form-btn address" onClick={() => applyTemplate('address')}>Address</button>
           </div>
         </div>
-        <h4 className="mb-3">FIELDS</h4>
+        <h4 className="mb-3">FIELD TYPES</h4>
         <div className="field-grid">
-          {console.log('🔍 DEBUG: Rendering dbFields:', dbFields.length, 'fields')}
-          {console.log('🔍 DEBUG: Field IDs:', dbFields.map(f => f.id))}
-          {dbFields.map((field, index) => (
+          {console.log('🔍 DEBUG: Rendering fieldTypes:', fieldTypes.length, 'types')}
+          {console.log('🔍 DEBUG: Field types:', fieldTypes.map(t => t.label))}
+          {fieldTypes.map((fieldType, index) => (
             <div
-              key={`${field.id}-${index}`}
+              key={`${fieldType.dbFieldTypeId}-${index}`}
               className="field-item"
               draggable
-              onDragStart={(e) => handleDragStart(e, field.type, field.name)}
+              onDragStart={(e) => handleDragStart(e, fieldType)}
+              onClick={() => addField(fieldType)}
+              title={`Click or drag to add ${fieldType.label}`}
             >
-              {getIconComponent(field.name, field.type)}
-              <div className="field-label">{field.name}</div>
+              {getIconComponent(fieldType.type)}
+              <div className="field-label">{fieldType.label}</div>
             </div>
           ))}
         </div>

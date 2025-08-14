@@ -4147,7 +4147,7 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE f.ORGANIZATION_ID = ${req.companyId}
+            WHERE (f.ORGANIZATION_ID = ${req.companyId} OR f.ORGANIZATION_ID IS NULL)
             AND f.IS_DELETED = 0
             ORDER BY f.SORT_ORDER, f.FIELD_NAME
         `;

@@ -266,8 +266,8 @@ const formService = {
   // Convert UI form fields to database fields
   convertFormFieldsToDbFields: (formFields: FormField[]): DbField[] => {
     return formFields.map((field, index) => {
-      // Get field type ID based on field type name
-      const fieldTypeId = getFieldTypeIdByName(field.fieldType);
+      // Use the field type ID that was set when creating the field from a field type
+      const fieldTypeId = field.fieldTypeId || getFieldTypeIdByName(field.fieldType);
       
       return {
         FIELD_ID: field.dbFieldId, // If this field already exists in the database
@@ -393,24 +393,34 @@ const formService = {
   }
 };
 
-// Helper function to get field type ID by name
+// Helper function to get field type ID by name - updated for new field type system
 export function getFieldTypeIdByName(fieldTypeName: string): number {
   const fieldTypeMap: Record<string, number> = {
-    // Basic field types
+    // Standard field types based on FIELD_TYPE table
+    'text_input': 1,
     'text': 1,
     'textarea': 2,
     'number': 3,
-    'select': 4,
-    'radio': 5,
-    'checkbox': 6,
-    'date': 7,
-    'email': 8,
-    'file': 9,
-    // Special field types from templates (map to appropriate base types)
+    'email': 4,
+    'phone': 5,
+    'date': 6,
+    'time': 7,
+    'datetime': 8,
+    'dropdown': 9,
+    'radio_button': 10,
+    'radio': 10,
+    'checkbox': 11,
+    'file_upload': 12,
+    'file': 12,
+    'url': 13,
+    'password': 14,
+    'hidden': 15,
+    // Legacy field types for backward compatibility (map to appropriate base types)
+    'select': 9, // Dropdown
     'first_name': 1, // Text field
     'middle_name': 1, // Text field
     'last_name': 1, // Text field
-    'dob': 7, // Date field
+    'dob': 6, // Date field
     'ssn': 1, // Text field (will be handled with special formatting)
     'make': 1, // Text field
     'model': 1, // Text field
@@ -427,24 +437,30 @@ export function getFieldTypeIdByName(fieldTypeName: string): number {
     'zip_code': 1 // Text field
   };
   
-  return fieldTypeMap[fieldTypeName] || 1; // Default to text (1) if not found
+  return fieldTypeMap[fieldTypeName] || 1; // Default to text input (1) if not found
 }
 
-// Helper function to get field type name by ID
+// Helper function to get field type name by ID - updated for new field type system
 function getFieldTypeNameById(fieldTypeId: number): string {
   const fieldTypeMap: Record<number, string> = {
-    1: 'text',
+    1: 'text_input',
     2: 'textarea',
     3: 'number',
-    4: 'select',
-    5: 'radio',
-    6: 'checkbox',
-    7: 'date',
-    8: 'email',
-    9: 'file'
+    4: 'email',
+    5: 'phone',
+    6: 'date',
+    7: 'time',
+    8: 'datetime',
+    9: 'dropdown',
+    10: 'radio_button',
+    11: 'checkbox',
+    12: 'file_upload',
+    13: 'url',
+    14: 'password',
+    15: 'hidden'
   };
   
-  return fieldTypeMap[fieldTypeId] || 'text'; // Default to text if not found
+  return fieldTypeMap[fieldTypeId] || 'text_input'; // Default to text_input if not found
 }
 
 // This function is now defined above, so we don't need to redefine it here
