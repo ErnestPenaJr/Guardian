@@ -46,8 +46,21 @@
   transform: translateY(-1px);
 }
 
-.form-btn.subject { background-color: #0f6;
-  background-color: #1a5b87; }
+.form-btn.subject { 
+  background-color: #1a5b87; 
+}
+
+.form-btn.custom-template {
+  background-color: #6c5ce7;
+  border-color: #a29bfe;
+  color: #fff;
+}
+
+.form-btn.custom-template:hover {
+  background-color: #5b4cdb;
+  border-color: #6c5ce7;
+  transform: translateY(-1px);
+}
 .form-btn.financial { background-color: #1a5b87; }
 .form-btn.vehicle { background-color: #1a5b87; }
 .form-btn.address { background-color: #1a5b87; }

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FormField } from '../types/formBuilder';
 import fieldTypeService, { UiFieldType } from '../services/fieldTypeService';
 import { getFieldTypeIdByName } from '../services/formService';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/SimpleFormBuilder.css';
 import { 
   FaFont, 
@@ -21,7 +22,8 @@ import {
   FaIdCard,
   FaAddressCard,
   FaMoneyCheckAlt,
-  FaIdBadge
+  FaIdBadge,
+  FaCog
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -36,12 +38,32 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   onChange,
   formId
 }) => {
+  const { user } = useAuth();
   const [fields, setFields] = useState<FormField[]>(formFields);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [fieldTypes, setFieldTypes] = useState<UiFieldType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [customTemplates, setCustomTemplates] = useState<any[]>([]);
+  const [loadingCustomTemplates, setLoadingCustomTemplates] = useState(false);
   
+  // Helper function to check if user has role_id 6 (JAFAR)
+  const isJafarUser = () => {
+    if (!user) return false;
+    
+    // Check roles array
+    if (user.roles && user.roles.some((role: any) => role.id === 6)) {
+      return true;
+    }
+    
+    // Check role property as string
+    if (user.role === '6') {
+      return true;
+    }
+    
+    return false;
+  };
+
   // Load field types from the database - these are generic types like Text, Number, Date, etc.
   useEffect(() => {
     console.log('🔍 DEBUG: SimpleFormBuilder useEffect triggered - loading field types!');
@@ -76,6 +98,38 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     
     fetchFieldTypes();
   }, []);
+
+  // Load custom templates for JAFAR users (role_id 6)
+  useEffect(() => {
+    if (isJafarUser()) {
+      const fetchCustomTemplates = async () => {
+        setLoadingCustomTemplates(true);
+        try {
+          const response = await fetch('/api/custom-templates', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const templates = await response.json();
+            console.log('🔍 DEBUG: Loaded custom templates:', templates);
+            setCustomTemplates(templates);
+          } else {
+            console.log('No custom templates found or error loading them');
+          }
+        } catch (error) {
+          console.error('Error fetching custom templates:', error);
+          // Don't show error toast for custom templates as they're optional
+        } finally {
+          setLoadingCustomTemplates(false);
+        }
+      };
+      
+      fetchCustomTemplates();
+    }
+  }, [user]);
   
   // Template definitions
   const templates = [
@@ -259,6 +313,46 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     onChange(updatedFields);
     
     toast.success(`${template.name} template applied`);
+  };
+
+  // Apply a custom template to the form
+  const applyCustomTemplate = async (templateId: number) => {
+    try {
+      // Fetch the specific custom template with its fields
+      const response = await fetch(`/api/custom-templates/${templateId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load custom template');
+      }
+      
+      const templateData = await response.json();
+      console.log('🔍 DEBUG: Loaded custom template data:', templateData);
+      
+      // Convert template fields to form fields
+      const templateFields = templateData.fields.map((field: any) => ({
+        id: uuidv4(),
+        fieldName: field.FIELD_NAME,
+        fieldType: field.fieldType || 'text_input', // fallback to text input
+        fieldTypeId: field.FIELD_TYPE_ID || 1,
+        required: field.IS_REQUIRED || false,
+        options: field.OPTIONS || '',
+        canDelete: true
+      }));
+      
+      // Replace existing fields with the template fields
+      setFields(templateFields);
+      onChange(templateFields);
+      
+      toast.success(`Custom template "${templateData.form.FORM_NAME}" applied`);
+    } catch (error) {
+      console.error('Error applying custom template:', error);
+      toast.error('Failed to apply custom template');
+    }
   };
   
   // Handle drag start event
@@ -474,6 +568,39 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
     <div className="form-builder-container">
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
+        {/* Custom Workflow Templates section - Only for JAFAR users (role_id 6) */}
+        {isJafarUser() && (
+          <div className="forms-section">
+            <h4 className="mb-2">
+              <FaCog className="me-2" style={{ fontSize: '16px', verticalAlign: 'middle' }} />
+              CUSTOM WORKFLOW TEMPLATES
+            </h4>
+            {loadingCustomTemplates ? (
+              <div className="text-center p-2">
+                <small className="text-muted">Loading custom templates...</small>
+              </div>
+            ) : customTemplates.length > 0 ? (
+              <div className="forms-grid">
+                {customTemplates.map((template) => (
+                  <button 
+                    key={template.FORM_ID} 
+                    type="button" 
+                    className="form-btn custom-template" 
+                    onClick={() => applyCustomTemplate(template.FORM_ID)}
+                    title={template.FORM_DESCRIPTION || template.FORM_NAME}
+                  >
+                    {template.FORM_NAME}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-2">
+                <small className="text-muted">No custom templates found</small>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Preset Forms section */}
         <div className="forms-section">
           <h4 className="mb-2">WORKFLOW TEMPLATES</h4>

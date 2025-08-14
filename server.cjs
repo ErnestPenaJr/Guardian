@@ -267,6 +267,7 @@ app.get('/api/debug/endpoints', (req, res) => {
         endpoints: [
             '/api/users', '/api/users/company/:companyId', '/api/invites', 
             '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
+            '/api/custom-templates', '/api/custom-templates/:id',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
             '/api/validate-email', '/api/send-verification-email', 
             '/api/request-password-reset', '/api/verify-reset-code', '/api/reset-password'
@@ -818,7 +819,8 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             ASSIGNED_ID,
             assignedId,
             STATUS,
-            status
+            status,
+            formFieldValues
         } = req.body;
 
         // Use the request name from any of the possible field names
@@ -933,6 +935,58 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             TRACKING_ID: newRequest.TRACKINGID,
             COMPANY_ID: newRequest.COMPANY_ID
         });
+
+        // Save form field values if provided
+        if (formFieldValues && templateId) {
+            try {
+                console.log(`📝 Saving form field values for request ${insertedId}`, formFieldValues);
+                
+                // Create form instance
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.FORMS_INSTANCE (
+                        REQUEST_ID, FORM_ID, ASSIGNED_ID, COMPANY_ID, SUBMITTED_DATE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${insertedId}, ${templateId}, ${req.userId}, ${req.companyId}, GETDATE(), ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                
+                // Get the new instance ID
+                const instanceResult = await prisma.$queryRaw`
+                    SELECT FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
+                    WHERE REQUEST_ID = ${insertedId} AND FORM_ID = ${templateId} AND COMPANY_ID = ${req.companyId}
+                    ORDER BY CREATE_DATE DESC
+                `;
+                
+                if (instanceResult.length > 0) {
+                    const formInstanceId = instanceResult[0].FORM_INSTANCE_ID;
+                    console.log(`📋 Created form instance with ID: ${formInstanceId}`);
+                    
+                    // Save field values
+                    for (const [fieldKey, fieldValue] of Object.entries(formFieldValues)) {
+                        if (fieldValue && fieldValue.toString().trim() !== '') {
+                            // Convert field ID to integer if it's a string
+                            const fieldId = parseInt(fieldKey) || fieldKey;
+                            
+                            await prisma.$executeRaw`
+                                INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
+                                    FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                                ) VALUES (
+                                    ${formInstanceId}, ${fieldId}, ${fieldValue.toString()}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                                )
+                            `;
+                            console.log(`💾 Saved field ${fieldKey}: ${fieldValue}`);
+                        }
+                    }
+                    
+                    console.log(`✅ Saved ${Object.keys(formFieldValues).length} form field values`);
+                } else {
+                    console.log('❌ Could not retrieve form instance ID');
+                }
+            } catch (formError) {
+                console.error('⚠️ Error saving form field values (continuing with request creation):', formError);
+                // Don't fail the entire request creation if form data saving fails
+            }
+        }
 
         // Return the created request
         res.status(201).json({
@@ -5889,6 +5943,499 @@ app.post('/invites/send', async (req, res) => {
         res.status(500).json({
             error: 'Failed to process invites',
             message: error.message
+        });
+    }
+});
+
+// === CUSTOM TEMPLATE ENDPOINTS (JAFAR ROLE ONLY) ===
+
+// Get custom templates - only for role_id 6 (JAFAR)
+app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log('📋 Fetching custom templates for role_id 6 user, company:', req.companyId);
+        
+        // Check if user has role_id 6 (JAFAR)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
+        if (!hasJafarRole) {
+            return res.status(403).json({
+                error: 'Access denied. Custom templates are only available to JAFAR users (role_id 6).'
+            });
+        }
+        
+        // Fetch custom templates for the company (marked with CUSTOM_TEMPLATE = 1)
+        const customTemplates = await prisma.$queryRaw`
+            SELECT 
+                f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
+                f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE,
+                COUNT(ff.FIELD_ID) as fieldCount
+            FROM GUARDIAN.FORMS f
+            LEFT JOIN GUARDIAN.FORMS_FIELDS ff ON f.FORM_ID = ff.FORM_ID
+            WHERE f.COMPANY_ID = ${req.companyId}
+            AND f.IS_DELETED = 0
+            AND f.FORM_TYPE = 'custom'
+            GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
+                     f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE
+            ORDER BY f.CREATE_DATE DESC
+        `;
+        
+        console.log(`✅ Found ${customTemplates.length} custom templates for company ${req.companyId}`);
+        res.json(customTemplates);
+    } catch (error) {
+        console.error('❌ Error fetching custom templates:', error);
+        res.status(500).json({
+            error: 'Failed to fetch custom templates',
+            details: error.message
+        });
+    }
+});
+
+// Get specific custom template with fields
+app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const templateId = parseInt(req.params.id);
+        console.log(`📋 Fetching custom template ${templateId} for company:`, req.companyId);
+        
+        // Check if user has role_id 6 (JAFAR)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
+        if (!hasJafarRole) {
+            return res.status(403).json({
+                error: 'Access denied. Custom templates are only available to JAFAR users (role_id 6).'
+            });
+        }
+        
+        if (!templateId || isNaN(templateId)) {
+            return res.status(400).json({ error: 'Valid template ID required' });
+        }
+        
+        // Get the form
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, COMPANY_ID
+            FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${templateId} 
+            AND COMPANY_ID = ${req.companyId}
+            AND IS_DELETED = 0
+            AND FORM_TYPE = 'custom'
+        `;
+        
+        if (forms.length === 0) {
+            return res.status(404).json({
+                error: 'Custom template not found'
+            });
+        }
+        
+        const form = forms[0];
+        
+        // Get the fields
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED, f.OPTIONS,
+                   ff.SORT_ORDER, ft.TYPE_NAME as fieldType
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            LEFT JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${templateId}
+            AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
+        `;
+        
+        console.log(`✅ Found custom template ${templateId} with ${fields.length} fields`);
+        
+        const response = {
+            form: {
+                FORM_ID: form.FORM_ID,
+                FORM_NAME: form.FORM_NAME,
+                FORM_DESCRIPTION: form.FORM_DESCRIPTION,
+                IS_ACTIVE: form.IS_ACTIVE,
+                IS_PUBLIC: form.IS_PUBLIC,
+                COMPANY_ID: form.COMPANY_ID
+            },
+            fields: fields
+        };
+        
+        res.json(response);
+    } catch (error) {
+        console.error('❌ Error fetching custom template:', error);
+        res.status(500).json({
+            error: 'Failed to fetch custom template',
+            details: error.message
+        });
+    }
+});
+
+// Create custom template
+app.post('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { form, fields } = req.body;
+        console.log('📝 Creating custom template for company:', req.companyId);
+        
+        // Check if user has role_id 6 (JAFAR)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
+        if (!hasJafarRole) {
+            return res.status(403).json({
+                error: 'Access denied. Only JAFAR users (role_id 6) can create custom templates.'
+            });
+        }
+        
+        if (!form || !form.FORM_NAME) {
+            return res.status(400).json({ error: 'Form name is required' });
+        }
+        
+        // Check for duplicate form name within the company
+        const existingForms = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE COMPANY_ID = ${req.companyId} 
+            AND FORM_NAME = ${form.FORM_NAME.trim()}
+            AND IS_DELETED = 0
+        `;
+        
+        if (existingForms.length > 0) {
+            return res.status(409).json({
+                error: 'A form with this name already exists in your organization'
+            });
+        }
+        
+        // Create the form with FORM_TYPE = 'custom'
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.FORMS (
+                FORM_NAME, FORM_DESCRIPTION, FORM_TYPE, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
+                COMPANY_ID, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+            )
+            OUTPUT INSERTED.FORM_ID, INSERTED.FORM_NAME, INSERTED.FORM_DESCRIPTION,
+                   INSERTED.FORM_TYPE, INSERTED.IS_ACTIVE, INSERTED.IS_PUBLIC,
+                   INSERTED.COMPANY_ID, INSERTED.CREATE_DATE
+            VALUES (
+                ${form.FORM_NAME.trim()}, ${form.FORM_DESCRIPTION?.trim() || ''}, 'custom',
+                ${form.IS_ACTIVE !== false}, ${form.IS_PUBLIC !== false}, 0,
+                ${req.companyId}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+            )
+        `;
+        
+        console.log(`✅ Created custom template ${result[0].FORM_ID}: ${result[0].FORM_NAME}`);
+        
+        // Add fields if provided
+        if (fields && fields.length > 0) {
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                
+                // Create field if it doesn't exist
+                const fieldResult = await prisma.$queryRaw`
+                    INSERT INTO GUARDIAN.FIELDS (
+                        FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, OPTIONS, IS_ACTIVE, IS_DELETED,
+                        COMPANY_ID, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    )
+                    OUTPUT INSERTED.FIELD_ID
+                    VALUES (
+                        ${field.FIELD_NAME}, ${field.FIELD_TYPE_ID || 1}, 
+                        ${field.IS_REQUIRED || false}, ${field.OPTIONS || ''}, 1, 0,
+                        ${req.companyId}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+                
+                // Link field to form
+                await prisma.$queryRaw`
+                    INSERT INTO GUARDIAN.FORMS_FIELDS (
+                        FORM_ID, FIELD_ID, SORT_ORDER, IS_REQUIRED, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
+                    )
+                    VALUES (
+                        ${result[0].FORM_ID}, ${fieldResult[0].FIELD_ID}, ${i + 1}, 
+                        ${field.IS_REQUIRED || false}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                    )
+                `;
+            }
+            console.log(`✅ Added ${fields.length} fields to custom template`);
+        }
+        
+        res.status(201).json({
+            success: true,
+            message: 'Custom template created successfully',
+            form: result[0]
+        });
+    } catch (error) {
+        console.error('❌ Error creating custom template:', error);
+        res.status(500).json({
+            error: 'Failed to create custom template',
+            details: error.message
+        });
+    }
+});
+
+// Update custom template
+app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const templateId = parseInt(req.params.id);
+        const { form, fields } = req.body;
+        console.log(`📝 Updating custom template ${templateId} for company:`, req.companyId);
+        console.log('🔍 Update data:', { form, fieldsCount: fields?.length });
+        
+        // Check if user has role_id 6 (JAFAR)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
+        if (!hasJafarRole) {
+            return res.status(403).json({
+                error: 'Access denied. Only JAFAR users (role_id 6) can update custom templates.'
+            });
+        }
+        
+        if (!templateId || isNaN(templateId)) {
+            return res.status(400).json({ error: 'Valid template ID required' });
+        }
+        
+        // Verify template exists and belongs to user's company
+        const existingTemplate = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${templateId} 
+            AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (existingTemplate.length === 0) {
+            return res.status(404).json({
+                error: 'Custom template not found or access denied'
+            });
+        }
+
+        // Handle backward compatibility - support both old format (direct updates) and new format (form + fields)
+        let formUpdates;
+        if (form) {
+            // New format with form and fields
+            formUpdates = form;
+        } else {
+            // Backward compatibility with old format
+            formUpdates = req.body;
+        }
+        
+        // Update the form metadata if provided
+        if (formUpdates) {
+            console.log('📝 Updating form metadata:', formUpdates);
+            
+            const formName = formUpdates.FORM_NAME?.trim();
+            const formDescription = formUpdates.FORM_DESCRIPTION?.trim() || '';
+            const isActive = formUpdates.IS_ACTIVE;
+            
+            if (formName !== undefined || formDescription !== undefined || isActive !== undefined) {
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.FORMS 
+                    SET FORM_NAME = ${formName || existingTemplate[0].FORM_NAME},
+                        FORM_DESCRIPTION = ${formDescription},
+                        IS_ACTIVE = ${isActive !== undefined ? isActive : true},
+                        UPDATE_USER_ID = ${req.userId}, 
+                        UPDATE_DATE = GETDATE()
+                    WHERE FORM_ID = ${templateId}
+                    AND COMPANY_ID = ${req.companyId}
+                `;
+                console.log('✅ Updated form metadata');
+            }
+        }
+        
+        // Update fields if provided
+        if (fields && Array.isArray(fields)) {
+            console.log(`📝 Updating ${fields.length} fields for template`);
+            
+            // First, delete existing form-field associations
+            await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.FORMS_FIELDS 
+                WHERE FORM_ID = ${templateId}
+            `;
+            console.log('🗑️ Removed existing field associations');
+            
+            // Create new field associations
+            let fieldOrder = 1;
+            for (const field of fields) {
+                if (!field.FIELD_NAME?.trim()) {
+                    console.log('⚠️ Skipping field with empty name');
+                    continue;
+                }
+                
+                try {
+                    // Check if a field with this name already exists in the company/global scope
+                    const existingField = await prisma.$queryRaw`
+                        SELECT FIELD_ID FROM GUARDIAN.FIELDS 
+                        WHERE FIELD_NAME = ${field.FIELD_NAME.trim()}
+                        AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
+                        AND IS_DELETED = 0
+                        ORDER BY ORGANIZATION_ID DESC
+                    `;
+                    
+                    let fieldId;
+                    
+                    if (existingField.length > 0) {
+                        // Use existing field
+                        fieldId = existingField[0].FIELD_ID;
+                        console.log(`🔗 Using existing field: ${field.FIELD_NAME} (ID: ${fieldId})`);
+                    } else {
+                        // Create new field for this company
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.FIELDS (
+                                FIELD_NAME, 
+                                FIELD_TYPE_ID, 
+                                DISPLAY_FORMAT, 
+                                HAS_LOOKUP, 
+                                IS_PUBLIC, 
+                                IS_ACTIVE, 
+                                IS_DELETED, 
+                                IS_REQUIRED, 
+                                IS_SENSITIVE, 
+                                CREATE_DATE, 
+                                UPDATE_DATE, 
+                                CREATE_USER_ID,
+                                UPDATE_USER_ID,
+                                ORGANIZATION_ID
+                            ) VALUES (
+                                ${field.FIELD_NAME.trim()}, 
+                                ${field.FIELD_TYPE_ID || 1}, 
+                                'text', 
+                                0, 
+                                1, 
+                                1, 
+                                0, 
+                                ${field.IS_REQUIRED || false}, 
+                                0, 
+                                GETDATE(), 
+                                GETDATE(), 
+                                ${req.userId},
+                                ${req.userId},
+                                ${req.companyId}
+                            )
+                        `;
+                        
+                        // Get the newly created field ID
+                        const newField = await prisma.$queryRaw`
+                            SELECT FIELD_ID FROM GUARDIAN.FIELDS 
+                            WHERE FIELD_NAME = ${field.FIELD_NAME.trim()}
+                            AND ORGANIZATION_ID = ${req.companyId}
+                            ORDER BY CREATE_DATE DESC
+                        `;
+                        
+                        fieldId = newField[0].FIELD_ID;
+                        console.log(`➕ Created new field: ${field.FIELD_NAME} (ID: ${fieldId})`);
+                    }
+                    
+                    // Create the form-field association
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.FORMS_FIELDS (
+                            FORM_ID, 
+                            FIELD_ID, 
+                            IS_REQUIRED, 
+                            SORT_ORDER, 
+                            CREATE_USER_ID,
+                            CREATE_DATE
+                        ) VALUES (
+                            ${templateId}, 
+                            ${fieldId}, 
+                            ${field.IS_REQUIRED || false}, 
+                            ${fieldOrder}, 
+                            ${req.userId},
+                            GETDATE()
+                        )
+                    `;
+                    
+                    fieldOrder++;
+                    console.log(`🔗 Associated field ${field.FIELD_NAME} with template (order: ${fieldOrder - 1})`);
+                    
+                } catch (fieldError) {
+                    console.error(`❌ Error processing field ${field.FIELD_NAME}:`, fieldError);
+                    // Continue with other fields rather than failing the entire operation
+                }
+            }
+            
+            console.log(`✅ Updated ${fields.length} fields for template ${templateId}`);
+        }
+        
+        console.log(`✅ Successfully updated custom template ${templateId}`);
+        
+        res.json({
+            success: true,
+            message: 'Custom template updated successfully'
+        });
+    } catch (error) {
+        console.error('❌ Error updating custom template:', error);
+        res.status(500).json({
+            error: 'Failed to update custom template',
+            details: error.message
+        });
+    }
+});
+
+// Delete custom template
+app.delete('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const templateId = parseInt(req.params.id);
+        console.log(`🗑️ Deleting custom template ${templateId} for company:`, req.companyId);
+        
+        // Check if user has role_id 6 (JAFAR)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
+        if (!hasJafarRole) {
+            return res.status(403).json({
+                error: 'Access denied. Only JAFAR users (role_id 6) can delete custom templates.'
+            });
+        }
+        
+        if (!templateId || isNaN(templateId)) {
+            return res.status(400).json({ error: 'Valid template ID required' });
+        }
+        
+        // Verify template exists and belongs to user's company
+        const existingTemplate = await prisma.$queryRaw`
+            SELECT FORM_ID FROM GUARDIAN.FORMS 
+            WHERE FORM_ID = ${templateId} 
+            AND COMPANY_ID = ${req.companyId}
+            AND FORM_TYPE = 'custom'
+        `;
+        
+        if (existingTemplate.length === 0) {
+            return res.status(404).json({
+                error: 'Custom template not found or access denied'
+            });
+        }
+        
+        // Delete form-field relationships first
+        await prisma.$queryRaw`DELETE FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID = ${templateId}`;
+        
+        // Delete the form itself (soft delete)
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.FORMS 
+            SET IS_DELETED = 1, UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+            WHERE FORM_ID = ${templateId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Deleted custom template ${templateId}`);
+        
+        res.json({
+            success: true,
+            message: 'Custom template deleted successfully'
+        });
+    } catch (error) {
+        console.error('❌ Error deleting custom template:', error);
+        res.status(500).json({
+            error: 'Failed to delete custom template',
+            details: error.message
         });
     }
 });

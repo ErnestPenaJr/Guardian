@@ -10,6 +10,7 @@ import AdminFormsGroupsModal from '../components/AdminFormsGroupsModal';
 import AdminFields from '../pages/AdminFields';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import FormTemplateEditorModal from '../components/FormTemplateEditorModal';
+import CustomWorkflowTemplateModal from '../components/CustomWorkflowTemplateModal';
 import formService from '../services/formService';
 import { toast } from 'react-toastify';
 
@@ -28,8 +29,26 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
   const [adminFieldsModalOpen, setAdminFieldsModalOpen] = useState(false);
   const [workflowManagementModalOpen, setWorkflowManagementModalOpen] = useState(false);
   const [templateEditorModalOpen, setTemplateEditorModalOpen] = useState(false);
+  const [customTemplateModalOpen, setCustomTemplateModalOpen] = useState(false);
   const [editingFormId, setEditingFormId] = useState<number | undefined>(undefined);
   const [editingFormData, setEditingFormData] = useState<any>(null);
+  
+  // Helper function to check if user has role_id 6 (JAFAR)
+  const isJafarUser = () => {
+    if (!user) return false;
+    
+    // Check roles array
+    if (user.roles && user.roles.some((role: any) => role.id === 6)) {
+      return true;
+    }
+    
+    // Check role property as string
+    if (user.role === '6') {
+      return true;
+    }
+    
+    return false;
+  };
   
   // Handle enhanced form field changes
   const handleEnhancedFormFieldsChange = (updatedFields: any) => {
@@ -139,7 +158,18 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             >
               Manage Workflows
             </li>
-
+            {isJafarUser() && (
+              <li 
+                className="cursor-pointer hover:text-secondary transition-colors font-semibold"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCustomTemplateModalOpen(true);
+                }}
+                style={{ color: '#6c5ce7' }}
+              >
+                Custom Workflow Templates
+              </li>
+            )}
           </ul>
         </div>
 
@@ -263,6 +293,14 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         formId={editingFormId}
         onSave={handleTemplateEditorSave}
       />
+
+      {/* Custom Workflow Template Modal - Only for JAFAR users */}
+      {isJafarUser() && (
+        <CustomWorkflowTemplateModal
+          isOpen={customTemplateModalOpen}
+          onClose={() => setCustomTemplateModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
