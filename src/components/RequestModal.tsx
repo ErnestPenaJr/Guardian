@@ -343,24 +343,33 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     try {
       setIsSavingForm(true);
       
-      // Prepare form data for submission
-      const formData = formFieldValues.reduce((acc, field) => {
-        acc[field.fieldName] = field.fieldValue || '';
+      // Prepare form data in the format the server expects
+      const fieldValues = formFieldValues.reduce((acc, field) => {
+        if (field.fieldValue && field.fieldValue.toString().trim() !== '') {
+          acc[field.fieldName] = field.fieldValue;
+        }
         return acc;
       }, {} as Record<string, string>);
       
-      console.log('Saving form data for request:', request.REQUEST_ID, formData);
+      const submissionData = {
+        fieldValues,
+        isComplete: false, // Mark as draft/auto-save
+        isDraft: true
+      };
       
-      // Submit form data
-      const response = await api.post(`/api/requests/${request.REQUEST_ID}/form-data`, formData);
+      console.log('Saving form data for request:', request.REQUEST_ID);
+      console.log('Field values:', fieldValues);
       
-      if (response.status === 200) {
+      // Submit form data to the correct endpoint
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/form/submit`, submissionData);
+      
+      if (response.status === 200 || response.status === 201) {
         console.log('✅ Form data saved successfully');
         setFormHasChanges(false);
         // Refresh the form data
         await fetchFormFieldValues();
       } else {
-        console.error('❌ Failed to save form data');
+        console.error('❌ Failed to save form data:', response.status);
       }
     } catch (error) {
       console.error('❌ Error saving form data:', error);

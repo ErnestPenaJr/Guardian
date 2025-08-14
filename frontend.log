@@ -3818,3 +3818,6 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 1:16:17 PM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
 1:18:52 PM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
 1:18:55 PM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+1:47:20 PM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
