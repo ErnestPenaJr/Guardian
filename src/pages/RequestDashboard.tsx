@@ -164,7 +164,22 @@ const RequestDashboard: React.FC = () => {
   const [fulfillmentFormLoading, setFulfillmentFormLoading] = useState(false);
   const [fulfillmentActionLoading, setFulfillmentActionLoading] = useState(false);
 
+  // My Assigned Requests state
+  const [assignedRequests, setAssignedRequests] = useState<Request[]>([]);
+  const [assignedRequestsLoading, setAssignedRequestsLoading] = useState(false);
+  const [assignedRequestsFilter, setAssignedRequestsFilter] = useState('all');
+  const [assignedRequestsSearch, setAssignedRequestsSearch] = useState('');
+  const [showAssignedRequestsSection, setShowAssignedRequestsSection] = useState(true);
+
   // Fetch requests on component mount
+  useEffect(() => {
+    fetchRequests();
+    // Only fetch assigned requests if user is logged in and has appropriate role
+    if (user && user.userId) {
+      fetchAssignedRequests();
+    }
+  }, [user]);
+  
   useEffect(() => {
     fetchRequests();
   }, []);
@@ -231,11 +246,22 @@ const RequestDashboard: React.FC = () => {
     }
   };
 
-  // Filter requests based on quick filter
-  const filteredRequests = useMemo(() => {
-    if (!quickFilter) return requests;
+  // Filter main requests - exclude requests assigned to current user
+  const mainRequests = useMemo(() => {
+    if (!user?.userId) return requests;
     
+    // Filter out requests assigned to the current user
     return requests.filter(request => {
+      // If request is assigned to current user, exclude it from main dashboard
+      return request.ASSIGNED_ID !== user.userId;
+    });
+  }, [requests, user?.userId]);
+
+  // Filter main requests based on quick filter
+  const filteredRequests = useMemo(() => {
+    if (!quickFilter) return mainRequests;
+    
+    return mainRequests.filter(request => {
       const searchStr = quickFilter.toLowerCase();
       return (
         (request.REQUEST_NAME?.toLowerCase().includes(searchStr)) ||
@@ -244,7 +270,40 @@ const RequestDashboard: React.FC = () => {
         (request.assignedName?.toLowerCase().includes(searchStr))
       );
     });
-  }, [requests, quickFilter]);
+  }, [mainRequests, quickFilter]);
+
+  // Filter assigned requests based on status filter and search
+  const filteredAssignedRequests = useMemo(() => {
+    let filtered = assignedRequests;
+    
+    // Apply status filter
+    if (assignedRequestsFilter !== 'all') {
+      filtered = filtered.filter(request => {
+        switch (assignedRequestsFilter) {
+          case 'pending':
+            return request.STATUS === 'P';
+          case 'active':
+            return request.STATUS === 'A';
+          case 'completed':
+            return request.STATUS === 'C';
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Apply search filter
+    if (assignedRequestsSearch) {
+      const searchStr = assignedRequestsSearch.toLowerCase();
+      filtered = filtered.filter(request => (
+        (request.REQUEST_NAME?.toLowerCase().includes(searchStr)) ||
+        (request.TRACKINGID?.toLowerCase().includes(searchStr)) ||
+        (request.requestorName?.toLowerCase().includes(searchStr))
+      ));
+    }
+    
+    return filtered;
+  }, [assignedRequests, assignedRequestsFilter, assignedRequestsSearch]);
 
   // Define table columns
   const columns: TableColumn<Request>[] = [
@@ -401,6 +460,150 @@ const RequestDashboard: React.FC = () => {
       ignoreRowClick: true,
       sortable: false,
       selector: _ => ''
+    }
+  ];
+
+  // Define assigned requests table columns with actions
+  const assignedRequestsColumns: TableColumn<Request>[] = [
+    {
+      name: 'Request ID',
+      selector: row => row.TRACKINGID || `REQ-${row.REQUEST_ID}`,
+      sortable: true,
+      width: '140px',
+      wrap: true,
+      cell: row => {
+        const trackingId = row.TRACKINGID || `REQ-${row.REQUEST_ID}`;
+        return (
+          <div className="tracking-id-cell fw-medium" style={{ fontSize: '13px' }}>
+            {trackingId}
+          </div>
+        );
+      }
+    },
+    {
+      name: 'Request Name',
+      selector: row => row.REQUEST_NAME,
+      sortable: true,
+      grow: 2,
+      wrap: true,
+      cell: row => (
+        <div className="fw-medium" style={{ fontSize: '14px' }}>
+          {row.REQUEST_NAME}
+        </div>
+      )
+    },
+    {
+      name: 'Requestor',
+      selector: row => row.requestorName || 'Unknown',
+      sortable: true,
+      width: '150px',
+      wrap: true,
+      cell: row => (
+        <div style={{ fontSize: '13px' }}>
+          {row.requestorName || 'Unknown'}
+        </div>
+      )
+    },
+    {
+      name: 'Status',
+      selector: row => row.STATUS,
+      sortable: true,
+      width: '110px',
+      cell: row => {
+        let badgeClass = '';
+        let statusText = '';
+        
+        switch (row.STATUS) {
+          case 'P':
+            badgeClass = 'badge bg-warning text-dark';
+            statusText = 'Pending';
+            break;
+          case 'A':
+            badgeClass = 'badge bg-primary text-white';
+            statusText = 'Active';
+            break;
+          case 'C':
+            badgeClass = 'badge bg-success text-white';
+            statusText = 'Complete';
+            break;
+          default:
+            badgeClass = 'badge bg-secondary text-white';
+            statusText = row.STATUS;
+        }
+        
+        return (
+          <span className={badgeClass} style={{ fontSize: '11px' }}>
+            {statusText}
+          </span>
+        );
+      }
+    },
+    {
+      name: 'Submitted',
+      selector: row => row.SUBMITTED_DATE,
+      sortable: true,
+      width: '120px',
+      cell: row => {
+        const date = new Date(row.SUBMITTED_DATE);
+        return (
+          <div style={{ fontSize: '12px' }}>
+            {date.toLocaleDateString()}
+          </div>
+        );
+      }
+    },
+    {
+      name: 'Actions',
+      width: '200px',
+      cell: row => {
+        const canStart = row.STATUS === 'P';
+        const canContinue = row.STATUS === 'A';
+        const isCompleted = row.STATUS === 'C';
+        
+        return (
+          <div className="d-flex gap-2">
+            {canStart && (
+              <button
+                className="btn btn-sm btn-success"
+                style={{ fontSize: '12px', minWidth: '70px' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStartWork(row);
+                }}
+              >
+                Start Work
+              </button>
+            )}
+            {canContinue && (
+              <button
+                className="btn btn-sm btn-primary"
+                style={{ fontSize: '12px', minWidth: '70px' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleContinueWork(row);
+                }}
+              >
+                Continue
+              </button>
+            )}
+            {isCompleted && (
+              <span className="badge bg-success" style={{ fontSize: '11px' }}>
+                Completed
+              </span>
+            )}
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              style={{ fontSize: '12px' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewRequest(row);
+              }}
+            >
+              View
+            </button>
+          </div>
+        );
+      }
     }
   ];
 
@@ -613,12 +816,82 @@ const RequestDashboard: React.FC = () => {
         toast.success('Your Workflow Template has been created.');
       }
       
-      fetchRequests(); // Refresh the requests list
+      // Refresh both request lists
+      await Promise.all([
+        fetchRequests(),
+        user?.userId ? fetchAssignedRequests() : Promise.resolve()
+      ]);
     } catch (error: any) {
       console.error('❌ Error in handleSaveForm:', error);
       toast.error(error.response?.data?.error || error.message || 'Failed to save');
       throw error;
     }
+  };
+
+  // Fetch assigned requests specifically for the current user
+  const fetchAssignedRequests = async () => {
+    try {
+      setAssignedRequestsLoading(true);
+      console.log('🔄 Fetching assigned requests for user:', user?.userId);
+      
+      const response = await api.get('/api/requests/assigned/me');
+      console.log('📥 Assigned requests response:', response.data);
+      
+      const assignedData = Array.isArray(response.data) ? response.data : [];
+      
+      // Enrich assigned requests data
+      const enrichedAssignedRequests = assignedData.map((request: any) => ({
+        ...request,
+        requestorName: request.requestor 
+          ? `${request.requestor.FIRST_NAME} ${request.requestor.LAST_NAME}`
+          : (request.FIRST_NAME && request.LAST_NAME 
+              ? `${request.FIRST_NAME} ${request.LAST_NAME}` 
+              : 'Unknown'),
+        assignedName: user?.firstName && user?.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user?.email || 'Me'
+      }));
+      
+      setAssignedRequests(enrichedAssignedRequests);
+      console.log('✅ Assigned requests loaded successfully:', enrichedAssignedRequests.length, 'requests');
+    } catch (err: any) {
+      console.error('❌ Error fetching assigned requests:', err);
+      toast.error('Failed to load assigned requests');
+      setAssignedRequests([]);
+    } finally {
+      setAssignedRequestsLoading(false);
+    }
+  };
+
+  // Handle starting work on an assigned request
+  const handleStartWork = async (request: Request) => {
+    try {
+      console.log('🚀 Starting work on request:', request.REQUEST_ID);
+      
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/start`);
+      
+      if (response.data.success) {
+        toast.success(`Started work on ${request.REQUEST_NAME}`);
+        // Refresh both request lists to reflect the status change
+        await Promise.all([
+          fetchRequests(),
+          fetchAssignedRequests()
+        ]);
+      } else {
+        toast.error('Failed to start work on request');
+      }
+    } catch (error: any) {
+      console.error('Error starting work:', error);
+      toast.error(error.response?.data?.error || 'Failed to start work');
+    }
+  };
+
+  // Handle continuing work on an active request
+  const handleContinueWork = (request: Request) => {
+    console.log('📝 Continuing work on request:', request.REQUEST_ID);
+    // Open the work progress modal for this request
+    setSelectedRequest(request);
+    setShowRequestModal(true);
   };
 
   // Load request form for fulfillment
@@ -679,6 +952,21 @@ const RequestDashboard: React.FC = () => {
   return (
     <div className="container">
       <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Request Dashboard</h1>
+      
+      {/* Main Requests Section Header */}
+      <div className="mb-3">
+        <div className="d-flex align-items-center">
+          <div className="bg-secondary" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
+          <div>
+            <h3 className="mb-1" style={{ fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+              All Requests
+            </h3>
+            <p className="mb-0 text-muted" style={{ fontSize: '13px' }}>
+              View and manage all requests in the system (excluding your assigned requests)
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="request-dashboard-header mb-3 d-flex align-items-center justify-content-between">
         <div className="d-flex align-items-center gap-2">
@@ -692,11 +980,20 @@ const RequestDashboard: React.FC = () => {
               gap: 6,
               whiteSpace: 'nowrap'
             }}
-            onClick={() => {
+            onClick={async () => {
               setLoading(true);
+              setAssignedRequestsLoading(true);
               setError(null);
-              fetchRequests();
-              toast.success('Requests refreshed successfully');
+              
+              try {
+                await Promise.all([
+                  fetchRequests(),
+                  user?.userId ? fetchAssignedRequests() : Promise.resolve()
+                ]);
+                toast.success('All requests refreshed successfully');
+              } catch (error) {
+                toast.error('Failed to refresh requests');
+              }
             }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-arrow-clockwise me-1" viewBox="0 0 16 16">
@@ -791,6 +1088,118 @@ const RequestDashboard: React.FC = () => {
           </div>
         }
       />
+      
+      {/* My Assigned Requests Section */}
+      {user && user.userId && showAssignedRequestsSection && (
+        <div className="mt-5">
+          {/* Section Header */}
+          <div className="d-flex align-items-center justify-content-between mb-4">
+            <div className="d-flex align-items-center">
+              <div className="bg-primary" style={{ width: '4px', height: '24px', marginRight: '12px' }}></div>
+              <div>
+                <h2 className="mb-1" style={{ fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
+                  My Assigned Requests
+                </h2>
+                <p className="mb-0 text-muted" style={{ fontSize: '14px' }}>
+                  Manage and track your assigned requests efficiently
+                </p>
+              </div>
+            </div>
+            
+            {/* Right-aligned controls */}
+            <div className="d-flex align-items-center gap-3">
+              {/* Status Filter */}
+              <select
+                className="form-select"
+                style={{ width: '140px', fontSize: '14px' }}
+                value={assignedRequestsFilter}
+                onChange={(e) => setAssignedRequestsFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
+              
+              {/* Clear Filters */}
+              <button
+                className="btn btn-outline-secondary"
+                style={{ fontSize: '14px', padding: '6px 16px' }}
+                onClick={() => {
+                  setAssignedRequestsFilter('all');
+                  setAssignedRequestsSearch('');
+                  toast.info('Filters cleared');
+                }}
+              >
+                Clear Filters
+              </button>
+              
+              {/* Search */}
+              <input
+                type="text"
+                className="form-control"
+                style={{ width: '200px', fontSize: '14px' }}
+                placeholder="Search..."
+                value={assignedRequestsSearch}
+                onChange={(e) => setAssignedRequestsSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          {/* Assigned Requests DataTable */}
+          <DataTable
+            columns={assignedRequestsColumns}
+            data={filteredAssignedRequests}
+            pagination
+            progressPending={assignedRequestsLoading}
+            persistTableHead
+            highlightOnHover
+            pointerOnHover
+            onRowClicked={handleViewRequest}
+            responsive
+            striped
+            defaultSortFieldId={1}
+            defaultSortAsc={false}
+            customStyles={{
+              table: {
+                style: {
+                  width: '100%',
+                },
+              },
+              cells: {
+                style: {
+                  paddingLeft: '12px',
+                  paddingRight: '12px',
+                  paddingTop: '12px',
+                  paddingBottom: '12px',
+                },
+              },
+              headCells: {
+                style: {
+                  paddingLeft: '12px',
+                  paddingRight: '12px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  backgroundColor: '#f8f9fa',
+                },
+              },
+            }}
+            noDataComponent={
+              <div className="p-5 text-center">
+                <div className="text-muted">
+                  {assignedRequestsLoading ? (
+                    'Loading your assigned requests...'
+                  ) : filteredAssignedRequests.length === 0 && assignedRequests.length > 0 ? (
+                    'No requests match your current filters.'
+                  ) : (
+                    'No requests are currently assigned to you.'
+                  )}
+                </div>
+              </div>
+            }
+          />
+        </div>
+      )}
       
       {/* New Request Modal */}
       <NewRequestModal

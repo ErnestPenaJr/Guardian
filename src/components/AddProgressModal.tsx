@@ -51,6 +51,24 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
     isVisibleToRequestor: true
   });
   
+  // Document categorization state
+  const [documentCategory, setDocumentCategory] = useState('general');
+  
+  // Document categories for better organization
+  const documentCategories = {
+    general: 'General Document',
+    evidence: 'Evidence/Proof',
+    research: 'Research Material',
+    correspondence: 'Communication/Email',
+    legal: 'Legal Document',
+    financial: 'Financial Record',
+    identification: 'ID/Verification',
+    medical: 'Medical Record',
+    technical: 'Technical Specification',
+    photo: 'Photo/Image',
+    other: 'Other'
+  };
+  
   // UI state
   const [loading, setLoading] = useState(false);
   const [validation, setValidation] = useState<ProgressEntryValidation>({
@@ -84,6 +102,27 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
       color: 'warning'
     },
     {
+      value: 'research',
+      label: 'Research',
+      description: 'Research findings, analysis, and documentation',
+      icon: 'Search',
+      color: 'primary'
+    },
+    {
+      value: 'evidence',
+      label: 'Evidence',
+      description: 'Evidence collected, verification, and supporting documents',
+      icon: 'CheckCircle',
+      color: 'success'
+    },
+    {
+      value: 'communication',
+      label: 'Communication',
+      description: 'Phone calls, emails, meetings, and stakeholder contact',
+      icon: 'Info',
+      color: 'info'
+    },
+    {
       value: 'attachment',
       label: 'Attachment',
       description: 'File or document related to the work',
@@ -91,6 +130,106 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
       color: 'primary'
     }
   ];
+
+  // Research templates for structured data entry
+  const researchTemplates = {
+    research: {
+      title: 'Research Findings',
+      template: `**Research Summary:**
+[Brief summary of research conducted]
+
+**Key Findings:**
+• Finding 1
+• Finding 2
+• Finding 3
+
+**Sources Consulted:**
+• Source 1 - [URL or reference]
+• Source 2 - [URL or reference]
+
+**Next Steps:**
+• Action item 1
+• Action item 2
+
+**Confidence Level:** [High/Medium/Low]
+**Time Spent:** [X hours]`
+    },
+    evidence: {
+      title: 'Evidence Documentation',
+      template: `**Evidence Type:**
+[Document/Photo/Recording/Physical/Digital]
+
+**Evidence Description:**
+[Detailed description of evidence]
+
+**Source/Origin:**
+[Where evidence was obtained]
+
+**Date/Time Collected:**
+[When evidence was gathered]
+
+**Chain of Custody:**
+[Who handled the evidence]
+
+**Relevance:**
+[How this evidence supports the case]
+
+**Verification Status:**
+[Verified/Pending/Unverified]
+
+**Storage Location:**
+[Where evidence is stored]`
+    },
+    communication: {
+      title: 'Communication Log',
+      template: `**Communication Type:**
+[Phone Call/Email/Meeting/Letter]
+
+**Contact Information:**
+**Name:** [Contact name]
+**Title:** [Contact title/role]
+**Organization:** [Company/agency]
+**Phone:** [Phone number]
+**Email:** [Email address]
+
+**Date/Time:** [When communication occurred]
+
+**Purpose:**
+[Reason for contact]
+
+**Summary:**
+[What was discussed/communicated]
+
+**Action Items:**
+• Task 1 - [Responsible party]
+• Task 2 - [Responsible party]
+
+**Follow-up Required:**
+[Yes/No - if yes, when and what]`
+    },
+    milestone: {
+      title: 'Milestone Achievement',
+      template: `**Milestone:** [Name of milestone]
+
+**Completion Date:** [Date achieved]
+
+**Description:**
+[What was accomplished]
+
+**Deliverables:**
+• Deliverable 1
+• Deliverable 2
+
+**Quality Check:**
+[Review process and results]
+
+**Stakeholder Notification:**
+[Who needs to be informed]
+
+**Next Phase:**
+[What comes next]`
+    }
+  };
 
   // File validation rules
   const attachmentValidation: AttachmentValidation = {
@@ -119,6 +258,9 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
       case 'note': return FileText;
       case 'milestone': return Target;
       case 'discovery': return Search;
+      case 'research': return Search;
+      case 'evidence': return CheckCircle;
+      case 'communication': return Info;
       case 'attachment': return Paperclip;
       default: return FileText;
     }
@@ -173,6 +315,19 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
       ...prev,
       [field]: value
     }));
+  };
+
+  // Apply research template
+  const applyTemplate = (templateType: keyof typeof researchTemplates) => {
+    const template = researchTemplates[templateType];
+    if (template) {
+      setFormData(prev => ({
+        ...prev,
+        title: template.title,
+        description: template.template
+      }));
+      toast.info(`${template.title} template applied!`);
+    }
   };
 
   // Handle file selection
@@ -288,6 +443,7 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
 
       if (fileUpload?.file) {
         submitData.append('attachment', fileUpload.file);
+        submitData.append('documentCategory', documentCategory);
         
         // Update upload progress
         setFileUpload(prev => prev ? { ...prev, status: 'uploading' } : null);
@@ -396,6 +552,33 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* Research Templates */}
+          {(['research', 'evidence', 'communication', 'milestone'].includes(formData.progressType)) && (
+            <div className="mb-4">
+              <Form.Label className="fw-semibold">Quick Templates</Form.Label>
+              <div className="d-flex flex-wrap gap-2">
+                {Object.entries(researchTemplates)
+                  .filter(([key]) => key === formData.progressType)
+                  .map(([key, template]) => (
+                    <Button
+                      key={key}
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => applyTemplate(key as keyof typeof researchTemplates)}
+                      className="d-flex align-items-center"
+                    >
+                      <FileText size={14} className="me-1" />
+                      Use {template.title} Template
+                    </Button>
+                  ))
+                }
+              </div>
+              <Form.Text className="text-muted">
+                Templates provide structured formats for consistent documentation
+              </Form.Text>
+            </div>
+          )}
 
           {/* Title */}
           <div className="mb-3">
@@ -538,6 +721,26 @@ const AddProgressModal: React.FC<AddProgressModalProps> = ({
               style={{ display: 'none' }}
               accept={attachmentValidation.allowedTypes.join(',')}
             />
+            
+            {/* Document Category (when file is attached) */}
+            {fileUpload && fileUpload.status === 'ready' && (
+              <div className="mt-3">
+                <Form.Label className="fw-semibold">
+                  Document Category
+                </Form.Label>
+                <Form.Select
+                  value={documentCategory}
+                  onChange={(e) => setDocumentCategory(e.target.value)}
+                >
+                  {Object.entries(documentCategories).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </Form.Select>
+                <Form.Text className="text-muted">
+                  Categorize this document for better organization and searchability
+                </Form.Text>
+              </div>
+            )}
             
             {validation.errors.attachment && (
               <div className="text-danger small mt-1">

@@ -253,6 +253,7 @@ app.get('/api/health', (req, res) => {
 });
 
 
+
 // Basic test endpoint
 app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
@@ -278,9 +279,10 @@ app.get('/api/debug/endpoints', (req, res) => {
 // Middleware to get authenticated user's company ID
 const getAuthenticatedUserCompany = async (req, res, next) => {
     try {
+        console.log(`🔍 [AUTH] Processing request for: ${req.method} ${req.path}`);
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.error('❌ No valid auth header found:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+            console.error(`❌ [AUTH] No valid auth header found for ${req.path}:`, authHeader ? authHeader.substring(0, 20) + '...' : 'null');
             return res.status(401).json({ error: 'No valid authentication token provided' });
         }
 
@@ -302,6 +304,12 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         console.log('✅ JWT token verified successfully for user:', decoded.userId);
+        
+        // Validate that userId exists and is valid in the token
+        if (!decoded.userId || decoded.userId === undefined || decoded.userId === null) {
+            console.error('❌ JWT token contains invalid or missing userId:', decoded.userId);
+            return res.status(401).json({ error: 'Invalid token: missing user identification' });
+        }
         
         // Get user's company ID and roles from database using raw SQL
         const users = await prisma.$queryRaw`
@@ -334,6 +342,18 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid authentication token' });
     }
 };
+
+// Debug authentication endpoint 
+app.get('/api/debug/auth-test', getAuthenticatedUserCompany, (req, res) => {
+    console.log('🔍 [DEBUG] Auth test endpoint reached successfully');
+    res.json({
+        success: true,
+        userId: req.userId,
+        companyId: req.companyId,
+        userRoleIds: req.userRoleIds,
+        message: 'Authentication successful'
+    });
+});
 
 // Debug endpoint to check user authentication and roles
 app.get('/api/debug/user', getAuthenticatedUserCompany, async (req, res) => {
@@ -745,10 +765,10 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res
         const requestId = parseInt(req.params.id);
         console.log(`🚀 Starting work on request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'P' (In Progress)
+        // Update request status to 'A' (Active/In Progress)
         await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'P', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            SET STATUS = 'A', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
@@ -765,7 +785,7 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res
     }
 });
 
-// Complete a request (change status from P to C)
+// Complete a request (change status from A to C)
 app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const requestId = parseInt(req.params.id);
@@ -1141,7 +1161,8 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 // Get all users (for backward compatibility)
 app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log(`👥 Fetching users for company ID: ${req.companyId}`);
+        console.log(`👥 [/api/users] Fetching users for company ID: ${req.companyId}`);
+        console.log(`👥 [/api/users] Request from user ID: ${req.userId}`);
 
         // First get all users
         const users = await prisma.$queryRaw`
@@ -1939,11 +1960,30 @@ app.post('/api/requests/:id/progress', getAuthenticatedUserCompany, upload.singl
         const workProgressId = progressResult[0].WORK_PROGRESS_ID;
         console.log(`✅ Progress entry created with ID: ${workProgressId}`);
 
-        // If this is a milestone or status update, create notifications for relevant users
-        if (isMilestone === 'true' || isMilestone === true || statusUpdate) {
+        // If this is a milestone, status update, or question, create notifications for relevant users
+        const isQuestion = progressType === 'communication' && title && title.toLowerCase().includes('question');
+        const needsNotification = isMilestone === 'true' || isMilestone === true || statusUpdate || isQuestion || progressType === 'communication';
+        
+        if (needsNotification) {
             try {
-                const notificationTitle = isMilestone ? 'Milestone Reached' : 'Status Update';
-                const notificationMessage = `${title}${statusUpdate ? ` - Status: ${statusUpdate}` : ''}`;
+                let notificationTitle = 'Progress Update';
+                let notificationMessage = title || 'New progress update';
+                
+                // Set specific notification types
+                if (isMilestone === 'true' || isMilestone === true) {
+                    notificationTitle = 'Milestone Reached';
+                } else if (statusUpdate) {
+                    notificationTitle = 'Status Update';
+                    notificationMessage = `${title}${statusUpdate ? ` - Status: ${statusUpdate}` : ''}`;
+                } else if (isQuestion) {
+                    notificationTitle = 'Question from Processor';
+                    notificationMessage = `Your assigned processor has a question: ${title}`;
+                } else if (progressType === 'communication') {
+                    notificationTitle = 'Update from Processor';
+                    notificationMessage = `New update on your request: ${title}`;
+                }
+
+                console.log(`📢 Creating notifications - Type: ${progressType}, Title: ${notificationTitle}`);
 
                 // Notify requestor if not the same user
                 if (request.REQUESTOR_ID && request.REQUESTOR_ID !== req.userId) {

@@ -58,6 +58,9 @@ const WorkProgressTable: React.FC<WorkProgressTableProps> = ({
     note: { color: 'info', icon: FileText, label: 'Note' },
     milestone: { color: 'success', icon: Target, label: 'Milestone' },
     discovery: { color: 'warning', icon: Search, label: 'Discovery' },
+    research: { color: 'primary', icon: Search, label: 'Research' },
+    evidence: { color: 'success', icon: Eye, label: 'Evidence' },
+    communication: { color: 'info', icon: User, label: 'Communication' },
     attachment: { color: 'primary', icon: Paperclip, label: 'Attachment' }
   };
 

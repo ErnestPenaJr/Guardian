@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import { toast } from 'react-toastify';
+import { Upload, MessageSquare, Play, CheckCircle, FileText, Send } from 'lucide-react';
 import './RequestModal.css';
 
 interface User {
@@ -60,6 +62,14 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [isSavingForm, setIsSavingForm] = useState<boolean>(false);
   const [formHasChanges, setFormHasChanges] = useState<boolean>(false);
+  
+  // Work management state
+  const [workActionLoading, setWorkActionLoading] = useState<boolean>(false);
+  const [showWorkSection, setShowWorkSection] = useState<boolean>(false);
+  const [feedbackText, setFeedbackText] = useState<string>('');
+  const [feedbackFiles, setFeedbackFiles] = useState<File[]>([]);
+  const [feedbackType, setFeedbackType] = useState<string>('update');
+  const [activeWorkTab, setActiveWorkTab] = useState<'feedback' | 'files' | 'status'>('feedback');
   
   // Check if current user can assign requests (processor and above)
   const canAssignRequests = () => {
@@ -125,14 +135,52 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     return permission;
   }, [currentUser]);
   
+  // Check if current user is assigned to this request
+  const isAssignedToCurrentUser = useMemo(() => {
+    return currentUser && request.ASSIGNED_ID === (currentUser.userId || currentUser.id);
+  }, [currentUser, request.ASSIGNED_ID]);
+  
+  // Check if current user is the requestor
+  const isRequestorUser = useMemo(() => {
+    return currentUser && request.REQUESTOR_ID === (currentUser.userId || currentUser.id);
+  }, [currentUser, request.REQUESTOR_ID]);
+  
+  // Check if user can work on this request (assigned user or admin)
+  const canWorkOnRequest = useMemo(() => {
+    if (!currentUser) return false;
+    
+    // If user is assigned to the request
+    if (isAssignedToCurrentUser) return true;
+    
+    // If user is admin/manager (roles 1, 3, 6)
+    const workRoles = [1, 3, 6];
+    if (currentUser.roles && Array.isArray(currentUser.roles)) {
+      return currentUser.roles.some((role: any) => workRoles.includes(role.id));
+    }
+    if (currentUser.roleIds && Array.isArray(currentUser.roleIds)) {
+      return currentUser.roleIds.some((roleId: number) => workRoles.includes(roleId));
+    }
+    
+    return false;
+  }, [currentUser, isAssignedToCurrentUser]);
+  
   // Get status display text
   const getStatusText = (status: string) => {
     switch(status) {
-      case 'P': return 'In Progress';
-      case 'A': return 'Accepted';
-      case 'R': return 'Rejected';
+      case 'P': return 'Pending';
+      case 'A': return 'Active';
       case 'C': return 'Completed';
       default: return 'Unknown';
+    }
+  };
+  
+  // Get status badge class
+  const getStatusBadgeClass = (status: string) => {
+    switch(status) {
+      case 'P': return 'badge bg-warning text-dark';
+      case 'A': return 'badge bg-primary text-white';
+      case 'C': return 'badge bg-success text-white';
+      default: return 'badge bg-secondary text-white';
     }
   };
 
@@ -400,6 +448,125 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
 
+  // Work action handlers
+  const handleStartWork = async () => {
+    try {
+      setWorkActionLoading(true);
+      console.log('🚀 Starting work on request:', request.REQUEST_ID);
+      
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/start`);
+      
+      if (response.data.success) {
+        toast.success(`Started work on ${request.REQUEST_NAME}`);
+        setShowWorkSection(true); // Show work management section
+        onUpdate(); // Refresh parent component
+      } else {
+        toast.error('Failed to start work on request');
+      }
+    } catch (error: any) {
+      console.error('Error starting work:', error);
+      toast.error(error.response?.data?.error || 'Failed to start work');
+    } finally {
+      setWorkActionLoading(false);
+    }
+  };
+
+  const handleCompleteWork = async () => {
+    try {
+      setWorkActionLoading(true);
+      console.log('✅ Completing request:', request.REQUEST_ID);
+      
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/complete`, {
+        completionNotes: feedbackText || 'Request completed'
+      });
+      
+      if (response.data.success) {
+        toast.success(`Completed ${request.REQUEST_NAME}`);
+        onUpdate(); // Refresh parent component
+        onHide(); // Close modal
+      } else {
+        toast.error('Failed to complete request');
+      }
+    } catch (error: any) {
+      console.error('Error completing work:', error);
+      toast.error(error.response?.data?.error || 'Failed to complete request');
+    } finally {
+      setWorkActionLoading(false);
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim() && feedbackFiles.length === 0) {
+      toast.error('Please provide feedback text or upload files');
+      return;
+    }
+
+    try {
+      setWorkActionLoading(true);
+      
+      // Create form data for file uploads
+      const formData = new FormData();
+      formData.append('progressType', 'communication');
+      formData.append('title', `${feedbackType.charAt(0).toUpperCase() + feedbackType.slice(1)} - Feedback`);
+      formData.append('description', feedbackText);
+      formData.append('isVisibleToRequestor', 'true');
+      formData.append('hoursWorked', '0');
+      
+      // Add first file if any
+      if (feedbackFiles.length > 0) {
+        formData.append('attachment', feedbackFiles[0]);
+      }
+      
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        toast.success('Feedback submitted successfully!');
+        setFeedbackText('');
+        setFeedbackFiles([]);
+        onUpdate(); // Refresh parent component
+      } else {
+        toast.error('Failed to submit feedback');
+      }
+    } catch (error: any) {
+      console.error('Error submitting feedback:', error);
+      toast.error(error.response?.data?.error || 'Failed to submit feedback');
+    } finally {
+      setWorkActionLoading(false);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    // Validate file types and sizes
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/', 'application/pdf', 'text/', 'application/msword', 'application/vnd.openxmlformats'];
+    
+    const validFiles = files.filter(file => {
+      if (file.size > maxSize) {
+        toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
+        return false;
+      }
+      
+      if (!allowedTypes.some(type => file.type.startsWith(type))) {
+        toast.error(`File ${file.name} type is not allowed.`);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    setFeedbackFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFeedbackFile = (index: number) => {
+    setFeedbackFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -447,6 +614,15 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             <div className="mb-2">
               <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Currently Assigned To</div>
               <div className="fw-semibold" style={{ fontSize: '0.9rem' }}>{request.assignedName || 'Unassigned'}</div>
+            </div>
+            
+            <div className="mb-2">
+              <div className="text-muted small fw-medium mb-1" style={{ fontSize: '0.75rem' }}>Status</div>
+              <div>
+                <span className={getStatusBadgeClass(request.STATUS)} style={{ fontSize: '0.75rem' }}>
+                  {getStatusText(request.STATUS)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -552,6 +728,338 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                 <small>⚠️ You have unsaved changes to the form data.</small>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Work Management Section - Only show if user is assigned or can work on request */}
+        {canWorkOnRequest && isAssignedToCurrentUser && (
+          <div className="border-top pt-3 mt-3">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="text-dark fw-semibold" style={{ fontSize: '1rem' }}>
+                Work Management
+              </div>
+              <div className="d-flex gap-2">
+                {request.STATUS === 'P' && (
+                  <Button 
+                    variant="success" 
+                    onClick={handleStartWork}
+                    disabled={workActionLoading}
+                    size="sm"
+                    className="d-flex align-items-center"
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    <Play size={14} className="me-1" />
+                    {workActionLoading ? 'Starting...' : 'Start Work'}
+                  </Button>
+                )}
+                {request.STATUS === 'A' && (
+                  <>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => setShowWorkSection(!showWorkSection)}
+                      size="sm"
+                      className="d-flex align-items-center"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      <MessageSquare size={14} className="me-1" />
+                      {showWorkSection ? 'Hide' : 'Manage'} Work
+                    </Button>
+                    <Button 
+                      variant="success" 
+                      onClick={handleCompleteWork}
+                      disabled={workActionLoading}
+                      size="sm"
+                      className="d-flex align-items-center"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      <CheckCircle size={14} className="me-1" />
+                      {workActionLoading ? 'Completing...' : 'Complete Work'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* Work Section Content */}
+            {(showWorkSection || request.STATUS === 'P') && (
+              <div className="bg-light rounded p-3">
+                {/* Work Tabs */}
+                <div className="d-flex mb-3 border-bottom">
+                  <button
+                    className={`btn btn-sm border-0 px-2 py-1 ${
+                      activeWorkTab === 'feedback' ? 'text-primary border-bottom border-primary' : 'text-muted'
+                    }`}
+                    onClick={() => setActiveWorkTab('feedback')}
+                  >
+                    <MessageSquare size={14} className="me-1" />
+                    Feedback
+                  </button>
+                  <button
+                    className={`btn btn-sm border-0 px-2 py-1 ms-2 ${
+                      activeWorkTab === 'files' ? 'text-primary border-bottom border-primary' : 'text-muted'
+                    }`}
+                    onClick={() => setActiveWorkTab('files')}
+                  >
+                    <FileText size={14} className="me-1" />
+                    Files
+                  </button>
+                  <button
+                    className={`btn btn-sm border-0 px-2 py-1 ms-2 ${
+                      activeWorkTab === 'status' ? 'text-primary border-bottom border-primary' : 'text-muted'
+                    }`}
+                    onClick={() => setActiveWorkTab('status')}
+                  >
+                    <CheckCircle size={14} className="me-1" />
+                    Status
+                  </button>
+                </div>
+                
+                {/* Feedback Tab */}
+                {activeWorkTab === 'feedback' && (
+                  <div>
+                    <div className="mb-3">
+                      <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                        Feedback Type
+                      </label>
+                      <div className="d-flex gap-2 mb-3">
+                        {[
+                          { type: 'update', label: 'Update', color: 'primary', desc: 'Progress updates' },
+                          { type: 'question', label: 'Question', color: 'warning', desc: 'Will notify requestor' },
+                          { type: 'issue', label: 'Issue', color: 'danger', desc: 'Report problems' }
+                        ].map(({ type, label, color, desc }) => (
+                          <button
+                            key={type}
+                            className={`btn btn-sm ${
+                              feedbackType === type ? `btn-${color}` : `btn-outline-${color}`
+                            }`}
+                            onClick={() => setFeedbackType(type)}
+                            style={{ fontSize: '0.75rem' }}
+                            title={desc}
+                          >
+                            {label}
+                            {type === 'question' && feedbackType === type && (
+                              <span className="d-block" style={{ fontSize: '0.6rem', opacity: 0.8 }}>
+                                📧 Notifies requestor
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                        Feedback Message
+                      </label>
+                      <textarea
+                        className="form-control"
+                        rows={4}
+                        placeholder="Provide feedback, updates, or ask questions..."
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    
+                    {/* Question notification info */}
+                    {feedbackType === 'question' && (
+                      <div className="alert alert-info py-2 mb-3" style={{ fontSize: '0.8rem' }}>
+                        📧 <strong>Question Mode:</strong> The requestor ({request.requestorName || 'Unknown'}) will receive an email notification and in-app alert that you have a question about their request.
+                      </div>
+                    )}
+                    
+                    <div className="d-flex justify-content-end">
+                      <Button
+                        variant={feedbackType === 'question' ? 'warning' : 'primary'}
+                        onClick={handleSubmitFeedback}
+                        disabled={workActionLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
+                        size="sm"
+                        className="d-flex align-items-center"
+                        style={{ fontSize: '0.85rem' }}
+                      >
+                        <Send size={14} className="me-1" />
+                        {workActionLoading ? 'Submitting...' : 
+                         feedbackType === 'question' ? 'Send Question' : 'Submit Feedback'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Files Tab */}
+                {activeWorkTab === 'files' && (
+                  <div>
+                    <div className="mb-3">
+                      <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                        Upload Supporting Files
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="form-control"
+                        accept="image/*,.pdf,.doc,.docx,.txt"
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                      <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                        Accepted: Images, PDF, Word, Text files (Max 10MB each)
+                      </div>
+                    </div>
+                    
+                    {feedbackFiles.length > 0 && (
+                      <div>
+                        <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
+                          Selected Files ({feedbackFiles.length})
+                        </div>
+                        {feedbackFiles.map((file, index) => (
+                          <div key={index} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-2">
+                            <div style={{ fontSize: '0.8rem' }}>
+                              <div className="fw-medium">{file.name}</div>
+                              <div className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                            </div>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => removeFeedbackFile(index)}
+                              style={{ fontSize: '0.75rem' }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Status Tab */}
+                {activeWorkTab === 'status' && (
+                  <div>
+                    <div className="mb-3">
+                      <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
+                        Current Status: <span className={getStatusBadgeClass(request.STATUS)}>
+                          {getStatusText(request.STATUS)}
+                        </span>
+                      </div>
+                      <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                        {request.STATUS === 'P' && 'Click "Start Work" to begin working on this request.'}
+                        {request.STATUS === 'A' && 'You are currently working on this request. You can provide feedback or mark it as complete.'}
+                        {request.STATUS === 'C' && 'This request has been completed.'}
+                      </div>
+                    </div>
+                    
+                    {request.STATUS === 'A' && (
+                      <div className="d-flex justify-content-end">
+                        <Button
+                          variant="success"
+                          onClick={handleCompleteWork}
+                          disabled={workActionLoading}
+                          size="sm"
+                          className="d-flex align-items-center"
+                          style={{ fontSize: '0.85rem' }}
+                        >
+                          <CheckCircle size={14} className="me-1" />
+                          {workActionLoading ? 'Completing...' : 'Mark as Complete'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Requestor Response Section - Only show if user is the requestor */}
+        {isRequestorUser && !isAssignedToCurrentUser && (
+          <div className="border-top pt-3 mt-3">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="text-dark fw-semibold" style={{ fontSize: '1rem' }}>
+                📝 Respond to Processor
+              </div>
+              <span className="badge bg-info" style={{ fontSize: '0.75rem' }}>
+                Your Request
+              </span>
+            </div>
+            
+            <div className="bg-light rounded p-3">
+              <div className="mb-3">
+                <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                  Response to Processor
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={4}
+                  placeholder="Provide additional information, answer questions, or clarify details..."
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  style={{ fontSize: '0.85rem' }}
+                />
+                <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                  Your response will be sent to the assigned processor and may help speed up your request.
+                </div>
+              </div>
+              
+              {/* File upload for requestors */}
+              <div className="mb-3">
+                <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                  Additional Documents
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="form-control"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  style={{ fontSize: '0.85rem' }}
+                />
+                <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                  Upload additional documents that may help with your request
+                </div>
+              </div>
+              
+              {/* Show selected files */}
+              {feedbackFiles.length > 0 && (
+                <div className="mb-3">
+                  <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
+                    Selected Files ({feedbackFiles.length})
+                  </div>
+                  {feedbackFiles.map((file, index) => (
+                    <div key={index} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-2">
+                      <div style={{ fontSize: '0.8rem' }}>
+                        <div className="fw-medium">{file.name}</div>
+                        <div className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                      </div>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => removeFeedbackFile(index)}
+                        style={{ fontSize: '0.75rem' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="d-flex justify-content-end">
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    // Use same feedback mechanism but with requestor context
+                    const originalType = feedbackType;
+                    setFeedbackType('update'); // Set as update from requestor
+                    await handleSubmitFeedback();
+                    setFeedbackType(originalType);
+                  }}
+                  disabled={workActionLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
+                  size="sm"
+                  className="d-flex align-items-center"
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  <Send size={14} className="me-1" />
+                  {workActionLoading ? 'Sending...' : 'Send Response'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 

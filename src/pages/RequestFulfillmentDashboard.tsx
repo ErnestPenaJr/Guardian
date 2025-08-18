@@ -12,7 +12,7 @@ import Modal from '../components/Modal';
 import WorkProgressTable from '../components/WorkProgressTable';
 import TaskTable from '../components/TaskTable';
 import { toast } from 'react-toastify';
-import { Play, CheckCircle, MessageCircle, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList, CheckSquare, Filter, Download, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { Play, CheckCircle, MessageCircle, MessageSquare, Clock, User, Calendar, Target, AlertCircle, FileText, ClipboardList, CheckSquare, Filter, Download, ChevronUp, ChevronDown, ArrowUpDown, Upload, Send } from 'lucide-react';
 import './RequestFulfillmentDashboard.css';
 
 interface Request {
@@ -66,7 +66,13 @@ const RequestFulfillmentDashboard: React.FC = () => {
 
   // Work progress state
   const [showWorkProgressModal, setShowWorkProgressModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'form' | 'progress' | 'tasks'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'form' | 'progress' | 'tasks' | 'feedback'>('details');
+  
+  // Feedback state
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackFiles, setFeedbackFiles] = useState<File[]>([]);
+  const [feedbackType, setFeedbackType] = useState('update'); // 'update', 'question', 'completion', 'issue'
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   
   // Table state for sorting and pagination
   const [sortField, setSortField] = useState<keyof Request>('SUBMITTED_DATE');
@@ -207,6 +213,85 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const handleWorkProgressUpdate = () => {
     // Refresh the request list to show updated progress
     fetchAssignedRequests();
+  };
+
+  // Feedback functions
+  const handleFeedbackSubmit = async () => {
+    if (!selectedRequest || (!feedbackText.trim() && feedbackFiles.length === 0)) {
+      toast.error('Please provide feedback text or upload files');
+      return;
+    }
+
+    try {
+      setFeedbackLoading(true);
+      
+      // Create form data for file uploads
+      const formData = new FormData();
+      formData.append('progressType', 'communication');
+      formData.append('title', `${feedbackType.charAt(0).toUpperCase() + feedbackType.slice(1)} - Feedback`);
+      formData.append('description', feedbackText);
+      formData.append('isVisibleToRequestor', 'true');
+      formData.append('hoursWorked', '0'); // Optional field
+      
+      // Add primary file (API expects single 'attachment' field)
+      if (feedbackFiles.length > 0) {
+        formData.append('attachment', feedbackFiles[0]);
+        
+        // If multiple files, we'll need to make additional API calls
+        // For now, we'll submit the first file and notify about others
+        if (feedbackFiles.length > 1) {
+          console.log('Note: Only first file will be uploaded. Additional files:', feedbackFiles.slice(1).map(f => f.name));
+        }
+      }
+      
+      const response = await api.post(`/api/requests/${selectedRequest.REQUEST_ID}/progress`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        toast.success('Feedback submitted successfully!');
+        setFeedbackText('');
+        setFeedbackFiles([]);
+        handleWorkProgressUpdate(); // Refresh progress data
+      } else {
+        toast.error('Failed to submit feedback');
+      }
+    } catch (error: any) {
+      console.error('Error submitting feedback:', error);
+      toast.error(error.response?.data?.error || 'Failed to submit feedback');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    // Validate file types and sizes
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/', 'application/pdf', 'text/', 'application/msword', 'application/vnd.openxmlformats'];
+    
+    const validFiles = files.filter(file => {
+      if (file.size > maxSize) {
+        toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
+        return false;
+      }
+      
+      if (!allowedTypes.some(type => file.type.startsWith(type))) {
+        toast.error(`File ${file.name} type is not allowed.`);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    setFeedbackFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFeedbackFile = (index: number) => {
+    setFeedbackFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const saveFormData = async (isComplete = false, isDraft = false) => {
@@ -1057,6 +1142,17 @@ const RequestFulfillmentDashboard: React.FC = () => {
                     <CheckSquare className="w-4 h-4 inline mr-2" />
                     Tasks
                   </button>
+                  <button
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'feedback'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveTab('feedback')}
+                  >
+                    <MessageSquare className="w-4 h-4 inline mr-2" />
+                    Feedback
+                  </button>
                 </nav>
               </div>
 
@@ -1159,6 +1255,187 @@ const RequestFulfillmentDashboard: React.FC = () => {
                     isAssignedToCurrentUser={true}
                     onTaskUpdate={handleWorkProgressUpdate}
                   />
+                )}
+
+                {activeTab === 'feedback' && (
+                  <div className="space-y-6">
+                    {/* Feedback Header */}
+                    <div className="border-b border-gray-200 pb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Provide Feedback to Requestor
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        Share updates, ask questions, or provide information to help resolve this request.
+                      </p>
+                    </div>
+
+                    {/* Feedback Type Selection */}
+                    <div className="grid grid-cols-4 gap-3">
+                      {[
+                        { type: 'update', label: 'Status Update', color: 'blue', icon: 'ℹ️' },
+                        { type: 'question', label: 'Question', color: 'yellow', icon: '❓' },
+                        { type: 'completion', label: 'Near Completion', color: 'green', icon: '✅' },
+                        { type: 'issue', label: 'Issue/Concern', color: 'red', icon: '⚠️' }
+                      ].map(({ type, label, color, icon }) => (
+                        <button
+                          key={type}
+                          className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                            feedbackType === type
+                              ? `border-${color}-500 bg-${color}-50 text-${color}-700`
+                              : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                          }`}
+                          onClick={() => setFeedbackType(type)}
+                        >
+                          <div className="text-lg mb-1">{icon}</div>
+                          <div className="text-xs font-medium">{label}</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Feedback Text Area */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Feedback Message *
+                      </label>
+                      <textarea
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        rows={6}
+                        placeholder="Provide detailed feedback, updates, or questions for the requestor..."
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                      />
+                      <div className="mt-1 text-sm text-gray-500">
+                        {feedbackText.length}/1000 characters
+                      </div>
+                    </div>
+
+                    {/* File Upload Section */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Supporting Documents
+                      </label>
+                      
+                      {/* Upload Area */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                        <Upload className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">
+                          Drag files here or click to browse
+                        </p>
+                        <p className="text-xs text-gray-500 mb-3">
+                          Support: Images, PDF, Word, Text files (Max 10MB each)
+                        </p>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          id="feedback-files"
+                          accept="image/*,.pdf,.doc,.docx,.txt"
+                        />
+                        <label
+                          htmlFor="feedback-files"
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                        >
+                          Choose Files
+                        </label>
+                      </div>
+
+                      {/* Uploaded Files Display */}
+                      {feedbackFiles.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Uploaded Files ({feedbackFiles.length})
+                          </h4>
+                          {feedbackFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <FileText className="h-5 w-5 text-gray-400" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => removeFeedbackFile(index)}
+                                className="text-red-500 hover:text-red-700 text-sm font-medium"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Feedback Options */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">
+                        Additional Options
+                      </h4>
+                      <div className="space-y-3">
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            defaultChecked
+                          />
+                          <span className="ml-2 text-sm text-gray-700">
+                            Send email notification to requestor
+                          </span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            defaultChecked
+                          />
+                          <span className="ml-2 text-sm text-gray-700">
+                            Mark as visible to requestor
+                          </span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">
+                            Request additional information from requestor
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                      <div className="text-sm text-gray-500">
+                        This feedback will be visible to the requestor and logged in progress history
+                      </div>
+                      <button
+                        onClick={handleFeedbackSubmit}
+                        disabled={feedbackLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
+                        className="inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {feedbackLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Submit Feedback
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -79,9 +79,11 @@ api.interceptors.response.use(
     }
     
     if (error.response && error.response.status === 401) {
-      // Token expired or invalid, redirect to login
+      // Token expired, invalid, or contains invalid user data - clear all auth data
+      console.warn('[API] Authentication failed - clearing all stored auth data');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('companyId');
       window.location.href = '/login';
     }
     return Promise.reject(error);

@@ -10,11 +10,12 @@
 
 ### Guardian MVP Specialized Agents Directory
 
-The project includes 11 specialized agents located in `.claude/agents/` that provide expert capabilities across all aspects of the Guardian MVP system:
+The project includes 12 specialized agents located in `.claude/agents/` that provide expert capabilities across all aspects of the Guardian MVP system:
 
 **Frontend Development:**
 - `frontend-react-expert` - Senior frontend engineer specializing in React, Tailwind CSS, and ShadCN/UI for modern, responsive, and accessible user interfaces
 - `react-specialist` - Guardian MVP React component expert for TypeScript, form builders, data tables, and project-specific UI patterns
+- `design-review-agent` - Comprehensive UI/UX evaluation specialist using Playwright for live testing, ensuring world-class design standards through systematic 7-phase review methodology
 
 **Backend & API Development:**
 - `api-specialist` - Expert in Guardian MVP API endpoints, Express.js server management, and critical multi-server synchronization across development, testing, and production environments
@@ -36,6 +37,7 @@ The project includes 11 specialized agents located in `.claude/agents/` that pro
 **Frontend Development:**
 - Use `frontend-react-expert` for React components, UI optimization, and responsive design
 - Use `react-specialist` for Guardian-specific React patterns, TypeScript fixes, and form builders
+- Use `design-review-agent` automatically after UI changes or via `/design-review` command for comprehensive design evaluation
 - Use `typescript-pro` proactively for complex TypeScript architectures and type optimization
 
 **Backend Development:**
@@ -218,6 +220,72 @@ Automatic Response: Use testing-qa-specialist to:
 2. User clicks the "Logout" button
 3. User is redirected to the login page
 
+## Design Review Workflow (New - 2025-08-17)
+
+### Automated Design Reviews
+Guardian MVP includes a comprehensive design review system that ensures world-class UI/UX standards through automated evaluation using Playwright live testing.
+
+#### Design Review Agent (`design-review-agent`)
+- **7-Phase Review Methodology**: Systematic evaluation covering interaction, responsiveness, accessibility, code quality
+- **Live Browser Testing**: Real-time UI testing using Playwright MCP integration
+- **Evidence-Based Feedback**: Screenshots, metrics, and specific examples for all findings
+- **Triage Matrix**: Issues categorized by severity (Critical, High, Medium, Low priority)
+- **Government Standards**: WCAG 2.1 AA compliance and enterprise-grade requirements
+
+#### Quick Visual Verification (After Frontend Changes)
+Automatically perform after any UI modifications:
+1. **Identify Modified Components**: Review git diff for frontend file changes
+2. **Navigate to Affected Pages**: Test impacted user interfaces
+3. **Verify Design Compliance**: Check against Guardian MVP design principles
+4. **Validate Feature Implementation**: Ensure functionality works as intended
+5. **Check Acceptance Criteria**: Confirm requirements are met
+6. **Capture Screenshots**: Document current state (1440px viewport standard)
+7. **Console Error Check**: Verify no JavaScript errors or warnings
+
+#### Comprehensive Design Validation
+Use `/design-review` command for:
+- **Significant UI/UX Features**: New components or major interface changes
+- **Pre-PR Visual Changes**: Before submitting pull requests with frontend modifications
+- **Accessibility Testing**: WCAG compliance and government accessibility standards
+- **Cross-Browser Compatibility**: Ensure consistent experience across platforms
+- **Performance Impact**: Validate UI changes don't negatively affect load times
+
+#### 7-Phase Review Process
+1. **Preparation**: Identify changes, review design principles, set testing viewport
+2. **Interaction Testing**: User flows, interactive elements, keyboard navigation
+3. **Responsiveness**: Multiple device sizes, layout adaptation, touch targets
+4. **Visual Polish**: Typography, color contrast, spacing, brand consistency
+5. **Accessibility**: WCAG 2.1 AA compliance, screen reader compatibility
+6. **Robustness**: Error states, edge cases, performance under load
+7. **Code Health**: Component structure, CSS organization, maintainability
+
+#### Design Principles Integration
+All reviews reference `/docs/design-principles.md` covering:
+- **Users First**: Government worker efficiency and workflow optimization
+- **Professional Standards**: Enterprise-grade polish for government use
+- **Security-First Design**: Visual data separation and role-based UI
+- **Accessibility Excellence**: WCAG 2.1 AA+ compliance requirements
+- **Mobile-Responsive**: Touch-friendly design for government mobile usage
+- **Performance**: Fast load times on typical government networks
+- **Clarity & Simplicity**: Plain English and logical information hierarchy
+
+#### Usage Commands
+```bash
+# Comprehensive design review of recent changes
+/design-review
+
+# Component-specific review
+/design-review RequestModal
+/design-review dashboard
+/design-review forms/new-request
+```
+
+#### Integration Points
+- **Automatic Triggers**: Frontend file changes, new components, major UI modifications
+- **Manual Triggers**: `/design-review` slash command, pre-deployment validation
+- **Git Integration**: Analyzes recent changes using `git diff`
+- **Playwright Integration**: Live browser testing with screenshot capture
+- **Documentation**: Updates design review findings in project documentation
 
 ### User Request Fulfillment Workflow
 
