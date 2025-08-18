@@ -1295,19 +1295,50 @@ const RequestDashboard: React.FC = () => {
         <RequestModal
           request={selectedRequest}
           show={showRequestModal}
-          onHide={() => {
+          onHide={async () => {
             console.log('Modal onHide callback triggered');
             setShowRequestModal(false);
             setSelectedRequest(null);
+            
             // Force a refresh when the modal is closed to ensure latest data
-            console.log('Forcing refresh after modal close');
-            setTimeout(() => {
-              fetchRequests();
+            console.log('Forcing refresh of both request lists after modal close');
+            
+            // Small delay to ensure API calls complete
+            setTimeout(async () => {
+              try {
+                await Promise.all([
+                  fetchRequests(),
+                  user?.userId ? fetchAssignedRequests() : Promise.resolve()
+                ]);
+                console.log('✅ Modal close refresh completed');
+              } catch (error) {
+                console.error('❌ Error during modal close refresh:', error);
+                // Fallback refreshes
+                fetchRequests();
+                if (user?.userId) {
+                  fetchAssignedRequests();
+                }
+              }
             }, 300);
           }}
-          onUpdate={() => {
-            console.log('Modal onUpdate callback triggered');
-            fetchRequests();
+          onUpdate={async () => {
+            console.log('Modal onUpdate callback triggered - refreshing both request lists');
+            
+            // Refresh both main requests and assigned requests simultaneously
+            try {
+              await Promise.all([
+                fetchRequests(),
+                user?.userId ? fetchAssignedRequests() : Promise.resolve()
+              ]);
+              console.log('✅ Both request lists refreshed successfully');
+            } catch (error) {
+              console.error('❌ Error refreshing request lists:', error);
+              // Fallback to individual refreshes
+              fetchRequests();
+              if (user?.userId) {
+                fetchAssignedRequests();
+              }
+            }
           }}
         />
       )}

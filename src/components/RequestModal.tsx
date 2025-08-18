@@ -432,17 +432,26 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     
     try {
       setLoading(true);
-      await api.put(`/api/requests/${request.REQUEST_ID}/assign`, { 
+      console.log(`📋 Assigning request ${request.REQUEST_ID} to user ${selectedUser}`);
+      
+      const response = await api.put(`/api/requests/${request.REQUEST_ID}/assign`, { 
         assignedUserId: selectedUser
       });
       
-      // Refresh and close
-      setTimeout(() => {
+      if (response.status === 200 || response.data?.success) {
+        console.log('✅ Assignment successful');
+        toast.success('Request assigned successfully!');
+        
+        // Immediate refresh - no setTimeout needed
         onUpdate();
         onHide();
-      }, 100);
-    } catch (err) {
-      console.error('Failed to assign user:', err);
+      } else {
+        console.error('❌ Assignment failed:', response);
+        toast.error('Failed to assign request');
+      }
+    } catch (err: any) {
+      console.error('❌ Failed to assign user:', err);
+      toast.error(err.response?.data?.error || 'Failed to assign request');
     } finally {
       setLoading(false);
     }
