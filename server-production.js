@@ -252,6 +252,44 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Send error email endpoint
+app.post('/api/send-error-email', async (req, res) => {
+    try {
+        const { error, userAgent, url, timestamp, userId, companyId } = req.body;
+        
+        console.log('📧 Error email request received:', {
+            error: error?.message || 'Unknown error',
+            url,
+            userId,
+            companyId,
+            timestamp
+        });
+
+        // For now, just log the error instead of sending email
+        // This prevents the 404 error while maintaining error tracking
+        console.error('🚨 Application Error Captured:', {
+            message: error?.message || 'Unknown error',
+            stack: error?.stack,
+            url,
+            userAgent,
+            userId,
+            companyId,
+            timestamp: timestamp || new Date().toISOString()
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'Error logged successfully' 
+        });
+        
+    } catch (err) {
+        console.error('❌ Error in send-error-email endpoint:', err);
+        res.status(500).json({ 
+            error: 'Failed to process error email',
+            message: err.message 
+        });
+    }
+});
 
 // Basic test endpoint
 app.get('/api/test', (req, res) => {
@@ -6461,6 +6499,1155 @@ app.delete('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req,
         res.status(500).json({
             error: 'Failed to delete custom template',
             details: error.message
+        });
+    }
+});
+
+// =========================================
+// NOTICE MODULE API ENDPOINTS
+// =========================================
+
+// Helper function to check role permissions for notice management
+const hasNoticeManagementRole = async (userId) => {
+    const userRoles = await prisma.$queryRaw`
+        SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${userId}
+    `;
+    const roleIds = userRoles.map(role => role.ROLE_ID);
+    // Roles: 1=Admin, 3=Processor, 4=Manager, 6=Super Admin
+    return roleIds.includes(1) || roleIds.includes(3) || roleIds.includes(4) || roleIds.includes(6);
+};
+
+// Get notices for logged-in user (notices issued to them)
+app.get('/api/notices/my', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📢 Fetching my notices for user ${req.userId} (Company: ${req.companyId})`);
+        
+        const { status, noticeType, unreadOnly, dateFrom, dateTo } = req.query;
+        
+        let whereClause = `WHERE nr.RECIPIENT_USER_ID = ${req.userId} AND n.COMPANY_ID = ${req.companyId} AND n.IS_DELETED = 0`;
+        
+        if (status) {
+            whereClause += ` AND n.STATUS = '${status}'`;
+        }
+        if (noticeType) {
+            whereClause += ` AND n.NOTICE_TYPE = '${noticeType}'`;
+        }
+        if (unreadOnly === 'true') {
+            whereClause += ` AND nrs.NOTICE_READ_STATUS_ID IS NULL`;
+        }
+        if (dateFrom) {
+            whereClause += ` AND n.ISSUE_DATE >= '${dateFrom}'`;
+        }
+        if (dateTo) {
+            whereClause += ` AND n.ISSUE_DATE <= '${dateTo}'`;
+        }
+        
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                CASE WHEN nrs.NOTICE_READ_STATUS_ID IS NOT NULL THEN 1 ELSE 0 END as IS_READ
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.NOTICE_READ_STATUS nrs ON n.NOTICE_ID = nrs.NOTICE_ID AND nrs.USER_ID = ${req.userId}
+            ${whereClause}
+            ORDER BY n.ISSUE_DATE DESC, n.CREATE_DATE DESC
+        `);
+        
+        console.log(`✅ Found ${notices.length} notices for user`);
+        
+        res.json(notices);
+    } catch (error) {
+        console.error('❌ Error fetching my notices:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notices',
+            message: error.message
+        });
+    }
+});
+
+// Get all notices (role-based - only for authorized users)
+app.get('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📢 Fetching all notices for user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check permissions
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to view all notices.'
+            });
+        }
+        
+        const { status, noticeType, unreadOnly, issuedByMe, dateFrom, dateTo } = req.query;
+        
+        let whereClause = `WHERE n.COMPANY_ID = ${req.companyId} AND n.IS_DELETED = 0`;
+        
+        if (status) {
+            whereClause += ` AND n.STATUS = '${status}'`;
+        }
+        if (noticeType) {
+            whereClause += ` AND n.NOTICE_TYPE = '${noticeType}'`;
+        }
+        if (issuedByMe === 'true') {
+            whereClause += ` AND n.ISSUED_BY_USER_ID = ${req.userId}`;
+        }
+        if (dateFrom) {
+            whereClause += ` AND n.ISSUE_DATE >= '${dateFrom}'`;
+        }
+        if (dateTo) {
+            whereClause += ` AND n.ISSUE_DATE <= '${dateTo}'`;
+        }
+        
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                (SELECT COUNT(*) FROM GUARDIAN.NOTICE_RECIPIENTS nr WHERE nr.NOTICE_ID = n.NOTICE_ID) as RECIPIENT_COUNT,
+                (SELECT COUNT(*) FROM GUARDIAN.NOTICE_READ_STATUS nrs WHERE nrs.NOTICE_ID = n.NOTICE_ID) as READ_COUNT
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            ${whereClause}
+            ORDER BY n.ISSUE_DATE DESC, n.CREATE_DATE DESC
+        `);
+        
+        console.log(`✅ Found ${notices.length} notices for admin user`);
+        
+        res.json(notices);
+    } catch (error) {
+        console.error('❌ Error fetching all notices:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notices',
+            message: error.message
+        });
+    }
+});
+
+// Get notice statistics
+app.get('/api/notices/stats', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📊 Fetching notice statistics for user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Get total notices for the user (as recipient)
+        const totalNoticesResult = await prisma.$queryRaw`
+            SELECT COUNT(*) as total_count
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            WHERE nr.RECIPIENT_USER_ID = ${req.userId} 
+            AND n.COMPANY_ID = ${req.companyId} 
+            AND n.IS_DELETED = 0
+        `;
+        
+        // Get unread notices for the user
+        const unreadNoticesResult = await prisma.$queryRaw`
+            SELECT COUNT(*) as unread_count
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            LEFT JOIN GUARDIAN.NOTICE_READ_STATUS nrs ON n.NOTICE_ID = nrs.NOTICE_ID AND nrs.USER_ID = ${req.userId}
+            WHERE nr.RECIPIENT_USER_ID = ${req.userId} 
+            AND n.COMPANY_ID = ${req.companyId} 
+            AND n.IS_DELETED = 0
+            AND nrs.NOTICE_READ_STATUS_ID IS NULL
+        `;
+        
+        // Get notices issued by the user
+        const issuedByMeResult = await prisma.$queryRaw`
+            SELECT COUNT(*) as issued_count
+            FROM GUARDIAN.NOTICES n
+            WHERE n.ISSUED_BY_USER_ID = ${req.userId} 
+            AND n.COMPANY_ID = ${req.companyId} 
+            AND n.IS_DELETED = 0
+        `;
+        
+        // Get active notices for the user
+        const activeNoticesResult = await prisma.$queryRaw`
+            SELECT COUNT(*) as active_count
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            WHERE nr.RECIPIENT_USER_ID = ${req.userId} 
+            AND n.COMPANY_ID = ${req.companyId} 
+            AND n.IS_DELETED = 0
+            AND n.STATUS = 'PUBLISHED'
+            AND n.IS_ACTIVE = 1
+        `;
+        
+        const stats = {
+            totalNotices: parseInt(totalNoticesResult[0].total_count) || 0,
+            unreadNotices: parseInt(unreadNoticesResult[0].unread_count) || 0,
+            issuedByMe: parseInt(issuedByMeResult[0].issued_count) || 0,
+            activeNotices: parseInt(activeNoticesResult[0].active_count) || 0
+        };
+        
+        console.log(`✅ Notice stats:`, stats);
+        
+        res.json(stats);
+    } catch (error) {
+        console.error('❌ Error fetching notice statistics:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notice statistics',
+            message: error.message
+        });
+    }
+});
+
+// Get specific notice details
+app.get('/api/notices/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        console.log(`📢 Fetching notice ${noticeId} for user ${req.userId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Get notice details with issuer information
+        const notices = await prisma.$queryRaw`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            WHERE n.NOTICE_ID = ${noticeId} 
+            AND n.COMPANY_ID = ${req.companyId} 
+            AND n.IS_DELETED = 0
+        `;
+        
+        if (notices.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        const notice = notices[0];
+        
+        // Check if user is authorized to view this notice
+        const isRecipient = await prisma.$queryRaw`
+            SELECT NOTICE_RECIPIENT_ID 
+            FROM GUARDIAN.NOTICE_RECIPIENTS 
+            WHERE NOTICE_ID = ${noticeId} AND RECIPIENT_USER_ID = ${req.userId}
+        `;
+        
+        const hasManagementRole = await hasNoticeManagementRole(req.userId);
+        
+        if (isRecipient.length === 0 && !hasManagementRole) {
+            return res.status(403).json({
+                error: 'Access denied. You are not authorized to view this notice.'
+            });
+        }
+        
+        // Auto-mark as read if user is a recipient and notice is viewed
+        if (isRecipient.length > 0) {
+            const existingReadStatus = await prisma.$queryRaw`
+                SELECT NOTICE_READ_STATUS_ID 
+                FROM GUARDIAN.NOTICE_READ_STATUS 
+                WHERE NOTICE_ID = ${noticeId} AND USER_ID = ${req.userId}
+            `;
+            
+            if (existingReadStatus.length === 0) {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.NOTICE_READ_STATUS (NOTICE_ID, USER_ID, READ_DATE, COMPANY_ID, CREATE_DATE)
+                    VALUES (${noticeId}, ${req.userId}, GETDATE(), ${req.companyId}, GETDATE())
+                `;
+                console.log(`📖 Auto-marked notice ${noticeId} as read for user ${req.userId}`);
+            }
+        }
+        
+        console.log(`✅ Retrieved notice ${noticeId} successfully`);
+        
+        res.json(notice);
+    } catch (error) {
+        console.error('❌ Error fetching notice details:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notice details',
+            message: error.message
+        });
+    }
+});
+
+// Create new notice
+app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📢 Creating new notice for user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check permissions
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to create notices.'
+            });
+        }
+        
+        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipientUserIds } = req.body;
+        
+        if (!TITLE || !CONTENT || !NOTICE_TYPE) {
+            return res.status(400).json({
+                error: 'Title, content, and notice type are required'
+            });
+        }
+        
+        if (!recipientUserIds || !Array.isArray(recipientUserIds) || recipientUserIds.length === 0) {
+            return res.status(400).json({
+                error: 'At least one recipient is required'
+            });
+        }
+        
+        // Validate recipients are from same company
+        const validRecipients = await prisma.$queryRawUnsafe(`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE USER_ID IN (${recipientUserIds.join(',')}) 
+            AND COMPANY_ID = ${req.companyId}
+        `);
+        
+        if (validRecipients.length !== recipientUserIds.length) {
+            return res.status(400).json({
+                error: 'All recipients must be from the same company'
+            });
+        }
+        
+        // Create notice
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.NOTICES (
+                TITLE, CONTENT, NOTICE_TYPE, STATUS, ISSUED_BY_USER_ID, 
+                ISSUE_DATE, COMPANY_ID, FORM_TEMPLATE_ID, IS_ACTIVE, 
+                IS_DELETED, CREATE_DATE, CREATE_USER_ID
+            )
+            OUTPUT INSERTED.NOTICE_ID
+            VALUES (
+                ${TITLE}, ${CONTENT}, ${NOTICE_TYPE}, 'DRAFT', ${req.userId},
+                NULL, ${req.companyId}, ${FORM_TEMPLATE_ID || null}, 1,
+                0, GETDATE(), ${req.userId}
+            )
+        `;
+        
+        const noticeId = result[0].NOTICE_ID;
+        
+        // Add recipients
+        for (const recipientId of recipientUserIds) {
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.NOTICE_RECIPIENTS (
+                    NOTICE_ID, RECIPIENT_USER_ID, RECIPIENT_TYPE, 
+                    COMPANY_ID, CREATE_DATE, CREATE_USER_ID
+                )
+                VALUES (
+                    ${noticeId}, ${recipientId}, 'USER', 
+                    ${req.companyId}, GETDATE(), ${req.userId}
+                )
+            `;
+        }
+        
+        console.log(`✅ Created notice ${noticeId} with ${recipientUserIds.length} recipients`);
+        
+        // Return the created notice
+        const createdNotice = await prisma.$queryRaw`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            WHERE n.NOTICE_ID = ${noticeId}
+        `;
+        
+        res.status(201).json(createdNotice[0]);
+    } catch (error) {
+        console.error('❌ Error creating notice:', error);
+        res.status(500).json({
+            error: 'Failed to create notice',
+            message: error.message
+        });
+    }
+});
+
+// Edit notice
+app.put('/api/notices/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        console.log(`📢 Updating notice ${noticeId} for user ${req.userId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Check permissions
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to edit notices.'
+            });
+        }
+        
+        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, STATUS, CANCELLATION_REASON, recipientUserIds } = req.body;
+        
+        // Check if notice exists and belongs to company
+        const existingNotice = await prisma.$queryRaw`
+            SELECT NOTICE_ID, STATUS, ISSUED_BY_USER_ID 
+            FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} 
+            AND COMPANY_ID = ${req.companyId} 
+            AND IS_DELETED = 0
+        `;
+        
+        if (existingNotice.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        // Check if user can edit this notice (issuer or admin)
+        const notice = existingNotice[0];
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (notice.ISSUED_BY_USER_ID !== req.userId && !isAdmin) {
+            return res.status(403).json({
+                error: 'Access denied. You can only edit your own notices or you must be an admin.'
+            });
+        }
+        
+        // Build update query dynamically
+        let updateFields = [];
+        let updateValues = {};
+        
+        if (TITLE !== undefined) {
+            updateFields.push('TITLE = @title');
+            updateValues.title = TITLE;
+        }
+        if (CONTENT !== undefined) {
+            updateFields.push('CONTENT = @content');
+            updateValues.content = CONTENT;
+        }
+        if (NOTICE_TYPE !== undefined) {
+            updateFields.push('NOTICE_TYPE = @noticeType');
+            updateValues.noticeType = NOTICE_TYPE;
+        }
+        if (FORM_TEMPLATE_ID !== undefined) {
+            updateFields.push('FORM_TEMPLATE_ID = @formTemplateId');
+            updateValues.formTemplateId = FORM_TEMPLATE_ID;
+        }
+        if (STATUS !== undefined) {
+            updateFields.push('STATUS = @status');
+            updateValues.status = STATUS;
+        }
+        if (CANCELLATION_REASON !== undefined) {
+            updateFields.push('CANCELLATION_REASON = @cancellationReason');
+            updateValues.cancellationReason = CANCELLATION_REASON;
+        }
+        
+        if (updateFields.length > 0) {
+            updateFields.push('UPDATE_DATE = GETDATE()');
+            updateFields.push(`UPDATE_USER_ID = ${req.userId}`);
+            
+            const updateQuery = `
+                UPDATE GUARDIAN.NOTICES 
+                SET ${updateFields.join(', ')}
+                WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId}
+            `;
+            
+            await prisma.$queryRawUnsafe(updateQuery, updateValues);
+        }
+        
+        // Update recipients if provided
+        if (recipientUserIds && Array.isArray(recipientUserIds)) {
+            // Validate recipients are from same company
+            const validRecipients = await prisma.$queryRawUnsafe(`
+                SELECT USER_ID FROM GUARDIAN.USERS 
+                WHERE USER_ID IN (${recipientUserIds.join(',')}) 
+                AND COMPANY_ID = ${req.companyId}
+            `);
+            
+            if (validRecipients.length !== recipientUserIds.length) {
+                return res.status(400).json({
+                    error: 'All recipients must be from the same company'
+                });
+            }
+            
+            // Remove existing recipients
+            await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.NOTICE_RECIPIENTS 
+                WHERE NOTICE_ID = ${noticeId}
+            `;
+            
+            // Add new recipients
+            for (const recipientId of recipientUserIds) {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.NOTICE_RECIPIENTS (
+                        NOTICE_ID, RECIPIENT_USER_ID, RECIPIENT_TYPE, 
+                        COMPANY_ID, CREATE_DATE, CREATE_USER_ID
+                    )
+                    VALUES (
+                        ${noticeId}, ${recipientId}, 'USER', 
+                        ${req.companyId}, GETDATE(), ${req.userId}
+                    )
+                `;
+            }
+        }
+        
+        console.log(`✅ Updated notice ${noticeId} successfully`);
+        
+        // Return updated notice
+        const updatedNotice = await prisma.$queryRaw`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            WHERE n.NOTICE_ID = ${noticeId}
+        `;
+        
+        res.json(updatedNotice[0]);
+    } catch (error) {
+        console.error('❌ Error updating notice:', error);
+        res.status(500).json({
+            error: 'Failed to update notice',
+            message: error.message
+        });
+    }
+});
+
+// Cancel notice with reason
+app.put('/api/notices/:id/cancel', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { CANCELLATION_REASON } = req.body;
+        
+        console.log(`📢 Cancelling notice ${noticeId} for user ${req.userId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        if (!CANCELLATION_REASON || CANCELLATION_REASON.trim() === '') {
+            return res.status(400).json({
+                error: 'Cancellation reason is required'
+            });
+        }
+        
+        // Check permissions
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to cancel notices.'
+            });
+        }
+        
+        // Check if notice exists and belongs to company
+        const existingNotice = await prisma.$queryRaw`
+            SELECT NOTICE_ID, STATUS, ISSUED_BY_USER_ID 
+            FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} 
+            AND COMPANY_ID = ${req.companyId} 
+            AND IS_DELETED = 0
+        `;
+        
+        if (existingNotice.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        // Check if user can cancel this notice (issuer or admin)
+        const notice = existingNotice[0];
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (notice.ISSUED_BY_USER_ID !== req.userId && !isAdmin) {
+            return res.status(403).json({
+                error: 'Access denied. You can only cancel your own notices or you must be an admin.'
+            });
+        }
+        
+        if (notice.STATUS === 'CANCELLED') {
+            return res.status(400).json({
+                error: 'Notice is already cancelled'
+            });
+        }
+        
+        // Cancel the notice
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICES 
+            SET STATUS = 'CANCELLED', 
+                CANCELLATION_REASON = ${CANCELLATION_REASON},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Cancelled notice ${noticeId} successfully`);
+        
+        // Return updated notice
+        const cancelledNotice = await prisma.$queryRaw`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            WHERE n.NOTICE_ID = ${noticeId}
+        `;
+        
+        res.json(cancelledNotice[0]);
+    } catch (error) {
+        console.error('❌ Error cancelling notice:', error);
+        res.status(500).json({
+            error: 'Failed to cancel notice',
+            message: error.message
+        });
+    }
+});
+
+// Mark notice as read
+app.post('/api/notices/:id/read', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        console.log(`📖 Marking notice ${noticeId} as read for user ${req.userId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Check if user is a recipient of this notice
+        const isRecipient = await prisma.$queryRaw`
+            SELECT nr.NOTICE_RECIPIENT_ID 
+            FROM GUARDIAN.NOTICE_RECIPIENTS nr
+            INNER JOIN GUARDIAN.NOTICES n ON nr.NOTICE_ID = n.NOTICE_ID
+            WHERE nr.NOTICE_ID = ${noticeId} 
+            AND nr.RECIPIENT_USER_ID = ${req.userId}
+            AND n.COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (isRecipient.length === 0) {
+            return res.status(403).json({
+                error: 'Access denied. You are not a recipient of this notice.'
+            });
+        }
+        
+        // Check if already marked as read
+        const existingReadStatus = await prisma.$queryRaw`
+            SELECT NOTICE_READ_STATUS_ID 
+            FROM GUARDIAN.NOTICE_READ_STATUS 
+            WHERE NOTICE_ID = ${noticeId} AND USER_ID = ${req.userId}
+        `;
+        
+        if (existingReadStatus.length > 0) {
+            return res.json({
+                success: true,
+                message: 'Notice already marked as read'
+            });
+        }
+        
+        // Mark as read
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.NOTICE_READ_STATUS (NOTICE_ID, USER_ID, READ_DATE, COMPANY_ID, CREATE_DATE)
+            VALUES (${noticeId}, ${req.userId}, GETDATE(), ${req.companyId}, GETDATE())
+        `;
+        
+        console.log(`✅ Marked notice ${noticeId} as read for user ${req.userId}`);
+        
+        res.json({
+            success: true,
+            message: 'Notice marked as read successfully'
+        });
+    } catch (error) {
+        console.error('❌ Error marking notice as read:', error);
+        res.status(500).json({
+            error: 'Failed to mark notice as read',
+            message: error.message
+        });
+    }
+});
+
+// Publish draft notice
+app.post('/api/notices/:id/publish', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        console.log(`📢 Publishing notice ${noticeId} for user ${req.userId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Check permissions
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to publish notices.'
+            });
+        }
+        
+        // Check if notice exists and belongs to company
+        const existingNotice = await prisma.$queryRaw`
+            SELECT NOTICE_ID, STATUS, ISSUED_BY_USER_ID 
+            FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} 
+            AND COMPANY_ID = ${req.companyId} 
+            AND IS_DELETED = 0
+        `;
+        
+        if (existingNotice.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        const notice = existingNotice[0];
+        
+        if (notice.STATUS !== 'DRAFT') {
+            return res.status(400).json({
+                error: 'Only draft notices can be published'
+            });
+        }
+        
+        // Check if user can publish this notice (issuer or admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (notice.ISSUED_BY_USER_ID !== req.userId && !isAdmin) {
+            return res.status(403).json({
+                error: 'Access denied. You can only publish your own notices or you must be an admin.'
+            });
+        }
+        
+        // Publish the notice
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICES 
+            SET STATUS = 'PUBLISHED', 
+                ISSUE_DATE = GETDATE(),
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Published notice ${noticeId} successfully`);
+        
+        // Return updated notice
+        const publishedNotice = await prisma.$queryRaw`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            WHERE n.NOTICE_ID = ${noticeId}
+        `;
+        
+        res.json(publishedNotice[0]);
+    } catch (error) {
+        console.error('❌ Error publishing notice:', error);
+        res.status(500).json({
+            error: 'Failed to publish notice',
+            message: error.message
+        });
+    }
+});
+
+// Get notice templates (forms with NOTICE type)
+app.get('/api/notices/templates', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📋 Fetching notice templates for company ${req.companyId}`);
+        
+        const templates = await prisma.$queryRaw`
+            SELECT 
+                FORM_ID,
+                FORM_NAME,
+                FORM_DESCRIPTION,
+                IS_ACTIVE,
+                IS_PUBLIC,
+                ORGANIZATION_ID,
+                COMPANY_ID,
+                CREATE_DATE
+            FROM GUARDIAN.FORMS 
+            WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+            AND FORM_TYPE = 'NOTICE'
+            AND IS_DELETED = 0
+            AND IS_ACTIVE = 1
+            ORDER BY FORM_NAME
+        `;
+        
+        console.log(`✅ Found ${templates.length} notice templates`);
+        
+        res.json(templates);
+    } catch (error) {
+        console.error('❌ Error fetching notice templates:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notice templates',
+            message: error.message
+        });
+    }
+});
+
+
+// Search notices
+app.get('/api/notices/search', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { q: searchTerm, status, noticeType, unreadOnly } = req.query;
+        
+        console.log(`🔍 Searching notices for user ${req.userId} (Company: ${req.companyId}) with term: "${searchTerm}"`);
+        
+        if (!searchTerm || searchTerm.trim() === '') {
+            return res.status(400).json({
+                error: 'Search term is required'
+            });
+        }
+        
+        let whereClause = `WHERE (nr.RECIPIENT_USER_ID = ${req.userId} OR n.ISSUED_BY_USER_ID = ${req.userId})
+                          AND n.COMPANY_ID = ${req.companyId} 
+                          AND n.IS_DELETED = 0
+                          AND (n.TITLE LIKE '%${searchTerm}%' OR n.CONTENT LIKE '%${searchTerm}%')`;
+        
+        if (status) {
+            whereClause += ` AND n.STATUS = '${status}'`;
+        }
+        if (noticeType) {
+            whereClause += ` AND n.NOTICE_TYPE = '${noticeType}'`;
+        }
+        if (unreadOnly === 'true') {
+            whereClause += ` AND nrs.NOTICE_READ_STATUS_ID IS NULL`;
+        }
+        
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT DISTINCT
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CONTENT,
+                n.NOTICE_TYPE,
+                n.STATUS,
+                n.ISSUED_BY_USER_ID,
+                n.ISSUE_DATE,
+                n.COMPANY_ID,
+                n.FORM_TEMPLATE_ID,
+                n.CANCELLATION_REASON,
+                n.IS_ACTIVE,
+                n.IS_DELETED,
+                n.CREATE_DATE,
+                n.UPDATE_DATE,
+                n.CREATE_USER_ID,
+                n.UPDATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                CASE WHEN nrs.NOTICE_READ_STATUS_ID IS NOT NULL THEN 1 ELSE 0 END as IS_READ
+            FROM GUARDIAN.NOTICES n
+            LEFT JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            INNER JOIN GUARDIAN.USERS u ON n.ISSUED_BY_USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.NOTICE_READ_STATUS nrs ON n.NOTICE_ID = nrs.NOTICE_ID AND nrs.USER_ID = ${req.userId}
+            ${whereClause}
+            ORDER BY n.ISSUE_DATE DESC, n.CREATE_DATE DESC
+        `);
+        
+        console.log(`✅ Found ${notices.length} notices matching search term`);
+        
+        res.json(notices);
+    } catch (error) {
+        console.error('❌ Error searching notices:', error);
+        res.status(500).json({
+            error: 'Failed to search notices',
+            message: error.message
+        });
+    }
+});
+
+// Get notice recipients
+app.get('/api/notices/:id/recipients', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        console.log(`👥 Fetching recipients for notice ${noticeId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Check permissions - user must be authorized to view notice details
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        const isRecipient = await prisma.$queryRaw`
+            SELECT NOTICE_RECIPIENT_ID 
+            FROM GUARDIAN.NOTICE_RECIPIENTS 
+            WHERE NOTICE_ID = ${noticeId} AND RECIPIENT_USER_ID = ${req.userId}
+        `;
+        
+        if (!hasPermission && isRecipient.length === 0) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to view notice recipients.'
+            });
+        }
+        
+        // Verify notice belongs to company
+        const noticeExists = await prisma.$queryRaw`
+            SELECT NOTICE_ID FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId} AND IS_DELETED = 0
+        `;
+        
+        if (noticeExists.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        const recipients = await prisma.$queryRaw`
+            SELECT 
+                nr.NOTICE_RECIPIENT_ID,
+                nr.NOTICE_ID,
+                nr.RECIPIENT_USER_ID,
+                nr.RECIPIENT_TYPE,
+                nr.COMPANY_ID,
+                nr.CREATE_DATE,
+                nr.CREATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICE_RECIPIENTS nr
+            INNER JOIN GUARDIAN.USERS u ON nr.RECIPIENT_USER_ID = u.USER_ID
+            WHERE nr.NOTICE_ID = ${noticeId}
+            ORDER BY u.FIRST_NAME, u.LAST_NAME
+        `;
+        
+        console.log(`✅ Found ${recipients.length} recipients for notice ${noticeId}`);
+        
+        res.json(recipients);
+    } catch (error) {
+        console.error('❌ Error fetching notice recipients:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notice recipients',
+            message: error.message
+        });
+    }
+});
+
+// Get notice read status
+app.get('/api/notices/:id/read-status', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        console.log(`📖 Fetching read status for notice ${noticeId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Check permissions - only notice issuers or admins can view read status
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to view read status.'
+            });
+        }
+        
+        // Verify notice belongs to company
+        const noticeExists = await prisma.$queryRaw`
+            SELECT NOTICE_ID FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId} AND IS_DELETED = 0
+        `;
+        
+        if (noticeExists.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        const readStatus = await prisma.$queryRaw`
+            SELECT 
+                nrs.NOTICE_READ_STATUS_ID,
+                nrs.NOTICE_ID,
+                nrs.USER_ID,
+                nrs.READ_DATE,
+                nrs.COMPANY_ID,
+                nrs.CREATE_DATE,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICE_READ_STATUS nrs
+            INNER JOIN GUARDIAN.USERS u ON nrs.USER_ID = u.USER_ID
+            WHERE nrs.NOTICE_ID = ${noticeId}
+            ORDER BY nrs.READ_DATE DESC
+        `;
+        
+        console.log(`✅ Found ${readStatus.length} read status records for notice ${noticeId}`);
+        
+        res.json(readStatus);
+    } catch (error) {
+        console.error('❌ Error fetching notice read status:', error);
+        res.status(500).json({
+            error: 'Failed to fetch notice read status',
+            message: error.message
+        });
+    }
+});
+
+// Get users eligible to receive notices (within same company)
+app.get('/api/notices/eligible-recipients', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`👥 Fetching eligible recipients for company ${req.companyId}`);
+        
+        // Check permissions
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to view eligible recipients.'
+            });
+        }
+        
+        const eligibleUsers = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                r.NAME as ROLE_NAME
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.COMPANY_ID = ${req.companyId}
+            AND u.IS_ACTIVE = 1
+            AND u.IS_DELETED = 0
+            ORDER BY u.FIRST_NAME, u.LAST_NAME
+        `;
+        
+        console.log(`✅ Found ${eligibleUsers.length} eligible recipients`);
+        
+        res.json(eligibleUsers);
+    } catch (error) {
+        console.error('❌ Error fetching eligible recipients:', error);
+        res.status(500).json({
+            error: 'Failed to fetch eligible recipients',
+            message: error.message
         });
     }
 });

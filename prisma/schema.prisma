@@ -166,6 +166,7 @@ model FORMS {
   FORMS_INSTANCE   FORMS_INSTANCE[]
   FORMS_FIELDS     FORMS_FIELDS[]
   REQUESTS         REQUESTS[]
+  NOTICE_TEMPLATES NOTICES[]        @relation("NoticeFormTemplate")
 
   @@schema("GUARDIAN")
 }
@@ -395,6 +396,11 @@ model USERS {
   
   // Add relationships for WORK_PROGRESS
   WORK_PROGRESS                 WORK_PROGRESS[] @relation("WorkProgressUser")
+  
+  // Add relationships for NOTICES module
+  ISSUED_NOTICES                NOTICES[]       @relation("IssuedByUserNotices")
+  NOTICE_RECIPIENTS             NOTICE_RECIPIENTS[] @relation("NoticeRecipientUser")
+  NOTICE_READ_STATUS            NOTICE_READ_STATUS[] @relation("NoticeReadUser")
 
   // Add aliases for common field names used in the codebase
   @@map("USERS")
@@ -413,5 +419,65 @@ model NOTIFICATIONS {
   CREATED_DATE    DateTime  @default(now()) @db.DateTime
   READ_DATE       DateTime? @db.DateTime
   
+  @@schema("GUARDIAN")
+}
+
+model NOTICES {
+  NOTICE_ID            Int                    @id(map: "PK_NOTICES") @default(autoincrement())
+  TITLE                String                 @db.VarChar(255)
+  CONTENT              String                 @db.VarChar(4000)
+  NOTICE_TYPE          String                 @db.VarChar(50)
+  STATUS               String                 @default("DRAFT") @db.VarChar(20)
+  ISSUED_BY_USER_ID    Int
+  ISSUE_DATE           DateTime?              @db.DateTime
+  COMPANY_ID           Int
+  FORM_TEMPLATE_ID     Int?
+  CANCELLATION_REASON  String?                @db.VarChar(500)
+  IS_ACTIVE            Boolean                @default(true)
+  IS_DELETED           Boolean                @default(false)
+  CREATE_DATE          DateTime               @default(now()) @db.DateTime
+  UPDATE_DATE          DateTime               @default(now()) @db.DateTime
+  CREATE_USER_ID       Int?
+  UPDATE_USER_ID       Int?
+  
+  // Relationships
+  ISSUED_BY_USER       USERS                  @relation("IssuedByUserNotices", fields: [ISSUED_BY_USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICES_ISSUED_BY_USER")
+  FORM_TEMPLATE        FORMS?                 @relation("NoticeFormTemplate", fields: [FORM_TEMPLATE_ID], references: [FORM_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICES_FORM_TEMPLATE")
+  NOTICE_RECIPIENTS    NOTICE_RECIPIENTS[]
+  NOTICE_READ_STATUS   NOTICE_READ_STATUS[]
+
+  @@schema("GUARDIAN")
+}
+
+model NOTICE_RECIPIENTS {
+  NOTICE_RECIPIENT_ID  Int      @id(map: "PK_NOTICE_RECIPIENTS") @default(autoincrement())
+  NOTICE_ID            Int
+  RECIPIENT_USER_ID    Int
+  RECIPIENT_TYPE       String   @default("USER") @db.VarChar(20)
+  COMPANY_ID           Int
+  CREATE_DATE          DateTime @default(now()) @db.DateTime
+  CREATE_USER_ID       Int?
+  
+  // Relationships
+  NOTICE               NOTICES  @relation(fields: [NOTICE_ID], references: [NOTICE_ID], onUpdate: NoAction, onDelete: Cascade, map: "FK_NOTICE_RECIPIENTS_NOTICE")
+  RECIPIENT_USER       USERS    @relation("NoticeRecipientUser", fields: [RECIPIENT_USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICE_RECIPIENTS_USER")
+
+  @@unique([NOTICE_ID, RECIPIENT_USER_ID], map: "UQ_NOTICE_RECIPIENTS_NOTICE_USER")
+  @@schema("GUARDIAN")
+}
+
+model NOTICE_READ_STATUS {
+  NOTICE_READ_STATUS_ID Int       @id(map: "PK_NOTICE_READ_STATUS") @default(autoincrement())
+  NOTICE_ID             Int
+  USER_ID               Int
+  READ_DATE             DateTime  @default(now()) @db.DateTime
+  COMPANY_ID            Int
+  CREATE_DATE           DateTime  @default(now()) @db.DateTime
+  
+  // Relationships
+  NOTICE                NOTICES   @relation(fields: [NOTICE_ID], references: [NOTICE_ID], onUpdate: NoAction, onDelete: Cascade, map: "FK_NOTICE_READ_STATUS_NOTICE")
+  USER                  USERS     @relation("NoticeReadUser", fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICE_READ_STATUS_USER")
+
+  @@unique([NOTICE_ID, USER_ID], map: "UQ_NOTICE_READ_STATUS_NOTICE_USER")
   @@schema("GUARDIAN")
 }

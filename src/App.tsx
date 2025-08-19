@@ -24,6 +24,8 @@ import RequestFulfillmentDashboard from './pages/RequestFulfillmentDashboard';
 import Health from './pages/Health';
 import EndpointManagerPage from './pages/EndpointManagerPage';
 import ApiAccessPortal from './pages/ApiAccessPortal';
+import NoticesLandingPage from './pages/NoticesLandingPage';
+import NoticeDetailsPage from './pages/NoticeDetailsPage';
 
 function App() {
   return (
@@ -54,6 +56,8 @@ function App() {
             {/* Commented out to prevent navigation when clicking View button 
             <Route path="/request/:id" element={<Navigate to="/requests-dashboard" replace />} />
             */}
+            <Route path="/notices" element={<ProtectedRoute><NoticesLandingPage /></ProtectedRoute>} />
+            <Route path="/notices/:id" element={<ProtectedRoute><NoticeDetailsPage /></ProtectedRoute>} />
             <Route path="/health" element={<ProtectedRoute><Health /></ProtectedRoute>} />
             <Route path="/api-manager" element={<ProtectedRoute><EndpointManagerPage /></ProtectedRoute>} />
             <Route path="/api-access-portal" element={<ApiAccessPortal />} />

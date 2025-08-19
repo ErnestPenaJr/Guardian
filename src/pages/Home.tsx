@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { FaCode } from 'react-icons/fa';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, FileText, Monitor,
-  LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send
+  LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
@@ -25,10 +25,12 @@ import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
+import NoticesLandingPage from './NoticesLandingPage';
 import requestService from '../services/requestService';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import NewRequestModal from './NewRequestModal';
 import formService from '../services/formService';
+import noticeService from '../services/noticeService';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 
@@ -90,8 +92,9 @@ interface Request {
 
 function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager' | 'notices'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
 
@@ -336,11 +339,21 @@ function Home() {
   // State for assigned requests count
   const [assignedRequestsCount, setAssignedRequestsCount] = useState<number>(0);
 
-  // Fetch requests when component mounts
+  // Handle navigation state from other pages
   useEffect(() => {
-    console.log('Home component mounted, fetching requests...');
+    if (location.state && location.state.activeSection) {
+      setSelectedSection(location.state.activeSection);
+      // Clear the state after using it
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
+  // Fetch requests and notices when component mounts
+  useEffect(() => {
+    console.log('Home component mounted, fetching data...');
     fetchRequests();
     fetchAssignedRequestsCount();
+    fetchNotices();
   }, []);
   
   // Check for existing form templates when user is loaded
@@ -464,13 +477,6 @@ function Home() {
       onClick: () => setSelectedSection('dashboard'),
       active: selectedSection === 'dashboard',
     },
-    // Notices item hidden per request
-    /*{
-      icon: <MessageSquareText className="w-6 h-6" />,
-      label: 'Notices',
-      onClick: () => navigate('/notices'),
-      active: false,
-    },*/
     {
       icon: <FileText className="w-6 h-6" />,
       label: 'My Requests',
@@ -488,6 +494,16 @@ function Home() {
       active: selectedSection === 'myRequests',
       badge: assignedRequestsCount > 0 ? assignedRequestsCount : undefined,
     },
+    // Super Admin only navigation items (role_id = 6)
+    ...((user?.roles?.some((role: any) => role.id === 6) || user?.role === '6') ? [
+      {
+        icon: <MessageSquareText className="w-6 h-6" />,
+        label: 'Notices',
+        onClick: () => setSelectedSection('notices'),
+        active: selectedSection === 'notices',
+      }
+    ] : []),
+    // Admin and Super Admin navigation items (role_id = 1 or 6)
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
       {
         icon: <Sliders className="w-6 h-6" />,
@@ -495,7 +511,6 @@ function Home() {
         onClick: () => setSelectedSection('admin'),
         active: selectedSection === 'admin',
       },
-
       {
         icon: <Send className="w-6 h-6" />,
         label: 'Invites',
@@ -549,6 +564,20 @@ function Home() {
   const [toggleCleared, setToggleCleared] = useState<boolean>(false);
   const [requestStatusData, setRequestStatusData] = useState<Array<{ label: string; value: number; color: string }>>([]);
   const [totalRequests, setTotalRequests] = useState<number>(0);
+  
+  // State for notices data  
+  const [notices, setNotices] = useState<any[]>([]);
+  const [noticeStats, setNoticeStats] = useState<{
+    totalNotices: number;
+    unreadNotices: number;
+    issuedByMe: number;
+    activeNotices: number;
+  }>({
+    totalNotices: 0,
+    unreadNotices: 0,
+    issuedByMe: 0,
+    activeNotices: 0
+  });
   
   // First-time admin workflow template creation modal
   const [showFirstTimeFormModal, setShowFirstTimeFormModal] = useState(false);
@@ -879,6 +908,32 @@ function Home() {
       toast.error('Failed to load requests');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to fetch notices data for dashboard
+  const fetchNotices = async () => {
+    try {
+      console.log('Fetching notices for dashboard...');
+      
+      // Get recent notices for current user
+      const myNotices = await noticeService.getMyNotices({ 
+        unreadOnly: false 
+      });
+      
+      // Get notice statistics
+      const stats = await noticeService.getNoticeStats();
+      
+      console.log('My notices:', myNotices);
+      console.log('Notice stats:', stats);
+      
+      setNotices(myNotices.slice(0, 5)); // Show recent 5 notices on dashboard
+      setNoticeStats(stats);
+      
+    } catch (err) {
+      console.error('Error fetching notices:', err);
+      // Don't show error toast for notices to avoid overwhelming users
+      // Just log the error and continue
     }
   };
 
@@ -1440,6 +1495,80 @@ function Home() {
                   </>
                 )}
               </section>
+
+              {/* My Notices Card */}
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 w-full md:col-span-4 border border-gray-200 mt-4`} data-component-name="Home">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h2 className="text-base md:text-lg font-semibold">My Notices</h2>
+                  <div className="flex items-center gap-3">
+                    {noticeStats.unreadNotices > 0 && (
+                      <span className="bg-aqua-500 text-white text-xs px-2 py-1 rounded-full">
+                        {noticeStats.unreadNotices} unread
+                      </span>
+                    )}
+                    <button
+                      onClick={() => navigate('/notices')}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      View All
+                    </button>
+                  </div>
+                </div>
+                
+                {notices.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <MessageSquareText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No notices available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notices.slice(0, 5).map((notice) => (
+                      <div
+                        key={notice.NOTICE_ID}
+                        className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                          notice._isRead ? 'border-gray-200' : 'border-blue-300 bg-blue-50'
+                        }`}
+                        onClick={() => window.open(`/notices/${notice.NOTICE_ID}`, '_blank')}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className={`text-sm font-medium truncate ${
+                                notice._isRead ? 'text-gray-900' : 'text-blue-900 font-bold'
+                              }`}>
+                                {notice.TITLE}
+                              </h3>
+                              {!notice._isRead && (
+                                <span className="bg-aqua-500 text-white text-xs px-2 py-1 rounded-full">
+                                  NEW
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                              {notice.CONTENT?.substring(0, 100)}...
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span>
+                                By: {notice.ISSUED_BY_USER?.FIRST_NAME} {notice.ISSUED_BY_USER?.LAST_NAME}
+                              </span>
+                              <span>
+                                {new Date(notice.ISSUE_DATE || notice.CREATE_DATE).toLocaleDateString()}
+                              </span>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                notice.STATUS === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                notice.STATUS === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {notice.STATUS}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
           </div>
         ) : mobileNav === 'search' ? (
@@ -1491,6 +1620,10 @@ function Home() {
           ) : selectedSection === 'adminUserManagement' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <AdminUserManagement />
+            </div>
+          ) : selectedSection === 'notices' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <NoticesLandingPage />
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-2xl mb-6">

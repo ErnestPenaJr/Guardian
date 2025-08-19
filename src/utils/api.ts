@@ -23,12 +23,32 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    
+    // Debug logging for auth header issues
+    console.log('🔍 [API INTERCEPTOR] Processing request:', {
+      url: config.url,
+      method: config.method,
+      tokenExists: !!token,
+      tokenLength: token ? token.length : 0,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'null',
+      hasHeaders: !!config.headers,
+      baseURL: config.baseURL
+    });
+    
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ [API INTERCEPTOR] Added Authorization header for:', config.url);
+    } else {
+      console.warn('❌ [API INTERCEPTOR] No auth header added:', {
+        url: config.url,
+        reason: !token ? 'No token in localStorage' : 'No headers object'
+      });
     }
+    
     return config;
   },
   (error) => {
+    console.error('❌ [API INTERCEPTOR] Request interceptor error:', error);
     return Promise.reject(error);
   }
 );

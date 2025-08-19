@@ -23,32 +23,38 @@ Guardian is a web application built on modern technologies that enables organiza
 - Has access to the Admin Dashboard with user management capabilities
 - Can create and manage workflow templates and field types
 - Responsible for inviting and managing users
+- **Notices**: Configure notice templates, edit/cancel notices, full notice management
 
 ### 2. JAFAR Developer (role_id: 6, "Dark Sorcerer")
 - Technical developer with enhanced access privileges
 - Has full administrative access plus developer tools
 - Can access the API Explorer and advanced user management
 - Has access to all administrative features
+- **Notices**: Full notice system access including template configuration and management
 
 ### 3. External User (role_id: 5, "External User")
 - Client or external stakeholder submitting requests
 - Limited access to only relevant forms and workflows
 - Can track status of their submitted requests
 - Has a simplified user interface
+- **Notices**: View notices issued specifically to them with secure access
 
 ### 4. General User (role_id: 2, "User")
 - Internal employee using the system for standard workflows
 - Can create and track requests
 - Access determined by assigned role permissions
+- **Notices**: View and track notices issued to them, with read/unread status indicators
 
 ### 5. Manager (role_id: 3, "Manager")
 - Oversees request workflows and approvals
 - Has access to reporting dashboards
 - Can assign and reassign requests
+- **Notices**: Create, issue, edit, and cancel notices; view all notices in organization
 
 ### 6. Processor (role_id: 4, "Processor")
 - Handles request processing and updates
 - Works with assigned requests in their queue
+- **Notices**: Create, issue, edit, and cancel notices; manage notice workflows
 
 ## Key Features and Requirements
 
@@ -138,34 +144,61 @@ Guardian is a web application built on modern technologies that enables organiza
 - Notification settings
 - System parameters adjustment
 
-### 5. External User Experience
+### 5. Notices Component
 
-#### 5.1 External Portal
+#### 5.1 Notice Display and Management
+- **Landing Page Integration**: Fixed card on Guardian Landing Page showing user's notices
+- **Notices Landing Page**: Two-tab interface (My Notices, All Notices) with role-based visibility
+- **Notice Details Page**: Complete notice metadata display with automatic read tracking
+- **Read/Unread Status**: Visual indicators with bold aqua text for unread notices
+
+#### 5.2 Notice Creation and Workflow
+- **Template-Based Creation**: Standardized notice templates through workflow builder
+- **Form Integration**: Complete template form fields with attachment support
+- **Recipient Management**: Searchable modal for recipient selection with individual removal
+- **Notice Issuing**: Validation, creation, and Notice ID assignment
+
+#### 5.3 Notice Management Operations
+- **Edit Functionality**: Modal-based editing for Processor, Manager, Admin roles
+- **Cancellation Process**: Required explanation with visual strikethrough indicators
+- **Audit Tracking**: Timestamps for updates and cancellations
+- **Status Management**: Real-time status updates with role-based permissions
+
+#### 5.4 Security and Compliance
+- **Secure Internal Delivery**: No external email dependency for sensitive information
+- **Role-Based Access Control**: Granular permissions for all notice operations
+- **Encrypted Storage**: Secure storage for notice content and attachments
+- **Audit Logging**: Complete tracking of create/edit/cancel actions
+
+### 6. External User Experience
+
+#### 6.1 External Portal
 - Simplified interface for external users
 - Form submission capability
 - Request status tracking
 - Secure communication channel
+- **Notice Access**: Secure viewing of notices issued to external users
 
-#### 5.2 External User Management
+#### 6.2 External User Management
 - Self-service registration
 - Profile management
 - Password reset capabilities
 
-### 6. Security Requirements
+### 7. Security Requirements
 
-#### 6.1 Data Protection
+#### 7.1 Data Protection
 - Encryption for sensitive data
 - Secure password storage (bcrypt)
 - Input validation and sanitization
 - Protection against common web vulnerabilities
 
-#### 6.2 Access Control
+#### 7.2 Access Control
 - Principle of least privilege implementation
 - Session management and timeout
 - Failed login attempt limiting
 - IP-based restrictions (optional)
 
-#### 6.3 Audit Trail
+#### 7.3 Audit Trail
 - User action logging
 - Access attempt recording
 - System change tracking
@@ -206,6 +239,8 @@ Guardian is a web application built on modern technologies that enables organiza
 - Integration with third-party systems
 - Enhanced document management
 - Customizable dashboards
+- **Notices Phase 2**: Enhanced edit/cancel functionality, multiple notice types
+- **Notices Phase 3**: Advanced notice analytics, read/unread reporting, engagement tracking
 
 ## Appendix
 
@@ -219,6 +254,9 @@ Guardian is a web application built on modern technologies that enables organiza
 - FORMS_FIELDS: Relationship between forms and fields
 - FORMS_INSTANCE: Tracks form submissions
 - FORMS_INSTANCE_VALUES: Stores submitted field values
+- **NOTICES**: Notice definitions, metadata, and status tracking
+- **NOTICE_RECIPIENTS**: Many-to-many relationship between notices and recipients
+- **NOTICE_READ_STATUS**: Per-user read tracking for notices
 
 ### API Endpoints Summary
 - Authentication: /api/login, /api/register, /api/verify-email
@@ -226,6 +264,7 @@ Guardian is a web application built on modern technologies that enables organiza
 - Forms: /api/forms, /api/forms/submit, /api/forms/instances
 - Fields: /api/fields, /api/field-types
 - Requests: /api/requests
+- **Notices**: /api/notices, /api/notices/:id, /api/notices/:id/read, /api/notices/templates
 
 ### Deployment Architecture
 - Frontend: Static files served from Azure App Service

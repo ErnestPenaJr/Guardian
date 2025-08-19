@@ -1,0 +1,548 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import DataTable, { TableColumn } from 'react-data-table-component';
+import { toast } from 'react-toastify';
+import { Search, Calendar, Filter, Plus, Bell, Eye, Users } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import noticeService, { Notice, NoticeFilters } from '../services/noticeService';
+import '../styles/RequestDashboard.css'; // Reuse existing styles
+
+interface NoticesLandingPageProps {}
+
+const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
+  const { user } = useAuth();
+  
+  // State management
+  const [activeTab, setActiveTab] = useState<'my-notices' | 'all-notices'>('my-notices');
+  const [myNotices, setMyNotices] = useState<Notice[]>([]);
+  const [allNotices, setAllNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [noticeTypeFilter, setNoticeTypeFilter] = useState<string>('');
+  const [unreadOnlyFilter, setUnreadOnlyFilter] = useState<boolean>(false);
+  const [dateFromFilter, setDateFromFilter] = useState<string>('');
+  const [dateToFilter, setDateToFilter] = useState<string>('');
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+
+  // Role-based access control - check if user can see "All Notices" tab
+  const hasAllNoticesAccess = useMemo(() => {
+    if (!user) return false;
+    
+    // Allow access for Processor(3), Manager(4), Admin(1), Super Admin(6)
+    const allowedRoles = [1, 3, 4, 6];
+    
+    // Check roles array
+    if (user.roles && Array.isArray(user.roles)) {
+      return user.roles.some((role: any) => 
+        typeof role === 'object' && role !== null && 
+        allowedRoles.includes(role.id || role.role_id)
+      );
+    }
+    
+    // Check role as string (from JWT token)
+    if (user.role) {
+      const roleId = parseInt(user.role, 10);
+      return allowedRoles.includes(roleId);
+    }
+    
+    return false;
+  }, [user]);
+
+  // Check if user can create notices
+  const hasCreateNoticeAccess = useMemo(() => {
+    if (!user) return false;
+    
+    // Allow notice creation for Processor(3), Manager(4), Admin(1), Super Admin(6)
+    const allowedRoles = [1, 3, 4, 6];
+    
+    if (user.roles && Array.isArray(user.roles)) {
+      return user.roles.some((role: any) => 
+        typeof role === 'object' && role !== null && 
+        allowedRoles.includes(role.id || role.role_id)
+      );
+    }
+    
+    if (user.role) {
+      const roleId = parseInt(user.role, 10);
+      return allowedRoles.includes(roleId);
+    }
+    
+    return false;
+  }, [user]);
+
+  // Load notices on component mount and when tab changes
+  useEffect(() => {
+    loadNotices();
+  }, [activeTab, user]);
+
+  // Load notices based on active tab
+  const loadNotices = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const filters: NoticeFilters = {
+        status: statusFilter || undefined,
+        noticeType: noticeTypeFilter || undefined,
+        unreadOnly: unreadOnlyFilter || undefined,
+        dateFrom: dateFromFilter || undefined,
+        dateTo: dateToFilter || undefined,
+      };
+
+      if (activeTab === 'my-notices') {
+        const data = await noticeService.getMyNotices(filters);
+        setMyNotices(data);
+      } else if (activeTab === 'all-notices' && hasAllNoticesAccess) {
+        const data = await noticeService.getAllNotices(filters);
+        setAllNotices(data);
+      }
+    } catch (err: any) {
+      console.error('Error loading notices:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load notices');
+      toast.error('Failed to load notices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Apply filters when filter values change
+  useEffect(() => {
+    if (!loading) {
+      const timeoutId = setTimeout(() => {
+        loadNotices();
+      }, 300); // Debounce filter changes
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [statusFilter, noticeTypeFilter, unreadOnlyFilter, dateFromFilter, dateToFilter]);
+
+  // Get current notices based on active tab
+  const currentNotices = useMemo(() => {
+    return activeTab === 'my-notices' ? myNotices : allNotices;
+  }, [activeTab, myNotices, allNotices]);
+
+  // Apply search filter to current notices
+  const filteredNotices = useMemo(() => {
+    if (!searchTerm) return currentNotices;
+    
+    const searchStr = searchTerm.toLowerCase();
+    return currentNotices.filter(notice => 
+      notice.TITLE.toLowerCase().includes(searchStr) ||
+      notice.CONTENT.toLowerCase().includes(searchStr) ||
+      (notice.ISSUED_BY_USER?.FIRST_NAME?.toLowerCase().includes(searchStr)) ||
+      (notice.ISSUED_BY_USER?.LAST_NAME?.toLowerCase().includes(searchStr))
+    );
+  }, [currentNotices, searchTerm]);
+
+  // Handle notice row click - open in new window
+  const handleNoticeClick = async (notice: Notice) => {
+    try {
+      // Mark as read first
+      if (!notice._isRead) {
+        await noticeService.markNoticeAsRead(notice.NOTICE_ID);
+        // Refresh notices to update read status
+        loadNotices();
+      }
+      
+      // Open notice details in new window
+      const noticeUrl = `/notices/${notice.NOTICE_ID}`;
+      window.open(noticeUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    } catch (error) {
+      console.error('Error handling notice click:', error);
+      toast.error('Failed to open notice');
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setNoticeTypeFilter('');
+    setUnreadOnlyFilter(false);
+    setDateFromFilter('');
+    setDateToFilter('');
+    toast.info('Filters cleared');
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  // Define table columns
+  const columns: TableColumn<Notice>[] = [
+    {
+      name: 'ID',
+      selector: row => row.NOTICE_ID,
+      sortable: true,
+      width: '80px',
+      cell: row => (
+        <div className="fw-medium text-primary">
+          #{row.NOTICE_ID}
+        </div>
+      )
+    },
+    {
+      name: 'Title',
+      selector: row => row.TITLE,
+      sortable: true,
+      width: '40%',
+      cell: row => (
+        <div className={`fw-medium ${!row._isRead ? 'text-info fw-bold' : ''}`}>
+          {row.TITLE}
+          {!row._isRead && (
+            <span className="badge bg-info ms-2" style={{ fontSize: '10px' }}>
+              NEW
+            </span>
+          )}
+        </div>
+      )
+    },
+    {
+      name: 'Notice Name',
+      selector: row => row.NOTICE_TYPE,
+      sortable: true,
+      width: '130px',
+      cell: row => (
+        <span className="badge bg-secondary">
+          {row.NOTICE_TYPE}
+        </span>
+      )
+    },
+    {
+      name: 'Issued By',
+      selector: row => row.ISSUED_BY_USER ? `${row.ISSUED_BY_USER.FIRST_NAME} ${row.ISSUED_BY_USER.LAST_NAME}` : 'Unknown',
+      sortable: true,
+      width: '150px',
+      cell: row => (
+        <div style={{ fontSize: '13px' }}>
+          {row.ISSUED_BY_USER ? 
+            `${row.ISSUED_BY_USER.FIRST_NAME} ${row.ISSUED_BY_USER.LAST_NAME}` : 
+            'Unknown'
+          }
+        </div>
+      )
+    },
+    {
+      name: 'Issued Date',
+      selector: row => row.ISSUE_DATE || '',
+      sortable: true,
+      width: '120px',
+      cell: row => (
+        <div style={{ fontSize: '13px' }}>
+          {formatDate(row.ISSUE_DATE)}
+        </div>
+      )
+    },
+    {
+      name: 'Status',
+      selector: row => row.STATUS,
+      sortable: true,
+      width: '100px',
+      cell: row => {
+        const badgeColor = noticeService.getStatusBadgeColor(row.STATUS);
+        return (
+          <span className={`badge bg-${badgeColor}`} style={{ fontSize: '11px' }}>
+            {row.STATUS}
+          </span>
+        );
+      }
+    },
+    {
+      name: 'Actions',
+      width: '100px',
+      cell: row => (
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNoticeClick(row);
+            }}
+            title="View Notice"
+          >
+            <Eye size={14} />
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      sortable: false,
+      selector: _ => ''
+    }
+  ];
+
+  return (
+    <div className="container">
+      <h1 className="text-2xl font-bold uppercase fs-2 mb-4">Notice Dashboard</h1>
+      
+      {/* Tab Navigation */}
+      <div className="mb-4">
+        <ul className="nav nav-tabs">
+          <li className="nav-item">
+            <button 
+              className={`nav-link ${activeTab === 'my-notices' ? 'active' : ''}`}
+              onClick={() => setActiveTab('my-notices')}
+            >
+              <Bell size={16} className="me-2" />
+              My Notices
+            </button>
+          </li>
+          {hasAllNoticesAccess && (
+            <li className="nav-item">
+              <button 
+                className={`nav-link ${activeTab === 'all-notices' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all-notices')}
+              >
+                <Users size={16} className="me-2" />
+                All Notices
+              </button>
+            </li>
+          )}
+        </ul>
+      </div>
+
+      {/* Section Header */}
+      <div className="mb-3">
+        <div className="d-flex align-items-center">
+          <div className="bg-primary" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
+          <div>
+            <h3 className="mb-1" style={{ fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+              {activeTab === 'my-notices' ? 'My Notices' : 'All Notices'}
+            </h3>
+            <p className="mb-0 text-muted" style={{ fontSize: '13px' }}>
+              {activeTab === 'my-notices' 
+                ? 'Notices issued to you by your organization'
+                : 'All notices within your organization (management view)'
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Bar */}
+      <div className="request-dashboard-header mb-3 d-flex align-items-center justify-content-between">
+        <div className="d-flex align-items-center gap-2">
+          {/* Refresh Button */}
+          <button
+            className="btn btn-outline-secondary"
+            style={{ minWidth: 100 }}
+            onClick={() => {
+              setLoading(true);
+              loadNotices();
+            }}
+            disabled={loading}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-arrow-clockwise me-1" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+            </svg>
+            Refresh
+          </button>
+
+          {/* New Notice Button */}
+          {hasCreateNoticeAccess && (
+            <button 
+              className="btn bg-warning text-dark" 
+              style={{ minWidth: 140 }} 
+              onClick={() => {
+                // Navigate to create notice page
+                window.location.href = '/notices/create';
+              }}
+            >
+              <Plus size={16} className="me-1" />
+              New Notice
+            </button>
+          )}
+
+          {/* Filter Toggle */}
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={16} className="me-1" />
+            Filters
+          </button>
+        </div>
+        
+        {/* Search Input */}
+        <div className="d-flex align-items-center">
+          <div className="position-relative">
+            <Search size={16} className="position-absolute" style={{ left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#6c757d' }} />
+            <input
+              type="text"
+              className="form-control"
+              style={{ maxWidth: 260, paddingLeft: '32px' }}
+              placeholder="Search notices..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Panel */}
+      {showFilters && (
+        <div className="card mb-3">
+          <div className="card-body">
+            <div className="row g-3">
+              <div className="col-md-3">
+                <label className="form-label">Status</label>
+                <select
+                  className="form-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="">All Status</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="PUBLISHED">Published</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+              
+              <div className="col-md-3">
+                <label className="form-label">Notice Type</label>
+                <select
+                  className="form-select"
+                  value={noticeTypeFilter}
+                  onChange={(e) => setNoticeTypeFilter(e.target.value)}
+                >
+                  <option value="">All Types</option>
+                  <option value="GENERAL">General</option>
+                  <option value="URGENT">Urgent</option>
+                  <option value="POLICY">Policy</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                </select>
+              </div>
+              
+              <div className="col-md-2">
+                <label className="form-label">Date From</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateFromFilter}
+                  onChange={(e) => setDateFromFilter(e.target.value)}
+                />
+              </div>
+              
+              <div className="col-md-2">
+                <label className="form-label">Date To</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateToFilter}
+                  onChange={(e) => setDateToFilter(e.target.value)}
+                />
+              </div>
+              
+              <div className="col-md-2">
+                <label className="form-label">&nbsp;</label>
+                <div className="d-flex flex-column gap-2">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="unreadOnly"
+                      checked={unreadOnlyFilter}
+                      onChange={(e) => setUnreadOnlyFilter(e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor="unreadOnly">
+                      Unread Only
+                    </label>
+                  </div>
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={clearFilters}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
+
+      {/* Notices Table */}
+      <DataTable
+        columns={columns}
+        data={filteredNotices}
+        pagination
+        progressPending={loading}
+        persistTableHead
+        highlightOnHover
+        pointerOnHover
+        onRowClicked={handleNoticeClick}
+        responsive
+        striped
+        defaultSortFieldId={5} // Sort by Issued Date
+        defaultSortAsc={false} // DESC order
+        customStyles={{
+          table: {
+            style: {
+              width: '100%',
+            },
+          },
+          cells: {
+            style: {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              overflow: 'visible',
+              whiteSpace: 'normal',
+            },
+          },
+          headCells: {
+            style: {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              fontWeight: 'bold',
+              backgroundColor: '#f8f9fa',
+            },
+          },
+          rows: {
+            style: {
+              cursor: 'pointer',
+              '&:hover': {
+                backgroundColor: '#f8f9fa',
+              },
+            },
+          },
+        }}
+        noDataComponent={
+          <div className="p-4 text-center">
+            {error ? (
+              <div className="text-danger">{error}</div>
+            ) : loading ? (
+              <div className="text-muted">Loading notices...</div>
+            ) : (
+              <div className="text-muted">
+                {searchTerm || statusFilter || noticeTypeFilter || unreadOnlyFilter || dateFromFilter || dateToFilter
+                  ? 'No notices match your current filters.'
+                  : 'No notices found.'
+                }
+              </div>
+            )}
+          </div>
+        }
+      />
+    </div>
+  );
+};
+
+export default NoticesLandingPage;
