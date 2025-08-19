@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Modal, Button } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { 
@@ -16,11 +16,13 @@ import {
   CheckCircle,
   Clock,
   Download,
-  ExternalLink
+  ExternalLink,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService, { Notice, NoticeRecipient, NoticeReadStatus } from '../services/noticeService';
 import Layout from '../components/Layout';
+import NoticeAnalyticsDashboard from '../components/NoticeAnalyticsDashboard';
 import '../styles/RequestDashboard.css';
 
 interface NoticeDetailsPageProps {}
@@ -28,6 +30,7 @@ interface NoticeDetailsPageProps {}
 const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   
   // State management
@@ -40,13 +43,150 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
   const [formData, setFormData] = useState<any>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   
+  // Analytics tracking state and refs
+  const viewStartTimeRef = useRef<Date | null>(null);
+  const lastScrollPercentageRef = useRef<number>(0);
+  const interactionCountRef = useRef<number>(0);
+  const isViewingRef = useRef<boolean>(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const noticeContentRef = useRef<HTMLDivElement | null>(null);
+  const analyticsSessionIdRef = useRef<string | null>(null);
+  
+  // Device detection
+  const deviceType = useMemo(() => {
+    if (typeof window === 'undefined') return 'DESKTOP';
+    
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
+      return /ipad|tablet/i.test(userAgent) ? 'TABLET' : 'MOBILE';
+    }
+    return 'DESKTOP';
+  }, []);
+  
+  // Referrer source detection
+  const referrerSource = useMemo(() => {
+    if (location.state?.from) {
+      switch (location.state.from) {
+        case 'my-notices': return 'MY_NOTICES';
+        case 'all-notices': return 'ALL_NOTICES';
+        case 'notification': return 'NOTIFICATION';
+        case 'email': return 'EMAIL';
+        default: return 'DIRECT_LINK';
+      }
+    }
+    return 'DIRECT_LINK';
+  }, [location.state]);
+  
   // Modal states for actions
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showRecipientsModal, setShowRecipientsModal] = useState<boolean>(false);
   const [showReadStatusModal, setShowReadStatusModal] = useState<boolean>(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
   const [cancellationReason, setCancellationReason] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+
+  // Analytics tracking functions
+  const startViewTracking = useCallback(async () => {
+    if (!notice || !user || isViewingRef.current) return;
+    
+    try {
+      viewStartTimeRef.current = new Date();
+      isViewingRef.current = true;
+      analyticsSessionIdRef.current = `${user.USER_ID || user.userId}-${notice.NOTICE_ID}-${Date.now()}`;
+      
+      // Call API to start view tracking
+      await noticeService.startViewTracking(notice.NOTICE_ID, {
+        deviceType,
+        referrerSource,
+        viewStartTime: viewStartTimeRef.current.toISOString()
+      });
+    } catch (error) {
+      console.error('Error starting view tracking:', error);
+    }
+  }, [notice, user, deviceType, referrerSource]);
+
+  const updateScrollTracking = useCallback(() => {
+    if (!noticeContentRef.current || !isViewingRef.current) return;
+    
+    const element = noticeContentRef.current;
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight - element.clientHeight;
+    const scrollPercentage = scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 100;
+    
+    // Only update if scroll percentage increased significantly
+    if (scrollPercentage > lastScrollPercentageRef.current + 5) {
+      lastScrollPercentageRef.current = scrollPercentage;
+      
+      // Debounce scroll updates
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (notice && user) {
+          noticeService.updateScrollTracking(notice.NOTICE_ID, scrollPercentage).catch(console.error);
+        }
+      }, 1000);
+    }
+  }, [notice, user]);
+
+  const trackInteraction = useCallback(async (interactionType: string) => {
+    if (!notice || !user || !isViewingRef.current) return;
+    
+    try {
+      interactionCountRef.current += 1;
+      await noticeService.trackInteraction(notice.NOTICE_ID, interactionType);
+    } catch (error) {
+      console.error('Error tracking interaction:', error);
+    }
+  }, [notice, user]);
+
+  const endViewTracking = useCallback(async () => {
+    if (!notice || !user || !isViewingRef.current || !viewStartTimeRef.current) return;
+    
+    try {
+      const viewEndTime = new Date();
+      const viewDurationSeconds = Math.round((viewEndTime.getTime() - viewStartTimeRef.current.getTime()) / 1000);
+      const isCompletedView = lastScrollPercentageRef.current >= 80; // Consider 80%+ as completed view
+      
+      await noticeService.endViewTracking(notice.NOTICE_ID, {
+        viewEndTime: viewEndTime.toISOString(),
+        viewDurationSeconds,
+        scrollPercentage: lastScrollPercentageRef.current,
+        interactionCount: interactionCountRef.current,
+        isCompletedView
+      });
+      
+      isViewingRef.current = false;
+    } catch (error) {
+      console.error('Error ending view tracking:', error);
+    }
+  }, [notice, user]);
+
+  // Window/page visibility and unload handlers for analytics
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        endViewTracking();
+      } else if (notice && user) {
+        startViewTracking();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      endViewTracking();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      endViewTracking();
+    };
+  }, [notice, user, endViewTracking, startViewTracking]);
 
   // Role-based access control
   const hasEditAccess = useMemo(() => {
@@ -105,12 +245,17 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
     }
   }, [id]);
 
-  // Auto-mark as read when notice is loaded
+  // Auto-mark as read when notice is loaded and start analytics tracking
   useEffect(() => {
-    if (notice && user && !notice._isRead && !markingAsRead) {
-      markNoticeAsRead();
+    if (notice && user) {
+      if (!notice._isRead && !markingAsRead) {
+        markNoticeAsRead();
+      }
+      
+      // Start view tracking
+      startViewTracking();
     }
-  }, [notice, user]);
+  }, [notice, user, markNoticeAsRead, startViewTracking]);
 
   const loadNoticeDetails = async () => {
     if (!id) return;
@@ -339,11 +484,28 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
                 <Button 
                   variant="outline-primary" 
                   size="sm"
-                  onClick={handlePublishNotice}
+                  onClick={() => {
+                    trackInteraction('publish_button');
+                    handlePublishNotice();
+                  }}
                   disabled={actionLoading}
                 >
                   <Send size={14} className="me-1" />
                   Publish
+                </Button>
+              )}
+              
+              {hasAdminAccess && (
+                <Button 
+                  variant="outline-info" 
+                  size="sm"
+                  onClick={() => {
+                    trackInteraction('analytics_button');
+                    setShowAnalyticsModal(true);
+                  }}
+                >
+                  <BarChart3 size={14} className="me-1" />
+                  Analytics
                 </Button>
               )}
               
@@ -352,7 +514,10 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
                   <Button 
                     variant="outline-secondary" 
                     size="sm"
-                    onClick={handleEditNotice}
+                    onClick={() => {
+                      trackInteraction('edit_button');
+                      handleEditNotice();
+                    }}
                   >
                     <Edit size={14} className="me-1" />
                     Edit
@@ -361,7 +526,10 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
                   <Button 
                     variant="outline-danger" 
                     size="sm"
-                    onClick={() => setShowCancelModal(true)}
+                    onClick={() => {
+                      trackInteraction('cancel_button');
+                      setShowCancelModal(true);
+                    }}
                   >
                     <X size={14} className="me-1" />
                     Cancel
@@ -464,12 +632,17 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
           </div>
           <div className="card-body">
             <div 
+              ref={noticeContentRef}
               className="notice-content"
               style={{ 
                 whiteSpace: 'pre-wrap', 
                 lineHeight: '1.6',
-                fontSize: '15px' 
+                fontSize: '15px',
+                maxHeight: '600px',
+                overflowY: 'auto'
               }}
+              onScroll={updateScrollTracking}
+              onClick={() => trackInteraction('content_click')}
             >
               {notice.CONTENT}
             </div>
@@ -624,6 +797,24 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowReadStatusModal(false)}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Analytics Modal */}
+        <Modal show={showAnalyticsModal} onHide={() => setShowAnalyticsModal(false)} centered size="xl">
+          <Modal.Header closeButton>
+            <Modal.Title>
+              <BarChart3 size={20} className="me-2" />
+              Notice Analytics - {notice.TITLE}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <NoticeAnalyticsDashboard noticeId={notice.NOTICE_ID} />
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowAnalyticsModal(false)}>
               Close
             </Button>
           </Modal.Footer>

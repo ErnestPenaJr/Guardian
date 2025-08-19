@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { toast } from 'react-toastify';
-import { Search, Calendar, Filter, Plus, Bell, Eye, Users } from 'lucide-react';
+import { Search, Calendar, Filter, Plus, Bell, Eye, Users, AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService, { Notice, NoticeFilters } from '../services/noticeService';
 import CreateNoticeModal from '../components/CreateNoticeModal';
@@ -191,6 +191,60 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
     setShowCreateModal(false);
   };
 
+  // Priority helper functions
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'HIGH':
+        return <AlertTriangle size={14} className="text-danger" />;
+      case 'MEDIUM':
+        return <Bell size={14} className="text-warning" />;
+      case 'LOW':
+        return <Clock size={14} className="text-info" />;
+      default:
+        return <Bell size={14} className="text-secondary" />;
+    }
+  };
+
+  const getPriorityBadgeClass = (priority: string) => {
+    switch (priority) {
+      case 'HIGH':
+        return 'badge bg-danger';
+      case 'MEDIUM':
+        return 'badge bg-warning text-dark';
+      case 'LOW':
+        return 'badge bg-info';
+      default:
+        return 'badge bg-secondary';
+    }
+  };
+
+  const getPrioritySortValue = (priority: string) => {
+    switch (priority) {
+      case 'HIGH': return 3;
+      case 'MEDIUM': return 2;
+      case 'LOW': return 1;
+      default: return 0;
+    }
+  };
+
+  // Due date helper function
+  const getDueDateStatus = (dueDate: string | null) => {
+    if (!dueDate) return null;
+    
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffHours = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+    if (diffHours < 0) {
+      return { status: 'overdue', class: 'text-danger fw-bold', text: 'OVERDUE' };
+    } else if (diffHours < 24) {
+      return { status: 'urgent', class: 'text-warning fw-bold', text: 'DUE SOON' };
+    } else if (diffHours < 72) {
+      return { status: 'approaching', class: 'text-info', text: 'DUE SOON' };
+    }
+    return null;
+  };
+
   // Define table columns
   const columns: TableColumn<Notice>[] = [
     {
@@ -208,17 +262,33 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
       name: 'Title',
       selector: row => row.TITLE,
       sortable: true,
-      width: '40%',
-      cell: row => (
-        <div className={`fw-medium ${!row._isRead ? 'text-info fw-bold' : ''}`}>
-          {row.TITLE}
-          {!row._isRead && (
-            <span className="badge bg-info ms-2" style={{ fontSize: '10px' }}>
-              NEW
-            </span>
-          )}
-        </div>
-      )
+      width: '35%',
+      cell: row => {
+        const dueDateStatus = getDueDateStatus(row.DUE_DATE);
+        return (
+          <div className={`fw-medium ${!row._isRead ? 'text-info fw-bold' : ''}`}>
+            <div className="d-flex align-items-center gap-2 mb-1">
+              {getPriorityIcon(row.PRIORITY_LEVEL || 'MEDIUM')}
+              <span>{row.TITLE}</span>
+            </div>
+            <div className="d-flex gap-1 flex-wrap">
+              {!row._isRead && (
+                <span className="badge bg-info" style={{ fontSize: '10px' }}>
+                  NEW
+                </span>
+              )}
+              <span className={getPriorityBadgeClass(row.PRIORITY_LEVEL || 'MEDIUM')} style={{ fontSize: '10px' }}>
+                {row.PRIORITY_LEVEL || 'MEDIUM'}
+              </span>
+              {dueDateStatus && (
+                <span className={`badge ${dueDateStatus.class} bg-transparent border border-warning`} style={{ fontSize: '10px' }}>
+                  {dueDateStatus.text}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      }
     },
     {
       name: 'Notice Name',
@@ -267,6 +337,35 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
           <span className={`badge bg-${badgeColor}`} style={{ fontSize: '11px' }}>
             {row.STATUS}
           </span>
+        );
+      }
+    },
+    {
+      name: 'Due Date',
+      selector: row => row.DUE_DATE || '',
+      sortable: true,
+      width: '120px',
+      cell: row => {
+        if (!row.DUE_DATE) {
+          return <div style={{ fontSize: '13px', color: '#6c757d' }}>No due date</div>;
+        }
+        
+        const dueDateStatus = getDueDateStatus(row.DUE_DATE);
+        const formattedDate = formatDate(row.DUE_DATE);
+        
+        return (
+          <div style={{ fontSize: '13px' }}>
+            <div className={dueDateStatus ? dueDateStatus.class : ''}>
+              {formattedDate}
+            </div>
+            {dueDateStatus && (
+              <div className="mt-1">
+                <span className={`badge ${dueDateStatus.status === 'overdue' ? 'bg-danger' : dueDateStatus.status === 'urgent' ? 'bg-warning text-dark' : 'bg-info'}`} style={{ fontSize: '10px' }}>
+                  {dueDateStatus.text}
+                </span>
+              </div>
+            )}
+          </div>
         );
       }
     },

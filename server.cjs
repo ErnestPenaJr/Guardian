@@ -6915,7 +6915,7 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
         
-        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipientUserIds, STATUS } = req.body;
+        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipientUserIds, STATUS, PRIORITY_LEVEL, DUE_DATE } = req.body;
         
         if (!TITLE || !CONTENT || !NOTICE_TYPE) {
             return res.status(400).json({
@@ -6947,13 +6947,14 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
         
         const result = await prisma.$queryRaw`
             INSERT INTO GUARDIAN.NOTICES (
-                TITLE, CONTENT, NOTICE_TYPE, STATUS, ISSUED_BY_USER_ID, 
-                ISSUE_DATE, COMPANY_ID, FORM_TEMPLATE_ID, IS_ACTIVE, 
-                IS_DELETED, CREATE_DATE, CREATE_USER_ID
+                TITLE, CONTENT, NOTICE_TYPE, STATUS, PRIORITY_LEVEL, DUE_DATE,
+                ISSUED_BY_USER_ID, ISSUE_DATE, COMPANY_ID, FORM_TEMPLATE_ID, 
+                IS_ACTIVE, IS_DELETED, CREATE_DATE, CREATE_USER_ID
             )
             OUTPUT INSERTED.NOTICE_ID
             VALUES (
-                ${TITLE}, ${CONTENT}, ${NOTICE_TYPE}, ${STATUS || 'DRAFT'}, ${req.userId},
+                ${TITLE}, ${CONTENT}, ${NOTICE_TYPE}, ${STATUS || 'DRAFT'}, 
+                ${PRIORITY_LEVEL || 'MEDIUM'}, ${DUE_DATE}, ${req.userId},
                 ${issueDate}, ${req.companyId}, ${FORM_TEMPLATE_ID || null}, 1,
                 0, GETDATE(), ${req.userId}
             )
@@ -7733,6 +7734,388 @@ app.get('/api/notices/eligible-recipients', getAuthenticatedUserCompany, async (
         console.error('❌ Error fetching eligible recipients:', error);
         res.status(500).json({
             error: 'Failed to fetch eligible recipients',
+            message: error.message
+        });
+    }
+});
+
+// ==============================================
+// NOTICE ANALYTICS ENDPOINTS
+// ==============================================
+
+// Start view tracking for a notice
+app.post('/api/notices/:id/analytics/start', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { deviceType, referrerSource } = req.body;
+        
+        console.log(`📊 Starting view tracking for notice ${noticeId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Verify notice exists and belongs to user's company
+        const notice = await prisma.$queryRaw`
+            SELECT NOTICE_ID FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (notice.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        // Create or update metrics record
+        const result = await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.NOTICE_METRICS 
+            (NOTICE_ID, USER_ID, COMPANY_ID, VIEW_START_TIME, DEVICE_TYPE, REFERRER_SOURCE)
+            VALUES (${noticeId}, ${req.userId}, ${req.companyId}, GETDATE(), ${deviceType || 'unknown'}, ${referrerSource || 'direct'})
+        `;
+        
+        console.log(`✅ Started view tracking for notice ${noticeId}`);
+        res.json({ 
+            success: true,
+            message: 'View tracking started'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error starting notice view tracking:', error);
+        res.status(500).json({
+            error: 'Failed to start view tracking',
+            message: error.message
+        });
+    }
+});
+
+// Update scroll percentage for notice analytics
+app.put('/api/notices/:id/analytics/scroll', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { scrollPercentage } = req.body;
+        
+        console.log(`📊 Updating scroll tracking for notice ${noticeId} to ${scrollPercentage}% (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        if (scrollPercentage < 0 || scrollPercentage > 100) {
+            return res.status(400).json({
+                error: 'Scroll percentage must be between 0 and 100'
+            });
+        }
+        
+        // Update the latest metrics record for this user and notice
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_METRICS 
+            SET SCROLL_PERCENTAGE = ${scrollPercentage},
+                LAST_UPDATE_TIME = GETDATE()
+            WHERE NOTICE_ID = ${noticeId} 
+                AND USER_ID = ${req.userId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND METRIC_ID = (
+                    SELECT TOP 1 METRIC_ID 
+                    FROM GUARDIAN.NOTICE_METRICS 
+                    WHERE NOTICE_ID = ${noticeId} 
+                        AND USER_ID = ${req.userId} 
+                        AND COMPANY_ID = ${req.companyId}
+                    ORDER BY VIEW_START_TIME DESC
+                )
+        `;
+        
+        console.log(`✅ Updated scroll tracking for notice ${noticeId}`);
+        res.json({ 
+            success: true,
+            message: 'Scroll tracking updated'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error updating notice scroll tracking:', error);
+        res.status(500).json({
+            error: 'Failed to update scroll tracking',
+            message: error.message
+        });
+    }
+});
+
+// Track user interaction with notice
+app.post('/api/notices/:id/analytics/interaction', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { interactionType } = req.body;
+        
+        console.log(`📊 Recording interaction '${interactionType}' for notice ${noticeId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        if (!interactionType) {
+            return res.status(400).json({
+                error: 'Interaction type is required'
+            });
+        }
+        
+        // Update interaction count for the latest metrics record
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_METRICS 
+            SET INTERACTION_COUNT = ISNULL(INTERACTION_COUNT, 0) + 1,
+                LAST_UPDATE_TIME = GETDATE()
+            WHERE NOTICE_ID = ${noticeId} 
+                AND USER_ID = ${req.userId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND METRIC_ID = (
+                    SELECT TOP 1 METRIC_ID 
+                    FROM GUARDIAN.NOTICE_METRICS 
+                    WHERE NOTICE_ID = ${noticeId} 
+                        AND USER_ID = ${req.userId} 
+                        AND COMPANY_ID = ${req.companyId}
+                    ORDER BY VIEW_START_TIME DESC
+                )
+        `;
+        
+        console.log(`✅ Recorded interaction for notice ${noticeId}`);
+        res.json({ 
+            success: true,
+            message: 'Interaction recorded'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error recording notice interaction:', error);
+        res.status(500).json({
+            error: 'Failed to record interaction',
+            message: error.message
+        });
+    }
+});
+
+// End view tracking with completion data
+app.put('/api/notices/:id/analytics/end', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { completionStatus, finalScrollPercentage } = req.body;
+        
+        console.log(`📊 Ending view tracking for notice ${noticeId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Calculate view duration and update completion data
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_METRICS 
+            SET VIEW_END_TIME = GETDATE(),
+                VIEW_DURATION_SECONDS = DATEDIFF(SECOND, VIEW_START_TIME, GETDATE()),
+                COMPLETION_STATUS = ${completionStatus || 'partial'},
+                SCROLL_PERCENTAGE = COALESCE(${finalScrollPercentage}, SCROLL_PERCENTAGE, 0),
+                LAST_UPDATE_TIME = GETDATE()
+            WHERE NOTICE_ID = ${noticeId} 
+                AND USER_ID = ${req.userId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND METRIC_ID = (
+                    SELECT TOP 1 METRIC_ID 
+                    FROM GUARDIAN.NOTICE_METRICS 
+                    WHERE NOTICE_ID = ${noticeId} 
+                        AND USER_ID = ${req.userId} 
+                        AND COMPANY_ID = ${req.companyId}
+                        AND VIEW_END_TIME IS NULL
+                    ORDER BY VIEW_START_TIME DESC
+                )
+        `;
+        
+        console.log(`✅ Ended view tracking for notice ${noticeId}`);
+        res.json({ 
+            success: true,
+            message: 'View tracking completed'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error ending notice view tracking:', error);
+        res.status(500).json({
+            error: 'Failed to end view tracking',
+            message: error.message
+        });
+    }
+});
+
+// Get analytics for specific notice (admin only)
+app.get('/api/notices/:id/analytics', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        
+        console.log(`📊 Fetching analytics for notice ${noticeId} (Company: ${req.companyId})`);
+        
+        if (!noticeId || isNaN(noticeId)) {
+            return res.status(400).json({
+                error: 'Valid notice ID is required'
+            });
+        }
+        
+        // Check if user has admin privileges (role 1 or 6)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Access denied: Admin privileges required'
+            });
+        }
+        
+        // Verify notice exists and belongs to user's company
+        const notice = await prisma.$queryRaw`
+            SELECT NOTICE_ID, TITLE FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (notice.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        // Get detailed analytics for the notice
+        const analytics = await prisma.$queryRaw`
+            SELECT 
+                nm.METRIC_ID,
+                nm.USER_ID,
+                u.FIRST_NAME + ' ' + u.LAST_NAME as USER_NAME,
+                nm.VIEW_START_TIME,
+                nm.VIEW_END_TIME,
+                nm.VIEW_DURATION_SECONDS,
+                nm.SCROLL_PERCENTAGE,
+                nm.DEVICE_TYPE,
+                nm.REFERRER_SOURCE,
+                nm.INTERACTION_COUNT,
+                nm.COMPLETION_STATUS,
+                nm.LAST_UPDATE_TIME
+            FROM GUARDIAN.NOTICE_METRICS nm
+            JOIN GUARDIAN.USERS u ON nm.USER_ID = u.USER_ID
+            WHERE nm.NOTICE_ID = ${noticeId} 
+                AND nm.COMPANY_ID = ${req.companyId}
+            ORDER BY nm.VIEW_START_TIME DESC
+        `;
+        
+        // Get summary statistics
+        const summary = await prisma.$queryRaw`
+            SELECT 
+                COUNT(DISTINCT nm.USER_ID) as UNIQUE_VIEWERS,
+                COUNT(*) as TOTAL_VIEWS,
+                AVG(CAST(nm.VIEW_DURATION_SECONDS AS FLOAT)) as AVG_VIEW_DURATION,
+                AVG(CAST(nm.SCROLL_PERCENTAGE AS FLOAT)) as AVG_SCROLL_PERCENTAGE,
+                SUM(CAST(nm.INTERACTION_COUNT AS INT)) as TOTAL_INTERACTIONS,
+                SUM(CASE WHEN nm.COMPLETION_STATUS = 'complete' THEN 1 ELSE 0 END) as COMPLETED_VIEWS,
+                SUM(CASE WHEN nm.COMPLETION_STATUS = 'partial' THEN 1 ELSE 0 END) as PARTIAL_VIEWS
+            FROM GUARDIAN.NOTICE_METRICS nm
+            WHERE nm.NOTICE_ID = ${noticeId} 
+                AND nm.COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Retrieved analytics for notice ${noticeId}`);
+        res.json({
+            notice: notice[0],
+            summary: summary[0] || {},
+            details: analytics || []
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching notice analytics:', error);
+        res.status(500).json({
+            error: 'Failed to fetch analytics',
+            message: error.message
+        });
+    }
+});
+
+// Get company-wide notice analytics (admin only)
+app.get('/api/notices/analytics/company', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📊 Fetching company-wide notice analytics (Company: ${req.companyId})`);
+        
+        // Check if user has admin privileges (role 1 or 6)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const isAdmin = roleIds.includes(1) || roleIds.includes(6);
+        
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Access denied: Admin privileges required'
+            });
+        }
+        
+        // Get overall company statistics
+        const companySummary = await prisma.$queryRaw`
+            SELECT 
+                COUNT(DISTINCT nm.NOTICE_ID) as TOTAL_NOTICES_WITH_VIEWS,
+                COUNT(DISTINCT nm.USER_ID) as UNIQUE_VIEWERS,
+                COUNT(*) as TOTAL_VIEWS,
+                AVG(CAST(nm.VIEW_DURATION_SECONDS AS FLOAT)) as AVG_VIEW_DURATION,
+                AVG(CAST(nm.SCROLL_PERCENTAGE AS FLOAT)) as AVG_SCROLL_PERCENTAGE,
+                SUM(CAST(nm.INTERACTION_COUNT AS INT)) as TOTAL_INTERACTIONS,
+                SUM(CASE WHEN nm.COMPLETION_STATUS = 'complete' THEN 1 ELSE 0 END) as COMPLETED_VIEWS,
+                SUM(CASE WHEN nm.COMPLETION_STATUS = 'partial' THEN 1 ELSE 0 END) as PARTIAL_VIEWS
+            FROM GUARDIAN.NOTICE_METRICS nm
+            WHERE nm.COMPANY_ID = ${req.companyId}
+        `;
+        
+        // Get per-notice statistics
+        const noticeStats = await prisma.$queryRaw`
+            SELECT 
+                n.NOTICE_ID,
+                n.TITLE,
+                n.CREATED_DATE,
+                COUNT(DISTINCT nm.USER_ID) as UNIQUE_VIEWERS,
+                COUNT(*) as TOTAL_VIEWS,
+                AVG(CAST(nm.VIEW_DURATION_SECONDS AS FLOAT)) as AVG_VIEW_DURATION,
+                AVG(CAST(nm.SCROLL_PERCENTAGE AS FLOAT)) as AVG_SCROLL_PERCENTAGE,
+                SUM(CAST(nm.INTERACTION_COUNT AS INT)) as TOTAL_INTERACTIONS,
+                SUM(CASE WHEN nm.COMPLETION_STATUS = 'complete' THEN 1 ELSE 0 END) as COMPLETED_VIEWS,
+                SUM(CASE WHEN nm.COMPLETION_STATUS = 'partial' THEN 1 ELSE 0 END) as PARTIAL_VIEWS,
+                MAX(nm.VIEW_START_TIME) as LAST_VIEWED
+            FROM GUARDIAN.NOTICES n
+            LEFT JOIN GUARDIAN.NOTICE_METRICS nm ON n.NOTICE_ID = nm.NOTICE_ID
+            WHERE n.COMPANY_ID = ${req.companyId}
+            GROUP BY n.NOTICE_ID, n.TITLE, n.CREATED_DATE
+            ORDER BY LAST_VIEWED DESC, n.CREATED_DATE DESC
+        `;
+        
+        // Get device type breakdown
+        const deviceStats = await prisma.$queryRaw`
+            SELECT 
+                nm.DEVICE_TYPE,
+                COUNT(*) as VIEW_COUNT,
+                COUNT(DISTINCT nm.USER_ID) as UNIQUE_USERS
+            FROM GUARDIAN.NOTICE_METRICS nm
+            WHERE nm.COMPANY_ID = ${req.companyId}
+            GROUP BY nm.DEVICE_TYPE
+            ORDER BY VIEW_COUNT DESC
+        `;
+        
+        console.log(`✅ Retrieved company-wide analytics for ${noticeStats.length} notices`);
+        res.json({
+            companySummary: companySummary[0] || {},
+            noticeStats: noticeStats || [],
+            deviceStats: deviceStats || []
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching company analytics:', error);
+        res.status(500).json({
+            error: 'Failed to fetch company analytics',
             message: error.message
         });
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
-import { Save, X, Users, FileText, Bell } from 'lucide-react';
+import { Save, X, Users, FileText, Bell, AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService from '../services/noticeService';
 
@@ -30,6 +30,8 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
     title: '',
     content: '',
     noticeType: 'GENERAL',
+    priorityLevel: 'MEDIUM',
+    dueDate: '',
     recipients: [] as number[],
     publishImmediately: false
   });
@@ -43,10 +45,17 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
   // Notice types
   const noticeTypes = [
     { value: 'GENERAL', label: 'General Announcement', icon: <Bell size={16} /> },
-    { value: 'URGENT', label: 'Urgent Notice', icon: <Bell size={16} /> },
+    { value: 'URGENT', label: 'Urgent Notice', icon: <AlertTriangle size={16} /> },
     { value: 'POLICY', label: 'Policy Update', icon: <FileText size={16} /> },
     { value: 'MAINTENANCE', label: 'Maintenance Notice', icon: <FileText size={16} /> },
     { value: 'TRAINING', label: 'Training Announcement', icon: <Users size={16} /> }
+  ];
+
+  // Priority levels
+  const priorityLevels = [
+    { value: 'HIGH', label: 'High Priority', icon: <AlertTriangle size={16} className="text-danger" />, color: 'text-danger' },
+    { value: 'MEDIUM', label: 'Medium Priority', icon: <Bell size={16} className="text-warning" />, color: 'text-warning' },
+    { value: 'LOW', label: 'Low Priority', icon: <Clock size={16} className="text-info" />, color: 'text-info' }
   ];
 
   // Load users when modal opens
@@ -151,6 +160,8 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
         title: formData.title.trim(),
         content: formData.content.trim(),
         noticeType: formData.noticeType,
+        priorityLevel: formData.priorityLevel,
+        dueDate: formData.dueDate || null,
         recipients: formData.recipients,
         status: formData.publishImmediately ? 'PUBLISHED' : 'DRAFT'
       };
@@ -168,6 +179,8 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
         title: '',
         content: '',
         noticeType: 'GENERAL',
+        priorityLevel: 'MEDIUM',
+        dueDate: '',
         recipients: [],
         publishImmediately: false
       });
@@ -193,6 +206,8 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
         title: '',
         content: '',
         noticeType: 'GENERAL',
+        priorityLevel: 'MEDIUM',
+        dueDate: '',
         recipients: [],
         publishImmediately: false
       });
@@ -259,6 +274,41 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
               ))}
             </Form.Select>
           </Form.Group>
+
+          {/* Priority Level and Due Date Row */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <Form.Group>
+                <Form.Label className="fw-medium">Priority Level</Form.Label>
+                <Form.Select
+                  value={formData.priorityLevel}
+                  onChange={(e) => handleInputChange('priorityLevel', e.target.value)}
+                  disabled={loading}
+                >
+                  {priorityLevels.map((priority) => (
+                    <option key={priority.value} value={priority.value}>
+                      {priority.label}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </div>
+            <div className="col-md-6">
+              <Form.Group>
+                <Form.Label className="fw-medium">Due Date (Optional)</Form.Label>
+                <Form.Control
+                  type="datetime-local"
+                  value={formData.dueDate}
+                  onChange={(e) => handleInputChange('dueDate', e.target.value)}
+                  disabled={loading}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+                <Form.Text className="text-muted">
+                  Leave empty for notices without deadlines
+                </Form.Text>
+              </Form.Group>
+            </div>
+          </div>
 
           {/* Notice Content */}
           <Form.Group className="mb-3">

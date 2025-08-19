@@ -7,6 +7,8 @@ export interface Notice {
   CONTENT: string;
   NOTICE_TYPE: string;
   STATUS: string;
+  PRIORITY_LEVEL: string;
+  DUE_DATE: string | null;
   ISSUED_BY_USER_ID: number;
   ISSUE_DATE: string | null;
   COMPANY_ID: number;
@@ -280,6 +282,8 @@ class NoticeService {
     noticeType: string;
     recipients: number[];
     status?: string;
+    priorityLevel?: string;
+    dueDate?: string;
     formTemplateId?: number;
   }): Promise<Notice> {
     try {
@@ -290,6 +294,8 @@ class NoticeService {
         NOTICE_TYPE: noticeData.noticeType,
         recipientUserIds: noticeData.recipients,
         STATUS: noticeData.status || 'DRAFT',
+        PRIORITY_LEVEL: noticeData.priorityLevel || 'MEDIUM',
+        DUE_DATE: noticeData.dueDate || null,
         FORM_TEMPLATE_ID: noticeData.formTemplateId || null
       };
       
@@ -334,6 +340,22 @@ class NoticeService {
   }
 
   /**
+   * Get status badge color for notice status
+   */
+  getStatusBadgeColor(status: string): string {
+    switch (status) {
+      case 'DRAFT':
+        return 'warning';
+      case 'PUBLISHED':
+        return 'success';
+      case 'CANCELLED':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  }
+
+  /**
    * Utility method to check if user has read a notice
    */
   hasUserReadNotice(notice: Notice, userId: number): boolean {
@@ -359,6 +381,122 @@ class NoticeService {
       case 'PUBLISHED': return 'success';
       case 'CANCELLED': return 'danger';
       default: return 'secondary';
+    }
+  }
+
+  /**
+   * Start view tracking for analytics
+   */
+  async startViewTracking(noticeId: number, trackingData: {
+    deviceType: string;
+    referrerSource: string;
+    viewStartTime: string;
+  }): Promise<void> {
+    try {
+      await api.post(`/api/notices/${noticeId}/analytics/start`, trackingData);
+    } catch (error) {
+      console.error(`Error starting view tracking for notice ${noticeId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update scroll tracking for analytics
+   */
+  async updateScrollTracking(noticeId: number, scrollPercentage: number): Promise<void> {
+    try {
+      await api.put(`/api/notices/${noticeId}/analytics/scroll`, {
+        scrollPercentage
+      });
+    } catch (error) {
+      console.error(`Error updating scroll tracking for notice ${noticeId}:`, error);
+      // Don't throw error for scroll tracking to avoid disrupting user experience
+    }
+  }
+
+  /**
+   * Track user interaction for analytics
+   */
+  async trackInteraction(noticeId: number, interactionType: string): Promise<void> {
+    try {
+      await api.post(`/api/notices/${noticeId}/analytics/interaction`, {
+        interactionType
+      });
+    } catch (error) {
+      console.error(`Error tracking interaction for notice ${noticeId}:`, error);
+      // Don't throw error for interaction tracking to avoid disrupting user experience
+    }
+  }
+
+  /**
+   * End view tracking for analytics
+   */
+  async endViewTracking(noticeId: number, trackingData: {
+    viewEndTime: string;
+    viewDurationSeconds: number;
+    scrollPercentage: number;
+    interactionCount: number;
+    isCompletedView: boolean;
+  }): Promise<void> {
+    try {
+      await api.put(`/api/notices/${noticeId}/analytics/end`, trackingData);
+    } catch (error) {
+      console.error(`Error ending view tracking for notice ${noticeId}:`, error);
+      // Don't throw error for end tracking to avoid disrupting user experience
+    }
+  }
+
+  /**
+   * Get notice analytics data (admin only)
+   */
+  async getNoticeAnalytics(noticeId: number): Promise<{
+    totalViews: number;
+    uniqueViewers: number;
+    averageViewDuration: number;
+    completionRate: number;
+    averageScrollPercentage: number;
+    totalInteractions: number;
+    deviceBreakdown: { [key: string]: number };
+    referrerBreakdown: { [key: string]: number };
+    viewTrends: Array<{ date: string; views: number; }>;
+  }> {
+    try {
+      const response = await api.get(`/api/notices/${noticeId}/analytics`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching analytics for notice ${noticeId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get company-wide notice analytics summary (admin only)
+   */
+  async getCompanyNoticeAnalytics(dateFrom?: string, dateTo?: string): Promise<{
+    totalNotices: number;
+    totalViews: number;
+    averageEngagement: number;
+    topNotices: Array<{
+      noticeId: number;
+      title: string;
+      views: number;
+      completionRate: number;
+    }>;
+    engagementTrends: Array<{ date: string; views: number; completions: number; }>;
+  }> {
+    try {
+      const params = new URLSearchParams();
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
+      
+      const queryString = params.toString();
+      const url = `/api/notices/analytics/company${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching company notice analytics:', error);
+      throw error;
     }
   }
 }

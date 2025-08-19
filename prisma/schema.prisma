@@ -428,6 +428,8 @@ model NOTICES {
   CONTENT              String                 @db.VarChar(4000)
   NOTICE_TYPE          String                 @db.VarChar(50)
   STATUS               String                 @default("DRAFT") @db.VarChar(20)
+  PRIORITY_LEVEL       String                 @default("MEDIUM") @db.VarChar(10)
+  DUE_DATE             DateTime?              @db.DateTime
   ISSUED_BY_USER_ID    Int
   ISSUE_DATE           DateTime?              @db.DateTime
   COMPANY_ID           Int
