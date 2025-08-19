@@ -272,6 +272,36 @@ class NoticeService {
   }
 
   /**
+   * Create a new notice
+   */
+  async createNotice(noticeData: {
+    title: string;
+    content: string;
+    noticeType: string;
+    recipients: number[];
+    status?: string;
+    formTemplateId?: number;
+  }): Promise<Notice> {
+    try {
+      // Transform data to match API expectations
+      const apiData = {
+        TITLE: noticeData.title,
+        CONTENT: noticeData.content,
+        NOTICE_TYPE: noticeData.noticeType,
+        recipientUserIds: noticeData.recipients,
+        STATUS: noticeData.status || 'DRAFT',
+        FORM_TEMPLATE_ID: noticeData.formTemplateId || null
+      };
+      
+      const response = await api.post('/api/notices', apiData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating notice:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Publish a draft notice (change status from DRAFT to PUBLISHED)
    */
   async publishNotice(noticeId: number): Promise<Notice> {

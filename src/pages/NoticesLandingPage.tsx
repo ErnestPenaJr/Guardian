@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { Search, Calendar, Filter, Plus, Bell, Eye, Users } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService, { Notice, NoticeFilters } from '../services/noticeService';
+import CreateNoticeModal from '../components/CreateNoticeModal';
 import '../styles/RequestDashboard.css'; // Reuse existing styles
 
 interface NoticesLandingPageProps {}
@@ -26,6 +27,9 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
   const [dateFromFilter, setDateFromFilter] = useState<string>('');
   const [dateToFilter, setDateToFilter] = useState<string>('');
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
   // Role-based access control - check if user can see "All Notices" tab
   const hasAllNoticesAccess = useMemo(() => {
@@ -177,6 +181,14 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
       month: '2-digit',
       day: '2-digit'
     });
+  };
+
+  // Handler for when a notice is successfully created
+  const handleNoticeCreated = () => {
+    // Refresh the notices list
+    loadNotices();
+    // Close the modal
+    setShowCreateModal(false);
   };
 
   // Define table columns
@@ -334,7 +346,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
         <div className="d-flex align-items-center gap-2">
           {/* Refresh Button */}
           <button
-            className="btn btn-outline-secondary"
+            className="btn btn-outline-secondary d-flex align-items-center"
             style={{ minWidth: 100 }}
             onClick={() => {
               setLoading(true);
@@ -352,12 +364,9 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
           {/* New Notice Button */}
           {hasCreateNoticeAccess && (
             <button 
-              className="btn bg-warning text-dark" 
+              className="btn bg-warning text-dark d-flex align-items-center" 
               style={{ minWidth: 140 }} 
-              onClick={() => {
-                // Navigate to create notice page
-                window.location.href = '/notices/create';
-              }}
+              onClick={() => setShowCreateModal(true)}
             >
               <Plus size={16} className="me-1" />
               New Notice
@@ -366,7 +375,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
 
           {/* Filter Toggle */}
           <button
-            className="btn btn-outline-secondary"
+            className="btn btn-outline-secondary d-flex align-items-center"
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter size={16} className="me-1" />
@@ -540,6 +549,13 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
             )}
           </div>
         }
+      />
+
+      {/* Create Notice Modal */}
+      <CreateNoticeModal
+        show={showCreateModal}
+        onHide={() => setShowCreateModal(false)}
+        onNoticeCreated={handleNoticeCreated}
       />
     </div>
   );

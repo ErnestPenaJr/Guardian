@@ -6915,7 +6915,7 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
         
-        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipientUserIds } = req.body;
+        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipientUserIds, STATUS } = req.body;
         
         if (!TITLE || !CONTENT || !NOTICE_TYPE) {
             return res.status(400).json({
@@ -6943,6 +6943,8 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
         }
         
         // Create notice
+        const issueDate = STATUS === 'PUBLISHED' ? new Date().toISOString() : null;
+        
         const result = await prisma.$queryRaw`
             INSERT INTO GUARDIAN.NOTICES (
                 TITLE, CONTENT, NOTICE_TYPE, STATUS, ISSUED_BY_USER_ID, 
@@ -6951,8 +6953,8 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
             )
             OUTPUT INSERTED.NOTICE_ID
             VALUES (
-                ${TITLE}, ${CONTENT}, ${NOTICE_TYPE}, 'DRAFT', ${req.userId},
-                NULL, ${req.companyId}, ${FORM_TEMPLATE_ID || null}, 1,
+                ${TITLE}, ${CONTENT}, ${NOTICE_TYPE}, ${STATUS || 'DRAFT'}, ${req.userId},
+                ${issueDate}, ${req.companyId}, ${FORM_TEMPLATE_ID || null}, 1,
                 0, GETDATE(), ${req.userId}
             )
         `;
