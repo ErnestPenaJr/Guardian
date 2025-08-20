@@ -562,6 +562,18 @@ app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
 });
 
+// Debug authentication test endpoint
+app.get('/api/debug/auth-test', getAuthenticatedUserCompany, (req, res) => {
+    console.log('🔍 [DEBUG] Auth test endpoint reached successfully');
+    res.json({
+        success: true,
+        userId: req.userId,
+        companyId: req.companyId,
+        userRoleIds: req.userRoleIds,
+        message: 'Authentication successful'
+    });
+});
+
 app.get('/api/debug/endpoints', (req, res) => {
     res.json({
         success: true,

@@ -354,6 +354,163 @@ app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
 });
 
+// Asset verification debug endpoint
+app.get('/api/debug/assets', async (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        console.log('🔍 Asset verification requested');
+        
+        // Check for critical files and directories
+        const assetsDir = path.join(__dirname, 'assets');
+        const indexFile = path.join(__dirname, 'index.html');
+        
+        const verification = {
+            timestamp: new Date().toISOString(),
+            deployment_directory: __dirname,
+            checks: {
+                index_html: fs.existsSync(indexFile),
+                assets_directory: fs.existsSync(assetsDir),
+                assets_contents: [],
+                total_files: 0
+            }
+        };
+        
+        // List assets directory contents if it exists
+        if (verification.checks.assets_directory) {
+            try {
+                const assetFiles = fs.readdirSync(assetsDir);
+                verification.checks.assets_contents = assetFiles.map(file => {
+                    const filePath = path.join(assetsDir, file);
+                    const stats = fs.statSync(filePath);
+                    return {
+                        name: file,
+                        size: stats.size,
+                        type: path.extname(file),
+                        modified: stats.mtime
+                    };
+                });
+                verification.checks.total_files = assetFiles.length;
+            } catch (err) {
+                verification.checks.assets_error = err.message;
+            }
+        }
+        
+        // Check for common asset patterns
+        if (verification.checks.assets_directory) {
+            const hasJS = verification.checks.assets_contents.some(f => f.name.includes('index-') && f.name.endsWith('.js'));
+            const hasCSS = verification.checks.assets_contents.some(f => f.name.includes('index-') && f.name.endsWith('.css'));
+            
+            verification.checks.critical_assets = {
+                main_js_found: hasJS,
+                main_css_found: hasCSS,
+                total_js_files: verification.checks.assets_contents.filter(f => f.name.endsWith('.js')).length,
+                total_css_files: verification.checks.assets_contents.filter(f => f.name.endsWith('.css')).length
+            };
+        }
+        
+        console.log('📊 Asset verification:', verification);
+        res.json(verification);
+        
+    } catch (error) {
+        console.error('❌ Asset verification failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Asset verification failed',
+            error: error.message
+        });
+    }
+});
+
+// Deployment info debug endpoint
+app.get('/api/debug/deployment', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        console.log('🔍 Deployment info requested');
+        
+        const deploymentInfo = {
+            timestamp: new Date().toISOString(),
+            server_info: {
+                working_directory: __dirname,
+                node_version: process.version,
+                platform: process.platform,
+                uptime: process.uptime(),
+                memory_usage: process.memoryUsage(),
+                environment: process.env.NODE_ENV || 'development'
+            },
+            static_serving: {
+                enabled: true,
+                method: 'express_static_with_spa_fallback',
+                directory: '.',
+                notes: 'Express serves static files with SPA fallback route'
+            },
+            files_check: {
+                server_cjs: fs.existsSync(path.join(__dirname, 'server.cjs')),
+                index_html: fs.existsSync(path.join(__dirname, 'index.html')),
+                package_json: fs.existsSync(path.join(__dirname, 'package.json')),
+                assets_dir: fs.existsSync(path.join(__dirname, 'assets'))
+            }
+        };
+        
+        console.log('📊 Deployment info:', deploymentInfo);
+        res.json(deploymentInfo);
+        
+    } catch (error) {
+        console.error('❌ Deployment info failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Deployment info failed',
+            error: error.message
+        });
+    }
+});
+
+// Asset serving test endpoint - serves a specific asset through Node.js
+app.get('/api/debug/serve-asset/:filename', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        const filename = req.params.filename;
+        const assetPath = path.join(__dirname, 'assets', filename);
+        
+        console.log(`🔍 Testing asset serving for: ${filename}`);
+        console.log(`🔍 Full path: ${assetPath}`);
+        
+        if (!fs.existsSync(assetPath)) {
+            console.log(`❌ Asset not found: ${assetPath}`);
+            return res.status(404).json({
+                status: 'not_found',
+                filename,
+                path: assetPath,
+                message: 'Asset file not found'
+            });
+        }
+        
+        // Set proper content type
+        if (filename.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (filename.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+        
+        console.log(`✅ Serving asset through Node.js: ${filename}`);
+        res.sendFile(assetPath);
+        
+    } catch (error) {
+        console.error('❌ Asset serving failed:', error);
+        res.status(500).json({
+            status: 'error',
+            filename: req.params.filename,
+            message: 'Asset serving failed',
+            error: error.message
+        });
+    }
+});
+
 app.get('/api/debug/endpoints', (req, res) => {
     res.json({
         success: true,
