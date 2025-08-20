@@ -292,27 +292,23 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// Check if running in development mode with Vite
-const isDevelopmentWithVite = process.env.NODE_ENV !== 'production' && 
-                              process.argv.includes('--dev-mode');
+// PRODUCTION MODE: Always serve static files with proper MIME types
+// This file (server-production.js) is used exclusively for production deployment
+console.log('📁 PRODUCTION SERVER: Serving static files from deployment directory');
 
-if (isDevelopmentWithVite) {
-  // In development mode with Vite, static files are served by Vite dev server (port 5175)
-  // This backend server only handles API endpoints
-  console.log('🔧 Development mode detected: Static files served by Vite on port 5175');
-} else {
-  // In production mode, serve static files from current directory (where dist contents are deployed)
-  app.use(express.static('.', {
-    index: 'index.html',
-    setHeaders: (res, path) => {
-      // Set proper MIME types for JavaScript modules
-      if (path.endsWith('.js') || path.endsWith('.mjs')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      }
+app.use(express.static('.', {
+  index: 'index.html',
+  setHeaders: (res, path) => {
+    // Set proper MIME types for JavaScript modules
+    if (path.endsWith('.js') || path.endsWith('.mjs')) {
+      res.setHeader('Content-Type', 'application/javascript');
+      console.log(`📜 Serving JS file with correct MIME type: ${path}`);
     }
-  }));
-  console.log('📁 Production mode: Serving static files from current directory');
-}
+    if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+  }
+}));
 
 // === API ROUTES ===
 
@@ -10333,27 +10329,20 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// Handle all non-API routes for React Router (must be last!)
-if (!isDevelopmentWithVite) {
-  // Only add SPA fallback route in production mode
-  app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'index.html'));
-  });
-  console.log('🔧 Production mode: SPA fallback route enabled');
-} else {
-  console.log('🔧 Development mode: SPA routing handled by Vite dev server');
-}
+// Handle all non-API and non-static routes for React Router (must be last!)
+// Only catch routes that don't start with /assets/, /api/, or /logout
+app.get(/^(?!\/assets\/|\/api\/|\/logout).*/, (req, res) => {
+    console.log(`🔄 SPA fallback serving index.html for route: ${req.path}`);
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+console.log('🔧 PRODUCTION: SPA fallback route enabled with asset exclusions');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    if (isDevelopmentWithVite) {
-        console.log(`🔧 Development mode: API server only (frontend on port 5175)`);
-    } else {
-        console.log(`📁 Production mode: Serving static files from ${path.join(__dirname, 'dist')}`);
-    }
+    console.log(`📁 PRODUCTION MODE: Serving static files from deployment directory`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
-    console.log('🎉 Server startup complete!');
+    console.log('🎉 PRODUCTION SERVER startup complete!');
 });
 
 // Graceful shutdown
