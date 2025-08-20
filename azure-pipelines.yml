@@ -14,6 +14,8 @@ steps:
 - script: |
     echo "Installing dependencies..."
     npm install
+    echo "Cleaning previous builds..."
+    rm -rf dist dist-server
     echo "Building frontend..."
     npm run build
     echo "Building backend..."
@@ -22,6 +24,8 @@ steps:
     ls -la dist
     echo "Assets directory:"
     ls -la dist/assets
+    echo "Checking index.html for asset references:"
+    grep -E "(index-.*\.js|index-.*\.css)" dist/index.html
     echo "Server directory contents:"
     ls -la dist-server
   displayName: 'Install dependencies and build'
