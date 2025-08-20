@@ -25,6 +25,7 @@ import noticeService, { Notice, NoticeRecipient, NoticeReadStatus } from '../ser
 import Layout from '../components/Layout';
 import NoticeAnalyticsDashboard from '../components/NoticeAnalyticsDashboard';
 import NoticeResponseModal, { NoticeResponse } from '../components/NoticeResponseModal';
+import NoticeUpdatesThread from '../components/NoticeUpdatesThread';
 import '../styles/RequestDashboard.css';
 
 interface NoticeDetailsPageProps {}
@@ -779,6 +780,20 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notice Updates & Threading */}
+        {notice.STATUS === 'PUBLISHED' && (
+          <div className="card mb-4">
+            <div className="card-body">
+              <NoticeUpdatesThread
+                noticeId={notice.NOTICE_ID}
+                noticeTitle={notice.TITLE}
+                isAdmin={hasAdminAccess}
+                canAddUpdates={hasEditAccess || hasAdminAccess}
+              />
             </div>
           </div>
         )}

@@ -304,6 +304,7 @@ app.get('/api/debug/endpoints', (req, res) => {
         version: '2.0.0',
         endpoints: [
             '/api/users', '/api/users/company/:companyId', '/api/invites', 
+            '/api/contact-groups', '/api/contact-groups/:id', '/api/contact-groups/:id/members',
             '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/custom-templates', '/api/custom-templates/:id',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
@@ -1580,6 +1581,594 @@ app.delete('/api/invites/:id', getAuthenticatedUserCompany, async (req, res) => 
         console.error('❌ Error deleting invite:', error);
         res.status(500).json({
             error: 'Failed to delete invite',
+            message: error.message
+        });
+    }
+});
+
+// === CONTACT GROUPS MANAGEMENT ENDPOINTS ===
+
+// Get contact groups endpoint
+app.get('/api/contact-groups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📧 Fetching contact groups for company ID: ${req.companyId}`);
+        
+        const contactGroups = await prisma.$queryRaw`
+            SELECT 
+                ncg.CONTACT_GROUP_ID,
+                ncg.GROUP_NAME,
+                ncg.GROUP_DESCRIPTION,
+                ncg.GROUP_TYPE,
+                ncg.COMPANY_ID,
+                ncg.CREATED_BY_USER_ID,
+                ncg.GROUP_STATUS,
+                ncg.IS_PUBLIC,
+                ncg.IS_SYSTEM_GROUP,
+                ncg.AUTO_UPDATE,
+                ncg.AUTO_UPDATE_CRITERIA,
+                ncg.MEMBER_COUNT,
+                ncg.LAST_USED_DATE,
+                ncg.USAGE_COUNT,
+                ncg.ACCESS_LEVEL,
+                ncg.NOTIFICATION_PREFERENCES,
+                ncg.GROUP_COLOR,
+                ncg.GROUP_ICON,
+                ncg.SORT_ORDER,
+                ncg.CREATE_DATE,
+                ncg.UPDATE_DATE,
+                u.FIRST_NAME as CREATOR_FIRST_NAME,
+                u.LAST_NAME as CREATOR_LAST_NAME,
+                u.EMAIL as CREATOR_EMAIL
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS ncg
+            LEFT JOIN GUARDIAN.USERS u ON ncg.CREATED_BY_USER_ID = u.USER_ID
+            WHERE ncg.COMPANY_ID = ${req.companyId}
+            ORDER BY ncg.SORT_ORDER ASC, ncg.GROUP_NAME ASC
+        `;
+
+        console.log(`✅ Found ${contactGroups.length} contact groups for company ${req.companyId}`);
+        
+        res.json(contactGroups);
+    } catch (error) {
+        console.error('❌ Error fetching contact groups:', error);
+        res.status(500).json({
+            error: 'Failed to fetch contact groups',
+            message: error.message
+        });
+    }
+});
+
+// Create contact group endpoint
+app.post('/api/contact-groups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const {
+            GROUP_NAME,
+            GROUP_DESCRIPTION,
+            GROUP_TYPE = 'CUSTOM',
+            IS_PUBLIC = false,
+            AUTO_UPDATE = false,
+            AUTO_UPDATE_CRITERIA,
+            ACCESS_LEVEL = 'ADMIN_ONLY',
+            NOTIFICATION_PREFERENCES,
+            GROUP_COLOR,
+            GROUP_ICON,
+            SORT_ORDER = 0
+        } = req.body;
+
+        console.log(`➕ Creating contact group "${GROUP_NAME}" for company ${req.companyId}`);
+
+        if (!GROUP_NAME || GROUP_NAME.trim().length === 0) {
+            return res.status(400).json({
+                error: 'Group name is required'
+            });
+        }
+
+        // Check for duplicate group names within company
+        const existingGroup = await prisma.$queryRaw`
+            SELECT CONTACT_GROUP_ID 
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+            WHERE COMPANY_ID = ${req.companyId} AND LOWER(TRIM(GROUP_NAME)) = LOWER(TRIM(${GROUP_NAME}))
+        `;
+
+        if (existingGroup.length > 0) {
+            return res.status(400).json({
+                error: 'A contact group with this name already exists'
+            });
+        }
+
+        // Create the contact group
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.NOTICE_CONTACT_GROUPS (
+                GROUP_NAME, GROUP_DESCRIPTION, GROUP_TYPE, COMPANY_ID, 
+                CREATED_BY_USER_ID, IS_PUBLIC, AUTO_UPDATE, AUTO_UPDATE_CRITERIA,
+                ACCESS_LEVEL, NOTIFICATION_PREFERENCES, GROUP_COLOR, GROUP_ICON,
+                SORT_ORDER, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+            )
+            VALUES (
+                ${GROUP_NAME}, ${GROUP_DESCRIPTION || null}, ${GROUP_TYPE}, ${req.companyId},
+                ${req.userId}, ${IS_PUBLIC ? 1 : 0}, ${AUTO_UPDATE ? 1 : 0}, ${AUTO_UPDATE_CRITERIA || null},
+                ${ACCESS_LEVEL}, ${NOTIFICATION_PREFERENCES || null}, ${GROUP_COLOR || null}, ${GROUP_ICON || null},
+                ${SORT_ORDER}, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+            )
+        `;
+
+        // Get the created contact group
+        const newGroup = await prisma.$queryRaw`
+            SELECT 
+                ncg.CONTACT_GROUP_ID,
+                ncg.GROUP_NAME,
+                ncg.GROUP_DESCRIPTION,
+                ncg.GROUP_TYPE,
+                ncg.COMPANY_ID,
+                ncg.CREATED_BY_USER_ID,
+                ncg.GROUP_STATUS,
+                ncg.IS_PUBLIC,
+                ncg.IS_SYSTEM_GROUP,
+                ncg.AUTO_UPDATE,
+                ncg.MEMBER_COUNT,
+                ncg.ACCESS_LEVEL,
+                ncg.CREATE_DATE,
+                u.FIRST_NAME as CREATOR_FIRST_NAME,
+                u.LAST_NAME as CREATOR_LAST_NAME
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS ncg
+            LEFT JOIN GUARDIAN.USERS u ON ncg.CREATED_BY_USER_ID = u.USER_ID
+            WHERE ncg.COMPANY_ID = ${req.companyId} AND ncg.CREATED_BY_USER_ID = ${req.userId}
+            AND ncg.GROUP_NAME = ${GROUP_NAME}
+            ORDER BY ncg.CREATE_DATE DESC
+        `;
+
+        console.log(`✅ Contact group "${GROUP_NAME}" created successfully`);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Contact group created successfully',
+            contactGroup: newGroup[0]
+        });
+    } catch (error) {
+        console.error('❌ Error creating contact group:', error);
+        res.status(500).json({
+            error: 'Failed to create contact group',
+            message: error.message
+        });
+    }
+});
+
+// Update contact group endpoint
+app.put('/api/contact-groups/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const contactGroupId = parseInt(req.params.id);
+        const {
+            GROUP_NAME,
+            GROUP_DESCRIPTION,
+            GROUP_TYPE,
+            IS_PUBLIC,
+            AUTO_UPDATE,
+            AUTO_UPDATE_CRITERIA,
+            ACCESS_LEVEL,
+            NOTIFICATION_PREFERENCES,
+            GROUP_COLOR,
+            GROUP_ICON,
+            SORT_ORDER,
+            GROUP_STATUS
+        } = req.body;
+
+        console.log(`✏️ Updating contact group ${contactGroupId} for company ${req.companyId}`);
+
+        if (!contactGroupId || isNaN(contactGroupId)) {
+            return res.status(400).json({
+                error: 'Valid contact group ID is required'
+            });
+        }
+
+        // Verify contact group exists and belongs to company
+        const existingGroup = await prisma.$queryRaw`
+            SELECT CONTACT_GROUP_ID, GROUP_NAME, CREATED_BY_USER_ID, IS_SYSTEM_GROUP
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (existingGroup.length === 0) {
+            return res.status(404).json({
+                error: 'Contact group not found or access denied'
+            });
+        }
+
+        const group = existingGroup[0];
+
+        // Check if user can edit system groups
+        if (group.IS_SYSTEM_GROUP) {
+            const userRoles = await prisma.$queryRaw`
+                SELECT ur.ROLE_ID 
+                FROM GUARDIAN.USER_ROLES ur 
+                WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+            `;
+            const isAdmin = userRoles.some(role => [1, 6].includes(role.ROLE_ID));
+            
+            if (!isAdmin) {
+                return res.status(403).json({
+                    error: 'Only administrators can modify system groups'
+                });
+            }
+        }
+
+        // Check for duplicate names (if name is being changed)
+        if (GROUP_NAME && GROUP_NAME.trim() !== group.GROUP_NAME) {
+            const duplicateCheck = await prisma.$queryRaw`
+                SELECT CONTACT_GROUP_ID 
+                FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+                WHERE COMPANY_ID = ${req.companyId} 
+                AND LOWER(TRIM(GROUP_NAME)) = LOWER(TRIM(${GROUP_NAME}))
+                AND CONTACT_GROUP_ID != ${contactGroupId}
+            `;
+
+            if (duplicateCheck.length > 0) {
+                return res.status(400).json({
+                    error: 'A contact group with this name already exists'
+                });
+            }
+        }
+
+        // Execute update using parameterized query syntax
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_CONTACT_GROUPS 
+            SET GROUP_NAME = ${GROUP_NAME || group.GROUP_NAME},
+                GROUP_DESCRIPTION = ${GROUP_DESCRIPTION || null},
+                GROUP_TYPE = ${GROUP_TYPE || 'CUSTOM'},
+                IS_PUBLIC = ${IS_PUBLIC !== undefined ? (IS_PUBLIC ? 1 : 0) : 0},
+                AUTO_UPDATE = ${AUTO_UPDATE !== undefined ? (AUTO_UPDATE ? 1 : 0) : 0},
+                AUTO_UPDATE_CRITERIA = ${AUTO_UPDATE_CRITERIA || null},
+                ACCESS_LEVEL = ${ACCESS_LEVEL || 'ADMIN_ONLY'},
+                NOTIFICATION_PREFERENCES = ${NOTIFICATION_PREFERENCES || null},
+                GROUP_COLOR = ${GROUP_COLOR || null},
+                GROUP_ICON = ${GROUP_ICON || null},
+                SORT_ORDER = ${SORT_ORDER !== undefined ? SORT_ORDER : 0},
+                GROUP_STATUS = ${GROUP_STATUS || 'ACTIVE'},
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        // Get updated contact group
+        const updatedGroup = await prisma.$queryRaw`
+            SELECT 
+                ncg.*,
+                u.FIRST_NAME as CREATOR_FIRST_NAME,
+                u.LAST_NAME as CREATOR_LAST_NAME
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS ncg
+            LEFT JOIN GUARDIAN.USERS u ON ncg.CREATED_BY_USER_ID = u.USER_ID
+            WHERE ncg.CONTACT_GROUP_ID = ${contactGroupId} AND ncg.COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ Contact group ${contactGroupId} updated successfully`);
+        
+        res.json({
+            success: true,
+            message: 'Contact group updated successfully',
+            contactGroup: updatedGroup[0]
+        });
+    } catch (error) {
+        console.error('❌ Error updating contact group:', error);
+        res.status(500).json({
+            error: 'Failed to update contact group',
+            message: error.message
+        });
+    }
+});
+
+// Delete contact group endpoint
+app.delete('/api/contact-groups/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const contactGroupId = parseInt(req.params.id);
+        console.log(`🗑️ Deleting contact group ${contactGroupId} for company ${req.companyId}`);
+
+        if (!contactGroupId || isNaN(contactGroupId)) {
+            return res.status(400).json({
+                error: 'Valid contact group ID is required'
+            });
+        }
+
+        // Verify contact group exists and belongs to company
+        const existingGroup = await prisma.$queryRaw`
+            SELECT CONTACT_GROUP_ID, GROUP_NAME, CREATED_BY_USER_ID, IS_SYSTEM_GROUP, MEMBER_COUNT
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (existingGroup.length === 0) {
+            return res.status(404).json({
+                error: 'Contact group not found or access denied'
+            });
+        }
+
+        const group = existingGroup[0];
+
+        // Check if user can delete system groups
+        if (group.IS_SYSTEM_GROUP) {
+            const userRoles = await prisma.$queryRaw`
+                SELECT ur.ROLE_ID 
+                FROM GUARDIAN.USER_ROLES ur 
+                WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+            `;
+            const isAdmin = userRoles.some(role => [1, 6].includes(role.ROLE_ID));
+            
+            if (!isAdmin) {
+                return res.status(403).json({
+                    error: 'Only administrators can delete system groups'
+                });
+            }
+        }
+
+        // Delete contact group (cascade will handle members)
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ Contact group "${group.GROUP_NAME}" deleted successfully`);
+        
+        res.json({
+            success: true,
+            message: 'Contact group deleted successfully'
+        });
+    } catch (error) {
+        console.error('❌ Error deleting contact group:', error);
+        res.status(500).json({
+            error: 'Failed to delete contact group',
+            message: error.message
+        });
+    }
+});
+
+// Get contact group members endpoint
+app.get('/api/contact-groups/:id/members', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const contactGroupId = parseInt(req.params.id);
+        console.log(`👥 Fetching members for contact group ${contactGroupId} (Company: ${req.companyId})`);
+
+        if (!contactGroupId || isNaN(contactGroupId)) {
+            return res.status(400).json({
+                error: 'Valid contact group ID is required'
+            });
+        }
+
+        // Verify contact group exists and belongs to company
+        const groupCheck = await prisma.$queryRaw`
+            SELECT CONTACT_GROUP_ID, GROUP_NAME 
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (groupCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Contact group not found or access denied'
+            });
+        }
+
+        // Get group members with user details
+        const members = await prisma.$queryRaw`
+            SELECT 
+                ncgm.GROUP_MEMBER_ID,
+                ncgm.CONTACT_GROUP_ID,
+                ncgm.USER_ID,
+                ncgm.COMPANY_ID,
+                ncgm.MEMBER_TYPE,
+                ncgm.MEMBER_STATUS,
+                ncgm.ADDED_BY_USER_ID,
+                ncgm.ADDED_DATE,
+                ncgm.NOTIFICATION_PREFERENCE,
+                ncgm.IS_AUTO_ADDED,
+                ncgm.AUTO_ADD_REASON,
+                ncgm.LAST_NOTIFICATION_DATE,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                u.STATUS as USER_STATUS,
+                adder.FIRST_NAME as ADDED_BY_FIRST_NAME,
+                adder.LAST_NAME as ADDED_BY_LAST_NAME
+            FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS ncgm
+            INNER JOIN GUARDIAN.USERS u ON ncgm.USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.USERS adder ON ncgm.ADDED_BY_USER_ID = adder.USER_ID
+            WHERE ncgm.CONTACT_GROUP_ID = ${contactGroupId} 
+            AND ncgm.COMPANY_ID = ${req.companyId}
+            ORDER BY ncgm.MEMBER_TYPE DESC, u.FIRST_NAME ASC, u.LAST_NAME ASC
+        `;
+
+        console.log(`✅ Found ${members.length} members for contact group ${contactGroupId}`);
+        
+        res.json(members);
+    } catch (error) {
+        console.error('❌ Error fetching contact group members:', error);
+        res.status(500).json({
+            error: 'Failed to fetch contact group members',
+            message: error.message
+        });
+    }
+});
+
+// Add member to contact group endpoint
+app.post('/api/contact-groups/:id/members', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const contactGroupId = parseInt(req.params.id);
+        const {
+            USER_ID,
+            MEMBER_TYPE = 'MEMBER',
+            MEMBER_STATUS = 'ACTIVE',
+            NOTIFICATION_PREFERENCE = 'DEFAULT'
+        } = req.body;
+
+        console.log(`👤 Adding member ${USER_ID} to contact group ${contactGroupId} (Company: ${req.companyId})`);
+
+        if (!contactGroupId || isNaN(contactGroupId) || !USER_ID) {
+            return res.status(400).json({
+                error: 'Valid contact group ID and user ID are required'
+            });
+        }
+
+        // Verify contact group exists and belongs to company
+        const groupCheck = await prisma.$queryRaw`
+            SELECT CONTACT_GROUP_ID, GROUP_NAME 
+            FROM GUARDIAN.NOTICE_CONTACT_GROUPS 
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (groupCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Contact group not found or access denied'
+            });
+        }
+
+        // Verify user exists and belongs to same company
+        const userCheck = await prisma.$queryRaw`
+            SELECT USER_ID, FIRST_NAME, LAST_NAME, EMAIL 
+            FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${USER_ID} AND COMPANY_ID = ${req.companyId} AND STATUS = 'A'
+        `;
+
+        if (userCheck.length === 0) {
+            return res.status(404).json({
+                error: 'User not found or access denied'
+            });
+        }
+
+        // Check if user is already a member
+        const existingMember = await prisma.$queryRaw`
+            SELECT GROUP_MEMBER_ID 
+            FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS 
+            WHERE CONTACT_GROUP_ID = ${contactGroupId} AND USER_ID = ${USER_ID}
+        `;
+
+        if (existingMember.length > 0) {
+            return res.status(400).json({
+                error: 'User is already a member of this contact group'
+            });
+        }
+
+        // Add member to group
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS (
+                CONTACT_GROUP_ID, USER_ID, COMPANY_ID, MEMBER_TYPE, MEMBER_STATUS,
+                ADDED_BY_USER_ID, NOTIFICATION_PREFERENCE, ADDED_DATE, CREATE_DATE, UPDATE_DATE
+            )
+            VALUES (
+                ${contactGroupId}, ${USER_ID}, ${req.companyId}, ${MEMBER_TYPE}, ${MEMBER_STATUS},
+                ${req.userId}, ${NOTIFICATION_PREFERENCE}, GETDATE(), GETDATE(), GETDATE()
+            )
+        `;
+
+        // Update member count in contact group
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_CONTACT_GROUPS 
+            SET MEMBER_COUNT = (
+                SELECT COUNT(*) 
+                FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS 
+                WHERE CONTACT_GROUP_ID = ${contactGroupId} AND MEMBER_STATUS = 'ACTIVE'
+            ),
+            UPDATE_DATE = GETDATE(),
+            UPDATE_USER_ID = ${req.userId}
+            WHERE CONTACT_GROUP_ID = ${contactGroupId}
+        `;
+
+        // Get the added member details
+        const newMember = await prisma.$queryRaw`
+            SELECT 
+                ncgm.GROUP_MEMBER_ID,
+                ncgm.CONTACT_GROUP_ID,
+                ncgm.USER_ID,
+                ncgm.MEMBER_TYPE,
+                ncgm.MEMBER_STATUS,
+                ncgm.NOTIFICATION_PREFERENCE,
+                ncgm.ADDED_DATE,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL
+            FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS ncgm
+            INNER JOIN GUARDIAN.USERS u ON ncgm.USER_ID = u.USER_ID
+            WHERE ncgm.CONTACT_GROUP_ID = ${contactGroupId} 
+            AND ncgm.USER_ID = ${USER_ID}
+        `;
+
+        console.log(`✅ Member ${USER_ID} added to contact group ${contactGroupId} successfully`);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Member added to contact group successfully',
+            member: newMember[0]
+        });
+    } catch (error) {
+        console.error('❌ Error adding member to contact group:', error);
+        res.status(500).json({
+            error: 'Failed to add member to contact group',
+            message: error.message
+        });
+    }
+});
+
+// Remove member from contact group endpoint
+app.delete('/api/contact-groups/:id/members/:memberId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const contactGroupId = parseInt(req.params.id);
+        const memberId = parseInt(req.params.memberId);
+        
+        console.log(`👤🗑️ Removing member ${memberId} from contact group ${contactGroupId} (Company: ${req.companyId})`);
+
+        if (!contactGroupId || isNaN(contactGroupId) || !memberId || isNaN(memberId)) {
+            return res.status(400).json({
+                error: 'Valid contact group ID and member ID are required'
+            });
+        }
+
+        // Verify member exists and belongs to the group and company
+        const memberCheck = await prisma.$queryRaw`
+            SELECT 
+                ncgm.GROUP_MEMBER_ID,
+                ncgm.USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME
+            FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS ncgm
+            INNER JOIN GUARDIAN.USERS u ON ncgm.USER_ID = u.USER_ID
+            WHERE ncgm.GROUP_MEMBER_ID = ${memberId} 
+            AND ncgm.CONTACT_GROUP_ID = ${contactGroupId}
+            AND ncgm.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (memberCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Member not found in this contact group or access denied'
+            });
+        }
+
+        const member = memberCheck[0];
+
+        // Remove member from group
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS 
+            WHERE GROUP_MEMBER_ID = ${memberId} 
+            AND CONTACT_GROUP_ID = ${contactGroupId}
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        // Update member count in contact group
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_CONTACT_GROUPS 
+            SET MEMBER_COUNT = (
+                SELECT COUNT(*) 
+                FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS 
+                WHERE CONTACT_GROUP_ID = ${contactGroupId} AND MEMBER_STATUS = 'ACTIVE'
+            ),
+            UPDATE_DATE = GETDATE(),
+            UPDATE_USER_ID = ${req.userId}
+            WHERE CONTACT_GROUP_ID = ${contactGroupId}
+        `;
+
+        console.log(`✅ Member ${member.FIRST_NAME} ${member.LAST_NAME} removed from contact group ${contactGroupId} successfully`);
+        
+        res.json({
+            success: true,
+            message: 'Member removed from contact group successfully'
+        });
+    } catch (error) {
+        console.error('❌ Error removing member from contact group:', error);
+        res.status(500).json({
+            error: 'Failed to remove member from contact group',
             message: error.message
         });
     }
@@ -6831,7 +7420,7 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
         
-        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipientUserIds, STATUS, PRIORITY_LEVEL, DUE_DATE } = req.body;
+        const { TITLE, CONTENT, NOTICE_TYPE, FORM_TEMPLATE_ID, recipients = [], contactGroups = [], STATUS, PRIORITY_LEVEL, DUE_DATE } = req.body;
         
         if (!TITLE || !CONTENT || !NOTICE_TYPE) {
             return res.status(400).json({
@@ -6839,22 +7428,71 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
         
-        if (!recipientUserIds || !Array.isArray(recipientUserIds) || recipientUserIds.length === 0) {
+        // Support both old format (recipientUserIds) and new format (recipients + contactGroups)
+        const recipientUserIds = req.body.recipientUserIds || recipients || [];
+        const contactGroupIds = contactGroups || [];
+        
+        if (recipientUserIds.length === 0 && contactGroupIds.length === 0) {
             return res.status(400).json({
-                error: 'At least one recipient is required'
+                error: 'At least one recipient or contact group is required'
             });
         }
         
-        // Validate recipients are from same company
+        // Collect all recipient user IDs
+        let allRecipientIds = [...recipientUserIds];
+        
+        // Resolve contact groups to individual user IDs
+        if (contactGroupIds.length > 0) {
+            console.log(`🔍 Resolving ${contactGroupIds.length} contact groups to individual users`);
+            
+            // Validate contact groups belong to the same company
+            const validGroups = await prisma.$queryRawUnsafe(`
+                SELECT CONTACT_GROUP_ID FROM GUARDIAN.NOTICE_CONTACT_GROUPS
+                WHERE CONTACT_GROUP_ID IN (${contactGroupIds.join(',')}) 
+                AND COMPANY_ID = ${req.companyId}
+            `);
+            
+            if (validGroups.length !== contactGroupIds.length) {
+                return res.status(400).json({
+                    error: 'All contact groups must belong to the same company'
+                });
+            }
+            
+            // Get all active members from these contact groups
+            const contactGroupMembers = await prisma.$queryRawUnsafe(`
+                SELECT DISTINCT ncgm.USER_ID
+                FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS ncgm
+                INNER JOIN GUARDIAN.USERS u ON ncgm.USER_ID = u.USER_ID
+                WHERE ncgm.CONTACT_GROUP_ID IN (${contactGroupIds.join(',')}) 
+                AND ncgm.COMPANY_ID = ${req.companyId}
+                AND ncgm.MEMBER_STATUS = 'ACTIVE'
+                AND u.STATUS = 'ACTIVE'
+            `);
+            
+            const groupUserIds = contactGroupMembers.map(member => member.USER_ID);
+            console.log(`✅ Resolved contact groups to ${groupUserIds.length} individual users`);
+            
+            // Combine with individual recipients and remove duplicates
+            allRecipientIds = [...new Set([...allRecipientIds, ...groupUserIds])];
+        }
+        
+        if (allRecipientIds.length === 0) {
+            return res.status(400).json({
+                error: 'No valid recipients found after resolving contact groups'
+            });
+        }
+        
+        // Validate all final recipients are from same company
         const validRecipients = await prisma.$queryRawUnsafe(`
             SELECT USER_ID FROM GUARDIAN.USERS 
-            WHERE USER_ID IN (${recipientUserIds.join(',')}) 
+            WHERE USER_ID IN (${allRecipientIds.join(',')}) 
             AND COMPANY_ID = ${req.companyId}
+            AND STATUS = 'ACTIVE'
         `);
         
-        if (validRecipients.length !== recipientUserIds.length) {
+        if (validRecipients.length !== allRecipientIds.length) {
             return res.status(400).json({
-                error: 'All recipients must be from the same company'
+                error: 'All recipients must be active users from the same company'
             });
         }
         
@@ -6879,7 +7517,7 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
         const noticeId = result[0].NOTICE_ID;
         
         // Add recipients
-        for (const recipientId of recipientUserIds) {
+        for (const recipientId of allRecipientIds) {
             await prisma.$executeRaw`
                 INSERT INTO GUARDIAN.NOTICE_RECIPIENTS (
                     NOTICE_ID, RECIPIENT_USER_ID, RECIPIENT_TYPE, 
@@ -6892,7 +7530,7 @@ app.post('/api/notices', getAuthenticatedUserCompany, async (req, res) => {
             `;
         }
         
-        console.log(`✅ Created notice ${noticeId} with ${recipientUserIds.length} recipients`);
+        console.log(`✅ Created notice ${noticeId} with ${allRecipientIds.length} recipients (${recipientUserIds.length} individual + ${contactGroupIds.length} contact groups)`);
         
         // Return the created notice
         const createdNotice = await prisma.$queryRaw`
@@ -8703,6 +9341,847 @@ app.put('/api/responses/:responseId/followup', getAuthenticatedUserCompany, asyn
         console.error(`❌ Error updating follow-up status:`, error);
         res.status(500).json({
             error: 'Failed to update follow-up status',
+            message: error.message
+        });
+    }
+});
+
+// =============================================================================
+// NOTICE UPDATES & THREADING API ENDPOINTS
+// =============================================================================
+
+// Get threaded updates for a notice
+app.get('/api/notices/:id/updates', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { threadId, includeAcknowledgments } = req.query;
+        
+        console.log(`📄 Fetching updates for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Verify notice exists and user has access
+        const noticeCheck = await prisma.$queryRaw`
+            SELECT NOTICE_ID, TITLE
+            FROM GUARDIAN.NOTICES
+            WHERE NOTICE_ID = ${noticeId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (noticeCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        // Build query for updates with threading
+        let whereClause = `WHERE nu.NOTICE_ID = ${noticeId} AND nu.COMPANY_ID = ${req.companyId}`;
+        
+        if (threadId) {
+            whereClause += ` AND (nu.UPDATE_ID = ${threadId} OR nu.PARENT_UPDATE_ID = ${threadId})`;
+        }
+        
+        // Fetch updates with user info and threading
+        const updates = await prisma.$queryRaw`
+            WITH UpdateTree AS (
+                SELECT 
+                    nu.*,
+                    u.FULL_NAME AS AUTHOR_NAME,
+                    u.EMAIL AS AUTHOR_EMAIL,
+                    ur.ROLE_ID AS AUTHOR_ROLE_ID,
+                    r.ROLE_NAME AS AUTHOR_ROLE_NAME,
+                    0 as REPLY_COUNT,
+                    nu.THREAD_LEVEL,
+                    nu.PARENT_UPDATE_ID
+                FROM GUARDIAN.NOTICE_UPDATES nu
+                INNER JOIN GUARDIAN.USERS u ON nu.CREATED_BY = u.USER_ID
+                LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+                LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                ${whereClause}
+            )
+            SELECT 
+                ut.*,
+                (
+                    SELECT COUNT(*)
+                    FROM GUARDIAN.NOTICE_UPDATES replies
+                    WHERE replies.PARENT_UPDATE_ID = ut.UPDATE_ID
+                        AND replies.COMPANY_ID = ${req.companyId}
+                ) AS REPLY_COUNT,
+                (
+                    SELECT COUNT(*)
+                    FROM GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS ack
+                    WHERE ack.UPDATE_ID = ut.UPDATE_ID
+                        AND ack.COMPANY_ID = ${req.companyId}
+                ) AS ACKNOWLEDGMENT_COUNT,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS my_ack
+                        WHERE my_ack.UPDATE_ID = ut.UPDATE_ID 
+                            AND my_ack.USER_ID = ${req.userId}
+                            AND my_ack.COMPANY_ID = ${req.companyId}
+                    ) THEN 1 
+                    ELSE 0 
+                END AS USER_ACKNOWLEDGED
+            FROM UpdateTree ut
+            ORDER BY ut.THREAD_LEVEL ASC, ut.CREATED_DATE ASC
+        `;
+        
+        // Get acknowledgments if requested
+        let acknowledgments = [];
+        if (includeAcknowledgments === 'true') {
+            acknowledgments = await prisma.$queryRaw`
+                SELECT 
+                    ack.UPDATE_ID,
+                    ack.USER_ID,
+                    u.FULL_NAME AS USER_NAME,
+                    u.EMAIL AS USER_EMAIL,
+                    ack.ACKNOWLEDGED_DATE,
+                    ack.ACKNOWLEDGMENT_TYPE
+                FROM GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS ack
+                INNER JOIN GUARDIAN.USERS u ON ack.USER_ID = u.USER_ID
+                WHERE ack.UPDATE_ID IN (${updates.map(u => u.UPDATE_ID).join(',')})
+                    AND ack.COMPANY_ID = ${req.companyId}
+                ORDER BY ack.ACKNOWLEDGED_DATE ASC
+            `;
+        }
+        
+        // Increment view count for the notice
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_UPDATES 
+            SET VIEW_COUNT = ISNULL(VIEW_COUNT, 0) + 1
+            WHERE NOTICE_ID = ${noticeId} 
+                AND CREATED_BY != ${req.userId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Retrieved ${updates.length} updates for notice ${noticeId}`);
+        res.json({
+            updates,
+            acknowledgments: acknowledgments || [],
+            notice: noticeCheck[0]
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error fetching notice updates:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch notice updates',
+            message: error.message
+        });
+    }
+});
+
+// Create new update or reply
+app.post('/api/notices/:id/updates', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { 
+            content, 
+            updateType = 'UPDATE', 
+            parentUpdateId, 
+            visibilityScope = 'COMPANY',
+            taggedUsers = [],
+            isPinned = false
+        } = req.body;
+        
+        console.log(`💬 Creating update for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Validate required fields
+        if (!content || content.trim().length === 0) {
+            return res.status(400).json({
+                error: 'Update content is required'
+            });
+        }
+        
+        // Verify notice exists and user has access
+        const noticeCheck = await prisma.$queryRaw`
+            SELECT NOTICE_ID, STATUS, CREATED_BY
+            FROM GUARDIAN.NOTICES
+            WHERE NOTICE_ID = ${noticeId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (noticeCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or access denied'
+            });
+        }
+        
+        const notice = noticeCheck[0];
+        
+        // Check if notice is still active (allow updates on published notices)
+        if (notice.STATUS === 'CANCELLED') {
+            return res.status(400).json({
+                error: 'Cannot add updates to cancelled notices'
+            });
+        }
+        
+        // Determine thread level
+        let threadLevel = 0;
+        let parentUpdate = null;
+        
+        if (parentUpdateId) {
+            const parentCheck = await prisma.$queryRaw`
+                SELECT UPDATE_ID, THREAD_LEVEL, NOTICE_ID
+                FROM GUARDIAN.NOTICE_UPDATES
+                WHERE UPDATE_ID = ${parentUpdateId}
+                    AND NOTICE_ID = ${noticeId}
+                    AND COMPANY_ID = ${req.companyId}
+            `;
+            
+            if (parentCheck.length === 0) {
+                return res.status(400).json({
+                    error: 'Parent update not found'
+                });
+            }
+            
+            parentUpdate = parentCheck[0];
+            threadLevel = parentUpdate.THREAD_LEVEL + 1;
+            
+            // Limit thread depth to prevent excessive nesting
+            if (threadLevel > 5) {
+                return res.status(400).json({
+                    error: 'Maximum thread depth exceeded'
+                });
+            }
+        }
+        
+        // Check admin permissions for certain operations
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        // Only admins can pin updates or use certain update types
+        if (isPinned && !isAdmin) {
+            return res.status(403).json({
+                error: 'Only administrators can pin updates'
+            });
+        }
+        
+        if (['ANNOUNCEMENT', 'AMENDMENT'].includes(updateType) && !isAdmin) {
+            return res.status(403).json({
+                error: 'Only administrators can create announcements or amendments'
+            });
+        }
+        
+        // Create the update
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.NOTICE_UPDATES (
+                NOTICE_ID,
+                CONTENT,
+                UPDATE_TYPE,
+                PARENT_UPDATE_ID,
+                THREAD_LEVEL,
+                VISIBILITY_SCOPE,
+                CREATED_BY,
+                CREATED_DATE,
+                COMPANY_ID,
+                IS_PINNED,
+                VIEW_COUNT
+            ) 
+            OUTPUT INSERTED.UPDATE_ID
+            VALUES (
+                ${noticeId},
+                ${content.trim()},
+                ${updateType},
+                ${parentUpdateId || null},
+                ${threadLevel},
+                ${visibilityScope},
+                ${req.userId},
+                GETUTCDATE(),
+                ${req.companyId},
+                ${isPinned ? 1 : 0},
+                0
+            )
+        `;
+        
+        const updateId = result[0].UPDATE_ID;
+        
+        // Handle user tagging and notifications
+        if (taggedUsers.length > 0) {
+            for (const taggedUserId of taggedUsers) {
+                // Verify tagged user exists in same company
+                const userCheck = await prisma.$queryRaw`
+                    SELECT USER_ID, FULL_NAME
+                    FROM GUARDIAN.USERS
+                    WHERE USER_ID = ${taggedUserId}
+                        AND COMPANY_ID = ${req.companyId}
+                `;
+                
+                if (userCheck.length > 0) {
+                    // Create notification for tagged user
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.NOTIFICATIONS (
+                            USER_ID,
+                            TYPE,
+                            TITLE,
+                            MESSAGE,
+                            REFERENCE_TYPE,
+                            REFERENCE_ID,
+                            COMPANY_ID
+                        ) VALUES (
+                            ${taggedUserId},
+                            'notice_update_mention',
+                            'You were mentioned in a notice update',
+                            ${`You were mentioned in an update on notice: ${notice.TITLE || 'Notice'}`},
+                            'notice_update',
+                            ${updateId},
+                            ${req.companyId}
+                        )
+                    `;
+                }
+            }
+        }
+        
+        // Create notification for parent update author if this is a reply
+        if (parentUpdate && parentUpdate.CREATED_BY !== req.userId) {
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.NOTIFICATIONS (
+                    USER_ID,
+                    TYPE,
+                    TITLE,
+                    MESSAGE,
+                    REFERENCE_TYPE,
+                    REFERENCE_ID,
+                    COMPANY_ID
+                ) VALUES (
+                    ${parentUpdate.CREATED_BY},
+                    'notice_update_reply',
+                    'Reply to your update',
+                    'Someone replied to your update on a notice',
+                    'notice_update',
+                    ${updateId},
+                    ${req.companyId}
+                )
+            `;
+        }
+        
+        // Get the created update with user info
+        const createdUpdate = await prisma.$queryRaw`
+            SELECT 
+                nu.*,
+                u.FULL_NAME AS AUTHOR_NAME,
+                u.EMAIL AS AUTHOR_EMAIL,
+                ur.ROLE_ID AS AUTHOR_ROLE_ID,
+                r.ROLE_NAME AS AUTHOR_ROLE_NAME
+            FROM GUARDIAN.NOTICE_UPDATES nu
+            INNER JOIN GUARDIAN.USERS u ON nu.CREATED_BY = u.USER_ID
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE nu.UPDATE_ID = ${updateId}
+        `;
+        
+        console.log(`✅ Created notice update ${updateId} successfully`);
+        res.status(201).json({
+            message: 'Update created successfully',
+            update: createdUpdate[0]
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error creating notice update:`, error);
+        res.status(500).json({
+            error: 'Failed to create notice update',
+            message: error.message
+        });
+    }
+});
+
+// Edit existing update
+app.put('/api/notices/:id/updates/:updateId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const updateId = parseInt(req.params.updateId);
+        const { content, updateType } = req.body;
+        
+        console.log(`✏️ Editing update ${updateId} for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Validate content
+        if (!content || content.trim().length === 0) {
+            return res.status(400).json({
+                error: 'Update content is required'
+            });
+        }
+        
+        // Check if update exists and user has permission to edit
+        const updateCheck = await prisma.$queryRaw`
+            SELECT 
+                nu.UPDATE_ID, 
+                nu.CREATED_BY, 
+                nu.CREATED_DATE,
+                nu.UPDATE_TYPE,
+                n.CREATED_BY as NOTICE_CREATOR
+            FROM GUARDIAN.NOTICE_UPDATES nu
+            INNER JOIN GUARDIAN.NOTICES n ON nu.NOTICE_ID = n.NOTICE_ID
+            WHERE nu.UPDATE_ID = ${updateId}
+                AND nu.NOTICE_ID = ${noticeId}
+                AND nu.COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (updateCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Update not found'
+            });
+        }
+        
+        const update = updateCheck[0];
+        
+        // Check edit permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isAuthor = update.CREATED_BY === req.userId;
+        const isNoticeCreator = update.NOTICE_CREATOR === req.userId;
+        
+        // Allow edit if: user is author, admin, or notice creator
+        if (!isAuthor && !isAdmin && !isNoticeCreator) {
+            return res.status(403).json({
+                error: 'You do not have permission to edit this update'
+            });
+        }
+        
+        // Check edit time limit (24 hours for non-admins)
+        if (!isAdmin) {
+            const hoursSinceCreation = (Date.now() - new Date(update.CREATED_DATE).getTime()) / (1000 * 60 * 60);
+            if (hoursSinceCreation > 24) {
+                return res.status(403).json({
+                    error: 'Updates can only be edited within 24 hours of creation'
+                });
+            }
+        }
+        
+        // Update the content
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_UPDATES 
+            SET 
+                CONTENT = ${content.trim()},
+                UPDATE_TYPE = ${updateType || update.UPDATE_TYPE},
+                UPDATED_DATE = GETUTCDATE(),
+                UPDATED_BY = ${req.userId}
+            WHERE UPDATE_ID = ${updateId}
+        `;
+        
+        // Get updated record
+        const updatedRecord = await prisma.$queryRaw`
+            SELECT 
+                nu.*,
+                u.FULL_NAME AS AUTHOR_NAME,
+                u.EMAIL AS AUTHOR_EMAIL,
+                uu.FULL_NAME AS UPDATED_BY_NAME
+            FROM GUARDIAN.NOTICE_UPDATES nu
+            INNER JOIN GUARDIAN.USERS u ON nu.CREATED_BY = u.USER_ID
+            LEFT JOIN GUARDIAN.USERS uu ON nu.UPDATED_BY = uu.USER_ID
+            WHERE nu.UPDATE_ID = ${updateId}
+        `;
+        
+        console.log(`✅ Updated notice update ${updateId} successfully`);
+        res.json({
+            message: 'Update edited successfully',
+            update: updatedRecord[0]
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error editing notice update:`, error);
+        res.status(500).json({
+            error: 'Failed to edit notice update',
+            message: error.message
+        });
+    }
+});
+
+// Delete/hide update (admin only)
+app.delete('/api/notices/:id/updates/:updateId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const updateId = parseInt(req.params.updateId);
+        
+        console.log(`🗑️ Deleting update ${updateId} for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check admin permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Only administrators can delete updates'
+            });
+        }
+        
+        // Check if update exists
+        const updateCheck = await prisma.$queryRaw`
+            SELECT UPDATE_ID, CREATED_BY
+            FROM GUARDIAN.NOTICE_UPDATES
+            WHERE UPDATE_ID = ${updateId}
+                AND NOTICE_ID = ${noticeId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (updateCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Update not found'
+            });
+        }
+        
+        // Soft delete by marking as hidden instead of actual deletion
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_UPDATES 
+            SET 
+                IS_HIDDEN = 1,
+                HIDDEN_DATE = GETUTCDATE(),
+                HIDDEN_BY = ${req.userId}
+            WHERE UPDATE_ID = ${updateId}
+        `;
+        
+        console.log(`✅ Marked update ${updateId} as hidden successfully`);
+        res.json({
+            message: 'Update hidden successfully'
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error deleting notice update:`, error);
+        res.status(500).json({
+            error: 'Failed to delete notice update',
+            message: error.message
+        });
+    }
+});
+
+// Acknowledge update
+app.post('/api/notices/:id/updates/:updateId/acknowledge', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const updateId = parseInt(req.params.updateId);
+        const { acknowledgmentType = 'READ' } = req.body;
+        
+        console.log(`👍 Acknowledging update ${updateId} for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Verify update exists
+        const updateCheck = await prisma.$queryRaw`
+            SELECT UPDATE_ID, CREATED_BY
+            FROM GUARDIAN.NOTICE_UPDATES
+            WHERE UPDATE_ID = ${updateId}
+                AND NOTICE_ID = ${noticeId}
+                AND COMPANY_ID = ${req.companyId}
+                AND IS_HIDDEN != 1
+        `;
+        
+        if (updateCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Update not found'
+            });
+        }
+        
+        // Check if already acknowledged
+        const existingAck = await prisma.$queryRaw`
+            SELECT ACKNOWLEDGMENT_ID
+            FROM GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS
+            WHERE UPDATE_ID = ${updateId}
+                AND USER_ID = ${req.userId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (existingAck.length > 0) {
+            // Update existing acknowledgment
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS 
+                SET 
+                    ACKNOWLEDGMENT_TYPE = ${acknowledgmentType},
+                    ACKNOWLEDGED_DATE = GETUTCDATE()
+                WHERE UPDATE_ID = ${updateId}
+                    AND USER_ID = ${req.userId}
+                    AND COMPANY_ID = ${req.companyId}
+            `;
+        } else {
+            // Create new acknowledgment
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS (
+                    UPDATE_ID,
+                    USER_ID,
+                    ACKNOWLEDGMENT_TYPE,
+                    ACKNOWLEDGED_DATE,
+                    COMPANY_ID
+                ) VALUES (
+                    ${updateId},
+                    ${req.userId},
+                    ${acknowledgmentType},
+                    GETUTCDATE(),
+                    ${req.companyId}
+                )
+            `;
+        }
+        
+        // Get acknowledgment count
+        const ackCount = await prisma.$queryRaw`
+            SELECT COUNT(*) as ACK_COUNT
+            FROM GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS
+            WHERE UPDATE_ID = ${updateId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Acknowledged update ${updateId} successfully`);
+        res.json({
+            message: 'Update acknowledged successfully',
+            acknowledgmentCount: ackCount[0].ACK_COUNT
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error acknowledging notice update:`, error);
+        res.status(500).json({
+            error: 'Failed to acknowledge notice update',
+            message: error.message
+        });
+    }
+});
+
+// Pin/unpin update (admin only)
+app.post('/api/notices/:id/updates/:updateId/pin', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const updateId = parseInt(req.params.updateId);
+        const { isPinned } = req.body;
+        
+        console.log(`📌 ${isPinned ? 'Pinning' : 'Unpinning'} update ${updateId} for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check admin permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Only administrators can pin/unpin updates'
+            });
+        }
+        
+        // Verify update exists
+        const updateCheck = await prisma.$queryRaw`
+            SELECT UPDATE_ID
+            FROM GUARDIAN.NOTICE_UPDATES
+            WHERE UPDATE_ID = ${updateId}
+                AND NOTICE_ID = ${noticeId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (updateCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Update not found'
+            });
+        }
+        
+        // Update pin status
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_UPDATES 
+            SET 
+                IS_PINNED = ${isPinned ? 1 : 0},
+                PINNED_DATE = ${isPinned ? 'GETUTCDATE()' : 'NULL'},
+                PINNED_BY = ${isPinned ? req.userId : 'NULL'}
+            WHERE UPDATE_ID = ${updateId}
+        `;
+        
+        console.log(`✅ ${isPinned ? 'Pinned' : 'Unpinned'} update ${updateId} successfully`);
+        res.json({
+            message: `Update ${isPinned ? 'pinned' : 'unpinned'} successfully`
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error pinning/unpinning notice update:`, error);
+        res.status(500).json({
+            error: 'Failed to pin/unpin notice update',
+            message: error.message
+        });
+    }
+});
+
+// Get company-wide updates feed (admin only)
+app.get('/api/updates/company', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📊 Fetching company-wide updates feed for user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check admin permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Access denied. Administrator privileges required.'
+            });
+        }
+        
+        const { 
+            limit = 50, 
+            offset = 0, 
+            updateType, 
+            startDate, 
+            endDate,
+            authorId 
+        } = req.query;
+        
+        // Build where clause
+        let whereClause = `WHERE nu.COMPANY_ID = ${req.companyId} AND nu.IS_HIDDEN != 1`;
+        
+        if (updateType) {
+            whereClause += ` AND nu.UPDATE_TYPE = '${updateType}'`;
+        }
+        
+        if (startDate) {
+            whereClause += ` AND nu.CREATED_DATE >= '${startDate}'`;
+        }
+        
+        if (endDate) {
+            whereClause += ` AND nu.CREATED_DATE <= '${endDate}'`;
+        }
+        
+        if (authorId) {
+            whereClause += ` AND nu.CREATED_BY = ${authorId}`;
+        }
+        
+        // Get updates with notice and user info
+        const updates = await prisma.$queryRaw`
+            SELECT 
+                nu.*,
+                n.TITLE AS NOTICE_TITLE,
+                n.STATUS AS NOTICE_STATUS,
+                u.FULL_NAME AS AUTHOR_NAME,
+                u.EMAIL AS AUTHOR_EMAIL,
+                ur.ROLE_ID AS AUTHOR_ROLE_ID,
+                r.ROLE_NAME AS AUTHOR_ROLE_NAME,
+                (
+                    SELECT COUNT(*)
+                    FROM GUARDIAN.NOTICE_UPDATE_ACKNOWLEDGMENTS ack
+                    WHERE ack.UPDATE_ID = nu.UPDATE_ID
+                        AND ack.COMPANY_ID = ${req.companyId}
+                ) AS ACKNOWLEDGMENT_COUNT,
+                (
+                    SELECT COUNT(*)
+                    FROM GUARDIAN.NOTICE_UPDATES replies
+                    WHERE replies.PARENT_UPDATE_ID = nu.UPDATE_ID
+                        AND replies.COMPANY_ID = ${req.companyId}
+                ) AS REPLY_COUNT
+            FROM GUARDIAN.NOTICE_UPDATES nu
+            INNER JOIN GUARDIAN.NOTICES n ON nu.NOTICE_ID = n.NOTICE_ID
+            INNER JOIN GUARDIAN.USERS u ON nu.CREATED_BY = u.USER_ID
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            ${whereClause}
+            ORDER BY nu.IS_PINNED DESC, nu.CREATED_DATE DESC
+            OFFSET ${offset} ROWS
+            FETCH NEXT ${limit} ROWS ONLY
+        `;
+        
+        // Get total count
+        const totalCount = await prisma.$queryRaw`
+            SELECT COUNT(*) as TOTAL_COUNT
+            FROM GUARDIAN.NOTICE_UPDATES nu
+            INNER JOIN GUARDIAN.NOTICES n ON nu.NOTICE_ID = n.NOTICE_ID
+            ${whereClause}
+        `;
+        
+        console.log(`✅ Retrieved ${updates.length} updates from company feed`);
+        res.json({
+            updates,
+            totalCount: totalCount[0].TOTAL_COUNT,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error fetching company updates feed:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch company updates feed',
+            message: error.message
+        });
+    }
+});
+
+// Update visibility scope (admin only)
+app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const updateId = parseInt(req.params.updateId);
+        const { visibilityScope } = req.body;
+        
+        console.log(`👁️ Updating visibility for update ${updateId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Validate visibility scope
+        const validScopes = ['COMPANY', 'DEPARTMENT', 'ROLE', 'SPECIFIC_USERS'];
+        if (!validScopes.includes(visibilityScope)) {
+            return res.status(400).json({
+                error: 'Invalid visibility scope'
+            });
+        }
+        
+        // Check admin permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Only administrators can update visibility scope'
+            });
+        }
+        
+        // Verify update exists
+        const updateCheck = await prisma.$queryRaw`
+            SELECT UPDATE_ID, CREATED_BY
+            FROM GUARDIAN.NOTICE_UPDATES
+            WHERE UPDATE_ID = ${updateId}
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (updateCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Update not found'
+            });
+        }
+        
+        // Update visibility scope
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_UPDATES 
+            SET 
+                VISIBILITY_SCOPE = ${visibilityScope},
+                UPDATED_DATE = GETUTCDATE(),
+                UPDATED_BY = ${req.userId}
+            WHERE UPDATE_ID = ${updateId}
+        `;
+        
+        console.log(`✅ Updated visibility scope for update ${updateId} to ${visibilityScope}`);
+        res.json({
+            message: 'Visibility scope updated successfully'
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error updating update visibility:`, error);
+        res.status(500).json({
+            error: 'Failed to update visibility scope',
             message: error.message
         });
     }

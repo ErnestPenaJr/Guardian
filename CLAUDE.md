@@ -787,7 +787,41 @@ If form template creation fails or returns server errors:
 
 ## Recent Changes & Fixes
 
-### Latest Updates (2025-08-12)
+### Latest Updates (2025-08-20)
+
+#### Enhanced Notice Creation with Contact Groups Support
+- ✅ **Contact Groups Integration**: POST /api/notices endpoint now supports both individual recipients and contact groups in a single request
+- ✅ **Backward Compatibility**: Maintains support for existing `recipientUserIds` format while adding new `recipients` and `contactGroups` arrays
+- ✅ **Contact Group Resolution**: Automatically resolves contact group IDs to individual user IDs by querying NOTICE_CONTACT_GROUP_MEMBERS table
+- ✅ **Duplicate Prevention**: Uses Set to remove duplicate recipients when combining individual users and contact group members
+- ✅ **Enhanced Validation**: Validates contact groups belong to the same company and only includes active users with active membership status
+- ✅ **Multi-Server Synchronization**: Updated all three server files (server.cjs, server.js, server-production.js) with identical functionality
+- ✅ **Security Enhancement**: Proper company-based data isolation maintained throughout contact group resolution process
+- ✅ **Detailed Logging**: Enhanced console logging shows recipient resolution details including individual vs contact group counts
+
+#### API Enhancement Details
+**New Request Format:**
+```json
+{
+  "TITLE": "Notice Title",
+  "CONTENT": "Notice content",
+  "NOTICE_TYPE": "GENERAL",
+  "recipients": [1, 2, 3],           // Individual user IDs (optional)
+  "contactGroups": [10, 11],         // Contact group IDs (optional)
+  "STATUS": "PUBLISHED"
+}
+```
+
+**Resolution Process:**
+1. Extract both `recipients` and `contactGroups` arrays from request body
+2. Validate contact groups exist and belong to user's company
+3. Query NOTICE_CONTACT_GROUP_MEMBERS to get all active members from specified groups
+4. Combine individual recipients with resolved contact group members
+5. Remove duplicates using Set to ensure each user receives only one notice
+6. Validate all final recipients are active users from the same company
+7. Create notice recipients entries for all resolved users
+
+### Previous Updates (2025-08-12)
 
 #### First-Time Admin Modal System & Company Isolation - FULLY RESOLVED
 - ✅ **COMPANY_ID Field Transmission Fixed**: Resolved critical database-to-frontend data flow issue where COMPANY_ID wasn't being transmitted from SQL Server queries to React components

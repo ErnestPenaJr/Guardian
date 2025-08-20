@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
-import { Save, X, Users, FileText, Bell, AlertTriangle, Clock } from 'lucide-react';
+import { Save, X, Users, FileText, Bell, AlertTriangle, Clock, Settings } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService from '../services/noticeService';
+import ContactGroupsManager from './ContactGroupsManager';
 
 interface CreateNoticeModalProps {
   show: boolean;
@@ -16,6 +17,16 @@ interface User {
   FIRST_NAME: string;
   LAST_NAME: string;
   EMAIL: string;
+}
+
+interface ContactGroup {
+  CONTACT_GROUP_ID: number;
+  GROUP_NAME: string;
+  GROUP_DESCRIPTION: string | null;
+  GROUP_TYPE: string;
+  MEMBER_COUNT: number;
+  GROUP_COLOR: string | null;
+  GROUP_ICON: string | null;
 }
 
 const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
@@ -33,14 +44,21 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
     priorityLevel: 'MEDIUM',
     dueDate: '',
     recipients: [] as number[],
+    contactGroups: [] as number[],
     publishImmediately: false
   });
+  
+  // Recipient selection mode
+  const [recipientMode, setRecipientMode] = useState<'individual' | 'groups'>('individual');
   
   // Modal state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [contactGroups, setContactGroups] = useState<ContactGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [showGroupsManager, setShowGroupsManager] = useState(false);
   
   // Notice types
   const noticeTypes = [
@@ -58,10 +76,11 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
     { value: 'LOW', label: 'Low Priority', icon: <Clock size={16} className="text-info" />, color: 'text-info' }
   ];
 
-  // Load users when modal opens
+  // Load users and contact groups when modal opens
   useEffect(() => {
     if (show) {
       loadUsers();
+      loadContactGroups();
     }
   }, [show]);
 
@@ -85,6 +104,28 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
       console.error('Error loading users:', error);
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const loadContactGroups = async () => {
+    try {
+      setLoadingGroups(true);
+      const response = await fetch('/api/contact-groups', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const groupsData = await response.json();
+        setContactGroups(groupsData.filter((group: ContactGroup) => group.GROUP_STATUS === 'ACTIVE'));
+      } else {
+        console.error('Failed to load contact groups');
+      }
+    } catch (error) {
+      console.error('Error loading contact groups:', error);
+    } finally {
+      setLoadingGroups(false);
     }
   };
 
@@ -121,6 +162,29 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
     }));
   };
 
+  const handleContactGroupToggle = (groupId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      contactGroups: prev.contactGroups.includes(groupId)
+        ? prev.contactGroups.filter(id => id !== groupId)
+        : [...prev.contactGroups, groupId]
+    }));
+  };
+
+  const selectAllGroups = () => {
+    setFormData(prev => ({
+      ...prev,
+      contactGroups: contactGroups.map(g => g.CONTACT_GROUP_ID)
+    }));
+  };
+
+  const clearAllGroups = () => {
+    setFormData(prev => ({
+      ...prev,
+      contactGroups: []
+    }));
+  };
+
   const validateForm = (): string | null => {
     if (!formData.title.trim()) {
       return 'Notice title is required';
@@ -138,8 +202,12 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
       return 'Notice content cannot exceed 4000 characters';
     }
     
-    if (formData.recipients.length === 0) {
+    if (recipientMode === 'individual' && formData.recipients.length === 0) {
       return 'At least one recipient must be selected';
+    }
+    
+    if (recipientMode === 'groups' && formData.contactGroups.length === 0) {
+      return 'At least one contact group must be selected';
     }
     
     return null;
@@ -162,7 +230,8 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
         noticeType: formData.noticeType,
         priorityLevel: formData.priorityLevel,
         dueDate: formData.dueDate || null,
-        recipients: formData.recipients,
+        recipients: recipientMode === 'individual' ? formData.recipients : [],
+        contactGroups: recipientMode === 'groups' ? formData.contactGroups : [],
         status: formData.publishImmediately ? 'PUBLISHED' : 'DRAFT'
       };
 
@@ -182,8 +251,10 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
         priorityLevel: 'MEDIUM',
         dueDate: '',
         recipients: [],
+        contactGroups: [],
         publishImmediately: false
       });
+      setRecipientMode('individual');
 
       // Close modal and refresh parent
       onHide();
@@ -209,8 +280,10 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
         priorityLevel: 'MEDIUM',
         dueDate: '',
         recipients: [],
+        contactGroups: [],
         publishImmediately: false
       });
+      setRecipientMode('individual');
       setError(null);
       onHide();
     }
@@ -335,60 +408,206 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
               <span>
                 Recipients <span className="text-danger">*</span>
               </span>
-              <div>
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={selectAllUsers}
-                  disabled={loading || loadingUsers}
-                  className="p-0 me-2"
-                >
-                  Select All
-                </Button>
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={clearAllUsers}
-                  disabled={loading || loadingUsers}
-                  className="p-0"
-                >
-                  Clear All
-                </Button>
+              <div className="d-flex align-items-center gap-2">
+                {/* Recipient Mode Toggle */}
+                <div className="btn-group" role="group">
+                  <input 
+                    type="radio" 
+                    className="btn-check" 
+                    name="recipientMode" 
+                    id="individual" 
+                    value="individual"
+                    checked={recipientMode === 'individual'}
+                    onChange={(e) => setRecipientMode('individual')}
+                    disabled={loading}
+                  />
+                  <label className="btn btn-outline-primary btn-sm" htmlFor="individual">
+                    <Users size={14} className="me-1" />
+                    Individual
+                  </label>
+                  
+                  <input 
+                    type="radio" 
+                    className="btn-check" 
+                    name="recipientMode" 
+                    id="groups" 
+                    value="groups"
+                    checked={recipientMode === 'groups'}
+                    onChange={(e) => setRecipientMode('groups')}
+                    disabled={loading}
+                  />
+                  <label className="btn btn-outline-primary btn-sm" htmlFor="groups">
+                    <Users size={14} className="me-1" />
+                    Groups
+                  </label>
+                </div>
               </div>
             </Form.Label>
 
-            <div 
-              className="border rounded p-3"
-              style={{ maxHeight: '200px', overflowY: 'auto' }}
-            >
-              {loadingUsers ? (
-                <div className="text-center py-3">
-                  <div className="spinner-border spinner-border-sm me-2" />
-                  Loading users...
+            {recipientMode === 'individual' ? (
+              <>
+                <div className="d-flex justify-content-end mb-2">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={selectAllUsers}
+                    disabled={loading || loadingUsers}
+                    className="p-0 me-2"
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={clearAllUsers}
+                    disabled={loading || loadingUsers}
+                    className="p-0"
+                  >
+                    Clear All
+                  </Button>
                 </div>
-              ) : users.length > 0 ? (
-                users.map((user) => (
-                  <Form.Check
-                    key={user.USER_ID}
-                    type="checkbox"
-                    id={`user-${user.USER_ID}`}
-                    label={`${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`}
-                    checked={formData.recipients.includes(user.USER_ID)}
-                    onChange={() => handleRecipientToggle(user.USER_ID)}
-                    disabled={loading}
-                    className="mb-2"
-                  />
-                ))
-              ) : (
-                <div className="text-muted text-center py-3">
-                  No users available
+                
+                <div 
+                  className="border rounded p-3"
+                  style={{ maxHeight: '200px', overflowY: 'auto' }}
+                >
+                  {loadingUsers ? (
+                    <div className="text-center py-3">
+                      <div className="spinner-border spinner-border-sm me-2" />
+                      Loading users...
+                    </div>
+                  ) : users.length > 0 ? (
+                    users.map((user) => (
+                      <Form.Check
+                        key={user.USER_ID}
+                        type="checkbox"
+                        id={`user-${user.USER_ID}`}
+                        label={`${user.FIRST_NAME} ${user.LAST_NAME} (${user.EMAIL})`}
+                        checked={formData.recipients.includes(user.USER_ID)}
+                        onChange={() => handleRecipientToggle(user.USER_ID)}
+                        disabled={loading}
+                        className="mb-2"
+                      />
+                    ))
+                  ) : (
+                    <div className="text-muted text-center py-3">
+                      No users available
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <Form.Text className="text-muted">
-              {formData.recipients.length} recipient{formData.recipients.length !== 1 ? 's' : ''} selected
-            </Form.Text>
+                <Form.Text className="text-muted">
+                  {formData.recipients.length} recipient{formData.recipients.length !== 1 ? 's' : ''} selected
+                </Form.Text>
+              </>
+            ) : (
+              <>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={selectAllGroups}
+                      disabled={loading || loadingGroups}
+                      className="p-0 me-2"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={clearAllGroups}
+                      disabled={loading || loadingGroups}
+                      className="p-0"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => setShowGroupsManager(true)}
+                    disabled={loading}
+                    className="d-flex align-items-center"
+                  >
+                    <Settings size={14} className="me-1" />
+                    Manage Groups
+                  </Button>
+                </div>
+                
+                <div 
+                  className="border rounded p-3"
+                  style={{ maxHeight: '200px', overflowY: 'auto' }}
+                >
+                  {loadingGroups ? (
+                    <div className="text-center py-3">
+                      <div className="spinner-border spinner-border-sm me-2" />
+                      Loading contact groups...
+                    </div>
+                  ) : contactGroups.length > 0 ? (
+                    contactGroups.map((group) => (
+                      <Form.Check
+                        key={group.CONTACT_GROUP_ID}
+                        type="checkbox"
+                        id={`group-${group.CONTACT_GROUP_ID}`}
+                        label={
+                          <div className="d-flex align-items-center">
+                            <div 
+                              className="me-2 rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ 
+                                width: '20px', 
+                                height: '20px', 
+                                backgroundColor: group.GROUP_COLOR || '#007bff',
+                                color: 'white',
+                                fontSize: '10px'
+                              }}
+                            >
+                              <Users size={10} />
+                            </div>
+                            <div>
+                              <span className="fw-medium">{group.GROUP_NAME}</span>
+                              <span className="text-muted ms-2">({group.MEMBER_COUNT} members)</span>
+                              {group.GROUP_DESCRIPTION && (
+                                <div className="small text-muted">{group.GROUP_DESCRIPTION}</div>
+                              )}
+                            </div>
+                          </div>
+                        }
+                        checked={formData.contactGroups.includes(group.CONTACT_GROUP_ID)}
+                        onChange={() => handleContactGroupToggle(group.CONTACT_GROUP_ID)}
+                        disabled={loading}
+                        className="mb-2"
+                      />
+                    ))
+                  ) : (
+                    <div className="text-muted text-center py-3">
+                      <Users size={24} className="mb-2" />
+                      <div>No contact groups available</div>
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={() => setShowGroupsManager(true)}
+                        className="mt-2 d-flex align-items-center mx-auto"
+                      >
+                        <Settings size={14} className="me-1" />
+                        Create Contact Groups
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Form.Text className="text-muted">
+                  {formData.contactGroups.length} group{formData.contactGroups.length !== 1 ? 's' : ''} selected
+                  {formData.contactGroups.length > 0 && (
+                    <span className="ms-2">
+                      ({contactGroups
+                        .filter(g => formData.contactGroups.includes(g.CONTACT_GROUP_ID))
+                        .reduce((total, group) => total + group.MEMBER_COUNT, 0)} total recipients)
+                    </span>
+                  )}
+                </Form.Text>
+              </>
+            )}
           </Form.Group>
 
           {/* Publish Options */}
@@ -435,6 +654,16 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({
           )}
         </Button>
       </Modal.Footer>
+      
+      {/* Contact Groups Manager Modal */}
+      <ContactGroupsManager
+        show={showGroupsManager}
+        onHide={() => {
+          setShowGroupsManager(false);
+          // Reload contact groups when manager is closed
+          loadContactGroups();
+        }}
+      />
     </Modal>
   );
 };

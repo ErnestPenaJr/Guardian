@@ -1,0 +1,200 @@
+-- Guardian MVP Notice Module - Contact Groups & Distribution Enhancement
+-- Date: 2024-08-19
+-- Description: Creates comprehensive contact groups system for notice distribution management
+
+-- Create NOTICE_CONTACT_GROUPS table for distribution list management
+CREATE TABLE [GUARDIAN].[NOTICE_CONTACT_GROUPS] (
+    [CONTACT_GROUP_ID] int IDENTITY(1,1) NOT NULL,
+    [GROUP_NAME] nvarchar(100) NOT NULL,
+    [GROUP_DESCRIPTION] nvarchar(500) NULL,
+    [GROUP_TYPE] nvarchar(20) NOT NULL DEFAULT 'CUSTOM', -- CUSTOM, DEPARTMENT, ROLE, PROJECT, LOCATION, EMERGENCY
+    [COMPANY_ID] int NOT NULL,
+    [CREATED_BY_USER_ID] int NOT NULL,
+    [GROUP_STATUS] nvarchar(15) NOT NULL DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE, ARCHIVED
+    [IS_PUBLIC] bit NOT NULL DEFAULT 0, -- Whether group is visible to all company users
+    [IS_SYSTEM_GROUP] bit NOT NULL DEFAULT 0, -- System-generated groups (dept, role-based)
+    [AUTO_UPDATE] bit NOT NULL DEFAULT 0, -- Whether membership updates automatically
+    [AUTO_UPDATE_CRITERIA] nvarchar(1000) NULL, -- JSON criteria for auto-updates
+    [MEMBER_COUNT] int NOT NULL DEFAULT 0, -- Cached member count for performance
+    [LAST_USED_DATE] datetime2 NULL, -- When group was last used for notice distribution
+    [USAGE_COUNT] int NOT NULL DEFAULT 0, -- Number of times group has been used
+    [ACCESS_LEVEL] nvarchar(15) NOT NULL DEFAULT 'ADMIN_ONLY', -- ADMIN_ONLY, MANAGER, PUBLIC
+    [NOTIFICATION_PREFERENCES] nvarchar(1000) NULL, -- JSON preferences for group notifications
+    [GROUP_COLOR] nvarchar(7) NULL, -- Hex color code for UI display (#RRGGBB)
+    [GROUP_ICON] nvarchar(50) NULL, -- Icon identifier for UI display
+    [SORT_ORDER] int NOT NULL DEFAULT 0, -- Display order within company
+    [CREATE_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    [UPDATE_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    [CREATE_USER_ID] int NULL,
+    [UPDATE_USER_ID] int NULL,
+
+    -- Primary key
+    CONSTRAINT [PK_NOTICE_CONTACT_GROUPS] PRIMARY KEY CLUSTERED ([CONTACT_GROUP_ID] ASC),
+
+    -- Foreign key constraints
+    CONSTRAINT [FK_CONTACT_GROUPS_COMPANY] FOREIGN KEY ([COMPANY_ID]) 
+        REFERENCES [GUARDIAN].[COMPANY] ([COMPANY_ID]) ON DELETE CASCADE,
+    CONSTRAINT [FK_CONTACT_GROUPS_CREATOR] FOREIGN KEY ([CREATED_BY_USER_ID]) 
+        REFERENCES [GUARDIAN].[USERS] ([USER_ID]) ON DELETE NO ACTION,
+
+    -- Unique constraint for group names within company
+    CONSTRAINT [UQ_CONTACT_GROUPS_NAME_COMPANY] UNIQUE ([COMPANY_ID], [GROUP_NAME])
+);
+
+-- Create NOTICE_CONTACT_GROUP_MEMBERS table for group membership
+CREATE TABLE [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] (
+    [GROUP_MEMBER_ID] int IDENTITY(1,1) NOT NULL,
+    [CONTACT_GROUP_ID] int NOT NULL,
+    [USER_ID] int NOT NULL,
+    [COMPANY_ID] int NOT NULL,
+    [MEMBER_TYPE] nvarchar(15) NOT NULL DEFAULT 'MEMBER', -- MEMBER, MANAGER, ADMIN
+    [MEMBER_STATUS] nvarchar(15) NOT NULL DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE, PENDING
+    [ADDED_BY_USER_ID] int NOT NULL,
+    [ADDED_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    [NOTIFICATION_PREFERENCE] nvarchar(20) DEFAULT 'DEFAULT', -- DEFAULT, EMAIL_ONLY, IN_APP_ONLY, DISABLED
+    [IS_AUTO_ADDED] bit NOT NULL DEFAULT 0, -- Whether added automatically via criteria
+    [AUTO_ADD_REASON] nvarchar(200) NULL, -- Reason for automatic addition
+    [LAST_NOTIFICATION_DATE] datetime2 NULL, -- When member last received notification via this group
+    [CREATE_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    [UPDATE_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+
+    -- Primary key
+    CONSTRAINT [PK_CONTACT_GROUP_MEMBERS] PRIMARY KEY CLUSTERED ([GROUP_MEMBER_ID] ASC),
+
+    -- Foreign key constraints
+    CONSTRAINT [FK_GROUP_MEMBERS_GROUP] FOREIGN KEY ([CONTACT_GROUP_ID]) 
+        REFERENCES [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([CONTACT_GROUP_ID]) ON DELETE CASCADE,
+    CONSTRAINT [FK_GROUP_MEMBERS_USER] FOREIGN KEY ([USER_ID]) 
+        REFERENCES [GUARDIAN].[USERS] ([USER_ID]) ON DELETE CASCADE,
+    CONSTRAINT [FK_GROUP_MEMBERS_COMPANY] FOREIGN KEY ([COMPANY_ID]) 
+        REFERENCES [GUARDIAN].[COMPANY] ([COMPANY_ID]) ON DELETE NO ACTION,
+    CONSTRAINT [FK_GROUP_MEMBERS_ADDER] FOREIGN KEY ([ADDED_BY_USER_ID]) 
+        REFERENCES [GUARDIAN].[USERS] ([USER_ID]) ON DELETE NO ACTION,
+
+    -- Unique constraint to prevent duplicate memberships
+    CONSTRAINT [UQ_GROUP_MEMBERS] UNIQUE ([CONTACT_GROUP_ID], [USER_ID])
+);
+
+-- Create NOTICE_GROUP_TEMPLATES table for reusable distribution templates
+CREATE TABLE [GUARDIAN].[NOTICE_GROUP_TEMPLATES] (
+    [GROUP_TEMPLATE_ID] int IDENTITY(1,1) NOT NULL,
+    [TEMPLATE_NAME] nvarchar(100) NOT NULL,
+    [TEMPLATE_DESCRIPTION] nvarchar(500) NULL,
+    [COMPANY_ID] int NOT NULL,
+    [CREATED_BY_USER_ID] int NOT NULL,
+    [TEMPLATE_TYPE] nvarchar(20) NOT NULL DEFAULT 'DISTRIBUTION', -- DISTRIBUTION, ESCALATION, EMERGENCY
+    [GROUP_COMBINATION] nvarchar(2000) NOT NULL, -- JSON array of group IDs and logic
+    [ESCALATION_RULES] nvarchar(1000) NULL, -- JSON escalation timing and rules
+    [PRIORITY_OVERRIDE] nvarchar(10) NULL, -- HIGH, MEDIUM, LOW - overrides notice priority
+    [IS_EMERGENCY_TEMPLATE] bit NOT NULL DEFAULT 0, -- Special handling for emergency notices
+    [USAGE_COUNT] int NOT NULL DEFAULT 0,
+    [LAST_USED_DATE] datetime2 NULL,
+    [IS_ACTIVE] bit NOT NULL DEFAULT 1,
+    [CREATE_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    [UPDATE_DATE] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+
+    -- Primary key
+    CONSTRAINT [PK_NOTICE_GROUP_TEMPLATES] PRIMARY KEY CLUSTERED ([GROUP_TEMPLATE_ID] ASC),
+
+    -- Foreign key constraints
+    CONSTRAINT [FK_GROUP_TEMPLATES_COMPANY] FOREIGN KEY ([COMPANY_ID]) 
+        REFERENCES [GUARDIAN].[COMPANY] ([COMPANY_ID]) ON DELETE CASCADE,
+    CONSTRAINT [FK_GROUP_TEMPLATES_CREATOR] FOREIGN KEY ([CREATED_BY_USER_ID]) 
+        REFERENCES [GUARDIAN].[USERS] ([USER_ID]) ON DELETE NO ACTION,
+
+    -- Unique constraint for template names within company
+    CONSTRAINT [UQ_GROUP_TEMPLATES_NAME_COMPANY] UNIQUE ([COMPANY_ID], [TEMPLATE_NAME])
+);
+
+-- Create indexes for performance
+CREATE INDEX [IX_CONTACT_GROUPS_COMPANY] ON [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([COMPANY_ID]);
+CREATE INDEX [IX_CONTACT_GROUPS_TYPE] ON [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([GROUP_TYPE], [COMPANY_ID]);
+CREATE INDEX [IX_CONTACT_GROUPS_STATUS] ON [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([GROUP_STATUS], [COMPANY_ID]);
+CREATE INDEX [IX_CONTACT_GROUPS_CREATOR] ON [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([CREATED_BY_USER_ID]);
+CREATE INDEX [IX_CONTACT_GROUPS_USAGE] ON [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([COMPANY_ID], [LAST_USED_DATE], [USAGE_COUNT]);
+CREATE INDEX [IX_CONTACT_GROUPS_AUTO] ON [GUARDIAN].[NOTICE_CONTACT_GROUPS] ([COMPANY_ID], [AUTO_UPDATE], [GROUP_TYPE]);
+
+CREATE INDEX [IX_GROUP_MEMBERS_GROUP] ON [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] ([CONTACT_GROUP_ID]);
+CREATE INDEX [IX_GROUP_MEMBERS_USER] ON [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] ([USER_ID]);
+CREATE INDEX [IX_GROUP_MEMBERS_COMPANY] ON [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] ([COMPANY_ID]);
+CREATE INDEX [IX_GROUP_MEMBERS_STATUS] ON [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] ([MEMBER_STATUS], [CONTACT_GROUP_ID]);
+CREATE INDEX [IX_GROUP_MEMBERS_TYPE] ON [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] ([MEMBER_TYPE], [CONTACT_GROUP_ID]);
+
+CREATE INDEX [IX_GROUP_TEMPLATES_COMPANY] ON [GUARDIAN].[NOTICE_GROUP_TEMPLATES] ([COMPANY_ID]);
+CREATE INDEX [IX_GROUP_TEMPLATES_TYPE] ON [GUARDIAN].[NOTICE_GROUP_TEMPLATES] ([TEMPLATE_TYPE], [COMPANY_ID]);
+CREATE INDEX [IX_GROUP_TEMPLATES_EMERGENCY] ON [GUARDIAN].[NOTICE_GROUP_TEMPLATES] ([IS_EMERGENCY_TEMPLATE], [COMPANY_ID]);
+
+-- Add check constraints
+ALTER TABLE [GUARDIAN].[NOTICE_CONTACT_GROUPS] 
+ADD CONSTRAINT [CHK_CONTACT_GROUPS_TYPE] 
+CHECK ([GROUP_TYPE] IN ('CUSTOM', 'DEPARTMENT', 'ROLE', 'PROJECT', 'LOCATION', 'EMERGENCY', 'TEAM', 'SKILL', 'SHIFT'));
+
+ALTER TABLE [GUARDIAN].[NOTICE_CONTACT_GROUPS] 
+ADD CONSTRAINT [CHK_CONTACT_GROUPS_STATUS] 
+CHECK ([GROUP_STATUS] IN ('ACTIVE', 'INACTIVE', 'ARCHIVED'));
+
+ALTER TABLE [GUARDIAN].[NOTICE_CONTACT_GROUPS] 
+ADD CONSTRAINT [CHK_CONTACT_GROUPS_ACCESS] 
+CHECK ([ACCESS_LEVEL] IN ('ADMIN_ONLY', 'MANAGER', 'PUBLIC', 'CREATOR_ONLY'));
+
+ALTER TABLE [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] 
+ADD CONSTRAINT [CHK_GROUP_MEMBERS_TYPE] 
+CHECK ([MEMBER_TYPE] IN ('MEMBER', 'MANAGER', 'ADMIN', 'VIEWER'));
+
+ALTER TABLE [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] 
+ADD CONSTRAINT [CHK_GROUP_MEMBERS_STATUS] 
+CHECK ([MEMBER_STATUS] IN ('ACTIVE', 'INACTIVE', 'PENDING', 'REMOVED'));
+
+ALTER TABLE [GUARDIAN].[NOTICE_CONTACT_GROUP_MEMBERS] 
+ADD CONSTRAINT [CHK_GROUP_MEMBERS_NOTIFICATION] 
+CHECK ([NOTIFICATION_PREFERENCE] IN ('DEFAULT', 'EMAIL_ONLY', 'IN_APP_ONLY', 'DISABLED'));
+
+ALTER TABLE [GUARDIAN].[NOTICE_GROUP_TEMPLATES] 
+ADD CONSTRAINT [CHK_GROUP_TEMPLATES_TYPE] 
+CHECK ([TEMPLATE_TYPE] IN ('DISTRIBUTION', 'ESCALATION', 'EMERGENCY', 'ANNOUNCEMENT', 'WORKFLOW'));
+
+-- Add column descriptions
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'Contact groups for notice distribution and recipient management',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_CONTACT_GROUPS';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'Type of contact group: CUSTOM, DEPARTMENT, ROLE, PROJECT, LOCATION, EMERGENCY, TEAM, SKILL, SHIFT',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_CONTACT_GROUPS',
+    @level2type = N'COLUMN', @level2name = N'GROUP_TYPE';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'Whether group membership updates automatically based on criteria',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_CONTACT_GROUPS',
+    @level2type = N'COLUMN', @level2name = N'AUTO_UPDATE';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'JSON criteria for automatic membership updates (role, department, etc.)',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_CONTACT_GROUPS',
+    @level2type = N'COLUMN', @level2name = N'AUTO_UPDATE_CRITERIA';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'Group membership records with roles and notification preferences',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_CONTACT_GROUP_MEMBERS';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'Member role within group: MEMBER, MANAGER, ADMIN, VIEWER',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_CONTACT_GROUP_MEMBERS',
+    @level2type = N'COLUMN', @level2name = N'MEMBER_TYPE';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'Reusable distribution templates combining multiple groups',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_GROUP_TEMPLATES';
+
+EXEC sp_addextendedproperty 
+    @name = N'MS_Description', @value = N'JSON array of group IDs and logical operators for complex distribution',
+    @level0type = N'SCHEMA', @level0name = N'GUARDIAN',
+    @level1type = N'TABLE', @level1name = N'NOTICE_GROUP_TEMPLATES',
+    @level2type = N'COLUMN', @level2name = N'GROUP_COMBINATION';
