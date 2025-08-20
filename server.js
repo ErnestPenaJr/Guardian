@@ -328,6 +328,166 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// === DEPLOYMENT VERIFICATION ENDPOINTS ===
+
+// Asset verification endpoint - checks if critical assets exist
+app.get('/api/debug/assets', async (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        console.log('🔍 Asset verification requested');
+        
+        // Check for critical files and directories
+        const assetsDir = path.join(__dirname, 'assets');
+        const indexFile = path.join(__dirname, 'index.html');
+        
+        const verification = {
+            timestamp: new Date().toISOString(),
+            deployment_directory: __dirname,
+            checks: {
+                index_html: fs.existsSync(indexFile),
+                assets_directory: fs.existsSync(assetsDir),
+                assets_contents: [],
+                total_files: 0
+            }
+        };
+        
+        // List assets directory contents if it exists
+        if (verification.checks.assets_directory) {
+            try {
+                const assetFiles = fs.readdirSync(assetsDir);
+                verification.checks.assets_contents = assetFiles.map(file => {
+                    const filePath = path.join(assetsDir, file);
+                    const stats = fs.statSync(filePath);
+                    return {
+                        name: file,
+                        size: stats.size,
+                        type: path.extname(file),
+                        modified: stats.mtime
+                    };
+                });
+                verification.checks.total_files = assetFiles.length;
+            } catch (err) {
+                verification.checks.assets_error = err.message;
+            }
+        }
+        
+        // Check for common asset patterns
+        if (verification.checks.assets_directory) {
+            const hasJS = verification.checks.assets_contents.some(f => f.name.includes('index-') && f.name.endsWith('.js'));
+            const hasCSS = verification.checks.assets_contents.some(f => f.name.includes('index-') && f.name.endsWith('.css'));
+            
+            verification.checks.critical_assets = {
+                main_js_found: hasJS,
+                main_css_found: hasCSS,
+                total_js_files: verification.checks.assets_contents.filter(f => f.name.endsWith('.js')).length,
+                total_css_files: verification.checks.assets_contents.filter(f => f.name.endsWith('.css')).length
+            };
+        }
+        
+        console.log('📊 Asset verification complete:', verification);
+        res.json(verification);
+        
+    } catch (error) {
+        console.error('❌ Asset verification failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Asset verification failed',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Deployment info endpoint - shows deployment configuration
+app.get('/api/debug/deployment', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        console.log('🔍 Deployment info requested');
+        
+        const deploymentInfo = {
+            timestamp: new Date().toISOString(),
+            server_info: {
+                working_directory: __dirname,
+                node_version: process.version,
+                platform: process.platform,
+                uptime: process.uptime(),
+                memory_usage: process.memoryUsage(),
+                environment: process.env.NODE_ENV || 'development'
+            },
+            static_serving: {
+                enabled: true,
+                method: 'express_static_fallback',
+                directory: '.',
+                notes: 'Both IIS and Express serve static files as fallback'
+            },
+            files_check: {
+                server_js: fs.existsSync(path.join(__dirname, 'server.js')),
+                index_html: fs.existsSync(path.join(__dirname, 'index.html')),
+                package_json: fs.existsSync(path.join(__dirname, 'package.json')),
+                web_config: fs.existsSync(path.join(__dirname, 'web.config')),
+                assets_dir: fs.existsSync(path.join(__dirname, 'assets'))
+            }
+        };
+        
+        console.log('📊 Deployment info:', deploymentInfo);
+        res.json(deploymentInfo);
+        
+    } catch (error) {
+        console.error('❌ Deployment info failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Deployment info failed',
+            error: error.message
+        });
+    }
+});
+
+// Asset serving test endpoint - serves a specific asset through Node.js
+app.get('/api/debug/serve-asset/:filename', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+        const filename = req.params.filename;
+        const assetPath = path.join(__dirname, 'assets', filename);
+        
+        console.log(`🔍 Testing asset serving for: ${filename}`);
+        console.log(`🔍 Full path: ${assetPath}`);
+        
+        if (!fs.existsSync(assetPath)) {
+            console.log(`❌ Asset not found: ${assetPath}`);
+            return res.status(404).json({
+                status: 'not_found',
+                filename,
+                path: assetPath,
+                message: 'Asset file not found'
+            });
+        }
+        
+        // Set proper content type
+        if (filename.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (filename.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+        
+        console.log(`✅ Serving asset through Node.js: ${filename}`);
+        res.sendFile(assetPath);
+        
+    } catch (error) {
+        console.error('❌ Asset serving test failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Asset serving test failed',
+            error: error.message
+        });
+    }
+});
+
 // Send error email endpoint
 app.post('/api/send-error-email', async (req, res) => {
     try {
@@ -3320,55 +3480,38 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Build update query dynamically
-        const updates = [];
-        const updateData = {};
+        // Validate assignedUserId if provided
+        if (assignedUserId !== undefined && assignedUserId) {
+            // Verify the user exists and belongs to the same company
+            const assignedUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+            `;
 
-        if (description !== undefined) {
-            updates.push('DESCRIPTION = @description');
-            updateData.description = description;
-        }
-
-        if (status !== undefined) {
-            updates.push('STATUS = @status');
-            updateData.status = status;
-        }
-
-        if (assignedUserId !== undefined) {
-            if (assignedUserId) {
-                // Verify the user exists and belongs to the same company
-                const assignedUser = await prisma.$queryRaw`
-                    SELECT USER_ID FROM GUARDIAN.USERS
-                    WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
-                `;
-
-                if (!assignedUser.length) {
-                    return res.status(400).json({
-                        error: 'Assigned user not found or not in the same company'
-                    });
-                }
+            if (!assignedUser.length) {
+                return res.status(400).json({
+                    error: 'Assigned user not found or not in the same company'
+                });
             }
-            updates.push('ASSIGNED_USER_ID = @assignedUserId');
-            updateData.assignedUserId = assignedUserId || null;
         }
 
-        if (updates.length === 0) {
+        // Check if we have at least one field to update
+        if (description === undefined && status === undefined && assignedUserId === undefined) {
             return res.status(400).json({
                 error: 'No valid fields to update'
             });
         }
 
-        // Add standard update fields
-        updates.push('UPDATE_DATE = GETDATE()');
-        updates.push('UPDATE_USER_ID = @updateUserId');
-        updateData.updateUserId = req.userId;
+        // Execute update with proper null handling
+        const finalAssignedUserId = assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID;
+        const finalDescription = description !== undefined ? description : task[0].DESCRIPTION;
+        const finalStatus = status !== undefined ? status : task[0].STATUS;
 
-        // Execute update
         await prisma.$executeRaw`
             UPDATE GUARDIAN.TASKS 
-            SET DESCRIPTION = ${description || task[0].DESCRIPTION},
-                STATUS = ${status || task[0].STATUS},
-                ASSIGNED_USER_ID = ${assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID},
+            SET DESCRIPTION = ${finalDescription},
+                STATUS = ${finalStatus},
+                ASSIGNED_USER_ID = ${finalAssignedUserId},
                 UPDATE_DATE = GETDATE(),
                 UPDATE_USER_ID = ${req.userId}
             WHERE TASK_ID = ${taskId}

@@ -39,12 +39,27 @@ steps:
     cp server.js deployment/
     echo "Deployment directory contents:"
     ls -la deployment
-    echo "Assets directory:"
+    echo "Assets directory verification:"
     ls -lah deployment/assets/
-    echo "Verify JS file size:"
-    wc -c deployment/assets/index-DiJh1OUG.js
-    echo "File types:"
-    file deployment/assets/*
+    echo "Asset verification details:"
+    if [ -d "deployment/assets" ]; then
+      echo "✅ Assets directory exists"
+      echo "📊 Asset count: $(ls -1 deployment/assets/ | wc -l) files"
+      echo "📜 JS files: $(ls -1 deployment/assets/*.js 2>/dev/null | wc -l)"
+      echo "🎨 CSS files: $(ls -1 deployment/assets/*.css 2>/dev/null | wc -l)"
+      echo "🖼️ Other files: $(ls -1 deployment/assets/ | grep -v -E '\.(js|css)$' | wc -l)"
+      echo "💾 Total assets size: $(du -sh deployment/assets/ | cut -f1)"
+      echo "Main asset files:"
+      ls -lah deployment/assets/index-*
+    else
+      echo "❌ ERROR: Assets directory missing!"
+      exit 1
+    fi
+    echo "Critical file verification:"
+    [ -f "deployment/index.html" ] && echo "✅ index.html exists" || echo "❌ index.html missing"
+    [ -f "deployment/server.js" ] && echo "✅ server.js exists" || echo "❌ server.js missing"
+    echo "File types verification:"
+    file deployment/assets/* 2>/dev/null || echo "No assets to verify"
   displayName: 'Copy build artifacts to deployment'
 
 - script: |
@@ -191,3 +206,60 @@ steps:
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
   displayName: 'Deploy to Azure Web App'
+
+- script: |
+    echo "🔍 Post-deployment verification starting..."
+    echo "Waiting 30 seconds for deployment to stabilize..."
+    sleep 30
+    
+    # Define the production URL
+    PROD_URL="https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
+    
+    echo "Testing basic connectivity..."
+    if curl -f -s --max-time 30 "$PROD_URL/api/health" > /dev/null; then
+      echo "✅ API health check passed"
+    else
+      echo "❌ API health check failed - server may still be starting"
+    fi
+    
+    echo "Testing asset verification endpoint..."
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > assets_check.json; then
+      echo "✅ Asset verification endpoint accessible"
+      echo "📊 Asset verification results:"
+      cat assets_check.json | jq '.' 2>/dev/null || cat assets_check.json
+    else
+      echo "❌ Asset verification endpoint failed"
+    fi
+    
+    echo "Testing deployment info endpoint..."
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/deployment" > deployment_info.json; then
+      echo "✅ Deployment info endpoint accessible"
+      echo "📊 Deployment info results:"
+      cat deployment_info.json | jq '.server_info' 2>/dev/null || echo "JQ not available, showing raw output:"
+      cat deployment_info.json
+    else
+      echo "❌ Deployment info endpoint failed"
+    fi
+    
+    echo "Testing static asset accessibility..."
+    # Try to fetch the main page first to see what assets it references
+    if curl -f -s --max-time 30 "$PROD_URL" > index.html; then
+      echo "✅ Main page accessible"
+      # Extract asset references from the HTML
+      if grep -o '/assets/[^"]*' index.html | head -5; then
+        echo "📄 Found asset references in HTML"
+      else
+        echo "⚠️ No asset references found in HTML"
+      fi
+    else
+      echo "❌ Main page not accessible"
+    fi
+    
+    echo "🏁 Post-deployment verification complete"
+    echo "🔗 Production URL: $PROD_URL"
+    echo "🔧 Debug endpoints:"
+    echo "   - Health: $PROD_URL/api/health"
+    echo "   - Assets: $PROD_URL/api/debug/assets" 
+    echo "   - Deployment: $PROD_URL/api/debug/deployment"
+    
+  displayName: 'Post-deployment verification'

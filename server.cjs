@@ -3320,55 +3320,38 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Build update query dynamically
-        const updates = [];
-        const updateData = {};
+        // Validate assignedUserId if provided
+        if (assignedUserId !== undefined && assignedUserId) {
+            // Verify the user exists and belongs to the same company
+            const assignedUser = await prisma.$queryRaw`
+                SELECT USER_ID FROM GUARDIAN.USERS
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+            `;
 
-        if (description !== undefined) {
-            updates.push('DESCRIPTION = @description');
-            updateData.description = description;
-        }
-
-        if (status !== undefined) {
-            updates.push('STATUS = @status');
-            updateData.status = status;
-        }
-
-        if (assignedUserId !== undefined) {
-            if (assignedUserId) {
-                // Verify the user exists and belongs to the same company
-                const assignedUser = await prisma.$queryRaw`
-                    SELECT USER_ID FROM GUARDIAN.USERS
-                    WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
-                `;
-
-                if (!assignedUser.length) {
-                    return res.status(400).json({
-                        error: 'Assigned user not found or not in the same company'
-                    });
-                }
+            if (!assignedUser.length) {
+                return res.status(400).json({
+                    error: 'Assigned user not found or not in the same company'
+                });
             }
-            updates.push('ASSIGNED_USER_ID = @assignedUserId');
-            updateData.assignedUserId = assignedUserId || null;
         }
 
-        if (updates.length === 0) {
+        // Check if we have at least one field to update
+        if (description === undefined && status === undefined && assignedUserId === undefined) {
             return res.status(400).json({
                 error: 'No valid fields to update'
             });
         }
 
-        // Add standard update fields
-        updates.push('UPDATE_DATE = GETDATE()');
-        updates.push('UPDATE_USER_ID = @updateUserId');
-        updateData.updateUserId = req.userId;
+        // Execute update with proper null handling
+        const finalAssignedUserId = assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID;
+        const finalDescription = description !== undefined ? description : task[0].DESCRIPTION;
+        const finalStatus = status !== undefined ? status : task[0].STATUS;
 
-        // Execute update
         await prisma.$executeRaw`
             UPDATE GUARDIAN.TASKS 
-            SET DESCRIPTION = ${description || task[0].DESCRIPTION},
-                STATUS = ${status || task[0].STATUS},
-                ASSIGNED_USER_ID = ${assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID},
+            SET DESCRIPTION = ${finalDescription},
+                STATUS = ${finalStatus},
+                ASSIGNED_USER_ID = ${finalAssignedUserId},
                 UPDATE_DATE = GETDATE(),
                 UPDATE_USER_ID = ${req.userId}
             WHERE TASK_ID = ${taskId}
