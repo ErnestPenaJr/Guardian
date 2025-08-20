@@ -124,3 +124,27 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 ✅ Authentication successful for user 1111 in company 26
 🔢 Getting notification count for user 1111
 ✅ User has 7 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 7 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 7 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 7 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 7 unread notifications
