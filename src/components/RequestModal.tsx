@@ -1755,6 +1755,64 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Assign Task Modal */}
+      <Modal show={showAssignTaskModal} onHide={() => setShowAssignTaskModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Assign Selected Tasks</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <div className="alert alert-info py-2">
+              <small>
+                <strong>{selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected</strong>
+                <br />
+                All selected tasks will be assigned to the chosen user.
+              </small>
+            </div>
+          </div>
+          
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Assign To *</Form.Label>
+              <Form.Select
+                value={assignTaskData.assignedUserId}
+                onChange={(e) => setAssignTaskData({...assignTaskData, assignedUserId: e.target.value})}
+                required
+              >
+                <option value="">Select a user to assign tasks to...</option>
+                {users.map((user) => (
+                  <option key={user.USER_ID} value={user.USER_ID}>
+                    {user.FULL_NAME} ({user.ROLE_NAMES})
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">
+                Choose a user who will be responsible for completing the selected tasks
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowAssignTaskModal(false);
+              setAssignTaskData({ assignedUserId: '' });
+            }}
+            disabled={taskActionLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleAssignTasks}
+            disabled={taskActionLoading || !assignTaskData.assignedUserId}
+          >
+            {taskActionLoading ? 'Assigning...' : `Assign ${selectedTasks.size} Task${selectedTasks.size !== 1 ? 's' : ''}`}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Modal>
   );
 };
