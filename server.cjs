@@ -292,16 +292,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// Serve static files from current directory (where dist contents are deployed)
-app.use(express.static('.', {
-  index: 'index.html',
-  setHeaders: (res, path) => {
-    // Set proper MIME types for JavaScript modules
-    if (path.endsWith('.js') || path.endsWith('.mjs')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    }
-  }
-}));
+// In development mode, static files are served by Vite dev server (port 5175)
+// This backend server (port 3001) only handles API endpoints
+console.log('🔧 Development mode: Static files served by Vite on port 5175');
 
 // === API ROUTES ===
 
@@ -10410,14 +10403,13 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// Handle all non-API routes for React Router (must be last!)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// In development mode, SPA routing is handled by Vite dev server
+// This route is only needed in production when this server serves static files
+console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`📁 Static files: ${path.join(__dirname, 'dist')}`);
+    console.log(`🔧 Development mode: API server only`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');

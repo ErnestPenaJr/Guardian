@@ -24,21 +24,41 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
-    // Debug logging for auth header issues
-    console.log('🔍 [API INTERCEPTOR] Processing request:', {
-      url: config.url,
-      method: config.method,
-      tokenExists: !!token,
-      tokenLength: token ? token.length : 0,
-      tokenPreview: token ? token.substring(0, 20) + '...' : 'null',
-      hasHeaders: !!config.headers,
-      baseURL: config.baseURL
-    });
+    // List of endpoints that don't require authentication
+    const publicEndpoints = [
+      '/api/login',
+      '/api/register',
+      '/api/verify-email',
+      '/api/complete-registration',
+      '/api/request-password-reset',
+      '/api/verify-reset-code',
+      '/api/reset-password',
+      '/api/send-verification-email',
+      '/api/health',
+      '/api/test'
+    ];
+    
+    const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+    
+    // Debug logging for auth header issues (only for non-public endpoints)
+    if (!isPublicEndpoint) {
+      console.log('🔍 [API INTERCEPTOR] Processing request:', {
+        url: config.url,
+        method: config.method,
+        tokenExists: !!token,
+        tokenLength: token ? token.length : 0,
+        tokenPreview: token ? token.substring(0, 20) + '...' : 'null',
+        hasHeaders: !!config.headers,
+        baseURL: config.baseURL
+      });
+    }
     
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✅ [API INTERCEPTOR] Added Authorization header for:', config.url);
-    } else {
+      if (!isPublicEndpoint) {
+        console.log('✅ [API INTERCEPTOR] Added Authorization header for:', config.url);
+      }
+    } else if (!isPublicEndpoint) {
       console.warn('❌ [API INTERCEPTOR] No auth header added:', {
         url: config.url,
         reason: !token ? 'No token in localStorage' : 'No headers object'
