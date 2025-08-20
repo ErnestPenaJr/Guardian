@@ -166,6 +166,67 @@ try {
         }
     };
 
+    sendTaskAssignmentEmail = async (email, userName, requestName, trackingId, taskDescription, taskId, assignedBy) => {
+        try {
+            console.log(`📧 Sending task assignment email to: ${email}`);
+            
+            const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: [email],
+                subject: `New Task Assignment - ${requestName}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #0D9488; margin: 0;">Guardian</h1>
+                        </div>
+                        
+                        <h2 style="color: #333; text-align: center;">New Task Assignment</h2>
+                        
+                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 0; font-size: 16px; color: #333;">
+                                Hello ${userName},
+                            </p>
+                            <p style="margin: 15px 0 0 0; font-size: 16px; color: #333;">
+                                You have been assigned a new task by ${assignedBy}.
+                            </p>
+                        </div>
+                        
+                        <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1976d2;">
+                            <h3 style="margin: 0 0 15px 0; color: #1976d2; font-size: 18px;">Task Details</h3>
+                            <p style="margin: 0 0 10px 0; color: #333;"><strong>Task ID:</strong> ${taskId}</p>
+                            <p style="margin: 0 0 10px 0; color: #333;"><strong>Request:</strong> ${requestName} (${trackingId})</p>
+                            <p style="margin: 0 0 10px 0; color: #333;"><strong>Description:</strong> ${taskDescription}</p>
+                            <p style="margin: 0; color: #333;"><strong>Assigned by:</strong> ${assignedBy}</p>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <p style="margin: 0; color: #666; font-size: 14px;">
+                                Please log in to your Guardian account to view and work on this task.
+                            </p>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+                            <p style="margin: 0; color: #999; font-size: 12px;">
+                                This is an automated message from Guardian. Please do not reply to this email.
+                            </p>
+                        </div>
+                    </div>
+                `
+            });
+
+            if (error) {
+                console.error('❌ Resend error:', error);
+                return false;
+            }
+
+            console.log(`✅ Task assignment email sent successfully to ${email}:`, data?.id);
+            return true;
+        } catch (error) {
+            console.error('❌ Task email sending failed:', error);
+            return false;
+        }
+    };
+
     console.log('✅ Email service initialized with Resend');
 } catch (error) {
     console.log('⚠️ Resend not available, using fallback mode:', error.message);
@@ -179,6 +240,10 @@ try {
     };
     sendAssignmentEmail = async (email, userName, requestName, trackingId, assignedBy) => {
         console.log(`📧 [FALLBACK] Would send assignment email to ${email} for request: ${requestName} (${trackingId})`);
+        return false; // Return false to indicate email not sent
+    };
+    sendTaskAssignmentEmail = async (email, userName, requestName, trackingId, taskDescription, taskId, assignedBy) => {
+        console.log(`📧 [FALLBACK] Would send task assignment email to ${email} for task: ${taskDescription} (${taskId})`);
         return false; // Return false to indicate email not sent
     };
 }
@@ -2998,7 +3063,6 @@ app.get('/api/requests/:requestId/tasks', getAuthenticatedUserCompany, async (re
                 t.DESCRIPTION,
                 t.CREATE_DATE,
                 t.UPDATE_DATE,
-                t.TRACKINGID,
                 au.FIRST_NAME as ASSIGNED_FIRST_NAME,
                 au.LAST_NAME as ASSIGNED_LAST_NAME,
                 au.EMAIL as ASSIGNED_EMAIL,
@@ -3092,11 +3156,8 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
             }
         }
 
-        // Generate tracking ID for the task
-        const trackingId = `TSK-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-
-        // Create the task
-        const taskResult = await prisma.$queryRaw`
+        // Create the task (TRACKINGID is computed column, no need to insert)
+        await prisma.$queryRaw`
             INSERT INTO GUARDIAN.TASKS (
                 REQUEST_ID,
                 STATUS,
@@ -3105,10 +3166,8 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
                 CREATE_USER_ID,
                 UPDATE_USER_ID,
                 CREATE_DATE,
-                UPDATE_DATE,
-                TRACKINGID
+                UPDATE_DATE
             )
-            OUTPUT INSERTED.TASK_ID
             VALUES (
                 ${requestId},
                 ${status},
@@ -3117,13 +3176,28 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
                 ${req.userId},
                 ${req.userId},
                 GETDATE(),
-                GETDATE(),
-                ${trackingId}
+                GETDATE()
             )
         `;
 
-        const taskId = taskResult[0].TASK_ID;
-        console.log(`✅ Task created with ID: ${taskId}`);
+        // Get the inserted task ID using SCOPE_IDENTITY()
+        const taskIdResult = await prisma.$queryRaw`SELECT SCOPE_IDENTITY() as TASK_ID`;
+        const taskId = taskIdResult[0]?.TASK_ID;
+        console.log(`✅ Task created with ID: ${taskId}`, taskIdResult);
+        
+        // If SCOPE_IDENTITY didn't work, try to get the task ID by querying the most recent task
+        let finalTaskId = taskId;
+        if (!taskId) {
+            console.log('⚠️ SCOPE_IDENTITY returned null, trying alternative method...');
+            const recentTask = await prisma.$queryRaw`
+                SELECT TOP 1 TASK_ID 
+                FROM GUARDIAN.TASKS 
+                WHERE REQUEST_ID = ${requestId} AND CREATE_USER_ID = ${req.userId}
+                ORDER BY CREATE_DATE DESC
+            `;
+            finalTaskId = recentTask[0]?.TASK_ID;
+            console.log(`🔄 Alternative task ID retrieval result: ${finalTaskId}`);
+        }
 
         // Create notification for assigned user if different from creator
         if (assignedUserId && assignedUserId !== req.userId) {
@@ -3143,7 +3217,7 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
                         'task_assigned', 
                         'New Task Assigned', 
                         ${'You have been assigned a new task: ' + description}, 
-                        ${taskId}, 
+                        ${finalTaskId}, 
                         ${req.companyId}, 
                         GETDATE(), 
                         0
@@ -3154,13 +3228,66 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
                 console.error('⚠️ Failed to create notification:', notificationError);
                 // Continue anyway - task creation should not fail due to notification issues
             }
+            
+            // Send email notification for task assignment
+            console.log(`🎯 About to send email for task assignment to user: ${assignedUserId}`);
+            try {
+                // Get assigned user's email and name
+                const assignedUser = await prisma.$queryRaw`
+                    SELECT EMAIL, FIRST_NAME, LAST_NAME 
+                    FROM GUARDIAN.USERS 
+                    WHERE USER_ID = ${assignedUserId}
+                `;
+                
+                // Get assigning user's name  
+                const assigningUser = await prisma.$queryRaw`
+                    SELECT FIRST_NAME, LAST_NAME 
+                    FROM GUARDIAN.USERS 
+                    WHERE USER_ID = ${req.userId}
+                `;
+                
+                // Get request details for context
+                const requestDetails = await prisma.$queryRaw`
+                    SELECT REQUEST_NAME, TRACKINGID 
+                    FROM GUARDIAN.REQUESTS 
+                    WHERE REQUEST_ID = ${requestId}
+                `;
+                
+                if (assignedUser.length > 0 && assigningUser.length > 0 && requestDetails.length > 0) {
+                    const assigned = assignedUser[0];
+                    const assigner = assigningUser[0];
+                    const request = requestDetails[0];
+                    const assignedUserName = `${assigned.FIRST_NAME} ${assigned.LAST_NAME}`;
+                    const assignedByName = `${assigner.FIRST_NAME} ${assigner.LAST_NAME}`;
+                    
+                    console.log(`📧 Sending task assignment email to ${assigned.EMAIL} for task: ${description}`);
+                    
+                    const emailSent = await sendTaskAssignmentEmail(
+                        assigned.EMAIL,
+                        assignedUserName,
+                        request.REQUEST_NAME,
+                        request.TRACKINGID,
+                        description,
+                        `T-${finalTaskId}`,
+                        assignedByName
+                    );
+                    
+                    if (emailSent) {
+                        console.log(`✅ Task assignment email sent successfully`);
+                    } else {
+                        console.log(`⚠️ Task assignment email failed to send`);
+                    }
+                }
+            } catch (emailError) {
+                console.error('⚠️ Failed to send task assignment email:', emailError);
+                // Continue anyway - task creation should not fail due to email issues
+            }
         }
 
         res.json({
             success: true,
             message: 'Task created successfully',
-            taskId: taskId,
-            trackingId: trackingId
+            taskId: finalTaskId
         });
 
     } catch (error) {

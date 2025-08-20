@@ -5,6 +5,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom utility classes for enhanced UI components */
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 /* Ensure SweetAlert2 modal overlay is visible and dimmed above all dashboard content */
 .swal2-container {
   background: rgba(30, 41, 59, 0.55) !important;

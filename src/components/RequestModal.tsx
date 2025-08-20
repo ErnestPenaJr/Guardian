@@ -45,6 +45,21 @@ interface FormFieldValue {
   fieldValue: any;
 }
 
+interface Task {
+  TASK_ID: number;
+  DESCRIPTION: string;
+  STATUS: string;
+  ASSIGNED_USER_ID: number | null;
+  REQUEST_ID: number;
+  CREATE_DATE: string;
+  UPDATE_DATE: string;
+  assignedUser?: {
+    FIRST_NAME: string;
+    LAST_NAME: string;
+    FULL_NAME: string;
+  };
+}
+
 interface Props {
   request: Request;
   show: boolean;
@@ -70,6 +85,57 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [feedbackFiles, setFeedbackFiles] = useState<File[]>([]);
   const [feedbackType, setFeedbackType] = useState<string>('update');
   const [activeWorkTab, setActiveWorkTab] = useState<'feedback' | 'files' | 'status'>('feedback');
+  
+  // Main tab state
+  const [activeMainTab, setActiveMainTab] = useState<'details' | 'tasks' | 'results' | 'milestones'>('details');
+  
+  // Task management state
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasksLoading, setTasksLoading] = useState<boolean>(false);
+  const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
+  const [showAddTaskModal, setShowAddTaskModal] = useState<boolean>(false);
+  const [showAssignTaskModal, setShowAssignTaskModal] = useState<boolean>(false);
+  const [taskActionLoading, setTaskActionLoading] = useState<boolean>(false);
+  const [newTaskData, setNewTaskData] = useState<{
+    assignedUserId: string;
+    description: string;
+  }>({
+    assignedUserId: '',
+    description: ''
+  });
+  const [assignTaskData, setAssignTaskData] = useState<{
+    assignedUserId: string;
+  }>({
+    assignedUserId: ''
+  });
+
+  // Handle assign tasks
+  const handleAssignTasks = async () => {
+    if (!assignTaskData.assignedUserId) {
+      toast.error('Please select a user to assign tasks to');
+      return;
+    }
+
+    try {
+      setTaskActionLoading(true);
+      const taskIds = Array.from(selectedTasks);
+      console.log('👤 Assigning tasks:', taskIds, 'to user:', assignTaskData.assignedUserId);
+
+      // Call the existing handleTaskAssign function
+      await handleTaskAssign(taskIds, assignTaskData.assignedUserId);
+      
+      // Close modal and reset data
+      setShowAssignTaskModal(false);
+      setAssignTaskData({ assignedUserId: '' });
+      setSelectedTasks(new Set()); // Clear selection after assignment
+      
+    } catch (error: any) {
+      console.error('❌ Error assigning tasks:', error);
+      toast.error('Failed to assign tasks');
+    } finally {
+      setTaskActionLoading(false);
+    }
+  };
   
   // Check if current user can assign requests (processor and above)
   const canAssignRequests = () => {
@@ -221,8 +287,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         console.log('❌ Current user details:', currentUser);
         console.log('❌ This means the assignment dropdown will be empty!');
       }
-      // Always try to fetch form data
+      // Always try to fetch form data and tasks
       fetchFormFieldValues();
+      fetchTasks();
     } else {
       console.log('🔄 Modal is not shown, skipping data fetch');
     }
@@ -366,6 +433,183 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setFormFieldValues([]);
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  // Fetch tasks for this request
+  const fetchTasks = async () => {
+    try {
+      setTasksLoading(true);
+      console.log(`📋 Fetching tasks for request ${request.REQUEST_ID}`);
+      
+      const response = await api.get(`/api/requests/${request.REQUEST_ID}/tasks`);
+      console.log('📋 Tasks API response:', response.data);
+      
+      if (response.data && response.data.success) {
+        const newTasks = response.data.data || [];  // Changed from 'tasks' to 'data'
+        console.log(`✅ Setting ${newTasks.length} tasks in state:`, newTasks);
+        setTasks(newTasks);
+        console.log(`✅ Tasks state should now have ${newTasks.length} items`);
+      } else {
+        console.log('❌ Tasks API response not successful');
+        setTasks([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching tasks:', error);
+      setTasks([]);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  // Handle add task
+  const handleAddTask = async () => {
+    if (!newTaskData.description.trim()) {
+      toast.error('Please enter a task description');
+      return;
+    }
+
+    try {
+      setTaskActionLoading(true);
+      console.log('➕ Adding new task:', newTaskData);
+
+      const response = await api.post('/api/tasks', {
+        requestId: request.REQUEST_ID,
+        assignedUserId: newTaskData.assignedUserId || null,
+        description: newTaskData.description.trim(),
+        status: 'Pending'
+      });
+
+      if (response.data && response.data.success) {
+        toast.success('Task created successfully!');
+        setShowAddTaskModal(false);
+        setNewTaskData({ assignedUserId: '', description: '' });
+        await fetchTasks(); // Refresh tasks list
+      } else {
+        toast.error('Failed to create task');
+      }
+    } catch (error: any) {
+      console.error('❌ Error adding task:', error);
+      toast.error(error.response?.data?.error || 'Failed to create task');
+    } finally {
+      setTaskActionLoading(false);
+    }
+  };
+
+  // Handle task status updates
+  const handleTaskStatusUpdate = async (taskIds: number[], newStatus: string) => {
+    if (taskIds.length === 0) {
+      toast.error('Please select tasks to update');
+      return;
+    }
+
+    try {
+      setTaskActionLoading(true);
+      console.log(`🔄 Updating ${taskIds.length} tasks to status: ${newStatus}`);
+
+      // Update each selected task
+      const promises = taskIds.map(taskId => 
+        api.put(`/api/tasks/${taskId}`, { status: newStatus })
+      );
+
+      const responses = await Promise.all(promises);
+      const successful = responses.filter(r => r.data && r.data.success);
+
+      if (successful.length === taskIds.length) {
+        toast.success(`${successful.length} task(s) updated successfully!`);
+        setSelectedTasks(new Set()); // Clear selection
+        await fetchTasks(); // Refresh tasks list
+      } else {
+        toast.warning(`${successful.length} of ${taskIds.length} tasks updated`);
+        await fetchTasks(); // Refresh tasks list anyway
+      }
+    } catch (error: any) {
+      console.error('❌ Error updating tasks:', error);
+      toast.error(error.response?.data?.error || 'Failed to update tasks');
+    } finally {
+      setTaskActionLoading(false);
+    }
+  };
+
+  // Handle task assignment
+  const handleTaskAssign = async (taskIds: number[], assignedUserId: string) => {
+    if (taskIds.length === 0) {
+      toast.error('Please select tasks to assign');
+      return;
+    }
+
+    if (!assignedUserId) {
+      toast.error('Please select a user to assign tasks to');
+      return;
+    }
+
+    try {
+      setTaskActionLoading(true);
+      console.log(`👤 Assigning ${taskIds.length} tasks to user ${assignedUserId}`);
+
+      // Update each selected task
+      const promises = taskIds.map(taskId => 
+        api.put(`/api/tasks/${taskId}`, { assignedUserId: parseInt(assignedUserId) })
+      );
+
+      const responses = await Promise.all(promises);
+      const successful = responses.filter(r => r.data && r.data.success);
+
+      if (successful.length === taskIds.length) {
+        toast.success(`${successful.length} task(s) assigned successfully!`);
+        setSelectedTasks(new Set()); // Clear selection
+        await fetchTasks(); // Refresh tasks list
+      } else {
+        toast.warning(`${successful.length} of ${taskIds.length} tasks assigned`);
+        await fetchTasks(); // Refresh tasks list anyway
+      }
+    } catch (error: any) {
+      console.error('❌ Error assigning tasks:', error);
+      toast.error(error.response?.data?.error || 'Failed to assign tasks');
+    } finally {
+      setTaskActionLoading(false);
+    }
+  };
+
+  // Handle task selection
+  const handleTaskSelect = (taskId: number, checked: boolean) => {
+    const newSelection = new Set(selectedTasks);
+    if (checked) {
+      newSelection.add(taskId);
+    } else {
+      newSelection.delete(taskId);
+    }
+    setSelectedTasks(newSelection);
+  };
+
+  // Handle select all tasks
+  const handleSelectAllTasks = (checked: boolean) => {
+    if (checked) {
+      setSelectedTasks(new Set(tasks.map(task => task.TASK_ID)));
+    } else {
+      setSelectedTasks(new Set());
+    }
+  };
+
+  // Get task status badge class
+  const getTaskStatusBadgeClass = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'pending': return 'badge bg-warning text-dark';
+      case 'in progress': return 'badge bg-primary text-white';
+      case 'completed': return 'badge bg-success text-white';
+      case 'cancelled': return 'badge bg-danger text-white';
+      default: return 'badge bg-secondary text-white';
+    }
+  };
+
+  // Get task status text
+  const getTaskStatusText = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'pending': return 'Pending';
+      case 'in progress': return 'In Progress';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return status;
     }
   };
 
@@ -636,7 +880,55 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         </div>
 
-        {/* Form Template Section - Compact */}
+        {/* Tab Navigation */}
+        <div className="border-top pt-3 mb-4">
+          <div className="d-flex mb-0 border-bottom">
+            <button
+              className={`btn btn-sm border-0 px-3 py-2 ${
+                activeMainTab === 'details' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
+              }`}
+              onClick={() => setActiveMainTab('details')}
+              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'details' ? '600' : '400' }}
+            >
+              Details
+            </button>
+            <button
+              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
+                activeMainTab === 'tasks' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
+              }`}
+              onClick={() => setActiveMainTab('tasks')}
+              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'tasks' ? '600' : '400' }}
+            >
+              Tasks
+            </button>
+            <button
+              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
+                activeMainTab === 'results' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
+              }`}
+              onClick={() => setActiveMainTab('results')}
+              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'results' ? '600' : '400' }}
+            >
+              Results
+            </button>
+            <button
+              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
+                activeMainTab === 'milestones' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
+              }`}
+              onClick={() => setActiveMainTab('milestones')}
+              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'milestones' ? '600' : '400' }}
+            >
+              Milestones
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="tab-content" style={{ minHeight: '400px' }}>
+          
+          {/* Details Tab */}
+          {activeMainTab === 'details' && (
+            <div className="tab-pane active">
+              {/* Form Template Section - Compact */}
         {formTemplate && (
           <div className="border-top pt-3 mb-3">
             <div className="text-primary fw-semibold mb-1" style={{ fontSize: '1rem' }}>
@@ -1072,64 +1364,397 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         )}
 
-        {/* Assignment Section - Only show if user has permission */}
-        {hasAssignPermission ? (
-          <div className="border-top pt-3 mt-3">
-            <div className="text-dark fw-semibold mb-2" style={{ fontSize: '0.9rem' }}>Assign Request</div>
-            
-            <Form.Select 
-              value={selectedUser} 
-              onChange={(e) => setSelectedUser(e.target.value)}
-              disabled={loading}
-              className="mb-3 form-select-sm"
-              style={{ fontSize: '0.85rem' }}
-            >
-              <option value="">Select a processor to assign</option>
-              {users.map((user) => (
-                <option key={user.USER_ID} value={user.USER_ID}>
-                  {user.FULL_NAME} ({user.ROLE_NAMES})
-                </option>
-              ))}
-            </Form.Select>
-            
-            <div className="d-flex gap-2 justify-content-end">
-              <Button 
-                variant="outline-secondary" 
-                onClick={onHide} 
-                size="sm"
-                className="px-3"
-                style={{ fontSize: '0.85rem' }}
-              >
-                Close
-              </Button>
-              <Button 
-                variant="primary" 
-                onClick={handleAssignUser}
-                disabled={!selectedUser || loading}
-                size="sm"
-                className="px-3"
-                style={{ fontSize: '0.85rem' }}
-              >
-                {loading ? 'Assigning...' : 'Assign'}
-              </Button>
+              {/* Assignment Section - Only show if user has permission */}
+              {hasAssignPermission ? (
+                <div className="border-top pt-3 mt-3">
+                  <div className="text-dark fw-semibold mb-2" style={{ fontSize: '0.9rem' }}>Assign Request</div>
+                  
+                  <Form.Select 
+                    value={selectedUser} 
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    disabled={loading}
+                    className="mb-3 form-select-sm"
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    <option value="">Select a processor to assign</option>
+                    {users.map((user) => (
+                      <option key={user.USER_ID} value={user.USER_ID}>
+                        {user.FULL_NAME} ({user.ROLE_NAMES})
+                      </option>
+                    ))}
+                  </Form.Select>
+                  
+                  <div className="d-flex gap-2 justify-content-end">
+                    <Button 
+                      variant="outline-secondary" 
+                      onClick={onHide} 
+                      size="sm"
+                      className="px-3"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      Close
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleAssignUser}
+                      disabled={!selectedUser || loading}
+                      size="sm"
+                      className="px-3"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      {loading ? 'Assigning...' : 'Assign'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-top pt-3 mt-3">
+                  <div className="d-flex justify-content-end">
+                    <Button 
+                      variant="outline-secondary" 
+                      onClick={onHide} 
+                      size="sm"
+                      className="px-3"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ) : (
-          <div className="border-top pt-3 mt-3">
-            <div className="d-flex justify-content-end">
-              <Button 
-                variant="outline-secondary" 
-                onClick={onHide} 
-                size="sm"
-                className="px-3"
-                style={{ fontSize: '0.85rem' }}
-              >
-                Close
-              </Button>
+          )}
+
+          {/* Tasks Tab */}
+          {activeMainTab === 'tasks' && (
+            <div className="tab-pane active">
+              <div className="mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <div className="d-flex align-items-center">
+                    <h6 className="mb-0 me-2">Task Management</h6>
+                    {selectedTasks.size > 0 && (
+                      <span className="badge bg-primary">{selectedTasks.size} selected</span>
+                    )}
+                  </div>
+                  <div className="d-flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="primary"
+                      onClick={() => setShowAddTaskModal(true)}
+                      disabled={taskActionLoading}
+                    >
+                      Add Task
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline-secondary"
+                      onClick={() => setShowAssignTaskModal(true)}
+                      disabled={taskActionLoading || selectedTasks.size === 0}
+                    >
+                      Assign
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline-success"
+                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'In Progress')}
+                      disabled={taskActionLoading || selectedTasks.size === 0}
+                    >
+                      Start
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline-success"
+                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Completed')}
+                      disabled={taskActionLoading || selectedTasks.size === 0}
+                    >
+                      Complete
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline-danger"
+                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Cancelled')}
+                      disabled={taskActionLoading || selectedTasks.size === 0}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Task Table */}
+                {tasksLoading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-primary" role="status">
+                      <span className="visually-hidden">Loading tasks...</span>
+                    </div>
+                    <div className="mt-2 text-muted small">Loading tasks...</div>
+                  </div>
+                ) : (
+                  <div className="table-responsive">
+                    <table className="table table-sm table-hover">
+                      <thead className="bg-light">
+                        <tr>
+                          <th width="50">
+                            <input 
+                              type="checkbox" 
+                              className="form-check-input"
+                              checked={tasks.length > 0 && selectedTasks.size === tasks.length}
+                              onChange={(e) => handleSelectAllTasks(e.target.checked)}
+                            />
+                          </th>
+                          <th>Task ID</th>
+                          <th>Status</th>
+                          <th>Assigned To</th>
+                          <th>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          console.log(`🎯 Rendering task table with ${tasks.length} tasks:`, tasks);
+                          return null;
+                        })()}
+                        {tasks.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="text-center text-muted py-4">
+                              <div>No tasks found for this request</div>
+                              <small>Click "Add Task" to create the first task</small>
+                            </td>
+                          </tr>
+                        ) : (
+                          tasks.map((task: Task) => (
+                            <tr key={task.TASK_ID}>
+                              <td>
+                                <input 
+                                  type="checkbox" 
+                                  className="form-check-input"
+                                  checked={selectedTasks.has(task.TASK_ID)}
+                                  onChange={(e) => handleTaskSelect(task.TASK_ID, e.target.checked)}
+                                />
+                              </td>
+                              <td>
+                                <code>T-{task.TASK_ID}</code>
+                              </td>
+                              <td>
+                                <span className={getTaskStatusBadgeClass(task.STATUS)}>
+                                  {getTaskStatusText(task.STATUS)}
+                                </span>
+                              </td>
+                              <td>
+                                {task.assignedUser ? 
+                                  task.assignedUser.FULL_NAME || 
+                                  `${task.assignedUser.FIRST_NAME} ${task.assignedUser.LAST_NAME}` 
+                                  : 'Unassigned'}
+                              </td>
+                              <td>
+                                <span title={task.DESCRIPTION} className="text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
+                                  {task.DESCRIPTION}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Results Tab */}
+          {activeMainTab === 'results' && (
+            <div className="tab-pane active">
+              <div className="mb-4">
+                <h6 className="mb-3">Form Submission Details</h6>
+                
+                {/* Detailed form information */}
+                {formTemplate && (
+                  <div className="card mb-3">
+                    <div className="card-header bg-light">
+                      <strong>{formTemplate.name}</strong>
+                    </div>
+                    <div className="card-body">
+                      <p className="text-muted mb-3">{formTemplate.description}</p>
+                      
+                      {/* Detailed field values */}
+                      {formFieldValues.length > 0 ? (
+                        <div className="row">
+                          {formFieldValues.map((field, index) => {
+                            const hasValue = field.fieldValue && field.fieldValue.toString().trim() !== '';
+                            return (
+                              <div key={index} className="col-md-6 mb-3">
+                                <div className="border rounded p-3 h-100">
+                                  <label className="form-label fw-bold small text-uppercase text-muted mb-1">
+                                    {field.fieldName}
+                                  </label>
+                                  <div className={`form-control-plaintext ${hasValue ? 'text-dark' : 'text-muted fst-italic'}`}>
+                                    {hasValue ? field.fieldValue : 'Not provided'}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="alert alert-info">
+                          <p className="mb-0">No form data has been submitted yet.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Uploaded Documents Section */}
+                <div className="card">
+                  <div className="card-header bg-light">
+                    <strong>Uploaded Documents</strong>
+                  </div>
+                  <div className="card-body">
+                    <div className="alert alert-info mb-0">
+                      <p className="mb-0">Document management integration coming soon.</p>
+                      <small className="text-muted">This section will display all documents uploaded by the requestor and processor.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Milestones Tab */}
+          {activeMainTab === 'milestones' && (
+            <div className="tab-pane active">
+              <div className="mb-3">
+                <h6 className="mb-3">Request Lifecycle Events</h6>
+                
+                <div className="timeline">
+                  <div className="timeline-item">
+                    <div className="timeline-marker bg-primary"></div>
+                    <div className="timeline-content">
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                          <strong>Request Submitted</strong>
+                          <div className="text-muted small">by {request.requestorName || 'Ernest Pena Jr'}</div>
+                        </div>
+                        <small className="text-muted">
+                          {formatDate(request.SUBMITTED_DATE || request.CREATE_DATE)}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {request.ASSIGNED_ID && (
+                    <div className="timeline-item">
+                      <div className="timeline-marker bg-info"></div>
+                      <div className="timeline-content">
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div>
+                            <strong>Request Assigned</strong>
+                            <div className="text-muted small">to {request.assignedName || 'Unknown'}</div>
+                          </div>
+                          <small className="text-muted">
+                            {formatDate(request.UPDATE_DATE)}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {request.STATUS === 'A' && (
+                    <div className="timeline-item">
+                      <div className="timeline-marker bg-warning"></div>
+                      <div className="timeline-content">
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div>
+                            <strong>Work Started</strong>
+                            <div className="text-muted small">by {request.assignedName || 'Unknown'}</div>
+                          </div>
+                          <small className="text-muted">
+                            {formatDate(request.UPDATE_DATE)}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {request.STATUS === 'C' && (
+                    <div className="timeline-item">
+                      <div className="timeline-marker bg-success"></div>
+                      <div className="timeline-content">
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div>
+                            <strong>Request Completed</strong>
+                            <div className="text-muted small">by {request.assignedName || 'Unknown'}</div>
+                          </div>
+                          <small className="text-muted">
+                            {formatDate(request.UPDATE_DATE)}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </Modal.Body>
+
+      {/* Add Task Modal */}
+      <Modal show={showAddTaskModal} onHide={() => setShowAddTaskModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Task</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Task Description *</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                placeholder="Enter task description..."
+                value={newTaskData.description}
+                onChange={(e) => setNewTaskData({...newTaskData, description: e.target.value})}
+                required
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Assign To (Optional)</Form.Label>
+              <Form.Select
+                value={newTaskData.assignedUserId}
+                onChange={(e) => setNewTaskData({...newTaskData, assignedUserId: e.target.value})}
+              >
+                <option value="">Leave Unassigned</option>
+                {users.map((user) => (
+                  <option key={user.USER_ID} value={user.USER_ID}>
+                    {user.FULL_NAME} ({user.ROLE_NAMES})
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">
+                You can assign this task to a specific user or leave it unassigned
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowAddTaskModal(false);
+              setNewTaskData({ assignedUserId: '', description: '' });
+            }}
+            disabled={taskActionLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleAddTask}
+            disabled={taskActionLoading || !newTaskData.description.trim()}
+          >
+            {taskActionLoading ? 'Creating...' : 'Create Task'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Modal>
   );
 };
