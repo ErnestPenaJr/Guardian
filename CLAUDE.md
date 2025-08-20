@@ -337,7 +337,8 @@ For administrators logging in for the first time:
 - **Start Task**: Changes status from Pending → In Progress (assigns to current user)
 - **Complete Task**: Changes status from Pending OR In Progress → Completed (flexible completion)
 - **Cancel Task**: Changes status from Pending → Cancelled (only pending tasks allowed)
-- **Multi-select Operations**: Batch operations with confirmation dialogs
+- **Assign Task**: Modal-based task assignment with company-filtered user selection (Enhanced 2025-08-20)
+- **Multi-select Operations**: Batch operations with confirmation dialogs including assignment
 
 **Task Table Features:**
 - **AG Grid Display**: Task ID, Description, Status, Assigned To, Created Date
@@ -471,6 +472,7 @@ Both environments support the same complete set of API endpoints:
 ### System
 - `GET /api/health` - Health check
 - `GET /api/test` - API test endpoint
+- `GET /api/debug/assets` - Asset verification for production debugging (Added 2025-08-20)
 
 ## Security Features
 
@@ -613,6 +615,8 @@ bun server.js  # or node server.js
 14. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
 15. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
 16. **SQL Server Compatibility** - All database operations use proper parameterized queries with `${variable}` syntax for security and compatibility (Fixed 2025-08-12)
+17. **Production Asset Deployment** - Clean build process and asset verification prevent 404 errors in production (Fixed 2025-08-20)
+18. **Task Assignment Modal** - Bootstrap UI modal replaces prompt-based assignment with proper validation and user selection (Enhanced 2025-08-20)
 
 ## Deployment
 
@@ -646,6 +650,7 @@ bun server.js  # or node server.js
 ### Key Components Added Recently
 - **TaskTable.tsx**: Comprehensive task management with AG Grid, multi-select, and export functionality (Added 2025-08-07)
 - **AddTaskModal.tsx**: Task creation modal with user assignment and validation (Added 2025-08-07)
+- **AssignTaskModal.tsx**: Bootstrap UI modal for task assignment with user selection (Completed 2025-08-20)
 - **WorkflowManagementModal.tsx**: Advanced workflow template management
 - **AdminFields.tsx**: Complete field CRUD operations with AG Grid
 - **NotificationDropdown.tsx**: Real-time notification system
@@ -710,6 +715,7 @@ After any server changes:
 3. **Deploy**: Push to trigger pipeline 
 4. **Verify**: Test endpoints on `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net`
 5. **Debug endpoint**: Check `/api/debug/endpoints` for confirmation
+6. **Asset verification**: Check `/api/debug/assets` for production asset deployment status (Added 2025-08-20)
 
 ## Technology Stack
 
@@ -785,9 +791,56 @@ If form template creation fails or returns server errors:
 3. Test form creation through SimpleFormBuilder component
 4. Confirm form templates appear in GUARDIAN.FORMS table
 
+### Production Asset Deployment Issues (Added 2025-08-20)
+If production site returns 404 errors for JavaScript/CSS assets:
+
+**Common Symptoms:**
+- 404 errors for `/assets/index-{hash}.js` or `/assets/index-{hash}.css` files
+- Production site loads but JavaScript functionality broken
+- Browser console shows "Failed to load resource" errors for asset files
+
+**Root Cause Analysis:**
+- **Asset Filename Mismatch**: Vite generates new hash-based filenames on each build, but deployed HTML references outdated filenames
+- **Pipeline Synchronization**: Azure deployment pipeline deploys outdated `index.html` that doesn't match freshly built assets
+- **IIS Static File Serving**: Misconfigurations in web.config preventing proper asset delivery
+
+**Solutions Implemented:**
+- ✅ **Enhanced Pipeline**: Added `rm -rf dist dist-server` for clean builds preventing stale artifacts
+- ✅ **Asset Verification**: Pipeline validates deployed assets match HTML references before deployment completion
+- ✅ **Debug Endpoint**: Added `/api/debug/assets` for real-time production asset verification
+- ✅ **IIS Configuration**: Improved static file serving with proper MIME types and routing separation
+
+**Production Debugging Steps:**
+1. **Check Asset Endpoint**: Visit `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/debug/assets`
+2. **Verify HTML References**: Ensure `index.html` references match actual deployed asset filenames
+3. **Inspect Pipeline Logs**: Check Azure DevOps pipeline for build artifact validation messages
+4. **Test Asset URLs**: Directly access asset URLs in browser to confirm they exist and load properly
+
+**Prevention Measures:**
+- Always run `rm -rf dist dist-server` before production builds
+- Verify asset references in deployed `index.html` match generated filenames
+- Use `/api/debug/assets` endpoint to confirm successful asset deployment
+- Monitor pipeline logs for asset verification warnings or failures
+
 ## Recent Changes & Fixes
 
 ### Latest Updates (2025-08-20)
+
+#### Production Asset Deployment Issue - RESOLVED (2025-08-20)
+- ✅ **Production 404 Asset Errors Fixed**: Resolved critical issue where JavaScript and CSS assets were returning 404 errors in production
+- ✅ **Asset Filename Synchronization**: Fixed mismatch between HTML references and actual deployed asset filenames caused by Vite's hash-based naming
+- ✅ **Enhanced Azure Pipeline**: Added clean build process (`rm -rf dist dist-server`) and asset verification steps to prevent deployment mismatches
+- ✅ **Build Artifact Validation**: Pipeline now validates that deployed assets match HTML references before deployment
+- ✅ **Asset Verification Endpoint**: Added `/api/debug/assets` endpoint for real-time production asset debugging
+- ✅ **IIS Configuration Optimization**: Improved static file serving with proper MIME types and routing separation
+
+#### Task Assignment Modal Implementation - COMPLETED (2025-08-20)
+- ✅ **Assign Task Modal**: Replaced prompt-based task assignment with proper Bootstrap UI modal component
+- ✅ **User Selection Dropdown**: Enhanced task assignment with company-filtered user selection interface
+- ✅ **Batch Assignment Operations**: Support for multi-select task assignment with proper validation
+- ✅ **State Management Integration**: Added `showAssignTaskModal` and `assignTaskData` state handling
+- ✅ **Email Notification Continuity**: Maintained existing task assignment email notifications through Resend API
+- ✅ **Error Handling Enhancement**: Comprehensive validation and error handling for task assignment operations
 
 #### Enhanced Notice Creation with Contact Groups Support
 - ✅ **Contact Groups Integration**: POST /api/notices endpoint now supports both individual recipients and contact groups in a single request
