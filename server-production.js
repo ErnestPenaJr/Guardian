@@ -8037,6 +8037,677 @@ app.get('/api/notices/analytics/company', getAuthenticatedUserCompany, async (re
     }
 });
 
+// ===== NOTICE RESPONSES API ENDPOINTS =====
+
+// Create new notice response
+app.post('/api/notices/:id/responses', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const { responseType, responseMessage, requiresFollowup, followupPriority, isAnonymous } = req.body;
+        
+        console.log(`📝 Creating notice response for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Validate required fields
+        if (!noticeId || !responseType) {
+            return res.status(400).json({
+                error: 'Notice ID and response type are required'
+            });
+        }
+        
+        // Validate response type
+        const validResponseTypes = ['ACKNOWLEDGED', 'UNDERSTOOD', 'COMPLETED', 'REQUIRES_CLARIFICATION', 'CANNOT_COMPLY', 'NEEDS_EXTENSION', 'PARTIALLY_COMPLETED'];
+        if (!validResponseTypes.includes(responseType)) {
+            return res.status(400).json({
+                error: 'Invalid response type'
+            });
+        }
+        
+        // Check if notice exists and user has access to it
+        const noticeCheck = await prisma.$queryRaw`
+            SELECT n.NOTICE_ID, n.STATUS, n.ISSUED_BY_USER_ID
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            WHERE n.NOTICE_ID = ${noticeId} 
+                AND nr.USER_ID = ${req.userId}
+                AND n.COMPANY_ID = ${req.companyId}
+                AND n.STATUS = 'PUBLISHED'
+        `;
+        
+        if (noticeCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or you do not have permission to respond to it'
+            });
+        }
+        
+        const notice = noticeCheck[0];
+        
+        // Check if user already has an active response
+        const existingResponse = await prisma.$queryRaw`
+            SELECT NOTICE_RESPONSE_ID 
+            FROM GUARDIAN.NOTICE_RESPONSES 
+            WHERE NOTICE_ID = ${noticeId} 
+                AND USER_ID = ${req.userId} 
+                AND RESPONSE_STATUS = 'ACTIVE'
+        `;
+        
+        if (existingResponse.length > 0) {
+            return res.status(409).json({
+                error: 'You have already responded to this notice. Use PUT to update your response.'
+            });
+        }
+        
+        // Create the response
+        const result = await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.NOTICE_RESPONSES (
+                NOTICE_ID,
+                USER_ID,
+                COMPANY_ID,
+                RESPONSE_TYPE,
+                RESPONSE_MESSAGE,
+                REQUIRES_FOLLOWUP,
+                FOLLOWUP_PRIORITY,
+                IS_ANONYMOUS,
+                CREATE_USER_ID,
+                UPDATE_USER_ID
+            ) VALUES (
+                ${noticeId},
+                ${req.userId},
+                ${req.companyId},
+                ${responseType},
+                ${responseMessage || null},
+                ${requiresFollowup ? 1 : 0},
+                ${requiresFollowup && followupPriority ? followupPriority : null},
+                ${isAnonymous ? 1 : 0},
+                ${req.userId},
+                ${req.userId}
+            )
+        `;
+        
+        // Get the created response
+        const createdResponse = await prisma.$queryRaw`
+            SELECT TOP 1 * 
+            FROM GUARDIAN.NOTICE_RESPONSES 
+            WHERE NOTICE_ID = ${noticeId} 
+                AND USER_ID = ${req.userId} 
+                AND RESPONSE_STATUS = 'ACTIVE'
+            ORDER BY CREATE_DATE DESC
+        `;
+        
+        // Create notification for notice issuer if response requires follow-up
+        if (requiresFollowup && notice.ISSUED_BY_USER_ID !== req.userId) {
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.NOTIFICATIONS (
+                    USER_ID, 
+                    TYPE, 
+                    TITLE, 
+                    MESSAGE, 
+                    REFERENCE_TYPE, 
+                    REFERENCE_ID, 
+                    COMPANY_ID
+                ) VALUES (
+                    ${notice.ISSUED_BY_USER_ID},
+                    'notice_response_followup',
+                    'Notice Response Requires Follow-up',
+                    ${`A user has responded to your notice and requires follow-up action. Response type: ${responseType}`},
+                    'notice_response',
+                    ${createdResponse[0]?.NOTICE_RESPONSE_ID || null},
+                    ${req.companyId}
+                )
+            `;
+        }
+        
+        // Update notification sent flag
+        if (requiresFollowup && notice.ISSUED_BY_USER_ID !== req.userId) {
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.NOTICE_RESPONSES 
+                SET NOTIFICATION_SENT = 1, UPDATE_DATE = GETUTCDATE(), UPDATE_USER_ID = ${req.userId}
+                WHERE NOTICE_RESPONSE_ID = ${createdResponse[0]?.NOTICE_RESPONSE_ID}
+            `;
+        }
+        
+        console.log(`✅ Created notice response successfully`);
+        res.status(201).json({
+            message: 'Response created successfully',
+            response: createdResponse[0]
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error creating notice response:`, error);
+        res.status(500).json({
+            error: 'Failed to create notice response',
+            message: error.message
+        });
+    }
+});
+
+// Get all responses for a notice (admin only)
+app.get('/api/notices/:id/responses', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        
+        console.log(`📝 Fetching responses for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check permissions (only admins or notice issuer can see all responses)
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        // Check if user is the issuer of the notice
+        const noticeCheck = await prisma.$queryRaw`
+            SELECT ISSUED_BY_USER_ID
+            FROM GUARDIAN.NOTICES 
+            WHERE NOTICE_ID = ${noticeId} 
+                AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (noticeCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found'
+            });
+        }
+        
+        const isIssuer = noticeCheck[0].ISSUED_BY_USER_ID === req.userId;
+        
+        if (!isAdmin && !isIssuer) {
+            return res.status(403).json({
+                error: 'Access denied. Only administrators or notice issuers can view all responses.'
+            });
+        }
+        
+        // Get all responses for the notice
+        const responses = await prisma.$queryRawUnsafe(`
+            SELECT 
+                nr.NOTICE_RESPONSE_ID,
+                nr.NOTICE_ID,
+                nr.USER_ID,
+                nr.RESPONSE_TYPE,
+                nr.RESPONSE_MESSAGE,
+                nr.RESPONSE_DATE,
+                nr.RESPONSE_STATUS,
+                nr.REQUIRES_FOLLOWUP,
+                nr.FOLLOWUP_PRIORITY,
+                nr.FOLLOWUP_ASSIGNED_TO,
+                nr.FOLLOWUP_COMPLETED_DATE,
+                nr.FOLLOWUP_NOTES,
+                nr.IS_ANONYMOUS,
+                nr.CREATE_DATE,
+                CASE WHEN nr.IS_ANONYMOUS = 1 THEN 'Anonymous User' ELSE u.FULL_NAME END AS RESPONDER_NAME,
+                CASE WHEN nr.IS_ANONYMOUS = 1 THEN NULL ELSE u.EMAIL END AS RESPONDER_EMAIL,
+                fa.FULL_NAME AS FOLLOWUP_ASSIGNED_NAME
+            FROM GUARDIAN.NOTICE_RESPONSES nr
+            LEFT JOIN GUARDIAN.USERS u ON nr.USER_ID = u.USER_ID AND nr.IS_ANONYMOUS = 0
+            LEFT JOIN GUARDIAN.USERS fa ON nr.FOLLOWUP_ASSIGNED_TO = fa.USER_ID
+            WHERE nr.NOTICE_ID = ${noticeId}
+                AND nr.COMPANY_ID = ${req.companyId}
+            ORDER BY nr.CREATE_DATE DESC
+        `);
+        
+        console.log(`✅ Found ${responses.length} responses for notice`);
+        res.json(responses);
+        
+    } catch (error) {
+        console.error(`❌ Error fetching notice responses:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch notice responses',
+            message: error.message
+        });
+    }
+});
+
+// Get current user's response for a notice
+app.get('/api/notices/:id/responses/my', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        
+        console.log(`📝 Fetching my response for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check if notice exists and user has access to it
+        const noticeCheck = await prisma.$queryRaw`
+            SELECT n.NOTICE_ID
+            FROM GUARDIAN.NOTICES n
+            INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
+            WHERE n.NOTICE_ID = ${noticeId} 
+                AND nr.USER_ID = ${req.userId}
+                AND n.COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (noticeCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Notice not found or you do not have access to it'
+            });
+        }
+        
+        // Get user's response
+        const response = await prisma.$queryRaw`
+            SELECT 
+                NOTICE_RESPONSE_ID,
+                NOTICE_ID,
+                RESPONSE_TYPE,
+                RESPONSE_MESSAGE,
+                RESPONSE_DATE,
+                RESPONSE_STATUS,
+                REQUIRES_FOLLOWUP,
+                FOLLOWUP_PRIORITY,
+                IS_ANONYMOUS,
+                CREATE_DATE,
+                UPDATE_DATE
+            FROM GUARDIAN.NOTICE_RESPONSES
+            WHERE NOTICE_ID = ${noticeId}
+                AND USER_ID = ${req.userId}
+                AND COMPANY_ID = ${req.companyId}
+                AND RESPONSE_STATUS = 'ACTIVE'
+        `;
+        
+        console.log(`✅ Retrieved user's response for notice`);
+        res.json(response[0] || null);
+        
+    } catch (error) {
+        console.error(`❌ Error fetching user's notice response:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch your response',
+            message: error.message
+        });
+    }
+});
+
+// Update existing notice response
+app.put('/api/notices/:id/responses/:responseId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const responseId = parseInt(req.params.responseId);
+        const { responseType, responseMessage, requiresFollowup, followupPriority, isAnonymous } = req.body;
+        
+        console.log(`📝 Updating notice response ${responseId} for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Validate response type
+        if (responseType) {
+            const validResponseTypes = ['ACKNOWLEDGED', 'UNDERSTOOD', 'COMPLETED', 'REQUIRES_CLARIFICATION', 'CANNOT_COMPLY', 'NEEDS_EXTENSION', 'PARTIALLY_COMPLETED'];
+            if (!validResponseTypes.includes(responseType)) {
+                return res.status(400).json({
+                    error: 'Invalid response type'
+                });
+            }
+        }
+        
+        // Check if response exists and belongs to user
+        const responseCheck = await prisma.$queryRaw`
+            SELECT nr.NOTICE_RESPONSE_ID, nr.USER_ID, nr.REQUIRES_FOLLOWUP, n.ISSUED_BY_USER_ID
+            FROM GUARDIAN.NOTICE_RESPONSES nr
+            INNER JOIN GUARDIAN.NOTICES n ON nr.NOTICE_ID = n.NOTICE_ID
+            WHERE nr.NOTICE_RESPONSE_ID = ${responseId}
+                AND nr.NOTICE_ID = ${noticeId}
+                AND nr.USER_ID = ${req.userId}
+                AND nr.COMPANY_ID = ${req.companyId}
+                AND nr.RESPONSE_STATUS = 'ACTIVE'
+        `;
+        
+        if (responseCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Response not found or you do not have permission to update it'
+            });
+        }
+        
+        const existingResponse = responseCheck[0];
+        const wasRequiringFollowup = existingResponse.REQUIRES_FOLLOWUP;
+        const noticeIssuerId = existingResponse.ISSUED_BY_USER_ID;
+        
+        // Update the response
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_RESPONSES 
+            SET 
+                RESPONSE_TYPE = ${responseType || null},
+                RESPONSE_MESSAGE = ${responseMessage || null},
+                REQUIRES_FOLLOWUP = ${requiresFollowup !== undefined ? (requiresFollowup ? 1 : 0) : null},
+                FOLLOWUP_PRIORITY = ${(requiresFollowup && followupPriority) ? followupPriority : null},
+                IS_ANONYMOUS = ${isAnonymous !== undefined ? (isAnonymous ? 1 : 0) : null},
+                UPDATE_DATE = GETUTCDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE NOTICE_RESPONSE_ID = ${responseId}
+        `;
+        
+        // Create notification if followup requirement changed from false to true
+        if (!wasRequiringFollowup && requiresFollowup && noticeIssuerId !== req.userId) {
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.NOTIFICATIONS (
+                    USER_ID, 
+                    TYPE, 
+                    TITLE, 
+                    MESSAGE, 
+                    REFERENCE_TYPE, 
+                    REFERENCE_ID, 
+                    COMPANY_ID
+                ) VALUES (
+                    ${noticeIssuerId},
+                    'notice_response_followup',
+                    'Notice Response Requires Follow-up',
+                    ${`A user has updated their response to your notice and now requires follow-up action. Response type: ${responseType}`},
+                    'notice_response',
+                    ${responseId},
+                    ${req.companyId}
+                )
+            `;
+            
+            // Update notification sent flag
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.NOTICE_RESPONSES 
+                SET NOTIFICATION_SENT = 1
+                WHERE NOTICE_RESPONSE_ID = ${responseId}
+            `;
+        }
+        
+        // Get updated response
+        const updatedResponse = await prisma.$queryRaw`
+            SELECT * 
+            FROM GUARDIAN.NOTICE_RESPONSES 
+            WHERE NOTICE_RESPONSE_ID = ${responseId}
+        `;
+        
+        console.log(`✅ Updated notice response successfully`);
+        res.json({
+            message: 'Response updated successfully',
+            response: updatedResponse[0]
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error updating notice response:`, error);
+        res.status(500).json({
+            error: 'Failed to update notice response',
+            message: error.message
+        });
+    }
+});
+
+// Delete/withdraw notice response
+app.delete('/api/notices/:id/responses/:responseId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id);
+        const responseId = parseInt(req.params.responseId);
+        
+        console.log(`🗑️ Withdrawing notice response ${responseId} for notice ${noticeId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check if response exists and belongs to user
+        const responseCheck = await prisma.$queryRaw`
+            SELECT NOTICE_RESPONSE_ID, USER_ID
+            FROM GUARDIAN.NOTICE_RESPONSES
+            WHERE NOTICE_RESPONSE_ID = ${responseId}
+                AND NOTICE_ID = ${noticeId}
+                AND USER_ID = ${req.userId}
+                AND COMPANY_ID = ${req.companyId}
+                AND RESPONSE_STATUS = 'ACTIVE'
+        `;
+        
+        if (responseCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Response not found or you do not have permission to withdraw it'
+            });
+        }
+        
+        // Mark response as withdrawn instead of deleting
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTICE_RESPONSES 
+            SET 
+                RESPONSE_STATUS = 'WITHDRAWN',
+                UPDATE_DATE = GETUTCDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE NOTICE_RESPONSE_ID = ${responseId}
+        `;
+        
+        console.log(`✅ Withdrew notice response successfully`);
+        res.json({
+            message: 'Response withdrawn successfully'
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error withdrawing notice response:`, error);
+        res.status(500).json({
+            error: 'Failed to withdraw notice response',
+            message: error.message
+        });
+    }
+});
+
+// Get responses requiring follow-up (admin only)
+app.get('/api/responses/followups', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📝 Fetching responses requiring follow-up for user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasPermission = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to view follow-up responses.'
+            });
+        }
+        
+        const { status, priority, assignedTo } = req.query;
+        
+        let whereClause = 'WHERE nr.REQUIRES_FOLLOWUP = 1 AND nr.COMPANY_ID = ${req.companyId}';
+        const params = [req.companyId];
+        
+        if (status === 'pending') {
+            whereClause += ' AND nr.FOLLOWUP_COMPLETED_DATE IS NULL';
+        } else if (status === 'completed') {
+            whereClause += ' AND nr.FOLLOWUP_COMPLETED_DATE IS NOT NULL';
+        }
+        
+        if (priority) {
+            whereClause += ` AND nr.FOLLOWUP_PRIORITY = '${priority}'`;
+        }
+        
+        if (assignedTo) {
+            if (assignedTo === 'me') {
+                whereClause += ` AND nr.FOLLOWUP_ASSIGNED_TO = ${req.userId}`;
+            } else if (assignedTo === 'unassigned') {
+                whereClause += ' AND nr.FOLLOWUP_ASSIGNED_TO IS NULL';
+            } else {
+                const assignedUserId = parseInt(assignedTo);
+                if (!isNaN(assignedUserId)) {
+                    whereClause += ` AND nr.FOLLOWUP_ASSIGNED_TO = ${assignedUserId}`;
+                }
+            }
+        }
+        
+        const responses = await prisma.$queryRawUnsafe(`
+            SELECT 
+                nr.NOTICE_RESPONSE_ID,
+                nr.NOTICE_ID,
+                nr.USER_ID,
+                nr.RESPONSE_TYPE,
+                nr.RESPONSE_MESSAGE,
+                nr.RESPONSE_DATE,
+                nr.FOLLOWUP_PRIORITY,
+                nr.FOLLOWUP_ASSIGNED_TO,
+                nr.FOLLOWUP_COMPLETED_DATE,
+                nr.FOLLOWUP_NOTES,
+                nr.IS_ANONYMOUS,
+                n.TITLE AS NOTICE_TITLE,
+                n.ISSUED_BY_USER_ID,
+                issuer.FULL_NAME AS ISSUED_BY_NAME,
+                CASE WHEN nr.IS_ANONYMOUS = 1 THEN 'Anonymous User' ELSE u.FULL_NAME END AS RESPONDER_NAME,
+                CASE WHEN nr.IS_ANONYMOUS = 1 THEN NULL ELSE u.EMAIL END AS RESPONDER_EMAIL,
+                fa.FULL_NAME AS FOLLOWUP_ASSIGNED_NAME
+            FROM GUARDIAN.NOTICE_RESPONSES nr
+            INNER JOIN GUARDIAN.NOTICES n ON nr.NOTICE_ID = n.NOTICE_ID
+            LEFT JOIN GUARDIAN.USERS u ON nr.USER_ID = u.USER_ID AND nr.IS_ANONYMOUS = 0
+            LEFT JOIN GUARDIAN.USERS issuer ON n.ISSUED_BY_USER_ID = issuer.USER_ID
+            LEFT JOIN GUARDIAN.USERS fa ON nr.FOLLOWUP_ASSIGNED_TO = fa.USER_ID
+            ${whereClause}
+            ORDER BY 
+                CASE nr.FOLLOWUP_PRIORITY 
+                    WHEN 'HIGH' THEN 1 
+                    WHEN 'MEDIUM' THEN 2 
+                    WHEN 'LOW' THEN 3 
+                    ELSE 4 
+                END,
+                nr.RESPONSE_DATE ASC
+        `);
+        
+        console.log(`✅ Found ${responses.length} responses requiring follow-up`);
+        res.json(responses);
+        
+    } catch (error) {
+        console.error(`❌ Error fetching follow-up responses:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch follow-up responses',
+            message: error.message
+        });
+    }
+});
+
+// Update follow-up status (admin only)
+app.put('/api/responses/:responseId/followup', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const responseId = parseInt(req.params.responseId);
+        const { assignedTo, priority, notes, completed } = req.body;
+        
+        console.log(`📝 Updating follow-up for response ${responseId} by user ${req.userId} (Company: ${req.companyId})`);
+        
+        // Check permissions
+        const userRoles = await prisma.$queryRaw`
+            SELECT r.ROLE_ID, r.ROLE_NAME 
+            FROM GUARDIAN.USER_ROLES ur
+            JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId}
+        `;
+        
+        const hasPermission = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to update follow-up status.'
+            });
+        }
+        
+        // Check if response exists and requires follow-up
+        const responseCheck = await prisma.$queryRaw`
+            SELECT NOTICE_RESPONSE_ID, REQUIRES_FOLLOWUP, FOLLOWUP_ASSIGNED_TO
+            FROM GUARDIAN.NOTICE_RESPONSES
+            WHERE NOTICE_RESPONSE_ID = ${responseId}
+                AND COMPANY_ID = ${req.companyId}
+                AND REQUIRES_FOLLOWUP = 1
+        `;
+        
+        if (responseCheck.length === 0) {
+            return res.status(404).json({
+                error: 'Response not found or does not require follow-up'
+            });
+        }
+        
+        const existingResponse = responseCheck[0];
+        
+        // Validate assignedTo user exists in same company if provided
+        if (assignedTo) {
+            const userCheck = await prisma.$queryRaw`
+                SELECT USER_ID 
+                FROM GUARDIAN.USERS 
+                WHERE USER_ID = ${assignedTo} 
+                    AND COMPANY_ID = ${req.companyId}
+            `;
+            
+            if (userCheck.length === 0) {
+                return res.status(400).json({
+                    error: 'Assigned user not found or not in same company'
+                });
+            }
+        }
+        
+        // Update follow-up details
+        let updateQuery = `
+            UPDATE GUARDIAN.NOTICE_RESPONSES 
+            SET 
+                UPDATE_DATE = GETUTCDATE(),
+                UPDATE_USER_ID = ${req.userId}
+        `;
+        
+        if (assignedTo !== undefined) {
+            updateQuery += `, FOLLOWUP_ASSIGNED_TO = ${assignedTo || null}`;
+        }
+        
+        if (priority !== undefined) {
+            const validPriorities = ['HIGH', 'MEDIUM', 'LOW'];
+            if (priority && !validPriorities.includes(priority)) {
+                return res.status(400).json({
+                    error: 'Invalid priority level'
+                });
+            }
+            updateQuery += `, FOLLOWUP_PRIORITY = ${priority ? `'${priority}'` : 'NULL'}`;
+        }
+        
+        if (notes !== undefined) {
+            updateQuery += `, FOLLOWUP_NOTES = ${notes ? `'${notes.replace(/'/g, "''")}'` : 'NULL'}`;
+        }
+        
+        if (completed === true) {
+            updateQuery += `, FOLLOWUP_COMPLETED_DATE = GETUTCDATE()`;
+        } else if (completed === false) {
+            updateQuery += `, FOLLOWUP_COMPLETED_DATE = NULL`;
+        }
+        
+        updateQuery += ` WHERE NOTICE_RESPONSE_ID = ${responseId}`;
+        
+        await prisma.$queryRawUnsafe(updateQuery);
+        
+        // Create notification if newly assigned to someone other than current user
+        if (assignedTo && assignedTo !== req.userId && assignedTo !== existingResponse.FOLLOWUP_ASSIGNED_TO) {
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.NOTIFICATIONS (
+                    USER_ID, 
+                    TYPE, 
+                    TITLE, 
+                    MESSAGE, 
+                    REFERENCE_TYPE, 
+                    REFERENCE_ID, 
+                    COMPANY_ID
+                ) VALUES (
+                    ${assignedTo},
+                    'followup_assignment',
+                    'Follow-up Assignment',
+                    'You have been assigned to follow up on a notice response.',
+                    'notice_response',
+                    ${responseId},
+                    ${req.companyId}
+                )
+            `;
+        }
+        
+        // Get updated response
+        const updatedResponse = await prisma.$queryRaw`
+            SELECT 
+                nr.*,
+                fa.FULL_NAME AS FOLLOWUP_ASSIGNED_NAME
+            FROM GUARDIAN.NOTICE_RESPONSES nr
+            LEFT JOIN GUARDIAN.USERS fa ON nr.FOLLOWUP_ASSIGNED_TO = fa.USER_ID
+            WHERE nr.NOTICE_RESPONSE_ID = ${responseId}
+        `;
+        
+        console.log(`✅ Updated follow-up status successfully`);
+        res.json({
+            message: 'Follow-up updated successfully',
+            response: updatedResponse[0]
+        });
+        
+    } catch (error) {
+        console.error(`❌ Error updating follow-up status:`, error);
+        res.status(500).json({
+            error: 'Failed to update follow-up status',
+            message: error.message
+        });
+    }
+});
+
 // === NO CATCH-ALL ROUTE ===
 // IIS handles SPA routing via web.config
 

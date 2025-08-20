@@ -17,12 +17,14 @@ import {
   Clock,
   Download,
   ExternalLink,
-  BarChart3
+  BarChart3,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService, { Notice, NoticeRecipient, NoticeReadStatus } from '../services/noticeService';
 import Layout from '../components/Layout';
 import NoticeAnalyticsDashboard from '../components/NoticeAnalyticsDashboard';
+import NoticeResponseModal, { NoticeResponse } from '../components/NoticeResponseModal';
 import '../styles/RequestDashboard.css';
 
 interface NoticeDetailsPageProps {}
@@ -83,8 +85,11 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
   const [showRecipientsModal, setShowRecipientsModal] = useState<boolean>(false);
   const [showReadStatusModal, setShowReadStatusModal] = useState<boolean>(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
+  const [showResponseModal, setShowResponseModal] = useState<boolean>(false);
   const [cancellationReason, setCancellationReason] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [userResponse, setUserResponse] = useState<NoticeResponse | null>(null);
+  const [loadingResponse, setLoadingResponse] = useState<boolean>(false);
 
   // Analytics tracking functions
   const startViewTracking = useCallback(async () => {
@@ -278,6 +283,9 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
         setReadStatus(readStatusData);
       }
       
+      // Load user's response for this notice
+      await loadUserResponse();
+      
       // Load form data if notice has a form template
       if (noticeData.FORM_TEMPLATE_ID) {
         // TODO: Load form instance data when form service is integrated
@@ -300,6 +308,37 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadUserResponse = async () => {
+    if (!id || !user) return;
+    
+    try {
+      setLoadingResponse(true);
+      const response = await fetch(`/api/notices/${id}/responses/my`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const responseData = await response.json();
+        setUserResponse(responseData);
+      } else if (response.status !== 404) {
+        // 404 is expected if user hasn't responded yet
+        console.error('Error loading user response:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading user response:', error);
+    } finally {
+      setLoadingResponse(false);
+    }
+  };
+
+  const handleResponseSubmitted = () => {
+    // Reload the user response and notice data
+    loadUserResponse();
+    loadNoticeDetails();
   };
 
   const markNoticeAsRead = async () => {
@@ -479,6 +518,22 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
               Notice Information
             </h5>
             <div className="d-flex gap-2">
+              {/* User Response Button - only for published notices */}
+              {notice.STATUS === 'PUBLISHED' && (
+                <Button 
+                  variant={userResponse ? "outline-success" : "primary"}
+                  size="sm"
+                  onClick={() => {
+                    trackInteraction('response_button');
+                    setShowResponseModal(true);
+                  }}
+                  disabled={loadingResponse}
+                >
+                  <MessageCircle size={14} className="me-1" />
+                  {userResponse ? 'Update Response' : 'Respond'}
+                </Button>
+              )}
+              
               {/* Role-based action buttons */}
               {hasEditAccess && notice.STATUS === 'DRAFT' && (
                 <Button 
@@ -566,6 +621,38 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
                 {notice.STATUS === 'CANCELLED' && notice.CANCELLATION_REASON && (
                   <div className="alert alert-danger mb-3">
                     <strong>Cancelled:</strong> {notice.CANCELLATION_REASON}
+                  </div>
+                )}
+
+                {/* User Response Status */}
+                {userResponse && notice.STATUS === 'PUBLISHED' && (
+                  <div className="alert alert-success mb-3">
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong>Your Response:</strong> 
+                        <span className="ms-2 badge bg-success">{userResponse.RESPONSE_TYPE.replace('_', ' ')}</span>
+                        {userResponse.REQUIRES_FOLLOWUP && (
+                          <span className="ms-2 badge bg-warning">Requires Follow-up</span>
+                        )}
+                        <br />
+                        <small className="text-muted">
+                          Submitted on: {new Date(userResponse.RESPONSE_DATE).toLocaleString()}
+                        </small>
+                        {userResponse.RESPONSE_MESSAGE && (
+                          <div className="mt-2">
+                            <small><strong>Your message:</strong> "{userResponse.RESPONSE_MESSAGE}"</small>
+                          </div>
+                        )}
+                      </div>
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm"
+                        onClick={() => setShowResponseModal(true)}
+                      >
+                        <Edit size={12} className="me-1" />
+                        Edit
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -819,6 +906,16 @@ const NoticeDetailsPage: React.FC<NoticeDetailsPageProps> = () => {
             </Button>
           </Modal.Footer>
         </Modal>
+
+        {/* Response Modal */}
+        <NoticeResponseModal
+          show={showResponseModal}
+          onHide={() => setShowResponseModal(false)}
+          noticeId={notice.NOTICE_ID}
+          noticeTitle={notice.TITLE}
+          onResponseSubmitted={handleResponseSubmitted}
+          existingResponse={userResponse}
+        />
       </div>
     </Layout>
   );

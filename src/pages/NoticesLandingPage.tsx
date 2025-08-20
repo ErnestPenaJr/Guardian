@@ -285,6 +285,11 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
                   {dueDateStatus.text}
                 </span>
               )}
+              {row._userResponse && (
+                <span className="badge bg-success" style={{ fontSize: '10px' }}>
+                  RESPONDED
+                </span>
+              )}
             </div>
           </div>
         );
