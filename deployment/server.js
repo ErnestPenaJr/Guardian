@@ -10547,8 +10547,17 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
-// === NO CATCH-ALL ROUTE ===
-// IIS handles SPA routing via web.config
+// === SPA FALLBACK ROUTE ===
+// Handle all non-API routes for React Router (must be last!)
+if (!isDevelopmentWithVite) {
+  // Only add SPA fallback route in production mode
+  app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'index.html'));
+  });
+  console.log('🔧 Production mode: SPA fallback route enabled');
+} else {
+  console.log('🔧 Development mode: SPA routing handled by Vite dev server');
+}
 
 // Error handling
 app.use((err, req, res, next) => {
