@@ -27,6 +27,7 @@ interface Request {
   CREATE_DATE: string | null;
   UPDATE_DATE: string | null;
   TRACKINGID: string | null;
+  REQUEST_DESCRIPTION?: string | null;
   EXTERNAL_USER?: string | null;
   requestor?: {
     FIRST_NAME: string;
@@ -104,10 +105,12 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   
   // Results tab state
   const [resultsNotes, setResultsNotes] = useState<string>('');
+  const [requestDescription, setRequestDescription] = useState<string>('');
   const [attachments, setAttachments] = useState<any[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState<boolean>(false);
   const [savingResults, setSavingResults] = useState<boolean>(false);
   const [resultsHasChanges, setResultsHasChanges] = useState<boolean>(false);
+  const [descriptionHasChanges, setDescriptionHasChanges] = useState<boolean>(false);
   
   // Task management state
   const [tasks, setTasks] = useState<any[]>([]);
@@ -324,6 +327,17 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setSelectedUser('');
     }
   }, [request]);
+
+  // Initialize request description
+  useEffect(() => {
+    if (request && request.REQUEST_DESCRIPTION) {
+      setRequestDescription(request.REQUEST_DESCRIPTION);
+      setDescriptionHasChanges(false);
+    } else {
+      setRequestDescription('');
+      setDescriptionHasChanges(false);
+    }
+  }, [request.REQUEST_ID, request.REQUEST_DESCRIPTION]);
 
   // Fetch users for assignment dropdown (only processors)
   const fetchUsers = async () => {
@@ -878,29 +892,50 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const handleSaveResults = async () => {
     try {
       setSavingResults(true);
-      console.log('💾 Saving results notes for request:', request.REQUEST_ID);
+      console.log('💾 Saving results for request:', request.REQUEST_ID);
       
-      // Use the existing progress endpoint to save results as a note
-      const formData = new FormData();
-      formData.append('progressType', 'note');
-      formData.append('title', 'Request Results');
-      formData.append('description', resultsNotes);
-      formData.append('isVisibleToRequestor', 'true');
-      formData.append('hoursWorked', '0');
-      
-      const response = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      if (response.data.success) {
-        toast.success('Results saved successfully!');
-        setResultsHasChanges(false);
-        onUpdate(); // Refresh parent component
-      } else {
-        toast.error('Failed to save results');
+      // Save request description if changed
+      if (descriptionHasChanges && requestDescription !== (request.REQUEST_DESCRIPTION || '')) {
+        console.log('💾 Saving request description...');
+        const descResponse = await api.put(`/api/requests/${request.REQUEST_ID}/description`, {
+          description: requestDescription.trim() || null
+        });
+        
+        if (!descResponse.data.success) {
+          toast.error('Failed to save request description');
+          return;
+        }
+        console.log('✅ Request description saved');
       }
+      
+      // Save progress notes if provided
+      if (resultsNotes.trim()) {
+        console.log('💾 Saving progress notes...');
+        const formData = new FormData();
+        formData.append('progressType', 'note');
+        formData.append('title', 'Request Results');
+        formData.append('description', resultsNotes);
+        formData.append('isVisibleToRequestor', 'true');
+        formData.append('hoursWorked', '0');
+        
+        const progressResponse = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
+        if (!progressResponse.data.success) {
+          toast.error('Failed to save progress notes');
+          return;
+        }
+        console.log('✅ Progress notes saved');
+      }
+      
+      toast.success('Results saved successfully!');
+      setResultsHasChanges(false);
+      setDescriptionHasChanges(false);
+      onUpdate(); // Refresh parent component
+      
     } catch (error: any) {
       console.error('❌ Error saving results:', error);
       toast.error(error.response?.data?.error || 'Failed to save results');
@@ -1715,6 +1750,53 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             <div className="tab-pane active">
               <div className="mb-4">
                 
+                {/* Request Description Section */}
+                <div className="card mb-4">
+                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 className="mb-0 fw-semibold">Request Description</h6>
+                    <div className="d-flex align-items-center gap-2">
+                      <small className={`${requestDescription.length > 3800 ? 'text-danger' : requestDescription.length > 3500 ? 'text-warning' : 'text-muted'}`}>
+                        {requestDescription.length}/4000
+                      </small>
+                      {descriptionHasChanges && (
+                        <span className="badge bg-warning text-dark">
+                          <Save size={12} className="me-1" />
+                          Unsaved
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    <Form.Group className="mb-0">
+                      <Form.Control
+                        as="textarea"
+                        rows={6}
+                        placeholder="Enter a detailed description of the request, requirements, or expected outcomes..."
+                        value={requestDescription}
+                        maxLength={4000}
+                        onChange={(e) => {
+                          setRequestDescription(e.target.value);
+                          setDescriptionHasChanges(true);
+                        }}
+                        className={`form-control ${requestDescription.length > 4000 ? 'is-invalid' : ''}`}
+                        style={{ 
+                          minHeight: '150px',
+                          fontSize: '0.9rem',
+                          lineHeight: '1.5'
+                        }}
+                      />
+                      {requestDescription.length > 4000 && (
+                        <div className="invalid-feedback">
+                          Description exceeds 4000 character limit.
+                        </div>
+                      )}
+                      <Form.Text className="text-muted">
+                        Provide a comprehensive description of the request details, requirements, and expected outcomes.
+                      </Form.Text>
+                    </Form.Group>
+                  </div>
+                </div>
+
                 {/* Results Details Section */}
                 <div className="card mb-4">
                   <div className="card-header bg-light d-flex justify-content-between align-items-center">
@@ -1755,7 +1837,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                         variant="outline-primary"
                         size="sm"
                         onClick={handleSaveResults}
-                        disabled={savingResults || !resultsNotes.trim() || !resultsHasChanges}
+                        disabled={savingResults || (requestDescription.length > 4000) || (!resultsHasChanges && !descriptionHasChanges)}
                         className="d-flex align-items-center"
                       >
                         <Save size={14} className="me-1" />

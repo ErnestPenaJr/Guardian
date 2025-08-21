@@ -2605,6 +2605,74 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
     }
 });
 
+// Update request description
+app.put('/api/requests/:requestId/description', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        const { description } = req.body;
+
+        console.log(`📝 Updating description for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Validate description length (4000 character limit)
+        if (description && description.length > 4000) {
+            return res.status(400).json({
+                error: 'Description cannot exceed 4000 characters',
+                currentLength: description.length,
+                maxLength: 4000
+            });
+        }
+
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Update request description
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS 
+            SET REQUEST_DESCRIPTION = ${description || null}, 
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (result === 0) {
+            return res.status(404).json({
+                error: 'Request not found or no changes made'
+            });
+        }
+
+        console.log(`✅ Description updated successfully for request ${requestId}`);
+
+        res.json({
+            success: true,
+            message: 'Request description updated successfully',
+            requestId: requestId,
+            description: description
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating request description:', error);
+        res.status(500).json({
+            error: 'Failed to update request description',
+            message: error.message
+        });
+    }
+});
+
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
