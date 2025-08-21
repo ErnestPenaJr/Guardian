@@ -968,6 +968,7 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
                 r.REQUEST_DESCRIPTION,
                 r.STATUS,
                 r.SUBMITTED_DATE,
+                r.TRACKINGID,
                 r.CREATE_DATE,
                 r.UPDATE_DATE,
                 r.COMPANY_ID,
