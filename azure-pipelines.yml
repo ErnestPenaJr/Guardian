@@ -41,6 +41,8 @@ steps:
     cp -r dist/* deployment/
     echo "Copying server.js to deployment root"
     cp server.js deployment/
+    echo "Copying web.config for IIS configuration"
+    cp web.config deployment/ 2>/dev/null || echo "No web.config found"
     echo "Deployment directory contents:"
     ls -la deployment
     echo "Asset verification details:"
@@ -67,9 +69,9 @@ steps:
   displayName: 'Copy build artifacts to deployment'
 
 - script: |
-    echo "Copying debug server file to diagnose 500 errors"
-    cp debug-server.js deployment/server.js
-    echo "Debug server file copied to deployment as server.js"
+    echo "Copying production server file (CommonJS) to fix ES module error"
+    cp server-production.cjs deployment/server.js
+    echo "Production server file (CommonJS) copied to deployment as server.js"
     echo "Server file type:"
     head -1 deployment/server.js
     echo "Verifying API routes are included:"

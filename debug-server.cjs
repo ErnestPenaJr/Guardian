@@ -1,8 +1,7 @@
-// Force CommonJS mode - create .cjs extension file for proper loading
 const express = require('express');
 const cors = require('cors');
 
-console.log('=== GUARDIAN DEBUG SERVER STARTING ===');
+console.log('=== GUARDIAN DEBUG SERVER STARTING (CommonJS) ===');
 console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`Process PID: ${process.pid}`);
@@ -22,7 +21,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok', 
         timestamp: new Date().toISOString(), 
-        server: 'Guardian MVP Debug Server', 
+        server: 'Guardian MVP Debug Server (CommonJS)', 
         port: PORT,
         nodeVersion: process.version,
         uptime: process.uptime(),
@@ -94,7 +93,7 @@ app.get('/api/debug/env', (req, res) => {
     });
 });
 
-// Simple test login endpoint (no database)
+// Test login endpoint (no database)
 app.post('/api/debug/login-test', (req, res) => {
     console.log('🔍 Login test requested');
     const { email, password } = req.body;
@@ -108,6 +107,48 @@ app.post('/api/debug/login-test', (req, res) => {
         },
         timestamp: new Date().toISOString()
     });
+});
+
+// Real login endpoint simulation
+app.post('/api/login', async (req, res) => {
+    try {
+        console.log('🔍 Simulated login endpoint called');
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Email and password are required'
+            });
+        }
+        
+        // Simulate database check (no actual database call)
+        if (email === 'ernest@shieldlytics.com') {
+            res.json({
+                status: 'success',
+                message: 'Debug mode - login simulation successful',
+                user: {
+                    email: email,
+                    name: 'Ernest (Debug Mode)',
+                    role: 'Admin'
+                },
+                token: 'debug-jwt-token-123456789',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(401).json({
+                error: 'Debug mode - simulated invalid credentials',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Debug login error:', error);
+        res.status(500).json({
+            error: 'Debug login failed',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Error handler
@@ -133,10 +174,11 @@ app.use('*', (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`✅ Debug server running on port ${PORT}`);
+    console.log(`✅ Debug server (CommonJS) running on port ${PORT}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
     console.log(`🔗 Database test: http://localhost:${PORT}/api/debug/database`);
     console.log(`🔗 Environment test: http://localhost:${PORT}/api/debug/env`);
+    console.log(`🔗 Login test: POST http://localhost:${PORT}/api/login`);
 });
 
 server.on('error', (error) => {
