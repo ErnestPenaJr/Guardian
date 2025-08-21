@@ -3,7 +3,7 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
-import { Upload, MessageSquare, Play, CheckCircle, FileText, Send } from 'lucide-react';
+import { Upload, MessageSquare, Play, CheckCircle, FileText, Send, Download, Save } from 'lucide-react';
 import './RequestModal.css';
 
 interface User {
@@ -60,6 +60,19 @@ interface Task {
   };
 }
 
+interface Attachment {
+  attachmentId: number;
+  requestId: number;
+  fileName: string;
+  createDate: string;
+  uploadedBy: {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
 interface Props {
   request: Request;
   show: boolean;
@@ -88,6 +101,13 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   
   // Main tab state
   const [activeMainTab, setActiveMainTab] = useState<'details' | 'tasks' | 'results' | 'milestones'>('details');
+  
+  // Results tab state
+  const [resultsNotes, setResultsNotes] = useState<string>('');
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState<boolean>(false);
+  const [savingResults, setSavingResults] = useState<boolean>(false);
+  const [resultsHasChanges, setResultsHasChanges] = useState<boolean>(false);
   
   // Task management state
   const [tasks, setTasks] = useState<any[]>([]);
@@ -287,9 +307,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         console.log('❌ Current user details:', currentUser);
         console.log('❌ This means the assignment dropdown will be empty!');
       }
-      // Always try to fetch form data and tasks
+      // Always try to fetch form data, tasks, and attachments
       fetchFormFieldValues();
       fetchTasks();
+      fetchAttachments();
     } else {
       console.log('🔄 Modal is not shown, skipping data fetch');
     }
@@ -459,6 +480,31 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setTasks([]);
     } finally {
       setTasksLoading(false);
+    }
+  };
+
+  // Fetch attachments for this request
+  const fetchAttachments = async () => {
+    try {
+      setAttachmentsLoading(true);
+      console.log(`📎 Fetching attachments for request ${request.REQUEST_ID}`);
+      
+      const response = await api.get(`/api/requests/${request.REQUEST_ID}/attachments`);
+      console.log('📎 Attachments API response:', response.data);
+      
+      if (response.data && response.data.success) {
+        const attachmentsData = response.data.attachments || [];
+        console.log(`✅ Found ${attachmentsData.length} attachments:`, attachmentsData);
+        setAttachments(attachmentsData);
+      } else {
+        console.log('❌ Attachments API response not successful');
+        setAttachments([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching attachments:', error);
+      setAttachments([]);
+    } finally {
+      setAttachmentsLoading(false);
     }
   };
 
@@ -820,6 +866,109 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
 
   const removeFeedbackFile = (index: number) => {
     setFeedbackFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle results notes change
+  const handleResultsNotesChange = (value: string) => {
+    setResultsNotes(value);
+    setResultsHasChanges(true);
+  };
+
+  // Save results notes
+  const handleSaveResults = async () => {
+    try {
+      setSavingResults(true);
+      console.log('💾 Saving results notes for request:', request.REQUEST_ID);
+      
+      // Use the existing progress endpoint to save results as a note
+      const formData = new FormData();
+      formData.append('progressType', 'note');
+      formData.append('title', 'Request Results');
+      formData.append('description', resultsNotes);
+      formData.append('isVisibleToRequestor', 'true');
+      formData.append('hoursWorked', '0');
+      
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        toast.success('Results saved successfully!');
+        setResultsHasChanges(false);
+        onUpdate(); // Refresh parent component
+      } else {
+        toast.error('Failed to save results');
+      }
+    } catch (error: any) {
+      console.error('❌ Error saving results:', error);
+      toast.error(error.response?.data?.error || 'Failed to save results');
+    } finally {
+      setSavingResults(false);
+    }
+  };
+
+  // Handle complete request with results
+  const handleCompleteRequestWithResults = async () => {
+    if (!resultsNotes.trim()) {
+      toast.error('Please provide results details before completing the request');
+      return;
+    }
+
+    try {
+      setSavingResults(true);
+      console.log('✅ Completing request with results:', request.REQUEST_ID);
+      
+      // First save the results if there are changes
+      if (resultsHasChanges) {
+        await handleSaveResults();
+      }
+      
+      // Then complete the request
+      const response = await api.post(`/api/requests/${request.REQUEST_ID}/complete`, {
+        completionNotes: resultsNotes
+      });
+      
+      if (response.data.success) {
+        toast.success(`Request completed successfully!`);
+        onUpdate(); // Refresh parent component
+        onHide(); // Close modal
+      } else {
+        toast.error('Failed to complete request');
+      }
+    } catch (error: any) {
+      console.error('❌ Error completing request:', error);
+      toast.error(error.response?.data?.error || 'Failed to complete request');
+    } finally {
+      setSavingResults(false);
+    }
+  };
+
+  // Handle attachment download
+  const handleDownloadAttachment = async (attachmentId: number, fileName: string) => {
+    try {
+      console.log(`⬇️ Downloading attachment ${attachmentId}: ${fileName}`);
+      
+      const response = await api.get(`/api/attachments/${attachmentId}/download`, {
+        responseType: 'blob'
+      });
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`✅ Downloaded attachment: ${fileName}`);
+    } catch (error: any) {
+      console.error('❌ Error downloading attachment:', error);
+      toast.error(error.response?.data?.error || 'Failed to download attachment');
+    }
   };
 
   // Format date for display
@@ -1565,57 +1714,168 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           {activeMainTab === 'results' && (
             <div className="tab-pane active">
               <div className="mb-4">
-                <h6 className="mb-3">Form Submission Details</h6>
                 
-                {/* Detailed form information */}
-                {formTemplate && (
-                  <div className="card mb-3">
-                    <div className="card-header bg-light">
-                      <strong>{formTemplate.name}</strong>
-                    </div>
-                    <div className="card-body">
-                      <p className="text-muted mb-3">{formTemplate.description}</p>
+                {/* Results Details Section */}
+                <div className="card mb-4">
+                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 className="mb-0 fw-semibold">Results Details</h6>
+                    {resultsHasChanges && (
+                      <span className="badge bg-warning text-dark">
+                        <Save size={12} className="me-1" />
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  <div className="card-body">
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-medium text-dark mb-2">
+                        Notes and Results
+                      </Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={8}
+                        placeholder="Document the results of this request, findings, outcomes, or any relevant information..."
+                        value={resultsNotes}
+                        onChange={(e) => handleResultsNotesChange(e.target.value)}
+                        className="form-control"
+                        style={{ 
+                          minHeight: '200px',
+                          fontSize: '0.9rem',
+                          lineHeight: '1.5'
+                        }}
+                      />
+                      <Form.Text className="text-muted">
+                        This information will be visible to the requestor and stored as part of the request record.
+                      </Form.Text>
+                    </Form.Group>
+
+                    {/* Action Buttons */}
+                    <div className="d-flex gap-2 justify-content-end">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={handleSaveResults}
+                        disabled={savingResults || !resultsNotes.trim() || !resultsHasChanges}
+                        className="d-flex align-items-center"
+                      >
+                        <Save size={14} className="me-1" />
+                        {savingResults ? 'Saving...' : 'Save Results'}
+                      </Button>
                       
-                      {/* Detailed field values */}
-                      {formFieldValues.length > 0 ? (
-                        <div className="row">
-                          {formFieldValues.map((field, index) => {
-                            const hasValue = field.fieldValue && field.fieldValue.toString().trim() !== '';
-                            return (
-                              <div key={index} className="col-md-6 mb-3">
-                                <div className="border rounded p-3 h-100">
-                                  <label className="form-label fw-bold small text-uppercase text-muted mb-1">
-                                    {field.fieldName}
-                                  </label>
-                                  <div className={`form-control-plaintext ${hasValue ? 'text-dark' : 'text-muted fst-italic'}`}>
-                                    {hasValue ? field.fieldValue : 'Not provided'}
+                      {canWorkOnRequest && isAssignedToCurrentUser && request.STATUS !== 'C' && (
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={handleCompleteRequestWithResults}
+                          disabled={savingResults || !resultsNotes.trim()}
+                          className="d-flex align-items-center"
+                        >
+                          <CheckCircle size={14} className="me-1" />
+                          {savingResults ? 'Completing...' : 'Complete Request'}
+                        </Button>
+                      )}
+                    </div>
+
+                    {!resultsNotes.trim() && (
+                      <div className="alert alert-info mt-3 py-2" style={{ fontSize: '0.85rem' }}>
+                        <strong>Tip:</strong> Add detailed results and findings here. This helps maintain a complete record of the request outcome.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Supporting Documentation Section */}
+                <div className="card">
+                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 className="mb-0 fw-semibold">Supporting Documentation</h6>
+                    <span className="badge bg-secondary">
+                      {attachmentsLoading ? 'Loading...' : `${attachments.length} document${attachments.length !== 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+                  <div className="card-body">
+                    {attachmentsLoading ? (
+                      <div className="text-center py-4">
+                        <div className="spinner-border spinner-border-sm text-primary" role="status">
+                          <span className="visually-hidden">Loading attachments...</span>
+                        </div>
+                        <div className="mt-2 text-muted small">Loading documents...</div>
+                      </div>
+                    ) : attachments.length > 0 ? (
+                      <div className="row g-3">
+                        {attachments.map((attachment: Attachment) => (
+                          <div key={attachment.attachmentId} className="col-md-6">
+                            <div className="border rounded p-3 h-100 d-flex flex-column">
+                              <div className="d-flex align-items-start mb-2">
+                                <FileText size={20} className="text-primary me-2 flex-shrink-0 mt-1" />
+                                <div className="flex-grow-1 min-w-0">
+                                  <h6 className="mb-1 fw-medium text-truncate" title={attachment.fileName}>
+                                    {attachment.fileName}
+                                  </h6>
+                                  <div className="text-muted small">
+                                    <div>Uploaded by: {attachment.uploadedBy.firstName} {attachment.uploadedBy.lastName}</div>
+                                    <div>Date: {formatDate(attachment.createDate)}</div>
                                   </div>
                                 </div>
                               </div>
-                            );
-                          })}
+                              
+                              <div className="mt-auto">
+                                <Button
+                                  variant="outline-primary"
+                                  size="sm"
+                                  onClick={() => handleDownloadAttachment(attachment.attachmentId, attachment.fileName)}
+                                  className="d-flex align-items-center w-100"
+                                >
+                                  <Download size={14} className="me-1" />
+                                  Download
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <FileText size={48} className="text-muted mb-3" />
+                        <h6 className="text-muted mb-2">No Documents Available</h6>
+                        <p className="text-muted small mb-0">
+                          No supporting documents have been uploaded for this request yet.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Request Summary (Optional) */}
+                {request.STATUS === 'C' && (
+                  <div className="card mt-3 border-success">
+                    <div className="card-header bg-success bg-opacity-10 border-success">
+                      <h6 className="mb-0 fw-semibold text-success">
+                        <CheckCircle size={16} className="me-1" />
+                        Request Completed
+                      </h6>
+                    </div>
+                    <div className="card-body">
+                      <div className="row">
+                        <div className="col-sm-6">
+                          <small className="text-muted">Request ID:</small>
+                          <div className="fw-medium">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
                         </div>
-                      ) : (
-                        <div className="alert alert-info">
-                          <p className="mb-0">No form data has been submitted yet.</p>
+                        <div className="col-sm-6">
+                          <small className="text-muted">Completed by:</small>
+                          <div className="fw-medium">{request.assignedName || 'Unknown'}</div>
                         </div>
-                      )}
+                        <div className="col-sm-6 mt-2">
+                          <small className="text-muted">Completion Date:</small>
+                          <div className="fw-medium">{formatDate(request.UPDATE_DATE)}</div>
+                        </div>
+                        <div className="col-sm-6 mt-2">
+                          <small className="text-muted">Total Documents:</small>
+                          <div className="fw-medium">{attachments.length}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
-                
-                {/* Uploaded Documents Section */}
-                <div className="card">
-                  <div className="card-header bg-light">
-                    <strong>Uploaded Documents</strong>
-                  </div>
-                  <div className="card-body">
-                    <div className="alert alert-info mb-0">
-                      <p className="mb-0">Document management integration coming soon.</p>
-                      <small className="text-muted">This section will display all documents uploaded by the requestor and processor.</small>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           )}
