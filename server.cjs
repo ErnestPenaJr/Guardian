@@ -5,7 +5,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 
 // Enhanced security-hardened email validation function
 const validateEmailServer = (email) => {
@@ -2479,7 +2479,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         if (assignedUserId) {
             const userExists = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS 
-                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+                WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
             `;
 
             if (!userExists.length) {
@@ -3316,6 +3316,10 @@ app.get('/api/requests/:requestId/tasks', getAuthenticatedUserCompany, async (re
 app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const { requestId, assignedUserId, description, status = 'Pending' } = req.body;
+        // Parse assigned user id if provided
+        const assignedId = assignedUserId === undefined || assignedUserId === null
+            ? assignedUserId
+            : parseInt(assignedUserId);
         
         console.log(`➕ Creating task for request ${requestId} (Company: ${req.companyId})`);
 
@@ -3339,10 +3343,10 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
         }
 
         // If assignedUserId is provided, verify the user exists and belongs to the same company
-        if (assignedUserId) {
+        if (assignedId !== undefined && assignedId && Number.isInteger(assignedId)) {
             const assignedUser = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS
-                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+                WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
             `;
 
             if (!assignedUser.length) {
@@ -3367,7 +3371,7 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
             VALUES (
                 ${requestId},
                 ${status},
-                ${assignedUserId || null},
+                ${assignedId || null},
                 ${description},
                 ${req.userId},
                 ${req.userId},
@@ -3500,6 +3504,21 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const taskId = parseInt(req.params.taskId);
         const { assignedUserId, description, status } = req.body;
+        // Log raw body for diagnostics
+        try { console.log('📦 [TASK UPDATE] Raw body:', JSON.stringify(req.body)); } catch {}
+        const assignedId = assignedUserId === undefined || assignedUserId === null
+            ? assignedUserId
+            : parseInt(assignedUserId);
+        const statusInt = status === undefined || status === null ? status : parseInt(status);
+
+        console.log('🧪 [TASK UPDATE] Incoming:', {
+            taskId,
+            descriptionType: typeof description,
+            statusType: typeof status,
+            assignedUserIdRaw: assignedUserId,
+            assignedIdParsed: assignedId,
+            statusParsed: statusInt
+        });
 
         console.log(`✏️ Updating task ${taskId} (Company: ${req.companyId})`);
 
@@ -3524,11 +3543,11 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
         }
 
         // Validate assignedUserId if provided
-        if (assignedUserId !== undefined && assignedUserId) {
+        if (assignedId !== undefined && assignedId && Number.isInteger(assignedId)) {
             // Verify the user exists and belongs to the same company
             const assignedUser = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS
-                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
+                WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
             `;
 
             if (!assignedUser.length) {
@@ -3539,47 +3558,52 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
         }
 
         // Check if we have at least one field to update
-        if (description === undefined && status === undefined && assignedUserId === undefined) {
+        if (description === undefined && status === undefined && assignedId === undefined) {
             return res.status(400).json({
                 error: 'No valid fields to update'
             });
         }
 
-        // Build update fields dynamically to avoid null/undefined issues
-        const updateFields = [];
-        const updateValues = [];
-        
-        if (description !== undefined) {
-            updateFields.push('DESCRIPTION = ?');
-            updateValues.push(description);
-        }
-        
-        if (status !== undefined) {
-            updateFields.push('STATUS = ?');
-            updateValues.push(status);
-        }
-        
+        // Force assignment-only when assignedUserId is present
         if (assignedUserId !== undefined) {
-            updateFields.push('ASSIGNED_USER_ID = ?');
-            updateValues.push(assignedUserId || null);
+            if (assignedId === undefined || (!Number.isInteger(assignedId) && assignedId !== null)) {
+                console.warn('⚠️ [TASK UPDATE] Invalid assignedUserId payload:', assignedUserId);
+                return res.status(400).json({ error: 'Invalid assignedUserId' });
+            }
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.TASKS
+                SET ASSIGNED_USER_ID = ${assignedId || null},
+                    UPDATE_DATE = GETDATE(),
+                    UPDATE_USER_ID = ${req.userId}
+                WHERE TASK_ID = ${taskId}
+            `;
+
+            console.log(`✅ Task ${taskId} assigned to ${assignedId || 'null'} successfully`);
+            return res.json({ success: true, message: 'Task assigned successfully', taskId });
         }
-        
-        // Always update these fields
-        updateFields.push('UPDATE_DATE = GETDATE()');
-        updateFields.push('UPDATE_USER_ID = ?');
-        updateValues.push(req.userId);
-        updateValues.push(taskId);
-        
-        const updateQuery = `
-            UPDATE GUARDIAN.TASKS 
-            SET ${updateFields.join(', ')}
-            WHERE TASK_ID = ?
-        `;
-        
-        console.log('🔧 [DEBUG] Update query:', updateQuery);
-        console.log('🔧 [DEBUG] Update values:', updateValues);
-        
-        await prisma.$executeRawUnsafe(updateQuery, ...updateValues);
+
+        // Otherwise, update other fields (description/status) if provided
+        if (description !== undefined) {
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.TASKS
+                SET DESCRIPTION = ${description},
+                    UPDATE_DATE = GETDATE(),
+                    UPDATE_USER_ID = ${req.userId}
+                WHERE TASK_ID = ${taskId}
+            `;
+        }
+
+        if (status !== undefined && statusInt !== undefined && Number.isInteger(statusInt)) {
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.TASKS
+                SET STATUS = ${statusInt},
+                    UPDATE_DATE = GETDATE(),
+                    UPDATE_USER_ID = ${req.userId}
+                WHERE TASK_ID = ${taskId}
+            `;
+        } else if (status !== undefined) {
+            console.warn('⚠️ [TASK UPDATE] Ignoring non-numeric status:', status);
+        }
 
         console.log(`✅ Task ${taskId} updated successfully`);
 

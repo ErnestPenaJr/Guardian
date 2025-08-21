@@ -507,8 +507,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setTaskActionLoading(true);
       console.log(`🔄 Updating ${taskIds.length} tasks to status: ${newStatus}`);
 
-      // Update each selected task
-      const promises = taskIds.map(taskId => 
+      // Update each selected task in parallel (status updates are lightweight)
+      const promises = taskIds.map(taskId =>
         api.put(`/api/tasks/${taskId}`, { status: newStatus })
       );
 
@@ -531,7 +531,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
 
-  // Handle task assignment
+  // Handle task assignment (sequential to avoid DB pool overload)
   const handleTaskAssign = async (taskIds: number[], assignedUserId: string) => {
     if (taskIds.length === 0) {
       toast.error('Please select tasks to assign');
@@ -547,21 +547,25 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setTaskActionLoading(true);
       console.log(`👤 Assigning ${taskIds.length} tasks to user ${assignedUserId}`);
 
-      // Update each selected task
-      const promises = taskIds.map(taskId => 
-        api.put(`/api/tasks/${taskId}`, { assignedUserId: parseInt(assignedUserId) })
-      );
+      let successCount = 0;
+      for (const taskId of taskIds) {
+        try {
+          const res = await api.put(`/api/tasks/${taskId}`, { assignedUserId: parseInt(assignedUserId, 10) });
+          if (res.data?.success) successCount += 1;
+        } catch (err: any) {
+          console.error(`❌ Failed to assign task ${taskId}:`, err?.response?.data || err?.message || err);
+        }
+        // gentle pacing
+        await new Promise(r => setTimeout(r, 50));
+      }
 
-      const responses = await Promise.all(promises);
-      const successful = responses.filter(r => r.data && r.data.success);
-
-      if (successful.length === taskIds.length) {
-        toast.success(`${successful.length} task(s) assigned successfully!`);
-        setSelectedTasks(new Set()); // Clear selection
-        await fetchTasks(); // Refresh tasks list
+      if (successCount === taskIds.length) {
+        toast.success(`${successCount} task(s) assigned successfully!`);
+        setSelectedTasks(new Set());
+        await fetchTasks();
       } else {
-        toast.warning(`${successful.length} of ${taskIds.length} tasks assigned`);
-        await fetchTasks(); // Refresh tasks list anyway
+        toast.warning(`${successCount} of ${taskIds.length} tasks assigned`);
+        await fetchTasks();
       }
     } catch (error: any) {
       console.error('❌ Error assigning tasks:', error);
@@ -571,17 +575,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
 
-  // Handle task selection
-  const handleTaskSelect = (taskId: number, checked: boolean) => {
-    const newSelection = new Set(selectedTasks);
-    if (checked) {
-      newSelection.add(taskId);
-    } else {
-      newSelection.delete(taskId);
-    }
-    setSelectedTasks(newSelection);
-  };
-
   // Handle select all tasks
   const handleSelectAllTasks = (checked: boolean) => {
     if (checked) {
@@ -589,6 +582,15 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     } else {
       setSelectedTasks(new Set());
     }
+  };
+
+  // Handle single task checkbox
+  const handleTaskSelect = (taskId: number, checked: boolean) => {
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(taskId); else next.delete(taskId);
+      return next;
+    });
   };
 
   // Get task status badge class
