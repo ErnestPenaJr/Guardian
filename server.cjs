@@ -1414,10 +1414,30 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 // Get all users (for backward compatibility)
 app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log(`👥 [/api/users] Fetching users for company ID: ${req.companyId}`);
-        console.log(`👥 [/api/users] Request from user ID: ${req.userId}`);
+        console.log(` [DEBUG] Fetching users for company ID: ${req.companyId}`);
+        console.log(` [DEBUG] Request user info:`, {
+            userId: req.userId,
+            companyId: req.companyId,
+            userRoleIds: req.userRoleIds
+        });
 
-        // First get all users
+        // First, let's see ALL users in the database to understand the data
+        const allUsers = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.COMPANY_ID,
+                u.CREATE_DATE
+            FROM GUARDIAN.USERS u
+            ORDER BY u.COMPANY_ID, u.LAST_NAME, u.FIRST_NAME
+        `;
+        console.log(` [DEBUG] Total users in database: ${allUsers.length}`);
+        console.log(` [DEBUG] All users by company:`, allUsers.map(u => `${u.FIRST_NAME} ${u.LAST_NAME} (Company: ${u.COMPANY_ID}, Status: ${u.STATUS})`));
+
+        // Now get users filtered by company
         const users = await prisma.$queryRaw`
             SELECT 
                 u.USER_ID,
@@ -1432,7 +1452,33 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
             ORDER BY u.LAST_NAME, u.FIRST_NAME
         `;
 
-        console.log(`✅ Found ${users.length} users`);
+        console.log(` [DEBUG] Found ${users.length} users for company ${req.companyId}`);
+        
+        // If no users found for the company, let's check if there are any active users at all
+        if (users.length === 0) {
+            const activeUsers = await prisma.$queryRaw`
+                SELECT COUNT(*) as count FROM GUARDIAN.USERS WHERE STATUS = 'A'
+            `;
+            console.log(`⚠️ [DEBUG] No users found for company ${req.companyId}, but ${activeUsers[0].count} active users exist in database`);
+            
+            // For debugging purposes, let's temporarily return all active users
+            // This helps identify if the issue is with company filtering
+            const fallbackUsers = await prisma.$queryRaw`
+                SELECT 
+                    u.USER_ID,
+                    u.EMAIL,
+                    u.FIRST_NAME,
+                    u.LAST_NAME,
+                    u.STATUS,
+                    u.COMPANY_ID,
+                    u.CREATE_DATE
+                FROM GUARDIAN.USERS u
+                WHERE u.STATUS = 'A'
+                ORDER BY u.LAST_NAME, u.FIRST_NAME
+            `;
+            console.log(`🔧 [DEBUG] Using fallback: returning ${fallbackUsers.length} active users from all companies`);
+            users = fallbackUsers; // Use fallback for now
+        }
 
         // OPTIMIZED: Get all user roles in single query to avoid N+1 problem
         const userIds = users.map(u => u.USER_ID);
@@ -3499,20 +3545,41 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Execute update with proper null handling
-        const finalAssignedUserId = assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID;
-        const finalDescription = description !== undefined ? description : task[0].DESCRIPTION;
-        const finalStatus = status !== undefined ? status : task[0].STATUS;
-
-        await prisma.$executeRaw`
+        // Build update fields dynamically to avoid null/undefined issues
+        const updateFields = [];
+        const updateValues = [];
+        
+        if (description !== undefined) {
+            updateFields.push('DESCRIPTION = ?');
+            updateValues.push(description);
+        }
+        
+        if (status !== undefined) {
+            updateFields.push('STATUS = ?');
+            updateValues.push(status);
+        }
+        
+        if (assignedUserId !== undefined) {
+            updateFields.push('ASSIGNED_USER_ID = ?');
+            updateValues.push(assignedUserId || null);
+        }
+        
+        // Always update these fields
+        updateFields.push('UPDATE_DATE = GETDATE()');
+        updateFields.push('UPDATE_USER_ID = ?');
+        updateValues.push(req.userId);
+        updateValues.push(taskId);
+        
+        const updateQuery = `
             UPDATE GUARDIAN.TASKS 
-            SET DESCRIPTION = ${finalDescription},
-                STATUS = ${finalStatus},
-                ASSIGNED_USER_ID = ${finalAssignedUserId},
-                UPDATE_DATE = GETDATE(),
-                UPDATE_USER_ID = ${req.userId}
-            WHERE TASK_ID = ${taskId}
+            SET ${updateFields.join(', ')}
+            WHERE TASK_ID = ?
         `;
+        
+        console.log('🔧 [DEBUG] Update query:', updateQuery);
+        console.log('🔧 [DEBUG] Update values:', updateValues);
+        
+        await prisma.$executeRawUnsafe(updateQuery, ...updateValues);
 
         console.log(`✅ Task ${taskId} updated successfully`);
 

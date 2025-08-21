@@ -3516,20 +3516,41 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Execute update with proper null handling
-        const finalAssignedUserId = assignedUserId !== undefined ? (assignedUserId || null) : task[0].ASSIGNED_USER_ID;
-        const finalDescription = description !== undefined ? description : task[0].DESCRIPTION;
-        const finalStatus = status !== undefined ? status : task[0].STATUS;
-
-        await prisma.$executeRaw`
+        // Build update fields dynamically to avoid null/undefined issues
+        const updateFields = [];
+        const updateValues = [];
+        
+        if (description !== undefined) {
+            updateFields.push('DESCRIPTION = ?');
+            updateValues.push(description);
+        }
+        
+        if (status !== undefined) {
+            updateFields.push('STATUS = ?');
+            updateValues.push(status);
+        }
+        
+        if (assignedUserId !== undefined) {
+            updateFields.push('ASSIGNED_USER_ID = ?');
+            updateValues.push(assignedUserId || null);
+        }
+        
+        // Always update these fields
+        updateFields.push('UPDATE_DATE = GETDATE()');
+        updateFields.push('UPDATE_USER_ID = ?');
+        updateValues.push(req.userId);
+        updateValues.push(taskId);
+        
+        const updateQuery = `
             UPDATE GUARDIAN.TASKS 
-            SET DESCRIPTION = ${finalDescription},
-                STATUS = ${finalStatus},
-                ASSIGNED_USER_ID = ${finalAssignedUserId},
-                UPDATE_DATE = GETDATE(),
-                UPDATE_USER_ID = ${req.userId}
-            WHERE TASK_ID = ${taskId}
+            SET ${updateFields.join(', ')}
+            WHERE TASK_ID = ?
         `;
+        
+        console.log('🔧 [DEBUG] Update query:', updateQuery);
+        console.log('🔧 [DEBUG] Update values:', updateValues);
+        
+        await prisma.$executeRawUnsafe(updateQuery, ...updateValues);
 
         console.log(`✅ Task ${taskId} updated successfully`);
 
