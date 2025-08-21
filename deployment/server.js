@@ -527,6 +527,45 @@ app.post('/api/send-error-email', async (req, res) => {
     }
 });
 
+// Error email endpoint for frontend error reporting
+app.post('/api/send-error-email', async (req, res) => {
+    try {
+        const { error, userAgent, url, timestamp, userId, companyId } = req.body;
+        
+        console.log('📧 Error email request received:', {
+            error: error?.message || 'Unknown error',
+            url,
+            userId,
+            companyId,
+            timestamp
+        });
+
+        // For now, just log the error instead of sending email
+        // This prevents the 404 error while maintaining error tracking
+        console.error('🚨 Application Error Captured:', {
+            message: error?.message || 'Unknown error',
+            stack: error?.stack,
+            url,
+            userAgent,
+            userId,
+            companyId,
+            timestamp: timestamp || new Date().toISOString()
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'Error logged successfully' 
+        });
+        
+    } catch (err) {
+        console.error('❌ Error in send-error-email endpoint:', err);
+        res.status(500).json({ 
+            error: 'Failed to process error email',
+            message: err.message 
+        });
+    }
+});
+
 // Basic test endpoint
 app.get('/api/test', (req, res) => {
     res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
