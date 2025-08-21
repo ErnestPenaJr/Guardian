@@ -80,15 +80,25 @@ The project includes 12 specialized agents located in `.claude/agents/` that pro
 6. **Documentation**: Use `doc-updater` proactively after ANY code modifications
 7. **Testing**: Run appropriate tests (`bun test`, `bun run lint`, `tsc --noEmit`) before completion
 
-### Multi-Server Synchronization Protocol
+### Multi-Server Synchronization Protocol - UPDATED 2025-08-21
 
 **CRITICAL**: When modifying API endpoints, automatically ensure synchronization:
 1. Use `api-specialist` to update ALL THREE server files simultaneously:
-   - `server.cjs` (development)
-   - `server-production.js` (production source)
+   - `server.cjs` (development - SOURCE OF TRUTH for API logic)
+   - `server-production.js` (production source for pipeline)
    - `server.js` (local production testing)
-2. Use `deployment-specialist` if deployment issues arise
-3. Use `doc-updater` to update endpoint documentation
+2. **PRODUCTION DEPLOYMENT RULE**: Always copy working `server.cjs` as foundation for production server
+3. **MINIMAL MODIFICATIONS ONLY**: Add only essential production requirements (static serving, SPA routing)
+4. Use `deployment-specialist` if deployment issues arise
+5. Use `doc-updater` to update endpoint documentation
+
+**DEPLOYMENT BEST PRACTICES (CRITICAL - 2025-08-21):**
+- ✅ **Source of Truth**: `server.cjs` contains the working API logic - use as foundation
+- ✅ **Minimal Changes**: Production server should be `server.cjs` + minimal static file serving
+- ✅ **Node.js Testing**: Always test with `node server.js` before deployment (not just Bun)
+- ✅ **CommonJS Compatibility**: Ensure production uses CommonJS module system
+- ❌ **DO NOT over-engineer** production configurations or add complex environment detection
+- ❌ **DO NOT modify** working API logic when creating production server
 
 ### Efficiency Guidelines
 
@@ -379,23 +389,31 @@ This project uses a **two-environment configuration** with distinct server setup
 - Comprehensive error handling and fallback forms
 - SQL Server parameterized queries with proper syntax
 
-### Production Environment (IIS)
+### Production Environment (IIS) - CRITICAL UPDATE 2025-08-21
 
 **File:** `server.js`  
 **Purpose:** Production-ready server optimized for IIS deployment  
-**Runtime:** Production IIS server
+**Runtime:** Production IIS server (Node.js v20.18.3)
 
-**Features:**
-- No static file serving (handled by IIS via web.config)
-- Memory-based verification code storage (for production simplicity)
+**CRITICAL SUCCESS CONFIGURATION (WORKING):**
+- **Core Principle**: Exact copy of working `server.cjs` with minimal production modifications
+- **CommonJS Module System**: Uses `package.production.json` to ensure CommonJS compatibility
+- **Static File Serving**: `app.use(express.static('.'))` for current directory serving
+- **SPA Fallback Route**: `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')))` for React Router
+- **Identical API Logic**: Same authentication, JWT handling, and endpoints as development server
+
+**Production-Specific Additions ONLY:**
+- Static file serving via Express (`express.static('.')`)
+- SPA fallback route (`app.get('*', ...)`) for React Router
 - Company-based data isolation and security
 - Same API endpoints as development
-- Optimized for IIS deployment
+- Node.js runtime compatibility (not Bun-specific features)
 
-**Key Differences:**
-- Static files served by IIS instead of Express
-- Verification codes stored in memory vs database
-- No SPA fallback route (handled by web.config)
+**Key Success Metrics (VERIFIED WORKING):**
+- ✅ `/api/health` - Server status OK (Node.js v20.18.3)
+- ✅ `/api/login` - JWT authentication working
+- ✅ `/api/test` - Basic API functionality
+- ✅ `/api/users` - Protected endpoints with JWT validation
 
 ## API Endpoints
 
@@ -597,26 +615,30 @@ DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUA
 bun server.js  # or node server.js
 ```
 
-## Important Notes
+## Important Notes - UPDATED 2025-08-21
 
-1. **Never confuse the environments** - `server.cjs` is for development, `server.js` is for production
-2. **Company isolation is critical** - All user data must be filtered by company ID for security
-3. **Both servers have identical API endpoints** - Only the implementation details differ between environments
-4. **Production uses IIS** - Static file serving and SPA routing handled by web.config
-5. **Development uses full Express** - Includes static serving and SPA fallback for React Router
-6. **Database connection requirement** - Development server MUST use explicit DATABASE_URL for stable connection (Fixed 2025-08-12)
-7. **Form template creation** - SimpleFormBuilder fully functional with enhanced SQL Server compatibility and proper company isolation (Fixed 2025-08-12)
-8. **Port configuration** - Frontend runs on port 5175, backend on port 3001 with Vite proxy routing (Standardized 2025-08-12)
-9. **Field Management** - New CRUD operations for fields require proper validation and duplicate checking
-10. **Email Integration** - Resend API handles all transactional emails including assignments and verifications
-11. **Notification System** - Real-time notifications with database persistence and read tracking
-12. **Workflow Management** - Advanced form template management with role-based access control and first-time admin onboarding
-13. **Task Management System** - Comprehensive task system with flexible status management, batch operations, and automatic notification integration (Added 2025-08-07)
-14. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
-15. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
-16. **SQL Server Compatibility** - All database operations use proper parameterized queries with `${variable}` syntax for security and compatibility (Fixed 2025-08-12)
-17. **Production Asset Deployment** - Clean build process and asset verification prevent 404 errors in production (Fixed 2025-08-20)
-18. **Task Assignment Modal** - Bootstrap UI modal replaces prompt-based assignment with proper validation and user selection (Enhanced 2025-08-20)
+1. **CRITICAL: Production Server Foundation** - `server.cjs` is SOURCE OF TRUTH for API logic; production server must be exact copy with minimal additions (Updated 2025-08-21)
+2. **Never over-engineer production** - Production server should only add static serving and SPA routing to working dev server (Critical 2025-08-21)
+3. **Always test with Node.js** - MUST test with `node server.js` locally before Azure deployment (Critical 2025-08-21)
+4. **CommonJS compatibility required** - Production uses Node.js v20.18.3 with CommonJS module system (Critical 2025-08-21)
+5. **Company isolation is critical** - All user data must be filtered by company ID for security
+6. **Both servers have identical API endpoints** - Production preserves exact API logic from development server
+7. **Express handles static files** - Primary static serving via Express middleware, web.config as fallback
+8. **Development uses full Express** - Includes static serving and SPA fallback for React Router
+9. **Database connection requirement** - Development server MUST use explicit DATABASE_URL for stable connection (Fixed 2025-08-12)
+10. **Form template creation** - SimpleFormBuilder fully functional with enhanced SQL Server compatibility and proper company isolation (Fixed 2025-08-12)
+11. **Port configuration** - Frontend runs on port 5175, backend on port 3001 with Vite proxy routing (Standardized 2025-08-12)
+12. **Field Management** - New CRUD operations for fields require proper validation and duplicate checking
+13. **Email Integration** - Resend API handles all transactional emails including assignments and verifications
+14. **Notification System** - Real-time notifications with database persistence and read tracking
+15. **Workflow Management** - Advanced form template management with role-based access control and first-time admin onboarding
+16. **Task Management System** - Comprehensive task system with flexible status management, batch operations, and automatic notification integration (Added 2025-08-07)
+17. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
+18. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
+19. **SQL Server Compatibility** - All database operations use proper parameterized queries with `${variable}` syntax for security and compatibility (Fixed 2025-08-12)
+20. **Production Asset Deployment** - Clean build process and asset verification prevent 404 errors in production (Fixed 2025-08-20)
+21. **Task Assignment Modal** - Bootstrap UI modal replaces prompt-based assignment with proper validation and user selection (Enhanced 2025-08-20)
+22. **Emergency Recovery Protocol** - Documented step-by-step recovery process for production server failures (Added 2025-08-21)
 
 ## Deployment
 
@@ -629,12 +651,32 @@ bun server.js  # or node server.js
 - Vite proxy routes API calls from frontend (port 5175) to backend (port 3001)
 - Form template creation fully functional with enhanced database integration
 
-### Production (Azure App Service)
-- Deploy via Azure DevOps pipeline
+### Production (Azure App Service) - UPDATED 2025-08-21
+
+**CRITICAL DEPLOYMENT SUCCESS CONFIGURATION:**
+- Deploy via Azure DevOps pipeline using proven methodology
 - Pipeline deploys `server-production.js` (renamed to `server.js` during deployment)
-- Configure web.config for static files and SPA routing
-- Ensure database connection string is configured
+- **Foundation Rule**: `server-production.js` must be exact copy of working `server.cjs` + minimal production additions
+- Configure web.config for static files and SPA routing (as fallback)
+- **Primary Static Serving**: Express static middleware handles asset serving (`express.static('.')`)
+- **SPA Support**: Express fallback route handles React Router (`app.get('*', ...)`)
+- Ensure database connection string is configured in Azure environment
 - JWT_SECRET environment variable required
+
+**Production Server Requirements (CRITICAL):**
+- **Node.js Runtime**: v20.18.3 with CommonJS module system
+- **Module Compatibility**: `package.production.json` enforces `"type": "commonjs"`
+- **Static File Strategy**: Express middleware for asset serving, not solely web.config
+- **API Logic Preservation**: Identical authentication, JWT, and endpoints as development
+- **Testing Protocol**: MUST test with `node server.js` locally before deployment
+
+**Deployment Verification Checklist:**
+1. ✅ Local testing with `node server.js` successful
+2. ✅ `/api/health` endpoint returns Node.js version
+3. ✅ `/api/login` authentication functional
+4. ✅ Static assets load without 404 errors
+5. ✅ React Router navigation works via SPA fallback
+6. ✅ Database connectivity and JWT validation operational
 
 ## Project Structure & Statistics
 
@@ -822,9 +864,80 @@ If production site returns 404 errors for JavaScript/CSS assets:
 - Use `/api/debug/assets` endpoint to confirm successful asset deployment
 - Monitor pipeline logs for asset verification warnings or failures
 
+### Critical Production Server Issues (RESOLVED 2025-08-21)
+
+If production server fails to start or returns 500 errors on basic endpoints:
+
+**CRITICAL ROOT CAUSE IDENTIFIED:**
+- **ES Module vs CommonJS Incompatibility**: Production Node.js environment requires CommonJS module system
+- **Over-Engineering**: Complex production configurations introducing compatibility issues
+- **Runtime Environment Mismatch**: Bun-specific features not compatible with Node.js production runtime
+
+**SUCCESSFUL RESOLUTION METHODOLOGY:**
+1. **Foundation Approach**: Copy exact working `server.cjs` as production server foundation
+2. **Minimal Modifications**: Add ONLY essential production requirements:
+   - Static file serving: `app.use(express.static('.'))`
+   - SPA fallback route: `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')))`
+3. **Preserve API Logic**: DO NOT modify working authentication, JWT, or endpoint logic
+4. **CommonJS Compatibility**: Ensure `package.production.json` enforces CommonJS module system
+5. **Node.js Testing**: Test with `node server.js` locally before deployment
+
+**Critical Success Indicators:**
+- ✅ Server starts without CommonJS/ES Module errors
+- ✅ `/api/health` returns status with Node.js version
+- ✅ `/api/login` JWT authentication works
+- ✅ `/api/test` basic API functionality confirmed
+- ✅ Static file serving and SPA routing functional
+
+**Emergency Recovery Protocol:**
+1. **Immediate Action**: Copy working `server.cjs` to `server.js` and `server-production.js`
+2. **Add Production Essentials**: Only static serving and SPA routing
+3. **Test Locally**: `node server.js` must work before deployment
+4. **Deploy**: Push with confidence that working dev server forms foundation
+5. **Verify**: Check all critical endpoints post-deployment
+
+**Prevention Guidelines:**
+- ❌ **NEVER over-engineer** production server configurations
+- ❌ **NEVER modify** working API logic during production deployment
+- ❌ **NEVER assume** Bun features will work in Node.js production
+- ❌ **NEVER skip** local Node.js testing before deployment
+- ✅ **ALWAYS use** working `server.cjs` as production foundation
+- ✅ **ALWAYS keep** production modifications minimal and targeted
+
 ## Recent Changes & Fixes
 
-### Latest Updates (2025-08-20)
+### Latest Updates (2025-08-21)
+
+#### CRITICAL PRODUCTION SERVER RESTORATION - SUCCESSFUL (2025-08-21)
+- ✅ **Production Server Fully Operational**: Resolved critical production server failures that prevented basic API functionality
+- ✅ **ES Module/CommonJS Issue Resolved**: Identified and fixed Node.js production runtime compatibility issues with module systems
+- ✅ **Minimal Configuration Success**: Deployed working production server using exact copy of `server.cjs` with minimal production additions
+- ✅ **Foundation Methodology Established**: Created proven deployment approach: copy working dev server + add only essential production features
+- ✅ **Emergency Recovery Protocol**: Documented step-by-step emergency recovery process for future production server failures
+- ✅ **Prevention Guidelines Implemented**: Comprehensive "DO NOT" and "ALWAYS DO" rules to prevent future over-engineering issues
+
+#### Technical Resolution Details (2025-08-21)
+- ✅ **Root Cause Analysis Completed**: ES Module vs CommonJS incompatibility in Node.js v20.18.3 production environment
+- ✅ **Working Configuration Documented**: `package.production.json` enforces CommonJS, static file serving via Express, SPA routing support
+- ✅ **API Logic Preservation**: Maintained identical authentication, JWT handling, and endpoint functionality from development server
+- ✅ **Node.js Testing Protocol**: Established requirement to test with `node server.js` locally before production deployment
+- ✅ **Multi-Server Synchronization Updated**: Updated synchronization protocol to emphasize `server.cjs` as source of truth
+
+#### Critical Success Metrics Verified (2025-08-21)
+- ✅ **Basic API Functionality**: `/api/health`, `/api/login`, `/api/test`, `/api/users` all operational
+- ✅ **JWT Authentication**: Token-based authentication working across all protected endpoints
+- ✅ **Static File Serving**: Frontend assets loading correctly with Express static middleware
+- ✅ **SPA Routing**: React Router integration functional with fallback route
+- ✅ **Database Connectivity**: SQL Server connection and company-based data isolation maintained
+
+#### Deployment Best Practices Established (2025-08-21)
+- ✅ **Source of Truth**: `server.cjs` contains working API logic and serves as foundation for all production deployments
+- ✅ **Minimal Modification Rule**: Production servers should only add static file serving and SPA routing to working development server
+- ✅ **Runtime Compatibility**: Always verify Node.js compatibility locally before Azure deployment
+- ✅ **Emergency Recovery**: Documented proven recovery methodology for future production server issues
+- ✅ **Prevention Focus**: Emphasis on avoiding over-engineering and preserving working configurations
+
+### Previous Updates (2025-08-20)
 
 #### Production Asset Deployment Issue - RESOLVED (2025-08-20)
 - ✅ **Production 404 Asset Errors Fixed**: Resolved critical issue where JavaScript and CSS assets were returning 404 errors in production

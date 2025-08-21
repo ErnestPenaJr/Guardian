@@ -292,9 +292,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// Production mode: Static files served by IIS via web.config
-// This Node.js server only handles API endpoints
-console.log('🔧 Production mode: Static files served by IIS via web.config');
+// In development mode, static files are served by Vite dev server (port 5175)
+// This backend server (port 3001) only handles API endpoints
+console.log('🔧 Development mode: Static files served by Vite on port 5175');
 
 // === API ROUTES ===
 
@@ -10541,13 +10541,13 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// Production mode: SPA routing handled by IIS via web.config
-// No SPA fallback route needed in Node.js server
-console.log('🔧 Production mode: SPA routing handled by IIS via web.config');
+// In development mode, SPA routing is handled by Vite dev server
+// This route is only needed in production when this server serves static files
+console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔧 Production mode: API server only (IIS serves static files)`);
+    console.log(`🔧 Development mode: API server only`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');

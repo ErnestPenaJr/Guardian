@@ -304,3 +304,132 @@ git reset --hard HEAD~1 && git push --force origin main
 ```
 
 Always remember: `server-production.js` is the source of truth for production deployments. Any server changes must be reflected in this file to be deployed.
+
+## CRITICAL PRODUCTION FIX - PROVEN METHODOLOGY (2025-08-21)
+
+### Emergency Resolution Protocol for Complete Production Failures
+
+**Background Context:**
+- Production server completely broken (all API endpoints returning 500 errors)
+- Local development server (`server.cjs`) working perfectly
+- Complex fixes and over-engineering attempts failed
+- Root cause: ES Module/CommonJS compatibility + production configuration conflicts
+
+**PROVEN SUCCESSFUL APPROACH:**
+
+#### Step 1: Foundation Strategy
+```bash
+# Start with exact working code
+cp server.cjs server-production.js
+```
+
+#### Step 2: Minimal Production Modifications ONLY
+Add exactly these 2 changes to `server-production.js`:
+
+```javascript
+// 1. Static file serving (after middleware setup)
+app.use(express.static('.', {
+    index: 'index.html',
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js') || path.endsWith('.mjs')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
+
+// 2. SPA fallback route (MUST be at the very end, after all API routes)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+```
+
+#### Step 3: Deploy Immediately
+```bash
+cp server-production.js deployment/server.js
+git add server-production.js deployment/server.js
+git commit -m "fix: emergency production server restoration"
+git push origin main
+```
+
+### Critical Success Factors
+
+✅ **Node.js v20.18.3 Compatibility**: Maintained through proper CommonJS module system
+✅ **Package Configuration**: Uses `package.production.json` with `"type": "commonjs"`
+✅ **Identical API Logic**: No changes to authentication, JWT, database queries between dev/prod
+✅ **Minimal Modifications**: Only static serving + SPA routing for production differences
+
+### Root Cause Analysis
+
+**Primary Issue**: ES Module Conflict
+- Main `package.json` has `"type": "module"` but server uses `require()`
+- Azure pipeline solution: Uses `package.production.json` with `"type": "commonjs"`
+
+**Secondary Issue**: Over-Engineering
+- Complex environment detection logic broke basic functionality
+- Production-specific configurations introduced incompatibilities
+- Runtime version differences were not the issue (Node.js v24 local vs v20.18.3 production)
+
+### Verified Working Endpoints Post-Fix
+
+```bash
+# Core functionality confirmed working
+curl https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/health
+curl https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/test
+curl -X POST https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password"}'
+```
+
+### Future Deployment Protocol
+
+**MANDATORY Steps for All Production Deployments:**
+
+1. **Foundation First**: Always start by copying exact working `server.cjs`
+2. **Local Testing**: Test with `node server.js` before deployment
+3. **Minimal Changes**: Only add static serving + SPA routing
+4. **Core Verification**: Test `/api/health` and `/api/login` endpoints
+5. **Emergency Revert**: If issues arise, immediately revert to foundation approach
+
+### Critical "DO NOT" Rules
+
+❌ **DO NOT** modify working API logic for production
+❌ **DO NOT** add complex environment detection
+❌ **DO NOT** over-engineer production configurations  
+❌ **DO NOT** assume Bun features work in Node.js production
+❌ **DO NOT** attempt to fix ES Module issues in production code
+
+### Emergency Recovery Template
+
+```bash
+# 1. Foundation restore
+cp server.cjs server-production.js
+
+# 2. Add minimal production modifications (static + SPA only)
+# Edit server-production.js with the 2 code blocks above
+
+# 3. Test locally with Node.js
+node server-production.js
+
+# 4. Deploy immediately
+cp server-production.js deployment/server.js
+git add . && git commit -m "fix: emergency production restore" && git push
+
+# 5. Verify in 3-5 minutes
+curl https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/health
+```
+
+### Lessons Learned
+
+**What Works:**
+- Starting from proven working foundation (`server.cjs`)
+- Minimal, targeted production modifications
+- CommonJS module system for production compatibility
+- Immediate deployment without complex testing
+
+**What Fails:**
+- Over-engineering production configurations
+- Complex environment detection logic
+- Attempting to fix ES Module issues in production
+- Making assumptions about runtime compatibility
+
+This methodology has been battle-tested and successfully restored a completely broken production server. Use this approach as the standard for all future Guardian MVP production emergencies.

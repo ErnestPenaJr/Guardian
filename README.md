@@ -77,12 +77,14 @@ Guardian MVP uses a sophisticated multi-environment architecture:
 - Enhanced form template creation with SQL Server compatibility (Fixed 2025-08-12)
 - Runs on port 3001 (backend) with Vite dev server on 5175 (frontend)
 
-#### Production Environment (`server-production.js` → `server.js`)
-- Production-optimized server for Azure App Service deployment
-- No static file serving (handled by IIS via web.config)
-- Memory-based verification storage for production simplicity
-- Identical API endpoints to development
-- Optimized for IIS deployment with web.config routing
+#### Production Environment (`server-production.js` → `server.js`) - CRITICAL UPDATE 2025-08-21
+- **PROVEN WORKING CONFIGURATION**: Production server based on exact copy of working `server.cjs`
+- **Node.js Runtime**: v20.18.3 with CommonJS module system for compatibility
+- **Express Static Serving**: Primary static file handling via `express.static('.')` middleware
+- **SPA Routing Support**: React Router integration with `app.get('*', ...)` fallback route  
+- **API Logic Preservation**: Identical authentication, JWT handling, and endpoints to development
+- **IIS as Fallback**: web.config provides secondary static serving and routing support
+- **Critical Success Foundation**: Minimal modifications to working development server architecture
 
 ### Database Schema
 
@@ -335,9 +337,13 @@ bun run lint
 3. **Database Changes**: Update Prisma schema and run `bun prisma generate`
 4. **Testing**: Run `bun test` before committing changes
 
-### Important Development Notes
+### Important Development Notes - UPDATED 2025-08-21
 
+- **CRITICAL: Production Server Foundation**: `server.cjs` is SOURCE OF TRUTH for API logic; production must be exact copy with minimal additions (Critical 2025-08-21)
 - **Database Connection**: Must use explicit DATABASE_URL for stable connection in development (Fixed 2025-08-12)
+- **Production Testing Protocol**: MUST test with `node server.js` locally before Azure deployment (Critical 2025-08-21)
+- **CommonJS Compatibility**: Production environment requires CommonJS module system (Critical 2025-08-21)
+- **No Over-Engineering**: Avoid complex production configurations; keep minimal modifications only (Critical 2025-08-21)
 - **Form Template System**: SimpleFormBuilder fully functional with enhanced SQL Server compatibility (Fixed 2025-08-12)  
 - **Database Password Escaping**: Special characters like `$` must be escaped as `\$` in .env files
 - **Frontend/Backend Communication**: Vite proxy routes API calls from port 5175 to 3001
@@ -361,14 +367,26 @@ cp server-production.js deployment/server.js
 - **Production Source**: `server-production.js` (source file with all endpoints)
 - **Production Deployed**: `server.js` (deployed to Azure)
 
-#### Deployment Checklist
+#### Deployment Checklist - CRITICAL UPDATE 2025-08-21
 
-1. **Update All Server Files**: When adding/modifying API endpoints, update:
-   - ✅ `server.cjs` (development)
-   - ✅ `server-production.js` (production source)
+1. **CRITICAL: Foundation First**: When creating production server:
+   - ✅ Start with exact copy of working `server.cjs` (SOURCE OF TRUTH)
+   - ✅ Add ONLY minimal production requirements: static serving + SPA routing
+   - ✅ Preserve all API logic, authentication, and JWT handling unchanged
+   - ✅ Test with `node server.js` locally BEFORE deployment (MANDATORY)
+
+2. **Update All Server Files**: When adding/modifying API endpoints, update:
+   - ✅ `server.cjs` (development - contains working API logic)
+   - ✅ `server-production.js` (production source for pipeline)
    - ✅ `server.js` (local production testing)
 
-2. **Environment Variables**: Configure in Azure App Service:
+3. **Production Server Requirements**:
+   - ✅ Node.js v20.18.3 runtime compatibility
+   - ✅ CommonJS module system (package.production.json)
+   - ✅ Express static middleware: `app.use(express.static('.'))`
+   - ✅ SPA fallback route: `app.get('*', (req, res) => res.sendFile(...))`
+
+4. **Environment Variables**: Configure in Azure App Service:
    ```
    DATABASE_URL=<production-connection-string>
    JWT_SECRET=<secure-jwt-secret>
@@ -376,12 +394,17 @@ cp server-production.js deployment/server.js
    EMAIL_FROM=<production-email>
    ```
 
-3. **Web.config**: Ensure proper IIS configuration for:
-   - Static file serving
-   - SPA routing
-   - API proxying
+5. **Web.config**: Configure as fallback support (Express handles primary serving):
+   - Static file serving (secondary)
+   - SPA routing (secondary)
+   - API proxying (if needed)
 
-4. **Verification**: Test endpoints at production URL after deployment
+6. **Critical Verification**: Test these endpoints post-deployment:
+   - ✅ `/api/health` - Server status with Node.js version
+   - ✅ `/api/login` - JWT authentication functionality
+   - ✅ `/api/test` - Basic API operations
+   - ✅ Frontend assets load without 404 errors
+   - ✅ React Router navigation functional
 
 ### Manual Deployment
 
@@ -402,7 +425,40 @@ cd deployment
 npm install --production
 ```
 
-## Troubleshooting
+## Troubleshooting - UPDATED 2025-08-21
+
+### Critical Production Server Issues - RESOLVED 2025-08-21
+
+#### Production Server Startup Failures
+**Symptom**: Production server fails to start or returns 500 errors on basic endpoints like `/api/health`
+
+**CRITICAL ROOT CAUSES IDENTIFIED:**
+- **ES Module vs CommonJS Incompatibility**: Node.js production environment requires CommonJS module system
+- **Over-Engineering**: Complex production configurations introducing runtime compatibility issues  
+- **Bun vs Node.js Features**: Development-specific features not compatible with Node.js production runtime
+
+**PROVEN SUCCESSFUL RESOLUTION:**
+1. **Foundation Approach**: Copy exact working `server.cjs` as production server foundation
+2. **Minimal Modifications**: Add ONLY essential production requirements:
+   - Static file serving: `app.use(express.static('.'))`
+   - SPA fallback route: `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')))`
+3. **Preserve API Logic**: DO NOT modify working authentication, JWT, or endpoint logic
+4. **CommonJS Compatibility**: Use `package.production.json` to enforce CommonJS module system
+5. **Node.js Testing**: Test locally with `node server.js` before deployment
+
+**Critical Success Indicators:**
+- ✅ Server starts without module system errors
+- ✅ `/api/health` returns status with Node.js v20.18.3
+- ✅ `/api/login` JWT authentication functional
+- ✅ `/api/test` basic API operations work
+- ✅ Static file serving and SPA routing operational
+
+**Emergency Recovery Protocol:**
+1. Copy working `server.cjs` to `server.js` and `server-production.js`
+2. Add only static serving and SPA routing (minimal changes)
+3. Test locally with `node server.js` (must work before deployment)
+4. Deploy with confidence that working dev server forms foundation
+5. Verify all critical endpoints post-deployment
 
 ### Common Issues
 
@@ -612,8 +668,27 @@ For technical support or questions:
 
 ---
 
-**Last Updated**: 2025-08-12  
+---
+
+## Recent Critical Updates (2025-08-21)
+
+### CRITICAL PRODUCTION SERVER RESTORATION - SUCCESSFUL
+- ✅ **Production Server Fully Operational**: Resolved critical server startup failures and 500 errors on basic API endpoints
+- ✅ **ES Module/CommonJS Issue Resolved**: Fixed Node.js production runtime compatibility by enforcing CommonJS module system  
+- ✅ **Foundation Methodology Established**: Created proven deployment approach using exact copy of working development server
+- ✅ **Emergency Recovery Protocol**: Documented comprehensive recovery process for future production server failures
+- ✅ **Deployment Best Practices**: Implemented strict guidelines preventing over-engineering and preserving working configurations
+
+### Technical Resolution Achievements
+- ✅ **Root Cause Analysis**: ES Module vs CommonJS incompatibility in Node.js v20.18.3 production environment
+- ✅ **Working Configuration**: `package.production.json` enforces CommonJS, Express static serving, SPA routing support
+- ✅ **API Logic Preservation**: Maintained identical authentication, JWT, and endpoint functionality from development server
+- ✅ **Testing Protocol**: Established mandatory `node server.js` local testing requirement before Azure deployment
+
+---
+
+**Last Updated**: 2025-08-21  
 **Version**: 2.5.0  
-**Node.js Compatibility**: 18+  
+**Node.js Compatibility**: 18+ (Production: v20.18.3 with CommonJS)  
 **Database**: Microsoft SQL Server  
-**Deployment**: Azure App Service with IIS
+**Deployment**: Azure App Service with Express Static Serving
