@@ -292,9 +292,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// Production mode: Static files served by IIS via web.config
-// This Node.js server only handles API endpoints
-console.log('🔧 Production mode: Static files served by IIS via web.config');
+// Production mode: serve static files from current directory
+app.use(express.static('.', {
+    index: 'index.html',
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js') || path.endsWith('.mjs')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
+console.log('📁 Production mode: Serving static files from current directory');
 
 // === API ROUTES ===
 
@@ -10541,13 +10548,13 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// Production mode: SPA routing handled by IIS via web.config
-// No SPA fallback route needed in Node.js server
-console.log('🔧 Production mode: SPA routing handled by IIS via web.config');
+// In development mode, SPA routing is handled by Vite dev server
+// This route is only needed in production when this server serves static files
+console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔧 Production mode: API server only (IIS serves static files)`);
+    console.log(`🔧 Development mode: API server only`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');
@@ -10562,6 +10569,11 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
     console.log('SIGINT received, shutting down gracefully');  
     server.close(() => process.exit(0));
+});
+
+// SPA fallback route (must be last)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 module.exports = app;
