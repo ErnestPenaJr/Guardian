@@ -321,58 +321,95 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok', 
         timestamp: new Date().toISOString(), 
-        server: 'Guardian MVP Simple Server', 
+        server: 'Guardian MVP Production Server (CommonJS)', 
         port: PORT,
         nodeVersion: process.version,
         uptime: process.uptime()
     });
 });
 
-// Send error email endpoint
-app.post('/api/send-error-email', async (req, res) => {
+// Database connection test endpoint
+app.get('/api/debug/database', async (req, res) => {
     try {
-        const { error, userAgent, url, timestamp, userId, companyId } = req.body;
+        console.log('🔍 Database connection test requested');
         
-        console.log('📧 Error email request received:', {
-            error: error?.message || 'Unknown error',
-            url,
-            userId,
-            companyId,
-            timestamp
-        });
-
-        // For now, just log the error instead of sending email
-        // This prevents the 404 error while maintaining error tracking
-        console.error('🚨 Application Error Captured:', {
-            message: error?.message || 'Unknown error',
-            stack: error?.stack,
-            url,
-            userAgent,
-            userId,
-            companyId,
-            timestamp: timestamp || new Date().toISOString()
-        });
-
-        res.json({ 
-            success: true, 
-            message: 'Error logged successfully' 
-        });
+        // Test basic connection
+        await prisma.$queryRaw`SELECT 1 as test`;
+        console.log('✅ Database connection test passed');
         
-    } catch (err) {
-        console.error('❌ Error in send-error-email endpoint:', err);
-        res.status(500).json({ 
-            error: 'Failed to process error email',
-            message: err.message 
+        // Test USERS table access
+        const userCount = await prisma.$queryRaw`SELECT COUNT(*) as count FROM GUARDIAN.USERS`;
+        console.log(`📊 Users table accessible, count: ${userCount[0]?.count || 0}`);
+        
+        res.json({
+            status: 'ok',
+            database: 'connected',
+            userCount: userCount[0]?.count || 0,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ Database connection test failed:', error.message);
+        res.status(500).json({
+            status: 'error',
+            database: 'disconnected',
+            error: error.message,
+            timestamp: new Date().toISOString()
         });
     }
 });
 
-// Basic test endpoint
-app.get('/api/test', (req, res) => {
-    res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
+// Login debug endpoint
+app.get('/api/debug/login/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        console.log(`🔍 Login debug test for: ${email}`);
+        
+        // Test email validation
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            return res.json({
+                status: 'validation_failed',
+                email: email,
+                reason: emailValidation.reason
+            });
+        }
+        
+        // Test user lookup
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, STATUS, COMPANY_ID
+            FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${emailValidation.email}))
+        `;
+        
+        res.json({
+            status: 'ok',
+            email: emailValidation.email,
+            userFound: users.length > 0,
+            userCount: users.length,
+            user: users.length > 0 ? {
+                USER_ID: users[0].USER_ID,
+                EMAIL: users[0].EMAIL,
+                FIRST_NAME: users[0].FIRST_NAME,
+                LAST_NAME: users[0].LAST_NAME,
+                STATUS: users[0].STATUS,
+                COMPANY_ID: users[0].COMPANY_ID
+            } : null
+        });
+        
+    } catch (error) {
+        console.error('❌ Login debug test failed:', error.message);
+        res.status(500).json({
+            status: 'error',
+            email: req.params.email,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
-// Asset verification debug endpoint
+// === DEPLOYMENT VERIFICATION ENDPOINTS ===
+
+// Asset verification endpoint - checks if critical assets exist
 app.get('/api/debug/assets', async (req, res) => {
     const fs = require('fs');
     const path = require('path');
@@ -428,7 +465,7 @@ app.get('/api/debug/assets', async (req, res) => {
             };
         }
         
-        console.log('📊 Asset verification:', verification);
+        console.log('📊 Asset verification complete:', verification);
         res.json(verification);
         
     } catch (error) {
@@ -436,12 +473,13 @@ app.get('/api/debug/assets', async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Asset verification failed',
-            error: error.message
+            error: error.message,
+            timestamp: new Date().toISOString()
         });
     }
 });
 
-// Deployment info debug endpoint
+// Deployment info endpoint - shows deployment configuration
 app.get('/api/debug/deployment', (req, res) => {
     const fs = require('fs');
     const path = require('path');
@@ -461,14 +499,15 @@ app.get('/api/debug/deployment', (req, res) => {
             },
             static_serving: {
                 enabled: true,
-                method: 'express_static_with_spa_fallback',
+                method: 'express_static_fallback',
                 directory: '.',
-                notes: 'Express serves static files with SPA fallback route'
+                notes: 'Both IIS and Express serve static files as fallback'
             },
             files_check: {
-                server_cjs: fs.existsSync(path.join(__dirname, 'server.cjs')),
+                server_js: fs.existsSync(path.join(__dirname, 'server.js')),
                 index_html: fs.existsSync(path.join(__dirname, 'index.html')),
                 package_json: fs.existsSync(path.join(__dirname, 'package.json')),
+                web_config: fs.existsSync(path.join(__dirname, 'web.config')),
                 assets_dir: fs.existsSync(path.join(__dirname, 'assets'))
             }
         };
@@ -519,14 +558,108 @@ app.get('/api/debug/serve-asset/:filename', (req, res) => {
         res.sendFile(assetPath);
         
     } catch (error) {
-        console.error('❌ Asset serving failed:', error);
+        console.error('❌ Asset serving test failed:', error);
         res.status(500).json({
             status: 'error',
-            filename: req.params.filename,
-            message: 'Asset serving failed',
+            message: 'Asset serving test failed',
             error: error.message
         });
     }
+});
+
+// Send error email endpoint
+app.post('/api/send-error-email', async (req, res) => {
+    try {
+        const { error, userAgent, url, timestamp, userId, companyId } = req.body;
+        
+        console.log('📧 Error email request received:', {
+            error: error?.message || 'Unknown error',
+            url,
+            userId,
+            companyId,
+            timestamp
+        });
+
+        // For now, just log the error instead of sending email
+        // This prevents the 404 error while maintaining error tracking
+        console.error('🚨 Application Error Captured:', {
+            message: error?.message || 'Unknown error',
+            stack: error?.stack,
+            url,
+            userAgent,
+            userId,
+            companyId,
+            timestamp: timestamp || new Date().toISOString()
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'Error logged successfully' 
+        });
+        
+    } catch (err) {
+        console.error('❌ Error in send-error-email endpoint:', err);
+        res.status(500).json({ 
+            error: 'Failed to process error email',
+            message: err.message 
+        });
+    }
+});
+
+// Error email endpoint for frontend error reporting
+app.post('/api/send-error-email', async (req, res) => {
+    try {
+        const { error, userAgent, url, timestamp, userId, companyId } = req.body;
+        
+        console.log('📧 Error email request received:', {
+            error: error?.message || 'Unknown error',
+            url,
+            userId,
+            companyId,
+            timestamp
+        });
+
+        // For now, just log the error instead of sending email
+        // This prevents the 404 error while maintaining error tracking
+        console.error('🚨 Application Error Captured:', {
+            message: error?.message || 'Unknown error',
+            stack: error?.stack,
+            url,
+            userAgent,
+            userId,
+            companyId,
+            timestamp: timestamp || new Date().toISOString()
+        });
+
+        res.json({ 
+            success: true, 
+            message: 'Error logged successfully' 
+        });
+        
+    } catch (err) {
+        console.error('❌ Error in send-error-email endpoint:', err);
+        res.status(500).json({ 
+            error: 'Failed to process error email',
+            message: err.message 
+        });
+    }
+});
+
+// Basic test endpoint
+app.get('/api/test', (req, res) => {
+    res.json({success: true, message: 'API is working!', timestamp: new Date().toISOString()});
+});
+
+// Debug authentication test endpoint
+app.get('/api/debug/auth-test', getAuthenticatedUserCompany, (req, res) => {
+    console.log('🔍 [DEBUG] Auth test endpoint reached successfully');
+    res.json({
+        success: true,
+        userId: req.userId,
+        companyId: req.companyId,
+        userRoleIds: req.userRoleIds,
+        message: 'Authentication successful'
+    });
 });
 
 app.get('/api/debug/endpoints', (req, res) => {
@@ -550,10 +683,9 @@ app.get('/api/debug/endpoints', (req, res) => {
 // Middleware to get authenticated user's company ID
 const getAuthenticatedUserCompany = async (req, res, next) => {
     try {
-        console.log(`🔍 [AUTH] Processing request for: ${req.method} ${req.path}`);
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.error(`❌ [AUTH] No valid auth header found for ${req.path}:`, authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+            console.error('❌ No valid auth header found:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
             return res.status(401).json({ error: 'No valid authentication token provided' });
         }
 
@@ -613,18 +745,6 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid authentication token' });
     }
 };
-
-// Debug authentication endpoint 
-app.get('/api/debug/auth-test', getAuthenticatedUserCompany, (req, res) => {
-    console.log('🔍 [DEBUG] Auth test endpoint reached successfully');
-    res.json({
-        success: true,
-        userId: req.userId,
-        companyId: req.companyId,
-        userRoleIds: req.userRoleIds,
-        message: 'Authentication successful'
-    });
-});
 
 // Debug endpoint to check user authentication and roles
 app.get('/api/debug/user', getAuthenticatedUserCompany, async (req, res) => {
@@ -993,7 +1113,6 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
             REQUEST_DESCRIPTION: req.REQUEST_DESCRIPTION,
             STATUS: req.STATUS,
             SUBMITTED_DATE: req.SUBMITTED_DATE,
-            TRACKINGID: req.TRACKINGID,
             CREATE_DATE: req.CREATE_DATE,
             UPDATE_DATE: req.UPDATE_DATE,
             COMPANY_ID: req.COMPANY_ID,
@@ -1129,7 +1248,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // TRACKINGID is now auto-generated by the database as a computed column
+        // Creating new request
         // No longer need to generate it manually
 
         // Create the request with company-based data isolation using raw SQL
@@ -1205,7 +1324,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         const newRequestResults = await prisma.$queryRaw`
             SELECT REQUEST_ID, REQUEST_NAME, REQUEST_DESCRIPTION, ABBREVIATION, STATUS, 
                    SUBMITTED_DATE, REQUESTOR_ID, ASSIGNED_ID, CREATE_DATE, UPDATE_DATE, 
-                   CREATE_USER_ID, UPDATE_USER_ID, TRACKINGID, COMPANY_ID, EXTERNAL_USER, FORM_ID
+                   CREATE_USER_ID, UPDATE_USER_ID, COMPANY_ID, EXTERNAL_USER, FORM_ID
             FROM GUARDIAN.REQUESTS 
             WHERE REQUEST_ID = ${insertedId} AND COMPANY_ID = ${req.companyId}
         `;
@@ -1223,7 +1342,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         console.log(`✅ Request created successfully:`, {
             REQUEST_ID: newRequest.REQUEST_ID,
             REQUEST_NAME: newRequest.REQUEST_NAME,
-            TRACKING_ID: newRequest.TRACKINGID,
+            REQUEST_ID: newRequest.REQUEST_ID,
             COMPANY_ID: newRequest.COMPANY_ID
         });
 
@@ -1292,7 +1411,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 SUBMITTED_DATE: newRequest.SUBMITTED_DATE,
                 REQUESTOR_ID: newRequest.REQUESTOR_ID,
                 ASSIGNED_ID: newRequest.ASSIGNED_ID,
-                TRACKINGID: newRequest.TRACKINGID,
+                REQUEST_ID: newRequest.REQUEST_ID,
                 COMPANY_ID: newRequest.COMPANY_ID,
                 FORM_ID: newRequest.FORM_ID,
                 CREATE_DATE: newRequest.CREATE_DATE,
@@ -1432,30 +1551,9 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 // Get all users (for backward compatibility)
 app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log(` [DEBUG] Fetching users for company ID: ${req.companyId}`);
-        console.log(` [DEBUG] Request user info:`, {
-            userId: req.userId,
-            companyId: req.companyId,
-            userRoleIds: req.userRoleIds
-        });
+        console.log(`👥 Fetching users for company ID: ${req.companyId}`);
 
-        // First, let's see ALL users in the database to understand the data
-        const allUsers = await prisma.$queryRaw`
-            SELECT 
-                u.USER_ID,
-                u.EMAIL,
-                u.FIRST_NAME,
-                u.LAST_NAME,
-                u.STATUS,
-                u.COMPANY_ID,
-                u.CREATE_DATE
-            FROM GUARDIAN.USERS u
-            ORDER BY u.COMPANY_ID, u.LAST_NAME, u.FIRST_NAME
-        `;
-        console.log(` [DEBUG] Total users in database: ${allUsers.length}`);
-        console.log(` [DEBUG] All users by company:`, allUsers.map(u => `${u.FIRST_NAME} ${u.LAST_NAME} (Company: ${u.COMPANY_ID}, Status: ${u.STATUS})`));
-
-        // Now get users filtered by company
+        // First get all users
         const users = await prisma.$queryRaw`
             SELECT 
                 u.USER_ID,
@@ -1470,33 +1568,7 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
             ORDER BY u.LAST_NAME, u.FIRST_NAME
         `;
 
-        console.log(` [DEBUG] Found ${users.length} users for company ${req.companyId}`);
-        
-        // If no users found for the company, let's check if there are any active users at all
-        if (users.length === 0) {
-            const activeUsers = await prisma.$queryRaw`
-                SELECT COUNT(*) as count FROM GUARDIAN.USERS WHERE STATUS = 'A'
-            `;
-            console.log(`⚠️ [DEBUG] No users found for company ${req.companyId}, but ${activeUsers[0].count} active users exist in database`);
-            
-            // For debugging purposes, let's temporarily return all active users
-            // This helps identify if the issue is with company filtering
-            const fallbackUsers = await prisma.$queryRaw`
-                SELECT 
-                    u.USER_ID,
-                    u.EMAIL,
-                    u.FIRST_NAME,
-                    u.LAST_NAME,
-                    u.STATUS,
-                    u.COMPANY_ID,
-                    u.CREATE_DATE
-                FROM GUARDIAN.USERS u
-                WHERE u.STATUS = 'A'
-                ORDER BY u.LAST_NAME, u.FIRST_NAME
-            `;
-            console.log(`🔧 [DEBUG] Using fallback: returning ${fallbackUsers.length} active users from all companies`);
-            users = fallbackUsers; // Use fallback for now
-        }
+        console.log(`✅ Found ${users.length} users`);
 
         // OPTIMIZED: Get all user roles in single query to avoid N+1 problem
         const userIds = users.map(u => u.USER_ID);
@@ -2519,7 +2591,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
             try {
                 // Get request details for notification
                 const requestDetails = await prisma.$queryRaw`
-                    SELECT REQUEST_NAME, REQUEST_DESCRIPTION, TRACKINGID 
+                    SELECT REQUEST_NAME, REQUEST_DESCRIPTION, REQUEST_ID 
                     FROM GUARDIAN.REQUESTS 
                     WHERE REQUEST_ID = ${requestId}
                 `;
@@ -2540,7 +2612,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                             ${assignedUserId},
                             'assignment',
                             'New Request Assigned',
-                            'You have been assigned to request: ' + ${request.REQUEST_NAME} + ' (ID: ' + ${request.TRACKINGID} + ')',
+                            'You have been assigned to request: ' + ${request.REQUEST_NAME} + ' (ID: ' + ${request.REQUEST_ID} + ')',
                             ${requestId},
                             ${req.companyId},
                             GETDATE(),
@@ -2577,7 +2649,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                                 assigned.EMAIL,
                                 assignedUserName,
                                 request.REQUEST_NAME,
-                                request.TRACKINGID,
+                                request.REQUEST_ID,
                                 assignedByName
                             );
                             
@@ -3370,7 +3442,7 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
             }
         }
 
-        // Create the task (TRACKINGID is computed column, no need to insert)
+        // Create the task
         await prisma.$queryRaw`
             INSERT INTO GUARDIAN.TASKS (
                 REQUEST_ID,
@@ -3444,7 +3516,6 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
             }
             
             // Send email notification for task assignment
-            console.log(`🎯 About to send email for task assignment to user: ${assignedUserId}`);
             try {
                 // Get assigned user's email and name
                 const assignedUser = await prisma.$queryRaw`
@@ -6584,7 +6655,6 @@ app.post('/api/reset-password', async (req, res) => {
         });
     }
 });
-
 
 // Complete registration after email verification
 app.post('/api/complete-registration', async (req, res) => {
@@ -10547,6 +10617,17 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
+// === NO CATCH-ALL ROUTE ===
+// IIS handles SPA routing via web.config
+
+// Error handling
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: 'Internal server error', message: err.message });
+});
+
+// Start server immediately, don't wait for database
+console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
 // Handle all non-API routes for React Router (must be last!)
 if (!isDevelopmentWithVite) {
@@ -10559,22 +10640,13 @@ if (!isDevelopmentWithVite) {
   console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 }
 
-// Error handling
-app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Internal server error', message: err.message });
-});
-
-// Start server immediately, don't wait for database
-console.log('🚀 Starting Express server...');
-// === SPA FALLBACK ROUTE ===
-// In development mode, SPA routing is handled by Vite dev server
-// This route is only needed in production when this server serves static files
-console.log('🔧 Development mode: SPA routing handled by Vite dev server');
-
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔧 Development mode: API server only`);
+    if (isDevelopmentWithVite) {
+        console.log(`🔧 Development mode: API server only (frontend on port 5175)`);
+    } else {
+        console.log(`📁 Production mode: Serving static files from ${path.join(__dirname, 'dist')}`);
+    }
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');
