@@ -551,7 +551,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
               onClick={() => setShowAddModal(true)}
             >
               <Plus size={16} className="me-1" />
-              Add Task
+              Add
             </Button>
           )}
         </div>

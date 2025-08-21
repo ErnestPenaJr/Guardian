@@ -1428,21 +1428,21 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           {activeMainTab === 'tasks' && (
             <div className="tab-pane active">
               <div className="mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <div className="d-flex align-items-center">
+                <div className="mb-3">
+                  <div className="d-flex align-items-center mb-2">
                     <h6 className="mb-0 me-2">Task Management</h6>
                     {selectedTasks.size > 0 && (
                       <span className="badge bg-primary">{selectedTasks.size} selected</span>
                     )}
                   </div>
-                  <div className="d-flex gap-2">
+                  <div className="d-flex gap-2 flex-wrap">
                     <Button 
                       size="sm" 
                       variant="primary"
                       onClick={() => setShowAddTaskModal(true)}
                       disabled={taskActionLoading}
                     >
-                      Add Task
+                      Add
                     </Button>
                     <Button 
                       size="sm" 
@@ -1515,7 +1515,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                           <tr>
                             <td colSpan={5} className="text-center text-muted py-4">
                               <div>No tasks found for this request</div>
-                              <small>Click "Add Task" to create the first task</small>
+                              <small>Click "Add" to create the first task</small>
                             </td>
                           </tr>
                         ) : (

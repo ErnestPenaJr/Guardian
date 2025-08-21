@@ -210,7 +210,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Creating...
               </>
             ) : (
-              'Add Task'
+              'Add'
             )}
           </Button>
         </Modal.Footer>
