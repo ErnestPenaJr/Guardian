@@ -43,8 +43,6 @@ steps:
     cp server.js deployment/
     echo "Deployment directory contents:"
     ls -la deployment
-    echo "Assets directory verification:"
-    ls -lah deployment/assets/
     echo "Asset verification details:"
     if [ -d "deployment/assets" ]; then
       echo "✅ Assets directory exists"
@@ -55,6 +53,8 @@ steps:
       echo "💾 Total assets size: $(du -sh deployment/assets/ | cut -f1)"
       echo "Main asset files:"
       ls -lah deployment/assets/index-*
+      echo "Verify JS file size:"
+      wc -c deployment/assets/index-*.js
     else
       echo "❌ ERROR: Assets directory missing!"
       exit 1
