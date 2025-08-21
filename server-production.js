@@ -321,11 +321,90 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok', 
         timestamp: new Date().toISOString(), 
-        server: 'Guardian MVP Simple Server', 
+        server: 'Guardian MVP Production Server (CommonJS)', 
         port: PORT,
         nodeVersion: process.version,
         uptime: process.uptime()
     });
+});
+
+// Database connection test endpoint
+app.get('/api/debug/database', async (req, res) => {
+    try {
+        console.log('🔍 Database connection test requested');
+        
+        // Test basic connection
+        await prisma.$queryRaw`SELECT 1 as test`;
+        console.log('✅ Database connection test passed');
+        
+        // Test USERS table access
+        const userCount = await prisma.$queryRaw`SELECT COUNT(*) as count FROM GUARDIAN.USERS`;
+        console.log(`📊 Users table accessible, count: ${userCount[0]?.count || 0}`);
+        
+        res.json({
+            status: 'ok',
+            database: 'connected',
+            userCount: userCount[0]?.count || 0,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ Database connection test failed:', error.message);
+        res.status(500).json({
+            status: 'error',
+            database: 'disconnected',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Login debug endpoint
+app.get('/api/debug/login/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        console.log(`🔍 Login debug test for: ${email}`);
+        
+        // Test email validation
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            return res.json({
+                status: 'validation_failed',
+                email: email,
+                reason: emailValidation.reason
+            });
+        }
+        
+        // Test user lookup
+        const users = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, STATUS, COMPANY_ID
+            FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${emailValidation.email}))
+        `;
+        
+        res.json({
+            status: 'ok',
+            email: emailValidation.email,
+            userFound: users.length > 0,
+            userCount: users.length,
+            user: users.length > 0 ? {
+                USER_ID: users[0].USER_ID,
+                EMAIL: users[0].EMAIL,
+                FIRST_NAME: users[0].FIRST_NAME,
+                LAST_NAME: users[0].LAST_NAME,
+                STATUS: users[0].STATUS,
+                COMPANY_ID: users[0].COMPANY_ID
+            } : null
+        });
+        
+    } catch (error) {
+        console.error('❌ Login debug test failed:', error.message);
+        res.status(500).json({
+            status: 'error',
+            email: req.params.email,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // === DEPLOYMENT VERIFICATION ENDPOINTS ===
