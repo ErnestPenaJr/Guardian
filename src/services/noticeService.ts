@@ -273,39 +273,6 @@ class NoticeService {
     }
   }
 
-  /**
-   * Create a new notice
-   */
-  async createNotice(noticeData: {
-    title: string;
-    content: string;
-    noticeType: string;
-    recipients: number[];
-    status?: string;
-    priorityLevel?: string;
-    dueDate?: string;
-    formTemplateId?: number;
-  }): Promise<Notice> {
-    try {
-      // Transform data to match API expectations
-      const apiData = {
-        TITLE: noticeData.title,
-        CONTENT: noticeData.content,
-        NOTICE_TYPE: noticeData.noticeType,
-        recipientUserIds: noticeData.recipients,
-        STATUS: noticeData.status || 'DRAFT',
-        PRIORITY_LEVEL: noticeData.priorityLevel || 'MEDIUM',
-        DUE_DATE: noticeData.dueDate || null,
-        FORM_TEMPLATE_ID: noticeData.formTemplateId || null
-      };
-      
-      const response = await api.post('/api/notices', apiData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating notice:', error);
-      throw error;
-    }
-  }
 
   /**
    * Publish a draft notice (change status from DRAFT to PUBLISHED)
@@ -372,17 +339,6 @@ class NoticeService {
     return `${notice.TITLE} (by ${issuerName})`;
   }
 
-  /**
-   * Utility method to get notice status badge color
-   */
-  getStatusBadgeColor(status: string): string {
-    switch (status) {
-      case 'DRAFT': return 'warning';
-      case 'PUBLISHED': return 'success';
-      case 'CANCELLED': return 'danger';
-      default: return 'secondary';
-    }
-  }
 
   /**
    * Start view tracking for analytics
