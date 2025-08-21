@@ -2610,15 +2610,20 @@ app.put('/api/requests/:requestId/description', getAuthenticatedUserCompany, asy
     try {
         const requestId = parseInt(req.params.requestId);
         const { description } = req.body;
-
-        console.log(`📝 Updating description for request ${requestId} (Company: ${req.companyId})`);
-
+        console.log(`📝 Updating results description for request ${requestId} (Company: ${req.companyId})`);
+        console.log(`🔍 Debug values:`, {
+            requestId,
+            description: description?.substring(0, 50) + '...',
+            companyId: req.companyId,
+            userId: req.userId,
+            companyIdType: typeof req.companyId,
+            userIdType: typeof req.userId
+        });
         if (!requestId || isNaN(requestId)) {
             return res.status(400).json({
                 error: 'Valid request ID is required'
             });
         }
-
         // Validate description length (4000 character limit)
         if (description && description.length > 4000) {
             return res.status(400).json({
@@ -2627,48 +2632,60 @@ app.put('/api/requests/:requestId/description', getAuthenticatedUserCompany, asy
                 maxLength: 4000
             });
         }
-
         // Verify request belongs to user's company
+        console.log(`🔍 Checking if request ${requestId} exists in company ${req.companyId}`);
         const requestExists = await prisma.$queryRaw`
             SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${parseInt(req.companyId)}
         `;
-
+        console.log(`🔍 Request exists check result:`, requestExists);
         if (!requestExists.length) {
             return res.status(404).json({
                 error: 'Request not found or access denied'
             });
         }
-
-        // Update request description
+        // Update request results description - simplified query first
+        console.log(`🔍 Updating RESULTS_DESCRIPTION with values:`, {
+            requestId,
+            description: description || null,
+            userId: req.userId,
+            companyId: parseInt(req.companyId)
+        });
         const result = await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET REQUEST_DESCRIPTION = ${description || null}, 
+            SET RESULTS_DESCRIPTION = ${description || null}, 
                 UPDATE_DATE = GETDATE(),
                 UPDATE_USER_ID = ${req.userId}
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${parseInt(req.companyId)}
         `;
-
+        
+        console.log(`🔍 Update result:`, result);
         if (result === 0) {
             return res.status(404).json({
                 error: 'Request not found or no changes made'
             });
         }
-
-        console.log(`✅ Description updated successfully for request ${requestId}`);
-
+        console.log(`✅ Results description updated successfully for request ${requestId}`);
         res.json({
             success: true,
-            message: 'Request description updated successfully',
+            message: 'Request results description updated successfully',
             requestId: requestId,
             description: description
         });
-
     } catch (error) {
-        console.error('❌ Error updating request description:', error);
+        console.error('❌ Error updating request results description:', error);
+        console.error('❌ Error details:', {
+            message: error.message,
+            stack: error.stack,
+            requestId: req.params.requestId,
+            companyId: req.companyId,
+            userId: req.userId,
+            description: req.body.description
+        });
         res.status(500).json({
-            error: 'Failed to update request description',
-            message: error.message
+            error: 'Failed to update request results description',
+            message: error.message,
+            details: error.stack
         });
     }
 });

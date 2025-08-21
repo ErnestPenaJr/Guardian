@@ -316,6 +316,7 @@ model REQUESTS {
   ABBREVIATION        String?   @db.VarChar(5)
   COMPANY_ID          Decimal?  @db.Decimal(38, 0)
   REQUEST_DESCRIPTION String?   @db.VarChar(2000)
+  RESULTS_DESCRIPTION String?   @db.VarChar(4000)
   FORM_ID             Int?
   
   // Add relationships for REQUESTOR_ID and ASSIGNED_ID

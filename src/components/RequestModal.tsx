@@ -28,6 +28,7 @@ interface Request {
   UPDATE_DATE: string | null;
   TRACKINGID: string | null;
   REQUEST_DESCRIPTION?: string | null;
+  RESULTS_DESCRIPTION?: string | null;
   EXTERNAL_USER?: string | null;
   requestor?: {
     FIRST_NAME: string;
@@ -105,12 +106,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   
   // Results tab state
   const [resultsNotes, setResultsNotes] = useState<string>('');
-  const [requestDescription, setRequestDescription] = useState<string>('');
   const [attachments, setAttachments] = useState<any[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState<boolean>(false);
   const [savingResults, setSavingResults] = useState<boolean>(false);
   const [resultsHasChanges, setResultsHasChanges] = useState<boolean>(false);
-  const [descriptionHasChanges, setDescriptionHasChanges] = useState<boolean>(false);
   
   // Task management state
   const [tasks, setTasks] = useState<any[]>([]);
@@ -328,16 +327,16 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   }, [request]);
 
-  // Initialize request description
+  // Initialize results notes from RESULTS_DESCRIPTION field
   useEffect(() => {
-    if (request && request.REQUEST_DESCRIPTION) {
-      setRequestDescription(request.REQUEST_DESCRIPTION);
-      setDescriptionHasChanges(false);
+    if (request && request.RESULTS_DESCRIPTION) {
+      setResultsNotes(request.RESULTS_DESCRIPTION);
+      setResultsHasChanges(false);
     } else {
-      setRequestDescription('');
-      setDescriptionHasChanges(false);
+      setResultsNotes('');
+      setResultsHasChanges(false);
     }
-  }, [request.REQUEST_ID, request.REQUEST_DESCRIPTION]);
+  }, [request.REQUEST_ID, request.RESULTS_DESCRIPTION]);
 
   // Fetch users for assignment dropdown (only processors)
   const fetchUsers = async () => {
@@ -894,46 +893,34 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setSavingResults(true);
       console.log('💾 Saving results for request:', request.REQUEST_ID);
       
-      // Save request description if changed
-      if (descriptionHasChanges && requestDescription !== (request.REQUEST_DESCRIPTION || '')) {
-        console.log('💾 Saving request description...');
+      // Save results notes to RESULTS_DESCRIPTION field
+      if (resultsNotes.trim()) {
+        console.log('💾 Saving results to RESULTS_DESCRIPTION field...');
         const descResponse = await api.put(`/api/requests/${request.REQUEST_ID}/description`, {
-          description: requestDescription.trim() || null
+          description: resultsNotes.trim()
         });
         
         if (!descResponse.data.success) {
-          toast.error('Failed to save request description');
+          toast.error('Failed to save results');
           return;
         }
-        console.log('✅ Request description saved');
-      }
-      
-      // Save progress notes if provided
-      if (resultsNotes.trim()) {
-        console.log('💾 Saving progress notes...');
-        const formData = new FormData();
-        formData.append('progressType', 'note');
-        formData.append('title', 'Request Results');
-        formData.append('description', resultsNotes);
-        formData.append('isVisibleToRequestor', 'true');
-        formData.append('hoursWorked', '0');
-        
-        const progressResponse = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+        console.log('✅ Results saved to RESULTS_DESCRIPTION field');
+      } else {
+        // Clear the RESULTS_DESCRIPTION field if notes are empty
+        console.log('💾 Clearing RESULTS_DESCRIPTION field...');
+        const descResponse = await api.put(`/api/requests/${request.REQUEST_ID}/description`, {
+          description: null
         });
         
-        if (!progressResponse.data.success) {
-          toast.error('Failed to save progress notes');
+        if (!descResponse.data.success) {
+          toast.error('Failed to clear results');
           return;
         }
-        console.log('✅ Progress notes saved');
+        console.log('✅ RESULTS_DESCRIPTION field cleared');
       }
       
       toast.success('Results saved successfully!');
       setResultsHasChanges(false);
-      setDescriptionHasChanges(false);
       onUpdate(); // Refresh parent component
       
     } catch (error: any) {
@@ -1750,72 +1737,28 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             <div className="tab-pane active">
               <div className="mb-4">
                 
-                {/* Request Description Section */}
+                {/* Notes and Results Section */}
                 <div className="card mb-4">
                   <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-semibold">Request Description</h6>
+                    <h6 className="mb-0 fw-semibold">Notes and Results</h6>
                     <div className="d-flex align-items-center gap-2">
-                      <small className={`${requestDescription.length > 3800 ? 'text-danger' : requestDescription.length > 3500 ? 'text-warning' : 'text-muted'}`}>
-                        {requestDescription.length}/4000
-                      </small>
-                      {descriptionHasChanges && (
-                        <span className="badge bg-warning text-dark">
-                          <Save size={12} className="me-1" />
-                          Unsaved
+                      <span className="text-muted small">
+                        {resultsNotes.length}/4000
+                      </span>
+                      {resultsHasChanges && (
+                        <span className="badge bg-warning text-dark d-inline-flex align-items-center px-2 py-1">
+                          <Save size={12} className="me-1 align-middle" />
+                          <span className="align-middle">Unsaved Changes</span>
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="card-body">
-                    <Form.Group className="mb-0">
-                      <Form.Control
-                        as="textarea"
-                        rows={6}
-                        placeholder="Enter a detailed description of the request, requirements, or expected outcomes..."
-                        value={requestDescription}
-                        maxLength={4000}
-                        onChange={(e) => {
-                          setRequestDescription(e.target.value);
-                          setDescriptionHasChanges(true);
-                        }}
-                        className={`form-control ${requestDescription.length > 4000 ? 'is-invalid' : ''}`}
-                        style={{ 
-                          minHeight: '150px',
-                          fontSize: '0.9rem',
-                          lineHeight: '1.5'
-                        }}
-                      />
-                      {requestDescription.length > 4000 && (
-                        <div className="invalid-feedback">
-                          Description exceeds 4000 character limit.
-                        </div>
-                      )}
-                      <Form.Text className="text-muted">
-                        Provide a comprehensive description of the request details, requirements, and expected outcomes.
-                      </Form.Text>
-                    </Form.Group>
-                  </div>
-                </div>
-
-                {/* Results Details Section */}
-                <div className="card mb-4">
-                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-semibold">Results Details</h6>
-                    {resultsHasChanges && (
-                      <span className="badge bg-warning text-dark">
-                        <Save size={12} className="me-1" />
-                        Unsaved Changes
-                      </span>
-                    )}
-                  </div>
-                  <div className="card-body">
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-medium text-dark mb-2">
-                        Notes and Results
-                      </Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={8}
+                        maxLength={4000}
                         placeholder="Document the results of this request, findings, outcomes, or any relevant information..."
                         value={resultsNotes}
                         onChange={(e) => handleResultsNotesChange(e.target.value)}
@@ -1837,7 +1780,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                         variant="outline-primary"
                         size="sm"
                         onClick={handleSaveResults}
-                        disabled={savingResults || (requestDescription.length > 4000) || (!resultsHasChanges && !descriptionHasChanges)}
+                        disabled={savingResults || !resultsHasChanges}
                         className="d-flex align-items-center"
                       >
                         <Save size={14} className="me-1" />
