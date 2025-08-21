@@ -291,58 +291,28 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// === ENHANCED STATIC FILE SERVING ===
-// PRODUCTION MODE: Robust static file serving as fallback for IIS
-// This file (server-production.js) is used exclusively for production deployment
-console.log('📁 PRODUCTION SERVER: Enhanced static file serving from deployment directory');
+// === STATIC FILE SERVING ===
+// Check if running in development mode with Vite
+const isDevelopmentWithVite = process.env.NODE_ENV !== 'production' && 
+                              process.argv.includes('--dev-mode');
 
-// Primary static file serving with enhanced error handling and logging
-app.use(express.static('.', {
-  index: 'index.html',
-  maxAge: '1h', // Cache static assets for 1 hour
-  etag: true,   // Enable ETags for better caching
-  setHeaders: (res, path, stat) => {
-    // Set proper MIME types for JavaScript modules
-    if (path.endsWith('.js') || path.endsWith('.mjs')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache
-      console.log(`📜 Serving JS file: ${path} (${stat.size} bytes)`);
-    } else if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache
-      console.log(`🎨 Serving CSS file: ${path} (${stat.size} bytes)`);
-    } else if (path.endsWith('.html')) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache'); // Don't cache HTML
-      console.log(`📄 Serving HTML file: ${path}`);
-    } else if (path.match(/\.(png|jpg|jpeg|gif|ico|svg)$/)) {
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours for images
-      console.log(`🖼️ Serving image: ${path}`);
+if (isDevelopmentWithVite) {
+  // In development mode with Vite, static files are served by Vite dev server (port 5175)
+  // This backend server only handles API endpoints
+  console.log('🔧 Development mode detected: Static files served by Vite on port 5175');
+} else {
+  // In production mode, serve static files from current directory (where dist contents are deployed)
+  app.use(express.static('.', {
+    index: 'index.html',
+    setHeaders: (res, path) => {
+      // Set proper MIME types for JavaScript modules
+      if (path.endsWith('.js') || path.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
     }
-  }
-}));
-
-// Additional specific route for assets directory (backup for IIS failures)
-app.use('/assets', express.static('assets', {
-  maxAge: '1h',
-  etag: true,
-  setHeaders: (res, path, stat) => {
-    console.log(`🔧 Node.js fallback serving asset: ${path} (${stat.size} bytes)`);
-    if (path.endsWith('.js') || path.endsWith('.mjs')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    } else if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    }
-  }
-}));
-
-// Log all static file requests for debugging
-app.use((req, res, next) => {
-  if (req.url.startsWith('/assets/') || req.url.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$/)) {
-    console.log(`📁 Static file request: ${req.method} ${req.url}`);
-  }
-  next();
-});
+  }));
+  console.log('📁 Production mode: Serving static files from current directory');
+}
 
 // === API ROUTES ===
 
@@ -1362,7 +1332,8 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     r.UPDATE_DATE,
                     r.CREATE_USER_ID,
                     r.UPDATE_USER_ID,
-                        r.ABBREVIATION,
+                    r.TRACKINGID,
+                    r.ABBREVIATION,
                     r.COMPANY_ID,
                     r.FORM_ID,
                     requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
@@ -1406,7 +1377,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             UPDATE_DATE: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
             CREATE_USER_ID: req.CREATE_USER_ID,
             UPDATE_USER_ID: req.UPDATE_USER_ID,
-            REQUEST_ID: req.REQUEST_ID,
+            TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
             EXTERNAL_USER: req.EXTERNAL_USER,
             
             requestor: req.REQUESTOR_FIRST_NAME ? {
@@ -10518,20 +10489,27 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// Handle all non-API and non-static routes for React Router (must be last!)
-// Only catch routes that don't start with /assets/, /api/, or /logout
-app.get(/^(?!\/assets\/|\/api\/|\/logout).*/, (req, res) => {
-    console.log(`🔄 SPA fallback serving index.html for route: ${req.path}`);
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-console.log('🔧 PRODUCTION: SPA fallback route enabled with asset exclusions');
+// Handle all non-API routes for React Router (must be last!)
+if (!isDevelopmentWithVite) {
+  // Only add SPA fallback route in production mode
+  app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'index.html'));
+  });
+  console.log('🔧 Production mode: SPA fallback route enabled');
+} else {
+  console.log('🔧 Development mode: SPA routing handled by Vite dev server');
+}
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`📁 PRODUCTION MODE: Serving static files from deployment directory`);
+    if (isDevelopmentWithVite) {
+        console.log(`🔧 Development mode: API server only (frontend on port 5175)`);
+    } else {
+        console.log(`📁 Production mode: Serving static files from ${path.join(__dirname, 'dist')}`);
+    }
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
-    console.log('🎉 PRODUCTION SERVER startup complete!');
+    console.log('🎉 Server startup complete!');
 });
 
 // Graceful shutdown

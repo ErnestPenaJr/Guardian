@@ -1332,7 +1332,8 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     r.UPDATE_DATE,
                     r.CREATE_USER_ID,
                     r.UPDATE_USER_ID,
-                        r.ABBREVIATION,
+                    r.TRACKINGID,
+                    r.ABBREVIATION,
                     r.COMPANY_ID,
                     r.FORM_ID,
                     requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
@@ -1376,7 +1377,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             UPDATE_DATE: req.UPDATE_DATE ? new Date(req.UPDATE_DATE).toISOString() : null,
             CREATE_USER_ID: req.CREATE_USER_ID,
             UPDATE_USER_ID: req.UPDATE_USER_ID,
-            REQUEST_ID: req.REQUEST_ID,
+            TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
             EXTERNAL_USER: req.EXTERNAL_USER,
             
             requestor: req.REQUESTOR_FIRST_NAME ? {
