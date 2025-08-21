@@ -72,6 +72,8 @@ steps:
     echo "Copying production server file (CommonJS) to fix ES module error"
     cp server-production.cjs deployment/server.js
     echo "Production server file (CommonJS) copied to deployment as server.js"
+    echo "Verifying server content - first 10 lines:"
+    head -10 deployment/server.js
     echo "Server file type:"
     head -1 deployment/server.js
     echo "Verifying API routes are included:"
