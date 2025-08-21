@@ -292,9 +292,27 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// In development mode, static files are served by Vite dev server (port 5175)
-// This backend server (port 3001) only handles API endpoints
-console.log('🔧 Development mode: Static files served by Vite on port 5175');
+// Check if running in development mode with Vite
+const isDevelopmentWithVite = process.env.NODE_ENV !== 'production' && 
+                              process.argv.includes('--dev-mode');
+
+if (isDevelopmentWithVite) {
+  // In development mode with Vite, static files are served by Vite dev server (port 5175)
+  // This backend server only handles API endpoints
+  console.log('🔧 Development mode detected: Static files served by Vite on port 5175');
+} else {
+  // In production mode, serve static files from current directory (where dist contents are deployed)
+  app.use(express.static('.', {
+    index: 'index.html',
+    setHeaders: (res, path) => {
+      // Set proper MIME types for JavaScript modules
+      if (path.endsWith('.js') || path.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+    }
+  }));
+  console.log('📁 Production mode: Serving static files from current directory');
+}
 
 // === API ROUTES ===
 
