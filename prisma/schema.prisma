@@ -32,7 +32,7 @@ model WORK_PROGRESS {
   REQUEST_ID              Int
   USER_ID                 Int
   COMPANY_ID              Int
-  PROGRESS_TYPE           String   @default("note") @db.VarChar(50)
+  PROGRESS_TYPE           String   @default("note") @db.VarChar(50)  // note, milestone, status, task, document, form, system
   TITLE                   String   @db.VarChar(255)
   DESCRIPTION             String?  @db.VarChar(2000)
   HOURS_WORKED            Decimal? @db.Decimal(5,2)
@@ -40,6 +40,11 @@ model WORK_PROGRESS {
   RELATED_ATTACHMENT_ID   Int?
   IS_MILESTONE            Boolean  @default(false)
   IS_VISIBLE_TO_REQUESTOR Boolean  @default(true)
+  IS_SYSTEM_GENERATED     Boolean  @default(false)
+  RELATED_TASK_ID         Int?     // Link to TASKS table if task-related
+  STATUS_FROM             String?  @db.VarChar(50)   // Previous status for status changes
+  STATUS_TO               String?  @db.VarChar(50)   // New status for status changes  
+  EVENT_DATA              String?  @db.VarChar(4000) // JSON data for additional context
   CREATE_DATE             DateTime @default(now()) @db.DateTime
   UPDATE_DATE             DateTime @default(now()) @db.DateTime
   CREATE_USER_ID          Int?
@@ -50,6 +55,10 @@ model WORK_PROGRESS {
   USER                    USERS        @relation("WorkProgressUser", fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_WORK_PROGRESS_USER")
   RELATED_ATTACHMENT      ATTACHMENTS? @relation(fields: [RELATED_ATTACHMENT_ID], references: [ATTACHMENT_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_WORK_PROGRESS_ATTACHMENT")
 
+  @@index([REQUEST_ID, COMPANY_ID])
+  @@index([PROGRESS_TYPE])
+  @@index([IS_MILESTONE])
+  @@index([CREATE_DATE])
   @@schema("GUARDIAN")
 }
 
@@ -281,6 +290,7 @@ model MILESTONES {
 
   @@schema("GUARDIAN")
 }
+
 
 model ORGANIZATIONS {
   ORGANIZATION_ID Int            @id(map: "PK_ORGANIZATIONS") @default(autoincrement())

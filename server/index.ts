@@ -26,6 +26,10 @@ import groupsRoutes from './routes/forms-groups.js';
 import usersRoutes from './routes/users.js';
 import rolesRoutes from './routes/roles.js';
 import invitesRoutes from './routes/invites.js';
+import milestonesRoutes from './routes/milestones.js';
+
+// Import type definitions to fix req.user type issues
+import './types/express.js';
 
 // --- Type Inference for Role, User, UserRole, Invite ---
 type Role = { ROLE_ID: number; NAME?: string; DISPLAY_NAME?: string; DESCRIPTION?: string };
@@ -171,6 +175,8 @@ console.log('[ROUTES] ✓ Users routes registered at /api/users');
 app.use('/api/roles', rolesRoutes); // Roles routes
 app.use('/api/invites', invitesRoutes); // Invites routes
 app.use('/api/field-lookups', fieldLookupsRoutes);
+app.use('/api', milestonesRoutes); // Milestone routes (includes /api/requests/:requestId/milestones and /api/milestones)
+console.log('[ROUTES] ✓ Milestone routes registered at /api');
 console.log('[ROUTES] ✓ All API routes registered successfully');
 
 // Serve static files from the frontend dist directory (after API routes)

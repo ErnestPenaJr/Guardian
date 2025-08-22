@@ -3,7 +3,7 @@
 Node version: v24.3.0
 Environment: development
 Port: 3001
-Process PID: 49380
+Process PID: 98161
 Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
@@ -17,502 +17,18 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 🧪 Simple test: /api/simple-test
 🎉 Server startup complete!
 ✅ Database connected successfully
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 480ms)
-📤 Sending 3 formatted requests to frontend
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ Authentication successful for user 1111 in company 26
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching forms from database for company: 26
-🔍 Company ID type: number
-✅ User has 10 unread notifications
-✅ Found 0 notices for user
-✅ Found 2 forms for company 26
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 Form 1 raw data: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 Form 2 raw data: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-🔍 Form 1 formatted: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-🔍 Form 2 formatted: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-📤 Sending 2 formatted forms to frontend
-✅ Retrieved 1 assigned requests in 85ms
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📊 Fetching notice statistics for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Retrieved 1 assigned requests in 60ms
-✅ Retrieved 1 assigned requests in 58ms
-✅ Found 3 requests in database (query took 471ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-✅ Found 3 requests in database (query took 320ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 63ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
- [DEBUG] Fetching users for company ID: 26
- [DEBUG] Request user info: {
-  userId: 1111,
-  companyId: 26,
-  userRoleIds: [ 6, 6 ],
-}
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
- [DEBUG] Total users in database: 20
- [DEBUG] All users by company: [
-  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
-  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
-  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
-  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
-  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
-  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
-  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
-  "Sean  (Company: 34, Status: A)"
-]
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-✅ Found 0 attachments for request 153
-✅ Found 7 tasks for request 153
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
- [DEBUG] Found 7 users for company 26
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-✅ Found 7 tasks for request 153
-✅ Found 0 attachments for request 153
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: PUT /api/requests/153/description
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📝 Updating results description for request 153 (Company: 26)
-🔍 Debug values: {
-  requestId: 153,
-  description: "xcvxcvxcv...",
-  companyId: 26,
-  userId: 1111,
-  companyIdType: "number",
-  userIdType: "number",
-}
-🔍 Checking if request 153 exists in company 26
-🔍 Request exists check result: [
-  {
-    REQUEST_ID: 153,
-  }
-]
-🔍 Updating RESULTS_DESCRIPTION with values: {
-  requestId: 153,
-  description: "xcvxcvxcv",
-  userId: 1111,
-  companyId: 26,
-}
-🔍 Update result: 2
-✅ Results description updated successfully for request 153
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 64ms
-✅ Found 3 requests in database (query took 67ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 63ms)
-📤 Sending 3 formatted requests to frontend
-✅ Retrieved 1 assigned requests in 65ms
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
- [DEBUG] Fetching users for company ID: 26
- [DEBUG] Request user info: {
-  userId: 1111,
-  companyId: 26,
-  userRoleIds: [ 6, 6 ],
-}
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-✅ Found 7 tasks for request 153
- [DEBUG] Total users in database: 20
- [DEBUG] All users by company: [
-  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
-  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
-  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
-  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
-  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
-  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
-  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
-  "Sean  (Company: 34, Status: A)"
-]
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Found 0 attachments for request 153
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
- [DEBUG] Found 7 users for company 26
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-✅ Found 7 tasks for request 153
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-✅ Found 0 attachments for request 153
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
 🔐 Login attempt for: ernest@shieldlytics.com
 ✅ Login successful for: ernest@shieldlytics.com (User ID: 1111, Company: 26)
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
 🔍 [AUTH] Processing request for: GET /api/requests
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
 🔍 [AUTH] Processing request for: GET /api/notifications/count
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 [AUTH] Processing request for: GET /api/roles/all
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
 🔍 [AUTH] Processing request for: GET /api/notices/my
@@ -521,1666 +37,16 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 🔍 [AUTH] Processing request for: GET /api/forms
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 57ms)
-📤 Sending 3 formatted requests to frontend
-✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
 ✅ Authentication successful for user 1111 in company 26
 📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ Found 0 notices for user
-✅ Retrieved 1 assigned requests in 51ms
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching forms from database for company: 26
-🔍 Company ID type: number
-✅ User has 10 unread notifications
-✅ Authentication successful for user 1111 in company 26
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📊 Fetching notice statistics for user 1111 (Company: 26)
-✅ Found 2 forms for company 26
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 Form 1 raw data: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 Form 2 raw data: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-🔍 Form 1 formatted: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-🔍 Form 2 formatted: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-📤 Sending 2 formatted forms to frontend
-✅ Retrieved 1 assigned requests in 52ms
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Found 3 requests in database (query took 52ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Retrieved 1 assigned requests in 69ms
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 52ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 51ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-✅ Authentication successful for user 1111 in company 26
- [DEBUG] Fetching users for company ID: 26
- [DEBUG] Request user info: {
-  userId: 1111,
-  companyId: 26,
-  userRoleIds: [ 6, 6 ],
-}
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
- [DEBUG] Total users in database: 20
- [DEBUG] All users by company: [
-  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
-  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
-  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
-  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
-  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
-  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
-  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
-  "Sean  (Company: 34, Status: A)"
-]
-✅ Found 0 attachments for request 153
-✅ Found 7 tasks for request 153
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
- [DEBUG] Found 7 users for company 26
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-✅ Found 7 tasks for request 153
-✅ Found 0 attachments for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Retrieved 1 assigned requests in 52ms
-✅ Found 3 requests in database (query took 65ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-✅ Authentication successful for user 1111 in company 26
- [DEBUG] Fetching users for company ID: 26
- [DEBUG] Request user info: {
-  userId: 1111,
-  companyId: 26,
-  userRoleIds: [ 6, 6 ],
-}
-✅ Found 7 tasks for request 153
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 0 attachments for request 153
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
- [DEBUG] Total users in database: 20
- [DEBUG] All users by company: [
-  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
-  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
-  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
-  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
-  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
-  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
-  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
-  "Sean  (Company: 34, Status: A)"
-]
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
- [DEBUG] Found 7 users for company 26
-✅ Found 7 tasks for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-✅ Found 0 attachments for request 153
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
- [DEBUG] Fetching users for company ID: 26
- [DEBUG] Request user info: {
-  userId: 1111,
-  companyId: 26,
-  userRoleIds: [ 6, 6 ],
-}
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
- [DEBUG] Total users in database: 20
- [DEBUG] All users by company: [
-  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
-  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
-  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
-  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
-  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
-  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
-  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
-  "Sean  (Company: 34, Status: A)"
-]
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
- [DEBUG] Found 7 users for company 26
-✅ Found 0 attachments for request 153
-✅ Found 7 tasks for request 153
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: PUT /api/requests/153/description
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📝 Updating results description for request 153 (Company: 26)
-🔍 Debug values: {
-  requestId: 153,
-  description: "sdfsdf...",
-  companyId: 26,
-  userId: 1111,
-  companyIdType: "number",
-  userIdType: "number",
-}
-🔍 Checking if request 153 exists in company 26
-🔍 Request exists check result: [
-  {
-    REQUEST_ID: 153,
-  }
-]
-🔍 Updating RESULTS_DESCRIPTION with values: {
-  requestId: 153,
-  description: "sdfsdf",
-  userId: 1111,
-  companyId: 26,
-}
-🔍 Update result: 2
-✅ Results description updated successfully for request 153
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Found 3 requests in database (query took 68ms)
-📤 Sending 3 formatted requests to frontend
-✅ Retrieved 1 assigned requests in 64ms
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 60ms)
-📤 Sending 3 formatted requests to frontend
-✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching forms from database for company: 26
-🔍 Company ID type: number
-✅ Found 0 notices for user
 ✅ Retrieved 1 assigned requests in 55ms
 ✅ Authentication successful for user 1111 in company 26
 🎭 Fetching all roles for role switcher...
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Found 2 forms for company 26
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 Form 1 raw data: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 Form 2 raw data: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-🔍 Form 1 formatted: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-🔍 Form 2 formatted: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-📤 Sending 2 formatted forms to frontend
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📊 Fetching notice statistics for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Retrieved 1 assigned requests in 59ms
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
 ✅ Authentication successful for user 1111 in company 26
 📋 Fetching forms from database for company: 26
 🔍 Company ID type: number
 ✅ Authentication successful for user 1111 in company 26
-🎭 Fetching all roles for role switcher...
-✅ Found 0 notices for user
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ User has 10 unread notifications
-✅ Retrieved 1 assigned requests in 59ms
-✅ Found 2 forms for company 26
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 Form 1 raw data: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 Form 2 raw data: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-🔍 Form 1 formatted: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-🔍 Form 2 formatted: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-📤 Sending 2 formatted forms to frontend
-✅ Found 3 requests in database (query took 58ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📊 Fetching notice statistics for user 1111 (Company: 26)
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 60ms
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-prisma:error 
-Invalid `prisma.$queryRaw()` invocation:
-
-
-Raw query failed. Code: `N/A`. Message: `Error in the underlying connector`
-❌ Authentication error details: {
-  message: "\nInvalid `prisma.$queryRaw()` invocation:\n\n\nRaw query failed. Code: `N/A`. Message: `Error in the underlying connector`",
-  name: "PrismaClientKnownRequestError",
-  stack: "PrismaClientKnownRequestError: ",
-}
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-📧 Error email request received: {
-  error: "Unknown error",
-  url: undefined,
-  userId: undefined,
-  companyId: undefined,
-  timestamp: undefined,
-}
-🚨 Application Error Captured: {
-  message: "Unknown error",
-  stack: undefined,
-  url: undefined,
-  userAgent: undefined,
-  userId: undefined,
-  companyId: undefined,
-  timestamp: "2025-08-21T20:21:21.305Z",
-}
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-prisma:error 
-Invalid `prisma.$queryRaw()` invocation:
-
-
-Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
-❌ Authentication error details: {
-  message: "\nInvalid `prisma.$queryRaw()` invocation:\n\n\nTimed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)",
-  name: "PrismaClientKnownRequestError",
-  stack: "PrismaClientKnownRequestError: ",
-}
-📧 Error email request received: {
-  error: "Unknown error",
-  url: undefined,
-  userId: undefined,
-  companyId: undefined,
-  timestamp: undefined,
-}
-🚨 Application Error Captured: {
-  message: "Unknown error",
-  stack: undefined,
-  url: undefined,
-  userAgent: undefined,
-  userId: undefined,
-  companyId: undefined,
-  timestamp: "2025-08-21T20:27:50.134Z",
-}
-🔐 Login attempt for: ernest@shieldlytics.com
-✅ Login successful for: ernest@shieldlytics.com (User ID: 1111, Company: 26)
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching forms from database for company: 26
-🔍 Company ID type: number
-✅ Authentication successful for user 1111 in company 26
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1111 in company 26
 📋 Fetching requests for company ID: 26
-✅ Retrieved 1 assigned requests in 52ms
-✅ Found 0 notices for user
-✅ Found 2 forms for company 26
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 Form 1 raw data: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 Form 2 raw data: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  ORGANIZATION_ID: null,
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-  COMPANY_ID_VALUE: 26,
-}
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-🔍 Form 1 formatted: {
-  FORM_ID: 1028,
-  FORM_NAME: "asdasd",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-🔍 Form 2 formatted: {
-  FORM_ID: 1029,
-  FORM_NAME: "Buy Coffee",
-  COMPANY_ID: 26,
-  COMPANY_ID_TYPE: "number",
-  COMPANY_ID_IS_NULL: false,
-  COMPANY_ID_IS_UNDEFINED: false,
-}
-📤 Sending 2 formatted forms to frontend
-✅ Found 3 requests in database (query took 49ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Authentication successful for user 1111 in company 26
-📊 Fetching notice statistics for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 45ms
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Found 3 requests in database (query took 47ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Retrieved 1 assigned requests in 49ms
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 46ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Found 3 requests in database (query took 46ms)
-📤 Sending 3 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
- [DEBUG] Fetching users for company ID: 26
- [DEBUG] Request user info: {
-  userId: 1111,
-  companyId: 26,
-  userRoleIds: [ 6, 6 ],
-}
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
- [DEBUG] Total users in database: 20
- [DEBUG] All users by company: [
-  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
-  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
-  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
-  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
-  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
-  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
-  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
-  "Sean  (Company: 34, Status: A)"
-]
-✅ Found 7 tasks for request 153
-✅ Found 0 attachments for request 153
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
- [DEBUG] Found 7 users for company 26
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-📎 Fetching attachments for request 153 (Company: 26)
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-✅ Found 0 attachments for request 153
-✅ Found 7 tasks for request 153
-🔍 [AUTH] Processing request for: GET /api/requests/153/form
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching form for request 153 (Company: 26)
-🔍 Querying for request 153 in company 26
-🔍 Found 1 requests matching criteria
-✅ Found request with FORM_ID: 1029
-🔍 Querying for form 1029 (company-specific or global)
-🔍 Found 1 forms matching criteria
-🔍 Querying fields for form 1029 using junction table
-✅ Found 7 form-specific fields for form 1029
-🔍 Checking for existing form instance for request 153
-🔍 Fetching form instance for request 153
-📋 Found existing form instance: 1085
-📊 Found 7 existing field values
-📈 Form status: in_progress (0/0 required fields filled)
-✅ Found request 153 with form 1029 containing 7 fields
-📤 Sending form data for request 153 to frontend
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: PUT /api/tasks/1015
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📦 [TASK UPDATE] Raw body: {"status":"In Progress"}
-🧪 [TASK UPDATE] Incoming: {
-  taskId: 1015,
-  descriptionType: "undefined",
-  statusType: "string",
-  assignedUserIdRaw: undefined,
-  assignedIdParsed: undefined,
-  statusParsed: NaN,
-}
-✏️ Updating task 1015 (Company: 26)
-⚠️ [TASK UPDATE] Ignoring non-numeric status: In Progress
-✅ Task 1015 updated successfully
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Found 7 tasks for request 153
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: PUT /api/tasks/1015
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📦 [TASK UPDATE] Raw body: {"status":"In Progress"}
-🧪 [TASK UPDATE] Incoming: {
-  taskId: 1015,
-  descriptionType: "undefined",
-  statusType: "string",
-  assignedUserIdRaw: undefined,
-  assignedIdParsed: undefined,
-  statusParsed: NaN,
-}
-✏️ Updating task 1015 (Company: 26)
-⚠️ [TASK UPDATE] Ignoring non-numeric status: In Progress
-✅ Task 1015 updated successfully
-🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching tasks for request 153 (Company: 26)
-✅ Found 7 tasks for request 153
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching forms from database for company: 26
-🔍 Company ID type: number
-✅ Authentication successful for user 1111 in company 26
-📋 Fetching requests for company ID: 26
-✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
 ✅ Authentication successful for user 1111 in company 26
 🔢 Getting notification count for user 1111
 ✅ Found 2 forms for company 26
@@ -2225,190 +91,263 @@ Timed out fetching a new connection from the connection pool. More info: http://
 📤 Sending 2 formatted forms to frontend
 ✅ Found 3 requests in database (query took 52ms)
 📤 Sending 3 formatted requests to frontend
-✅ Retrieved 1 assigned requests in 90ms
-✅ User has 10 unread notifications
-✅ Found 0 notices for user
 🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📢 Fetching my notices for user 1111 (Company: 26)
+✅ User has 0 unread notifications
 ✅ Found 5 roles for role switcher
 📤 Sending 5 roles for role switcher
 ✅ Authentication successful for user 1111 in company 26
 📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Found 0 notices for user
+🔍 [AUTH] Processing request for: GET /api/notices/stats
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Retrieved 1 assigned requests in 52ms
 ✅ Authentication successful for user 1111 in company 26
 📊 Fetching notice statistics for user 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 50ms
 ✅ Notice stats: {
   totalNotices: 0,
   unreadNotices: 0,
   issuedByMe: 0,
   activeNotices: 0,
 }
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ User has 10 unread notifications
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
 🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
-🔍 [AUTH] Processing request for: GET /api/notices/my
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
 🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
 ✅ Authentication successful for user 1111 in company 26
-📢 Fetching my notices for user 1111 (Company: 26)
-✅ Authentication successful for user 1111 in company 26
-🔢 Getting notification count for user 1111
-✅ Authentication successful for user 1111 in company 26
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1111 in company 26
 📋 Fetching requests for company ID: 26
 ✅ Authentication successful for user 1111 in company 26
 📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Retrieved 1 assigned requests in 52ms
+✅ Found 3 requests in database (query took 65ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Found 3 requests in database (query took 59ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Found 3 requests in database (query took 61ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/153/form
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📎 Fetching attachments for request 153 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching form for request 153 (Company: 26)
+🔍 Querying for request 153 in company 26
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching tasks for request 153 (Company: 26)
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1029
+🔍 Querying for form 1029 (company-specific or global)
+✅ Authentication successful for user 1111 in company 26
+ [DEBUG] Fetching users for company ID: 26
+ [DEBUG] Request user info: {
+  userId: 1111,
+  companyId: 26,
+  userRoleIds: [ 6, 6 ],
+}
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1029 using junction table
+✅ Found 0 attachments for request 153
+🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+ [DEBUG] Total users in database: 20
+ [DEBUG] All users by company: [
+  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
+  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
+  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
+  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
+  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
+  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
+  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
+  "Sean  (Company: 34, Status: A)"
+]
+✅ Found 7 tasks for request 153
+🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Found 7 form-specific fields for form 1029
+🔍 Checking for existing form instance for request 153
+✅ Authentication successful for user 1111 in company 26
+📎 Fetching attachments for request 153 (Company: 26)
+ [DEBUG] Found 7 users for company 26
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching tasks for request 153 (Company: 26)
+🔍 Fetching form instance for request 153
+📋 Found existing form instance: 1085
+✅ Found 0 attachments for request 153
+📊 Found 7 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 153 with form 1029 containing 7 fields
+📤 Sending form data for request 153 to frontend
+🔍 [AUTH] Processing request for: GET /api/requests/153/form
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Found 7 tasks for request 153
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching form for request 153 (Company: 26)
+🔍 Querying for request 153 in company 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1029
+🔍 Querying for form 1029 (company-specific or global)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1029 using junction table
+✅ Found 7 form-specific fields for form 1029
+🔍 Checking for existing form instance for request 153
+🔍 Fetching form instance for request 153
+📋 Found existing form instance: 1085
+📊 Found 7 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 153 with form 1029 containing 7 fields
+📤 Sending form data for request 153 to frontend
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Found 3 requests in database (query took 53ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Retrieved 1 assigned requests in 66ms
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Found 3 requests in database (query took 55ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Found 3 requests in database (query took 52ms)
+📤 Sending 3 formatted requests to frontend
+✅ Retrieved 1 assigned requests in 69ms
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/roles/all
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/notices/my
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/forms
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Authentication successful for user 1111 in company 26
+📢 Fetching my notices for user 1111 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+🎭 Fetching all roles for role switcher...
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Found 0 notices for user
 ✅ Authentication successful for user 1111 in company 26
 📋 Fetching forms from database for company: 26
 🔍 Company ID type: number
-✅ Found 0 notices for user
+✅ Found 3 requests in database (query took 68ms)
+📤 Sending 3 formatted requests to frontend
 🔍 [AUTH] Processing request for: GET /api/notices/stats
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
-✅ User has 10 unread notifications
+✅ Retrieved 1 assigned requests in 53ms
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
 ✅ Found 2 forms for company 26
 🔍 ===== RAW DATABASE FORMS DATA =====
 🔍 Form 1 raw data: {
@@ -2449,51 +388,133 @@ Timed out fetching a new connection from the connection pool. More info: http://
   COMPANY_ID_IS_UNDEFINED: false,
 }
 📤 Sending 2 formatted forms to frontend
-✅ Found 3 requests in database (query took 77ms)
-📤 Sending 3 formatted requests to frontend
-✅ Retrieved 1 assigned requests in 78ms
 ✅ Authentication successful for user 1111 in company 26
 📊 Fetching notice statistics for user 1111 (Company: 26)
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1111
 ✅ Found 5 roles for role switcher
 📤 Sending 5 roles for role switcher
 ✅ Authentication successful for user 1111 in company 26
 📋 Fetching assigned requests for user ID: 1111 (Company: 26)
-✅ Retrieved 1 assigned requests in 68ms
+✅ Retrieved 1 assigned requests in 55ms
 ✅ Notice stats: {
   totalNotices: 0,
   unreadNotices: 0,
   issuedByMe: 0,
   activeNotices: 0,
 }
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching assigned requests for user ID: 1111 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Retrieved 1 assigned requests in 54ms
+✅ Found 3 requests in database (query took 68ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Found 3 requests in database (query took 92ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching requests for company ID: 26
+✅ Found 3 requests in database (query took 68ms)
+📤 Sending 3 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests/153/form
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching tasks for request 153 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📎 Fetching attachments for request 153 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching form for request 153 (Company: 26)
+🔍 Querying for request 153 in company 26
+✅ Authentication successful for user 1111 in company 26
+ [DEBUG] Fetching users for company ID: 26
+ [DEBUG] Request user info: {
+  userId: 1111,
+  companyId: 26,
+  userRoleIds: [ 6, 6 ],
+}
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1029
+🔍 Querying for form 1029 (company-specific or global)
+✅ Found 7 tasks for request 153
+✅ Found 0 attachments for request 153
+ [DEBUG] Total users in database: 20
+ [DEBUG] All users by company: [
+  "Andrea  (Company: 26, Status: A)", "RD3  (Company: 26, Status: A)", "Sean Campion (Company: 26, Status: A)",
+  "D Chizzle (Company: 26, Status: A)", "C Money (Company: 26, Status: A)", "Ernest Pena Jr (Company: 26, Status: A)",
+  "Joel Upright (Company: 26, Status: A)", "Ernest Pena Jr (Company: 28, Status: A)",
+  "Joel Upright (Company: 29, Status: A)", "dfflkfkjdsahfkjdshfkj  (Company: 30, Status: P)",
+  "flkfkjdsahfkjdshfkj  (Company: 30, Status: P)", "RD  (Company: 30, Status: A)", "RDV  (Company: 30, Status: A)",
+  "RDV  (Company: 30, Status: A)", "smcampion  (Company: 30, Status: P)", "RD D (Company: 30, Status: A)",
+  "Andrea Test (Company: 30, Status: A)", "N  (Company: 31, Status: P)", "Test User (Company: 33, Status: A)",
+  "Sean  (Company: 34, Status: A)"
+]
+🔍 [AUTH] Processing request for: GET /api/requests/153/attachments
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 [AUTH] Processing request for: GET /api/requests/153/tasks
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1029 using junction table
+✅ Authentication successful for user 1111 in company 26
+📎 Fetching attachments for request 153 (Company: 26)
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching tasks for request 153 (Company: 26)
+ [DEBUG] Found 7 users for company 26
+✅ Found 7 form-specific fields for form 1029
+🔍 Checking for existing form instance for request 153
+🔍 Fetching form instance for request 153
+📋 Found existing form instance: 1085
+✅ Found 0 attachments for request 153
+✅ Found 7 tasks for request 153
+📊 Found 7 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 153 with form 1029 containing 7 fields
+📤 Sending form data for request 153 to frontend
+🔍 [AUTH] Processing request for: GET /api/requests/153/form
+🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1111
+✅ Authentication successful for user 1111 in company 26
+📋 Fetching form for request 153 (Company: 26)
+🔍 Querying for request 153 in company 26
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1029
+🔍 Querying for form 1029 (company-specific or global)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1029 using junction table
+✅ Found 7 form-specific fields for form 1029
+🔍 Checking for existing form instance for request 153
+🔍 Fetching form instance for request 153
+📋 Found existing form instance: 1085
+📊 Found 7 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 153 with form 1029 containing 7 fields
+📤 Sending form data for request 153 to frontend
 🔍 [AUTH] Processing request for: GET /api/notifications/count
 🔍 Attempting to verify JWT token (length: 340, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1111
-prisma:error 
-Invalid `prisma.$queryRaw()` invocation:
-
-
-Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)
-❌ Authentication error details: {
-  message: "\nInvalid `prisma.$queryRaw()` invocation:\n\n\nTimed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 17)",
-  name: "PrismaClientKnownRequestError",
-  stack: "PrismaClientKnownRequestError: ",
-}
-📧 Error email request received: {
-  error: "Unknown error",
-  url: undefined,
-  userId: undefined,
-  companyId: undefined,
-  timestamp: undefined,
-}
-🚨 Application Error Captured: {
-  message: "Unknown error",
-  stack: undefined,
-  url: undefined,
-  userAgent: undefined,
-  userId: undefined,
-  companyId: undefined,
-  timestamp: "2025-08-21T22:32:41.421Z",
-}
+✅ Authentication successful for user 1111 in company 26
+🔢 Getting notification count for user 1111
+✅ User has 0 unread notifications

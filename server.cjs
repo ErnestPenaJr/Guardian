@@ -1027,6 +1027,14 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res
                 AND ASSIGNED_ID = ${req.userId}
         `;
 
+        // Create milestone for request start
+        try {
+            await createStatusChangeMilestone(requestId, 'P', 'A', req.userId, req.companyId);
+            console.log(`🏁 Request start milestone created for request ${requestId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create request start milestone (continuing):', milestoneError);
+        }
+
         console.log(`✅ Request ${requestId} started successfully`);
         res.json({ success: true, message: 'Request started successfully' });
     } catch (error) {
@@ -1058,6 +1066,14 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         if (completionNotes) {
             console.log(`📝 Adding completion notes for request ${requestId}`);
             // You might want to add a progress entry or notes table for this
+        }
+
+        // Create milestone for request completion
+        try {
+            await createStatusChangeMilestone(requestId, 'A', 'C', req.userId, req.companyId);
+            console.log(`🏁 Request completion milestone created for request ${requestId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create request completion milestone (continuing):', milestoneError);
         }
 
         console.log(`✅ Request ${requestId} completed successfully`);
@@ -1261,6 +1277,27 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             }
         }
 
+        // Create milestone for request creation
+        try {
+            await createSystemMilestone(
+                insertedId,
+                'system',
+                'Request Created',
+                `Request "${finalRequestName}" was submitted`,
+                req.userId,
+                req.companyId,
+                JSON.stringify({
+                    requestType: templateType || 'standard',
+                    hasFormData: !!formFieldValues,
+                    fieldCount: formFieldValues ? Object.keys(formFieldValues).length : 0,
+                    assigned: !!finalAssignedId
+                })
+            );
+            console.log(`🏁 Request creation milestone created for request ${insertedId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create request creation milestone (continuing):', milestoneError);
+        }
+
         // Return the created request
         res.status(201).json({
             success: true,
@@ -1318,6 +1355,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     r.ABBREVIATION,
                     r.COMPANY_ID,
                     r.FORM_ID,
+                    r.RESULTS_DESCRIPTION,
                     requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
                     requestor.LAST_NAME as REQUESTOR_LAST_NAME,
                     requestor.EMAIL as REQUESTOR_EMAIL,
@@ -1361,6 +1399,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             UPDATE_USER_ID: req.UPDATE_USER_ID,
             TRACKINGID: req.TRACKINGID || `REQ-${req.REQUEST_ID}`,
             EXTERNAL_USER: req.EXTERNAL_USER,
+            RESULTS_DESCRIPTION: req.RESULTS_DESCRIPTION,
             
             requestor: req.REQUESTOR_FIRST_NAME ? {
                 FIRST_NAME: req.REQUESTOR_FIRST_NAME,
@@ -2531,6 +2570,33 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
                     `;
                     console.log(`🔔 Notification created for user ${assignedUserId} about request assignment`);
                     
+                    // Create milestone for request assignment
+                    try {
+                        const assignedUserDetails = await prisma.$queryRaw`
+                            SELECT FIRST_NAME, LAST_NAME FROM GUARDIAN.USERS WHERE USER_ID = ${assignedUserId}
+                        `;
+                        const assignedUserName = assignedUserDetails.length > 0 
+                            ? `${assignedUserDetails[0].FIRST_NAME} ${assignedUserDetails[0].LAST_NAME}` 
+                            : `User ${assignedUserId}`;
+                        
+                        await createSystemMilestone(
+                            requestId,
+                            'system',
+                            'Request Assigned',
+                            `Request assigned to ${assignedUserName}`,
+                            req.userId,
+                            req.companyId,
+                            JSON.stringify({
+                                assignedUserId,
+                                assignedUserName,
+                                assignedBy: req.userId
+                            })
+                        );
+                        console.log(`🏁 Request assignment milestone created for request ${requestId}`);
+                    } catch (milestoneError) {
+                        console.error('⚠️ Failed to create request assignment milestone (continuing):', milestoneError);
+                    }
+                    
                     // Send email notification
                     try {
                         // Get assigned user's email and name
@@ -2665,6 +2731,26 @@ app.put('/api/requests/:requestId/description', getAuthenticatedUserCompany, asy
             return res.status(404).json({
                 error: 'Request not found or no changes made'
             });
+        }
+
+        // Create milestone for description update
+        try {
+            await createSystemMilestone(
+                requestId,
+                'system',
+                'Results Updated',
+                'Request results description was updated',
+                req.userId,
+                req.companyId,
+                JSON.stringify({
+                    action: 'results_update',
+                    hasDescription: !!description,
+                    descriptionLength: description ? description.length : 0
+                })
+            );
+            console.log(`🏁 Results update milestone created for request ${requestId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create results update milestone (continuing):', milestoneError);
         }
 
         console.log(`✅ Results description updated successfully for request ${requestId}`);
@@ -3318,6 +3404,755 @@ app.get('/api/progress/:progressId/summary', getAuthenticatedUserCompany, async 
     }
 });
 
+// === MILESTONE TRACKING ENDPOINTS ===
+
+// Helper function to create system-generated milestones
+const createSystemMilestone = async (requestId, progressType, title, description, userId, companyId, eventData = null, relatedTaskId = null, statusFrom = null, statusTo = null) => {
+    try {
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.WORK_PROGRESS (
+                REQUEST_ID,
+                USER_ID,
+                COMPANY_ID,
+                PROGRESS_TYPE,
+                TITLE,
+                DESCRIPTION,
+                IS_MILESTONE,
+                IS_VISIBLE_TO_REQUESTOR,
+                IS_SYSTEM_GENERATED,
+                RELATED_TASK_ID,
+                STATUS_FROM,
+                STATUS_TO,
+                EVENT_DATA,
+                CREATE_USER_ID,
+                CREATE_DATE
+            )
+            OUTPUT INSERTED.WORK_PROGRESS_ID
+            VALUES (
+                ${requestId},
+                ${userId},
+                ${companyId},
+                ${progressType},
+                ${title},
+                ${description},
+                1,
+                1,
+                1,
+                ${relatedTaskId},
+                ${statusFrom},
+                ${statusTo},
+                ${eventData},
+                ${userId},
+                GETDATE()
+            )
+        `;
+        
+        console.log(`✅ System milestone created with ID: ${result[0].WORK_PROGRESS_ID}`);
+        return result[0].WORK_PROGRESS_ID;
+    } catch (error) {
+        console.error('❌ Error creating system milestone:', error);
+        throw error;
+    }
+};
+
+// Helper function for status change milestones
+const createStatusChangeMilestone = async (requestId, fromStatus, toStatus, userId, companyId) => {
+    const statusLabels = {
+        'P': 'Pending',
+        'A': 'Active', 
+        'C': 'Completed',
+        'H': 'On Hold',
+        'R': 'Rejected'
+    };
+    
+    const title = `Status Changed: ${statusLabels[fromStatus] || fromStatus} → ${statusLabels[toStatus] || toStatus}`;
+    const description = `Request status automatically changed from "${statusLabels[fromStatus] || fromStatus}" to "${statusLabels[toStatus] || toStatus}"`;
+    
+    return await createSystemMilestone(
+        requestId, 
+        'status', 
+        title, 
+        description, 
+        userId, 
+        companyId, 
+        JSON.stringify({ fromStatus, toStatus }),
+        null,
+        fromStatus,
+        toStatus
+    );
+};
+
+// Helper function for task-related milestones
+const createTaskMilestone = async (requestId, taskId, action, userId, companyId) => {
+    const actionLabels = {
+        'created': 'Task Created',
+        'started': 'Task Started',
+        'completed': 'Task Completed',
+        'cancelled': 'Task Cancelled',
+        'assigned': 'Task Assigned'
+    };
+    
+    const title = actionLabels[action] || `Task ${action}`;
+    const description = `Task activity: ${action}`;
+    
+    return await createSystemMilestone(
+        requestId, 
+        'task', 
+        title, 
+        description, 
+        userId, 
+        companyId,
+        JSON.stringify({ taskId, action }),
+        taskId
+    );
+};
+
+// Helper function for document milestones
+const createDocumentMilestone = async (requestId, filename, action, userId, companyId) => {
+    const title = `Document ${action}: ${filename}`;
+    const description = `Document "${filename}" was ${action}`;
+    
+    return await createSystemMilestone(
+        requestId, 
+        'document', 
+        title, 
+        description, 
+        userId, 
+        companyId,
+        JSON.stringify({ filename, action })
+    );
+};
+
+// 1. GET /api/requests/:requestId/milestones - Get all milestones for a request
+app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        const { 
+            type, 
+            isSystemGenerated, 
+            page = 1, 
+            limit = 50, 
+            sortBy = 'CREATE_DATE', 
+            sortOrder = 'DESC' 
+        } = req.query;
+        
+        console.log(`🏗️ Fetching milestones for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Verify request belongs to user's company
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Build WHERE conditions
+        let whereConditions = `wp.REQUEST_ID = ${requestId} AND wp.COMPANY_ID = ${req.companyId}`;
+        
+        if (type && type !== 'all') {
+            whereConditions += ` AND wp.PROGRESS_TYPE = '${type}'`;
+        }
+        
+        if (isSystemGenerated !== undefined) {
+            const systemGenerated = isSystemGenerated === 'true' ? 1 : 0;
+            whereConditions += ` AND wp.IS_SYSTEM_GENERATED = ${systemGenerated}`;
+        }
+
+        // Calculate pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+
+        // Get milestones with rich user and task data
+        const milestones = await prisma.$queryRaw`
+            SELECT 
+                wp.WORK_PROGRESS_ID,
+                wp.REQUEST_ID,
+                wp.USER_ID,
+                wp.COMPANY_ID,
+                wp.PROGRESS_TYPE,
+                wp.TITLE,
+                wp.DESCRIPTION,
+                wp.HOURS_WORKED,
+                wp.STATUS_UPDATE,
+                wp.RELATED_ATTACHMENT_ID,
+                wp.IS_MILESTONE,
+                wp.IS_VISIBLE_TO_REQUESTOR,
+                wp.IS_SYSTEM_GENERATED,
+                wp.RELATED_TASK_ID,
+                wp.STATUS_FROM,
+                wp.STATUS_TO,
+                wp.EVENT_DATA,
+                wp.CREATE_DATE,
+                wp.UPDATE_DATE,
+                wp.CREATE_USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                creator.FIRST_NAME as CREATOR_FIRST_NAME,
+                creator.LAST_NAME as CREATOR_LAST_NAME,
+                creator.EMAIL as CREATOR_EMAIL,
+                t.TASK_DESCRIPTION,
+                t.STATUS as TASK_STATUS,
+                t.ASSIGNED_USER_ID as TASK_ASSIGNED_USER_ID,
+                assigned_user.FIRST_NAME as TASK_ASSIGNED_FIRST_NAME,
+                assigned_user.LAST_NAME as TASK_ASSIGNED_LAST_NAME,
+                a.FILE_NAME as ATTACHMENT_FILE_NAME
+            FROM GUARDIAN.WORK_PROGRESS wp
+            INNER JOIN GUARDIAN.USERS u ON wp.USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.USERS creator ON wp.CREATE_USER_ID = creator.USER_ID
+            LEFT JOIN GUARDIAN.TASKS t ON wp.RELATED_TASK_ID = t.TASK_ID
+            LEFT JOIN GUARDIAN.USERS assigned_user ON t.ASSIGNED_USER_ID = assigned_user.USER_ID
+            LEFT JOIN GUARDIAN.ATTACHMENTS a ON wp.RELATED_ATTACHMENT_ID = a.ATTACHMENT_ID
+            WHERE ${whereConditions}
+            ORDER BY wp.${sortBy} ${sortOrder}
+            OFFSET ${offset} ROWS FETCH NEXT ${limitNum} ROWS ONLY
+        `;
+
+        // Get total count for pagination
+        const countResult = await prisma.$queryRaw`
+            SELECT COUNT(*) as total_count
+            FROM GUARDIAN.WORK_PROGRESS wp
+            WHERE ${whereConditions}
+        `;
+        
+        const totalCount = parseInt(countResult[0].total_count);
+        const totalPages = Math.ceil(totalCount / limitNum);
+
+        console.log(`✅ Found ${milestones.length} milestones for request ${requestId} (Page ${pageNum}/${totalPages})`);
+
+        res.json({
+            success: true,
+            milestones: milestones.map(milestone => ({
+                workProgressId: milestone.WORK_PROGRESS_ID,
+                requestId: milestone.REQUEST_ID,
+                userId: milestone.USER_ID,
+                companyId: milestone.COMPANY_ID,
+                progressType: milestone.PROGRESS_TYPE,
+                title: milestone.TITLE,
+                description: milestone.DESCRIPTION,
+                hoursWorked: milestone.HOURS_WORKED ? parseFloat(milestone.HOURS_WORKED) : null,
+                statusUpdate: milestone.STATUS_UPDATE,
+                relatedAttachmentId: milestone.RELATED_ATTACHMENT_ID,
+                isMilestone: milestone.IS_MILESTONE,
+                isVisibleToRequestor: milestone.IS_VISIBLE_TO_REQUESTOR,
+                isSystemGenerated: milestone.IS_SYSTEM_GENERATED,
+                relatedTaskId: milestone.RELATED_TASK_ID,
+                statusFrom: milestone.STATUS_FROM,
+                statusTo: milestone.STATUS_TO,
+                eventData: milestone.EVENT_DATA ? JSON.parse(milestone.EVENT_DATA) : null,
+                createDate: milestone.CREATE_DATE,
+                updateDate: milestone.UPDATE_DATE,
+                createUserId: milestone.CREATE_USER_ID,
+                user: {
+                    firstName: milestone.FIRST_NAME,
+                    lastName: milestone.LAST_NAME,
+                    email: milestone.EMAIL
+                },
+                creator: milestone.CREATOR_FIRST_NAME ? {
+                    firstName: milestone.CREATOR_FIRST_NAME,
+                    lastName: milestone.CREATOR_LAST_NAME,
+                    email: milestone.CREATOR_EMAIL
+                } : null,
+                relatedTask: milestone.RELATED_TASK_ID ? {
+                    taskId: milestone.RELATED_TASK_ID,
+                    description: milestone.TASK_DESCRIPTION,
+                    status: milestone.TASK_STATUS,
+                    assignedUser: milestone.TASK_ASSIGNED_FIRST_NAME ? {
+                        firstName: milestone.TASK_ASSIGNED_FIRST_NAME,
+                        lastName: milestone.TASK_ASSIGNED_LAST_NAME
+                    } : null
+                } : null,
+                attachmentFileName: milestone.ATTACHMENT_FILE_NAME
+            })),
+            pagination: {
+                currentPage: pageNum,
+                totalPages: totalPages,
+                totalItems: totalCount,
+                itemsPerPage: limitNum,
+                hasNextPage: pageNum < totalPages,
+                hasPreviousPage: pageNum > 1
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching milestones:', error);
+        res.status(500).json({
+            error: 'Failed to fetch milestones',
+            message: error.message
+        });
+    }
+});
+
+// 2. POST /api/milestones - Create manual milestone
+app.post('/api/milestones', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const {
+            REQUEST_ID,
+            TITLE,
+            PROGRESS_DETAILS,
+            PROGRESS_TYPE = 'milestone',
+            EVENT_DATA
+        } = req.body;
+
+        console.log(`🏗️ Creating manual milestone for request ${REQUEST_ID} (Company: ${req.companyId})`);
+
+        if (!REQUEST_ID || !TITLE) {
+            return res.status(400).json({
+                error: 'REQUEST_ID and TITLE are required'
+            });
+        }
+
+        const requestId = parseInt(REQUEST_ID);
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid REQUEST_ID is required'
+            });
+        }
+
+        // Verify request belongs to user's company and user has access
+        const request = await prisma.$queryRaw`
+            SELECT REQUEST_ID, ASSIGNED_ID, REQUESTOR_ID 
+            FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!request.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Check authorization (assigned user, requestor, or admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isAssigned = request[0].ASSIGNED_ID === req.userId;
+        const isRequestor = request[0].REQUESTOR_ID === req.userId;
+
+        if (!isAdmin && !isAssigned && !isRequestor) {
+            return res.status(403).json({
+                error: 'You are not authorized to create milestones for this request'
+            });
+        }
+
+        // Create manual milestone
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.WORK_PROGRESS (
+                REQUEST_ID,
+                USER_ID,
+                COMPANY_ID,
+                PROGRESS_TYPE,
+                TITLE,
+                DESCRIPTION,
+                IS_MILESTONE,
+                IS_VISIBLE_TO_REQUESTOR,
+                IS_SYSTEM_GENERATED,
+                EVENT_DATA,
+                CREATE_USER_ID,
+                CREATE_DATE
+            )
+            OUTPUT INSERTED.WORK_PROGRESS_ID
+            VALUES (
+                ${requestId},
+                ${req.userId},
+                ${req.companyId},
+                ${PROGRESS_TYPE},
+                ${TITLE},
+                ${PROGRESS_DETAILS || null},
+                1,
+                1,
+                0,
+                ${EVENT_DATA || null},
+                ${req.userId},
+                GETDATE()
+            )
+        `;
+
+        const milestoneId = result[0].WORK_PROGRESS_ID;
+        console.log(`✅ Manual milestone created with ID: ${milestoneId}`);
+
+        // Create notification for milestone creation
+        try {
+            if (request[0].REQUESTOR_ID && request[0].REQUESTOR_ID !== req.userId) {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.NOTIFICATIONS (
+                        USER_ID, 
+                        TYPE, 
+                        TITLE, 
+                        MESSAGE, 
+                        RELATED_ID, 
+                        COMPANY_ID, 
+                        CREATED_DATE, 
+                        IS_READ
+                    ) VALUES (
+                        ${request[0].REQUESTOR_ID},
+                        'milestone_created',
+                        'New Milestone Added',
+                        ${`Milestone: ${TITLE}`},
+                        ${requestId},
+                        ${req.companyId},
+                        GETDATE(),
+                        0
+                    )
+                `;
+            }
+
+            if (request[0].ASSIGNED_ID && request[0].ASSIGNED_ID !== req.userId) {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.NOTIFICATIONS (
+                        USER_ID, 
+                        TYPE, 
+                        TITLE, 
+                        MESSAGE, 
+                        RELATED_ID, 
+                        COMPANY_ID, 
+                        CREATED_DATE, 
+                        IS_READ
+                    ) VALUES (
+                        ${request[0].ASSIGNED_ID},
+                        'milestone_created',
+                        'New Milestone Added',
+                        ${`Milestone: ${TITLE}`},
+                        ${requestId},
+                        ${req.companyId},
+                        GETDATE(),
+                        0
+                    )
+                `;
+            }
+        } catch (notificationError) {
+            console.error('⚠️ Failed to create milestone notifications:', notificationError);
+        }
+
+        res.json({
+            success: true,
+            milestoneId: milestoneId,
+            message: 'Milestone created successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating milestone:', error);
+        res.status(500).json({
+            error: 'Failed to create milestone',
+            message: error.message
+        });
+    }
+});
+
+// 3. GET /api/requests/:requestId/milestones/stats - Get milestone statistics
+app.get('/api/requests/:requestId/milestones/stats', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        console.log(`📊 Fetching milestone stats for request ${requestId} (Company: ${req.companyId})`);
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        // Verify request access
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        // Get comprehensive statistics
+        const stats = await prisma.$queryRaw`
+            SELECT 
+                COUNT(*) as TOTAL_MILESTONES,
+                COUNT(CASE WHEN IS_SYSTEM_GENERATED = 1 THEN 1 END) as SYSTEM_MILESTONES,
+                COUNT(CASE WHEN IS_SYSTEM_GENERATED = 0 THEN 1 END) as MANUAL_MILESTONES,
+                COUNT(CASE WHEN PROGRESS_TYPE = 'status' THEN 1 END) as STATUS_CHANGES,
+                COUNT(CASE WHEN PROGRESS_TYPE = 'task' THEN 1 END) as TASK_MILESTONES,
+                COUNT(CASE WHEN PROGRESS_TYPE = 'document' THEN 1 END) as DOCUMENT_MILESTONES,
+                COUNT(CASE WHEN PROGRESS_TYPE = 'milestone' THEN 1 END) as MANUAL_MILESTONE_COUNT,
+                COUNT(CASE WHEN PROGRESS_TYPE = 'note' THEN 1 END) as NOTES_COUNT,
+                COUNT(CASE WHEN PROGRESS_TYPE = 'communication' THEN 1 END) as COMMUNICATIONS_COUNT,
+                MIN(CREATE_DATE) as FIRST_MILESTONE,
+                MAX(CREATE_DATE) as LATEST_MILESTONE,
+                COUNT(DISTINCT USER_ID) as UNIQUE_CONTRIBUTORS
+            FROM GUARDIAN.WORK_PROGRESS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        // Get type breakdown with counts
+        const typeBreakdown = await prisma.$queryRaw`
+            SELECT 
+                PROGRESS_TYPE,
+                COUNT(*) as COUNT,
+                COUNT(CASE WHEN IS_SYSTEM_GENERATED = 1 THEN 1 END) as SYSTEM_COUNT,
+                COUNT(CASE WHEN IS_SYSTEM_GENERATED = 0 THEN 1 END) as MANUAL_COUNT
+            FROM GUARDIAN.WORK_PROGRESS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            GROUP BY PROGRESS_TYPE
+            ORDER BY COUNT(*) DESC
+        `;
+
+        // Calculate time-based metrics
+        let timeMetrics = null;
+        if (stats[0].FIRST_MILESTONE && stats[0].LATEST_MILESTONE) {
+            const firstDate = new Date(stats[0].FIRST_MILESTONE);
+            const latestDate = new Date(stats[0].LATEST_MILESTONE);
+            const totalDays = Math.ceil((latestDate - firstDate) / (1000 * 60 * 60 * 24));
+            const averageInterval = totalDays / Math.max(1, parseInt(stats[0].TOTAL_MILESTONES) - 1);
+
+            timeMetrics = {
+                totalDaysSpanned: totalDays,
+                averageDaysBetweenMilestones: Math.round(averageInterval * 100) / 100,
+                firstMilestone: stats[0].FIRST_MILESTONE,
+                latestMilestone: stats[0].LATEST_MILESTONE
+            };
+        }
+
+        // Get recent milestone activity
+        const recentMilestones = await prisma.$queryRaw`
+            SELECT TOP 5
+                PROGRESS_TYPE,
+                TITLE,
+                CREATE_DATE,
+                IS_SYSTEM_GENERATED
+            FROM GUARDIAN.WORK_PROGRESS
+            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            ORDER BY CREATE_DATE DESC
+        `;
+
+        console.log(`✅ Milestone stats calculated for request ${requestId}`);
+
+        res.json({
+            success: true,
+            stats: {
+                totalMilestones: parseInt(stats[0].TOTAL_MILESTONES),
+                systemGenerated: parseInt(stats[0].SYSTEM_MILESTONES),
+                manualCreated: parseInt(stats[0].MANUAL_MILESTONES),
+                systemVsManualRatio: stats[0].TOTAL_MILESTONES > 0 ? 
+                    Math.round((stats[0].SYSTEM_MILESTONES / stats[0].TOTAL_MILESTONES) * 100) : 0,
+                uniqueContributors: parseInt(stats[0].UNIQUE_CONTRIBUTORS),
+                breakdown: {
+                    statusChanges: parseInt(stats[0].STATUS_CHANGES),
+                    taskMilestones: parseInt(stats[0].TASK_MILESTONES),
+                    documentMilestones: parseInt(stats[0].DOCUMENT_MILESTONES),
+                    manualMilestones: parseInt(stats[0].MANUAL_MILESTONE_COUNT),
+                    notes: parseInt(stats[0].NOTES_COUNT),
+                    communications: parseInt(stats[0].COMMUNICATIONS_COUNT)
+                },
+                typeBreakdown: typeBreakdown.map(type => ({
+                    type: type.PROGRESS_TYPE,
+                    total: parseInt(type.COUNT),
+                    systemGenerated: parseInt(type.SYSTEM_COUNT),
+                    manualCreated: parseInt(type.MANUAL_COUNT)
+                })),
+                timeMetrics: timeMetrics,
+                recentActivity: recentMilestones.map(milestone => ({
+                    type: milestone.PROGRESS_TYPE,
+                    title: milestone.TITLE,
+                    createDate: milestone.CREATE_DATE,
+                    isSystemGenerated: milestone.IS_SYSTEM_GENERATED
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching milestone stats:', error);
+        res.status(500).json({
+            error: 'Failed to fetch milestone statistics',
+            message: error.message
+        });
+    }
+});
+
+// 4. PUT /api/milestones/:milestoneId - Update manual milestone (non-system only)
+app.put('/api/milestones/:milestoneId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const milestoneId = parseInt(req.params.milestoneId);
+        const {
+            TITLE,
+            DESCRIPTION,
+            PROGRESS_TYPE,
+            EVENT_DATA
+        } = req.body;
+
+        console.log(`✏️ Updating milestone ${milestoneId} (Company: ${req.companyId})`);
+
+        if (!milestoneId || isNaN(milestoneId)) {
+            return res.status(400).json({
+                error: 'Valid milestone ID is required'
+            });
+        }
+
+        // Verify milestone exists, is not system-generated, and belongs to company
+        const milestone = await prisma.$queryRaw`
+            SELECT wp.WORK_PROGRESS_ID, wp.REQUEST_ID, wp.USER_ID, wp.IS_SYSTEM_GENERATED, 
+                   r.ASSIGNED_ID, r.REQUESTOR_ID
+            FROM GUARDIAN.WORK_PROGRESS wp
+            INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
+            WHERE wp.WORK_PROGRESS_ID = ${milestoneId} 
+            AND wp.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!milestone.length) {
+            return res.status(404).json({
+                error: 'Milestone not found or access denied'
+            });
+        }
+
+        if (milestone[0].IS_SYSTEM_GENERATED) {
+            return res.status(403).json({
+                error: 'System-generated milestones cannot be modified'
+            });
+        }
+
+        // Check authorization
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isCreator = milestone[0].USER_ID === req.userId;
+        const isAssigned = milestone[0].ASSIGNED_ID === req.userId;
+        const isRequestor = milestone[0].REQUESTOR_ID === req.userId;
+
+        if (!isAdmin && !isCreator && !isAssigned && !isRequestor) {
+            return res.status(403).json({
+                error: 'You are not authorized to update this milestone'
+            });
+        }
+
+        // Update milestone
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.WORK_PROGRESS 
+            SET 
+                TITLE = COALESCE(${TITLE}, TITLE),
+                DESCRIPTION = COALESCE(${DESCRIPTION}, DESCRIPTION),
+                PROGRESS_TYPE = COALESCE(${PROGRESS_TYPE}, PROGRESS_TYPE),
+                EVENT_DATA = COALESCE(${EVENT_DATA}, EVENT_DATA),
+                UPDATE_DATE = GETDATE()
+            WHERE WORK_PROGRESS_ID = ${milestoneId} 
+            AND COMPANY_ID = ${req.companyId}
+            AND IS_SYSTEM_GENERATED = 0
+        `;
+
+        console.log(`✅ Milestone ${milestoneId} updated successfully`);
+
+        res.json({
+            success: true,
+            message: 'Milestone updated successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating milestone:', error);
+        res.status(500).json({
+            error: 'Failed to update milestone',
+            message: error.message
+        });
+    }
+});
+
+// 5. DELETE /api/milestones/:milestoneId - Delete manual milestone
+app.delete('/api/milestones/:milestoneId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const milestoneId = parseInt(req.params.milestoneId);
+        console.log(`🗑️ Deleting milestone ${milestoneId} (Company: ${req.companyId})`);
+
+        if (!milestoneId || isNaN(milestoneId)) {
+            return res.status(400).json({
+                error: 'Valid milestone ID is required'
+            });
+        }
+
+        // Verify milestone exists, is not system-generated, and user has permission
+        const milestone = await prisma.$queryRaw`
+            SELECT wp.WORK_PROGRESS_ID, wp.REQUEST_ID, wp.USER_ID, wp.IS_SYSTEM_GENERATED, wp.TITLE,
+                   r.ASSIGNED_ID, r.REQUESTOR_ID
+            FROM GUARDIAN.WORK_PROGRESS wp
+            INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
+            WHERE wp.WORK_PROGRESS_ID = ${milestoneId} 
+            AND wp.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!milestone.length) {
+            return res.status(404).json({
+                error: 'Milestone not found or access denied'
+            });
+        }
+
+        if (milestone[0].IS_SYSTEM_GENERATED) {
+            return res.status(403).json({
+                error: 'System-generated milestones cannot be deleted'
+            });
+        }
+
+        // Check authorization (creator, admin, assigned, or requestor)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        const isCreator = milestone[0].USER_ID === req.userId;
+        const isAssigned = milestone[0].ASSIGNED_ID === req.userId;
+        const isRequestor = milestone[0].REQUESTOR_ID === req.userId;
+
+        if (!isAdmin && !isCreator && !isAssigned && !isRequestor) {
+            return res.status(403).json({
+                error: 'You are not authorized to delete this milestone'
+            });
+        }
+
+        // Delete milestone
+        const result = await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.WORK_PROGRESS 
+            WHERE WORK_PROGRESS_ID = ${milestoneId} 
+            AND COMPANY_ID = ${req.companyId}
+            AND IS_SYSTEM_GENERATED = 0
+        `;
+
+        if (result === 0) {
+            return res.status(404).json({
+                error: 'Milestone not found or could not be deleted'
+            });
+        }
+
+        console.log(`✅ Milestone ${milestoneId} "${milestone[0].TITLE}" deleted successfully`);
+
+        res.json({
+            success: true,
+            message: 'Milestone deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting milestone:', error);
+        res.status(500).json({
+            error: 'Failed to delete milestone',
+            message: error.message
+        });
+    }
+});
+
 // === TASK MANAGEMENT ENDPOINTS ===
 
 // Get tasks for a specific request
@@ -3480,6 +4315,20 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
         const taskIdResult = await prisma.$queryRaw`SELECT SCOPE_IDENTITY() as TASK_ID`;
         const taskId = taskIdResult[0]?.TASK_ID;
         console.log(`✅ Task created with ID: ${taskId}`, taskIdResult);
+        
+        // Create milestone for task creation
+        try {
+            await createTaskMilestone(
+                requestId,
+                finalTaskId || taskId,
+                'created',
+                req.userId,
+                req.companyId
+            );
+            console.log(`🏁 Task creation milestone created for task ${finalTaskId || taskId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
+        }
         
         // If SCOPE_IDENTITY didn't work, try to get the task ID by querying the most recent task
         let finalTaskId = taskId;
@@ -3674,6 +4523,20 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                 WHERE TASK_ID = ${taskId}
             `;
 
+            // Create milestone for task assignment
+            try {
+                await createTaskMilestone(
+                    task[0].REQUEST_ID,
+                    taskId,
+                    'assigned',
+                    req.userId,
+                    req.companyId
+                );
+                console.log(`🏁 Task assignment milestone created for task ${taskId}`);
+            } catch (milestoneError) {
+                console.error('⚠️ Failed to create task assignment milestone (continuing):', milestoneError);
+            }
+
             console.log(`✅ Task ${taskId} assigned to ${assignedId || 'null'} successfully`);
             return res.json({ success: true, message: 'Task assigned successfully', taskId });
         }
@@ -3733,7 +4596,7 @@ app.delete('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) =
 
         // Verify task exists and belongs to user's company
         const task = await prisma.$queryRaw`
-            SELECT t.TASK_ID, r.COMPANY_ID
+            SELECT t.TASK_ID, t.REQUEST_ID, r.COMPANY_ID
             FROM GUARDIAN.TASKS t
             INNER JOIN GUARDIAN.REQUESTS r ON t.REQUEST_ID = r.REQUEST_ID
             WHERE t.TASK_ID = ${taskId} AND r.COMPANY_ID = ${req.companyId}
@@ -3743,6 +4606,20 @@ app.delete('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) =
             return res.status(404).json({
                 error: 'Task not found or access denied'
             });
+        }
+
+        // Create milestone for task deletion before deleting
+        try {
+            await createTaskMilestone(
+                task[0].REQUEST_ID,
+                taskId,
+                'deleted',
+                req.userId,
+                req.companyId
+            );
+            console.log(`🏁 Task deletion milestone created for task ${taskId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create task deletion milestone (continuing):', milestoneError);
         }
 
         // Delete the task
@@ -3824,6 +4701,20 @@ app.post('/api/requests/:id/attachments', getAuthenticatedUserCompany, upload.si
 
         const attachmentId = attachmentResult[0].ATTACHMENT_ID;
         console.log(`✅ Attachment uploaded successfully with ID: ${attachmentId}`);
+        
+        // Create milestone for file upload
+        try {
+            await createDocumentMilestone(
+                requestId,
+                req.file.originalname,
+                'uploaded',
+                req.userId,
+                req.companyId
+            );
+            console.log(`🏁 File upload milestone created for attachment ${attachmentId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create file upload milestone (continuing):', milestoneError);
+        }
 
         res.json({
             success: true,
@@ -4403,6 +5294,30 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         const statusMessage = isComplete ? 'Form completed successfully' : 
                             isDraft ? 'Draft saved successfully' : 
                             'Form data saved successfully';
+
+        // Create milestone for form submission
+        try {
+            const submissionType = isComplete ? 'completed' : isDraft ? 'saved as draft' : 'auto-saved';
+            await createSystemMilestone(
+                requestId,
+                'form',
+                `Form ${submissionType}`,
+                `Form data was ${submissionType} with ${savedCount} field values`,
+                req.userId,
+                req.companyId,
+                JSON.stringify({
+                    action: 'form_submission',
+                    isComplete: isComplete,
+                    isDraft: isDraft,
+                    fieldCount: savedCount,
+                    formInstanceId: formInstanceId,
+                    formStatus: finalStatus
+                })
+            );
+            console.log(`🏁 Form submission milestone created for request ${requestId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create form submission milestone (continuing):', milestoneError);
+        }
 
         console.log(`✅ Form submitted successfully for request ${requestId}: ${savedCount} field values saved (Status: ${finalStatus})`);
 

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Management System - Developer Specifications</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero-section { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem 0; }
+        .spec-card { border-left: 4px solid #007bff; margin-bottom: 2rem; }
+        .code-block { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 0.375rem; padding: 1rem; }
+        .permission-badge { font-size: 0.75rem; }
+        .nav-pills .nav-link.active { background-color: #007bff; }
+        .status-badge { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; }
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-progress { background-color: #cce5ff; color: #004085; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+        .status-cancelled { background-color: #f8d7da; color: #721c24; }
+        .wireframe { border: 2px dashed #dee2e6; padding: 1rem; background: #f8f9fa; margin: 1rem 0; }
+        .modal-demo { border: 1px solid #dee2e6; padding: 1rem; background: white; border-radius: 0.375rem; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="display-4 mb-3"><i class="fas fa-cogs me-3"></i>Request Management System</h1>
+            <p class="lead">Developer Implementation Specifications</p>
+            <p class="mb-0">Complete UI/UX and functional requirements for the new request details interface</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+        <div class="container">
+            <div class="navbar-nav">
+                <a class="nav-link" href="#overview">Overview</a>
+                <a class="nav-link" href="#ui-layout">UI Layout</a>
+                <a class="nav-link" href="#tabs">Tab Structure</a>
+                <a class="nav-link" href="#buttons">Action Buttons</a>
+                <a class="nav-link" href="#permissions">Permissions</a>
+                <a class="nav-link" href="#business-logic">Business Logic</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <!-- Overview Section -->
+        <section id="overview" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-eye me-2"></i>Overview</h2>
+                    <p class="card-text">Replace the current modal-based request details interface with a new tabbed interface that provides better organization and workflow management.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Current Implementation Issues:</h5>
+                            <ul>
+                                <li>Modal dialog limits screen real estate</li>
+                                <li>No organized view of tasks, results, and milestones</li>
+                                <li>Action buttons scattered in different locations</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>New Implementation Goals:</h5>
+                            <ul>
+                                <li>Tabbed interface for better organization</li>
+                                <li>Centralized action buttons</li>
+                                <li>Comprehensive milestone tracking</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- UI Layout Section -->
+        <section id="ui-layout" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-layout me-2"></i>UI Layout Specifications</h2>
+                    
+                    <h4>Request Details Header</h4>
+                    <div class="wireframe">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>Request Details: REQ-2025-152</h5>
+                            <button type="button" class="btn-close"></button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Request ID:</strong> REQ-2025-152</p>
+                                <p><strong>Requestor:</strong> Ernest Pena Jr</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Date Submitted:</strong> 8/14/2025</p>
+                                <p><strong>Currently Assigned To:</strong> andrea@shieldlytics.com</p>
+                                <p><strong>Status:</strong> <span class="status-badge status-progress">Active</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4>Tab Navigation</h4>
+                    <ul class="nav nav-pills mb-3">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#details">Details</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tasks">Tasks</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#results">Results</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#milestones">Milestones</a>
+                        </li>
+                    </ul>
+
+                    <h4>Action Buttons Row</h4>
+                    <div class="wireframe">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary">Assign</button>
+                            <button class="btn btn-success">Start</button>
+                            <button class="btn btn-primary">Complete</button>
+                            <button class="btn btn-danger">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Structure Section -->
+        <section id="tabs" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-folder-open me-2"></i>Tab Structure & Content</h2>
+                    
+                    <!-- Details Tab -->
+                    <h4>1. Details Tab (Default)</h4>
+                    <div class="wireframe mb-4">
+                        <h6>Request Form Data</h6>
+                        <p>Display the original request form fields and submitted data. This should show the completed workflow form associated with the request.</p>
+                        <div class="code-block">
+                            <strong>Technical Note:</strong> Render the completed form fields in read-only mode based on the workflow template used when the request was created.
+                        </div>
+                    </div>
+
+                    <!-- Tasks Tab -->
+                    <h4>2. Tasks Tab</h4>
+                    <div class="wireframe mb-4">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Task ID</th>
+                                    <th>Status</th>
+                                    <th>Assigned To</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>T-1</td>
+                                    <td><span class="status-badge status-pending">Pending</span></td>
+                                    <td>John Doe</td>
+                                    <td>Review requirements</td>
+                                </tr>
+                                <tr>
+                                    <td>T-2</td>
+                                    <td><span class="status-badge status-progress">In Progress</span></td>
+                                    <td>Jane Smith</td>
+                                    <td>Develop feature</td>
+                                </tr>
+                                <tr>
+                                    <td>T-3</td>
+                                    <td><span class="status-badge status-completed">Completed</span></td>
+                                    <td>Mary Johnson</td>
+                                    <td>Test feature</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-outline-primary">Add Task</button>
+                            <button class="btn btn-sm btn-outline-secondary">Assign</button>
+                            <button class="btn btn-sm btn-success">Start</button>
+                            <button class="btn btn-sm btn-primary">Complete</button>
+                        </div>
+                    </div>
+
+                    <!-- Results Tab -->
+                    <h4>3. Results Tab</h4>
+                    <div class="wireframe mb-4">
+                        <h6>Results Details</h6>
+                        <textarea class="form-control mb-3" rows="3" placeholder="The request has been successfully completed."></textarea>
+                        <h6>Supporting Documentation</h6>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-file-pdf me-2"></i>
+                            <span>document.pdf</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-primary">Save Results</button>
+                            <button class="btn btn-primary">Complete Request</button>
+                        </div>
+                    </div>
+
+                    <!-- Milestones Tab -->
+                    <h4>4. Milestones Tab</h4>
+                    <div class="wireframe mb-4">
+                        <p><em>Automatically recorded anytime action is taken on the request</em></p>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Date/Time</th>
+                                    <th>By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Submitted</td>
+                                    <td>04/22/2024, 9:15 AM</td>
+                                    <td>John Smith</td>
+                                </tr>
+                                <tr>
+                                    <td>Assigned</td>
+                                    <td>04/23/2024, 1:45 PM</td>
+                                    <td>John Smith</td>
+                                </tr>
+                                <tr>
+                                    <td>Started</td>
+                                    <td>04/23/2024, 3:00 PM</td>
+                                    <td>John Smith</td>
+                                </tr>
+                                <tr>
+                                    <td>Completed</td>
+                                    <td>04/24/2024, 11:20 AM</td>
+                                    <td>John Smith</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Buttons Section -->
+        <section id="buttons" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-mouse-pointer me-2"></i>Action Buttons Specifications</h2>
+                    
+                    <!-- Assign Button -->
+                    <h4>1. Assign Button</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <ul>
+                                <li><strong>Visibility:</strong> Processor, Manager, Admin</li>
+                                <li><strong>Enabled when:</strong> Any status, any user</li>
+                                <li><strong>Action:</strong> Opens assignment modal</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="modal-demo">
+                                <h6>Assign Request Modal</h6>
+                                <select class="form-select form-select-sm mb-2">
+                                    <option>Select user</option>
+                                    <option>Julie Smith</option>
+                                    <option>Michael Johnson</option>
+                                    <option>Sarah Brown</option>
+                                </select>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-secondary">Back</button>
+                                    <button class="btn btn-sm btn-primary">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Start Button -->
+                    <h4>2. Start Button</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <ul>
+                                <li><strong>Visibility:</strong> Requestor, Processor, Manager, Administrator</li>
+                                <li><strong>Enabled when:</strong> Status is "Pending" AND (assigned user is null OR current user)</li>
+                                <li><strong>Action:</strong> Shows confirmation modal</li>
+                                <li><strong>Result:</strong> Sets status to "In Progress", assigns to current user if unassigned</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="modal-demo">
+                                <h6>Start Confirmation</h6>
+                                <p class="small">Are you sure you want to start this request?</p>
+                                <button class="btn btn-sm btn-primary">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cancel Button -->
+                    <h4>3. Cancel Button</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <ul>
+                                <li><strong>Visibility:</strong> Processor, Manager, Admin</li>
+                                <li><strong>Enabled when:</strong> Status is "Pending" OR "In Progress"</li>
+                                <li><strong>Action:</strong> Shows confirmation modal</li>
+                                <li><strong>Result:</strong> Sets status to "Cancelled"</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="modal-demo">
+                                <h6>Cancel Request</h6>
+                                <p class="small">Are you sure you want to cancel this request?</p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-primary">Confirm</button>
+                                    <button class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Complete Button -->
+                    <h4>4. Complete Button</h4>
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <ul>
+                                <li><strong>Visibility:</strong> Assigned user, Processor, Manager, Admin</li>
+                                <li><strong>Enabled when:</strong> Status is "In Progress"</li>
+                                <li><strong>Action:</strong> Requires results to be saved first</li>
+                                <li><strong>Result:</strong> Sets status to "Completed"</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="modal-demo">
+                                <p class="small text-muted">Available from Results tab after saving results</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Permissions Section -->
+        <section id="permissions" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-shield-alt me-2"></i>Role-Based Permissions</h2>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Requestor</th>
+                                    <th>General User</th>
+                                    <th>Processor</th>
+                                    <th>Manager</th>
+                                    <th>Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>View Request Details</td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Start Request</td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Assign Request</td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Cancel Request</td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Complete Request</td>
+                                    <td><span class="badge bg-warning permission-badge">If Assigned</span></td>
+                                    <td><span class="badge bg-danger permission-badge">✗</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                    <td><span class="badge bg-success permission-badge">✓</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Business Logic Section -->
+        <section id="business-logic" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-cogs me-2"></i>Business Logic & State Management</h2>
+                    
+                    <h4>Request Status Flow</h4>
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="status-badge status-pending me-2">Pending</span>
+                        <i class="fas fa-arrow-right me-2"></i>
+                        <span class="status-badge status-progress me-2">In Progress</span>
+                        <i class="fas fa-arrow-right me-2"></i>
+                        <span class="status-badge status-completed me-2">Completed</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="status-badge status-pending me-2">Pending</span>
+                        <i class="fas fa-arrow-down me-2"></i>
+                        <span class="status-badge status-cancelled">Cancelled</span>
+                    </div>
+
+                    <h4>Milestone Recording Rules</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Automatic Milestones</h6>
+                            <ul>
+                                <li><strong>Submitted:</strong> When request is created</li>
+                                <li><strong>Assigned:</strong> When assigned to a user</li>
+                                <li><strong>Started:</strong> When status changes to "In Progress"</li>
+                                <li><strong>Completed:</strong> When status changes to "Completed"</li>
+                                <li><strong>Cancelled:</strong> When status changes to "Cancelled"</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Milestone Data Structure</h6>
+                            <div class="code-block">
+                                <pre>{
+  "event": "Started",
+  "datetime": "2024-04-23T15:00:00Z",
+  "by": "Current User Name",
+  "userId": "user123"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4>Button Enabling Logic</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Button</th>
+                                    <th>Enabled Conditions</th>
+                                    <th>Additional Logic</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Start</strong></td>
+                                    <td>Status = "Pending"</td>
+                                    <td>AND (assigned_user IS NULL OR assigned_user = current_user)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Assign</strong></td>
+                                    <td>Always enabled</td>
+                                    <td>For authorized roles only</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cancel</strong></td>
+                                    <td>Status = "Pending" OR "In Progress"</td>
+                                    <td>For authorized roles only</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Complete</strong></td>
+                                    <td>Status = "In Progress"</td>
+                                    <td>AND results have been saved</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Implementation Notes -->
+        <section id="implementation" class="mb-5">
+            <div class="card spec-card">
+                <div class="card-body">
+                    <h2 class="card-title"><i class="fas fa-code me-2"></i>Implementation Notes</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Frontend Requirements</h5>
+                            <ul>
+                                <li>Bootstrap 5.x for responsive design</li>
+                                <li>Tab navigation with active state management</li>
+                                <li>Modal dialogs for confirmations</li>
+                                <li>Real-time status updates</li>
+                                <li>Form validation for required fields</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Backend Requirements</h5>
+                            <ul>
+                                <li>REST API endpoints for all actions</li>
+                                <li>Role-based authorization middleware</li>
+                                <li>Automatic milestone creation triggers</li>
+                                <li>Status validation before state changes</li>
+                                <li>Audit logging for all actions</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h5>API Endpoints Needed</h5>
+                    <div class="code-block">
+                        <pre>GET    /api/requests/{id}           - Get request details
+PUT    /api/requests/{id}/assign    - Assign request
+PUT    /api/requests/{id}/start     - Start request
+PUT    /api/requests/{id}/complete  - Complete request  
+PUT    /api/requests/{id}/cancel    - Cancel request
+GET    /api/requests/{id}/tasks     - Get request tasks
+POST   /api/requests/{id}/tasks     - Add new task
+GET    /api/requests/{id}/milestones - Get milestones
+PUT    /api/requests/{id}/results   - Save results</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h6>Development Checklist</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ui-layout">
+                                <label class="form-check-label small" for="ui-layout">Implement tabbed UI layout</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="action-buttons">
+                                <label class="form-check-label small" for="action-buttons">Add action buttons with proper permissions</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="modals">
+                                <label class="form-check-label small" for="modals">Create confirmation modals</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="milestones">
+                                <label class="form-check-label small" for="milestones">Implement milestone tracking</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="permissions">
+                                <label class="form-check-label small" for="permissions">Add role-based permissions</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="api">
+                                <label class="form-check-label small" for="api">Create backend API endpoints</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <p class="small mb-0">Request Management System v2.0</p>
+                    <p class="small text-muted">Developer Specifications Document</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight active nav item based on scroll position
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= (sectionTop - 200)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

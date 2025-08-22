@@ -449,3 +449,198 @@
   background-color: #e9ecef;
   transition: background-color 0.15s ease-in-out;
 }
+
+/* Enhanced Timeline Styles for Milestones */
+.request-modal-improved .timeline-container {
+  position: relative;
+}
+
+.request-modal-improved .timeline-group-header {
+  margin-bottom: 1rem;
+}
+
+.request-modal-improved .timeline-group-line {
+  width: 30px;
+  height: 2px;
+  background-color: #dee2e6;
+  flex-shrink: 0;
+}
+
+.request-modal-improved .timeline {
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: 2rem;
+}
+
+.request-modal-improved .timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #0d6efd, #6c757d);
+  border-radius: 1.5px;
+}
+
+.request-modal-improved .timeline-item {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.request-modal-improved .timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.request-modal-improved .timeline-marker {
+  position: absolute;
+  left: -30px;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.request-modal-improved .timeline-marker.bg-primary {
+  background-color: #0d6efd !important;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+.request-modal-improved .timeline-marker.bg-secondary {
+  background-color: #6c757d !important;
+  box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.25);
+}
+
+.request-modal-improved .timeline-content {
+  margin-left: 1rem;
+  position: relative;
+}
+
+.request-modal-improved .timeline-content .card {
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.request-modal-improved .timeline-content .card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.request-modal-improved .milestone-details {
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  border-left: 3px solid #0d6efd;
+  margin: 0.5rem 0;
+}
+
+.request-modal-improved .milestone-event-data details {
+  cursor: pointer;
+}
+
+.request-modal-improved .milestone-event-data summary {
+  outline: none;
+  user-select: none;
+  font-weight: 500;
+}
+
+.request-modal-improved .milestone-event-data summary:hover {
+  text-decoration: underline;
+}
+
+.request-modal-improved .milestone-event-data pre {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Statistics Dashboard */
+.request-modal-improved .card.border-0.bg-light {
+  border: 1px solid #e9ecef !important;
+  transition: all 0.2s ease-in-out;
+}
+
+.request-modal-improved .card.border-0.bg-light:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Filter Controls */
+.request-modal-improved .input-group .input-group-text {
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+}
+
+.request-modal-improved .input-group .form-control,
+.request-modal-improved .input-group .form-select {
+  border-color: #ced4da;
+}
+
+.request-modal-improved .input-group .form-control:focus,
+.request-modal-improved .input-group .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Empty state styling */
+.request-modal-improved .text-center.py-5 {
+  padding: 3rem 1rem !important;
+}
+
+.request-modal-improved .text-center.py-4 {
+  padding: 2rem 1rem !important;
+}
+
+/* Badge enhancements */
+.request-modal-improved .badge.bg-light {
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+/* Mobile responsiveness for timeline */
+@media (max-width: 768px) {
+  .request-modal-improved .timeline {
+    padding-left: 30px;
+  }
+  
+  .request-modal-improved .timeline::before {
+    left: 15px;
+    width: 2px;
+  }
+  
+  .request-modal-improved .timeline-marker {
+    left: -22px;
+    width: 20px;
+    height: 20px;
+    font-size: 8px;
+  }
+  
+  .request-modal-improved .timeline-content {
+    margin-left: 0.5rem;
+  }
+  
+  .request-modal-improved .row .col-md-3 {
+    margin-bottom: 1rem;
+  }
+  
+  .request-modal-improved .d-flex.gap-2.flex-wrap {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+  
+  .request-modal-improved .input-group {
+    max-width: 100% !important;
+  }
+}
