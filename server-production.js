@@ -292,9 +292,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// In development mode, static files are served by Vite dev server (port 5175)
-// This backend server (port 3001) only handles API endpoints
-console.log('🔧 Development mode: Static files served by Vite on port 5175');
+// Production mode: Static files served by Express
+app.use(express.static('.', {
+    maxAge: '1d',
+    etag: false,
+    index: 'index.html'
+}));
+console.log('🏭 Production mode: Static files served by Express');
 
 // === API ROUTES ===
 
@@ -2518,7 +2522,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         if (assignedUserId) {
             const userExists = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS 
-                WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
             `;
 
             if (!userExists.length) {

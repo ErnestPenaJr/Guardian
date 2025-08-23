@@ -2518,7 +2518,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         if (assignedUserId) {
             const userExists = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS 
-                WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
             `;
 
             if (!userExists.length) {

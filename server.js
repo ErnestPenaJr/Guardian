@@ -292,9 +292,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// In development mode, static files are served by Vite dev server (port 5175)
-// This backend server (port 3001) only handles API endpoints
-console.log('🔧 Development mode: Static files served by Vite on port 5175');
+// Production mode: Static files served by Express
+app.use(express.static('.', {
+    maxAge: '1d',
+    etag: false,
+    index: 'index.html'
+}));
+console.log('🏭 Production mode: Static files served by Express');
 
 // === API ROUTES ===
 
@@ -2518,7 +2522,7 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         if (assignedUserId) {
             const userExists = await prisma.$queryRaw`
                 SELECT USER_ID FROM GUARDIAN.USERS 
-                WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
+                WHERE USER_ID = ${assignedUserId} AND COMPANY_ID = ${req.companyId}
             `;
 
             if (!userExists.length) {
@@ -11568,8 +11572,11 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
-// === NO CATCH-ALL ROUTE ===
-// IIS handles SPA routing via web.config
+// === SPA FALLBACK ROUTE ===
+// Production mode: Handle React Router SPA routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -11580,13 +11587,12 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// In development mode, SPA routing is handled by Vite dev server
-// This route is only needed in production when this server serves static files
-console.log('🔧 Development mode: SPA routing handled by Vite dev server');
+// Production mode: SPA routing handled by Express server
+console.log('🏭 Production mode: SPA routing handled by Express server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔧 Development mode: API server only`);
+    console.log(`🏭 Production mode: Full-stack server with static files and API`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');

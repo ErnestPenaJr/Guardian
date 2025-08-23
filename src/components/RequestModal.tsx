@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
-import { Upload, MessageSquare, Play, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
+import { Upload, MessageSquare, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
 import './RequestModal.css';
 
 interface User {
@@ -157,6 +157,17 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     assignedUserId: ''
   });
 
+  // Request action confirmation modals state
+  const [showStartConfirmModal, setShowStartConfirmModal] = useState<boolean>(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState<boolean>(false);
+  const [showCompleteConfirmModal, setShowCompleteConfirmModal] = useState<boolean>(false);
+  const [showAssignRequestModal, setShowAssignRequestModal] = useState<boolean>(false);
+  const [assignRequestData, setAssignRequestData] = useState<{
+    assignedUserId: string;
+  }>({
+    assignedUserId: ''
+  });
+
   // Milestone management state (simplified)
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState<boolean>(false);
@@ -184,6 +195,51 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       toast.error('Failed to assign tasks');
     } finally {
       setTaskActionLoading(false);
+    }
+  };
+
+  // Handle assign request from modal
+  const handleAssignRequest = async () => {
+    if (!assignRequestData.assignedUserId) {
+      toast.error('Please select a user to assign the request to');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('🔄 Assigning request:', {
+        requestId: request.REQUEST_ID,
+        assignedUserId: assignRequestData.assignedUserId
+      });
+      
+      const response = await api.put(`/api/requests/${request.REQUEST_ID}/assign`, { 
+        assignedUserId: assignRequestData.assignedUserId
+      });
+      
+      console.log('📝 Assignment response:', response);
+      
+      if (response.status === 200 || response.data?.success) {
+        console.log('✅ Assignment successful, closing modal and refreshing');
+        toast.success('Request assigned successfully!');
+        
+        // Close modal and reset data
+        setShowAssignRequestModal(false);
+        setAssignRequestData({ assignedUserId: '' });
+        
+        // Refresh parent component first, then close modal
+        await onUpdate();
+        // Don't close the main modal - let user see the updated assignment
+        // onHide();
+      } else {
+        console.error('❌ Assignment failed:', response);
+        toast.error('Failed to assign request');
+      }
+    } catch (err: any) {
+      console.error('💥 Error during assignment:', err);
+      toast.error(err.response?.data?.error || 'Failed to assign request');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -244,6 +300,28 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const isRequestorUser = useMemo(() => {
     return currentUser && request.REQUESTOR_ID === (currentUser.userId || currentUser.id);
   }, [currentUser, request.REQUESTOR_ID]);
+
+  // Check if current user is Super Admin (role_id 6)
+  const isSuperAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    
+    // Check roles array
+    if (currentUser.roles && Array.isArray(currentUser.roles)) {
+      return currentUser.roles.some((role: any) => role.id === 6);
+    }
+    
+    // Check roleIds array (if it exists)
+    if ((currentUser as any).roleIds && Array.isArray((currentUser as any).roleIds)) {
+      return (currentUser as any).roleIds.includes(6);
+    }
+    
+    // Check single role
+    if (currentUser.role) {
+      return parseInt(currentUser.role, 10) === 6;
+    }
+    
+    return false;
+  }, [currentUser]);
   
   // Check if user can work on this request (assigned user or admin)
   const canWorkOnRequest = useMemo(() => {
@@ -824,6 +902,28 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     } catch (error: any) {
       console.error('Error completing work:', error);
       toast.error(error.response?.data?.error || 'Failed to complete request');
+    } finally {
+      setWorkActionLoading(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    try {
+      setWorkActionLoading(true);
+      const response = await api.put(`/api/requests/${request.REQUEST_ID}`, {
+        status: 'Cancelled'
+      });
+      
+      if (response.data && response.data.success) {
+        toast.success('Request cancelled successfully');
+        onUpdate(); // Refresh parent component
+        onHide(); // Close modal
+      } else {
+        toast.error('Failed to cancel request');
+      }
+    } catch (error: any) {
+      console.error('Error cancelling request:', error);
+      toast.error(error.response?.data?.error || 'Failed to cancel request');
     } finally {
       setWorkActionLoading(false);
     }
@@ -1521,63 +1621,79 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         )}
 
-              {/* Assignment Section - Only show if user has permission */}
-              {hasAssignPermission ? (
-                <div className="border-top pt-3 mt-3">
-                  <div className="text-dark fw-semibold mb-2" style={{ fontSize: '0.9rem' }}>Assign Request</div>
+              {/* Action Buttons Row */}
+              <div className="border-top pt-4 mt-4">
+                <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
+                
+                <div className="d-flex gap-2 flex-wrap mb-3">
+                  {/* 1. Assign Button - Always show for users with permission */}
+                  {hasAssignPermission && (
+                    <Button 
+                      variant="outline-primary"
+                      onClick={() => setShowAssignRequestModal(true)}
+                      disabled={loading}
+                      style={{ minWidth: '80px' }}
+                    >
+                      Assign
+                    </Button>
+                  )}
+
+                  {/* 2. Start Button - Show for pending requests when user has permission, Super Admin sees all */}
+                  {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
+                    <Button 
+                      variant="success"
+                      onClick={() => setShowStartConfirmModal(true)}
+                      disabled={workActionLoading}
+                      style={{ minWidth: '80px' }}
+                    >
+                      Start
+                    </Button>
+                  ) : null}
                   
-                  <Form.Select 
-                    value={selectedUser} 
-                    onChange={(e) => setSelectedUser(e.target.value)}
-                    disabled={loading}
-                    className="mb-3 form-select-sm"
-                    style={{ fontSize: '0.85rem' }}
+                  {/* 3. Complete Button - Show for assigned user, Processor, Manager, Admin when status is In Progress, Super Admin sees all */}
+                  {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
+                    <Button 
+                      variant="primary"
+                      onClick={() => {
+                        if (!resultsNotes.trim()) {
+                          toast.error('Please add results in the Results tab before completing the request');
+                          setActiveMainTab('results');
+                          return;
+                        }
+                        setShowCompleteConfirmModal(true);
+                      }}
+                      disabled={workActionLoading}
+                      style={{ minWidth: '80px' }}
+                    >
+                      Complete
+                    </Button>
+                  ) : null}
+                  
+                  {/* 4. Cancel Button - Show for Processor, Manager, Admin when status is Pending or In Progress, Super Admin sees all */}
+                  {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
+                    <Button 
+                      variant="danger"
+                      onClick={() => setShowCancelConfirmModal(true)}
+                      disabled={workActionLoading}
+                      style={{ minWidth: '80px' }}
+                    >
+                      Cancel
+                    </Button>
+                  ) : null}
+                </div>
+
+
+                <div className="d-flex justify-content-end">
+                  <Button 
+                    variant="outline-secondary" 
+                    onClick={onHide} 
+                    size="sm"
+                    className="px-3"
                   >
-                    <option value="">Select a processor to assign</option>
-                    {users.map((user) => (
-                      <option key={user.USER_ID} value={user.USER_ID}>
-                        {user.FULL_NAME} ({user.ROLE_NAMES})
-                      </option>
-                    ))}
-                  </Form.Select>
-                  
-                  <div className="d-flex gap-2 justify-content-end">
-                    <Button 
-                      variant="outline-secondary" 
-                      onClick={onHide} 
-                      size="sm"
-                      className="px-3"
-                      style={{ fontSize: '0.85rem' }}
-                    >
-                      Close
-                    </Button>
-                    <Button 
-                      variant="primary" 
-                      onClick={handleAssignUser}
-                      disabled={!selectedUser || loading}
-                      size="sm"
-                      className="px-3"
-                      style={{ fontSize: '0.85rem' }}
-                    >
-                      {loading ? 'Assigning...' : 'Assign'}
-                    </Button>
-                  </div>
+                    Close
+                  </Button>
                 </div>
-              ) : (
-                <div className="border-top pt-3 mt-3">
-                  <div className="d-flex justify-content-end">
-                    <Button 
-                      variant="outline-secondary" 
-                      onClick={onHide} 
-                      size="sm"
-                      className="px-3"
-                      style={{ fontSize: '0.85rem' }}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -1595,11 +1711,11 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                   <div className="d-flex gap-2 flex-wrap">
                     <Button 
                       size="sm" 
-                      variant="primary"
+                      variant="outline-primary"
                       onClick={() => setShowAddTaskModal(true)}
                       disabled={taskActionLoading}
                     >
-                      Add
+                      Add Task
                     </Button>
                     <Button 
                       size="sm" 
@@ -1607,7 +1723,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       onClick={() => setShowAssignTaskModal(true)}
                       disabled={taskActionLoading || selectedTasks.size === 0}
                     >
-                      Assign
+                      Assign Tasks
                     </Button>
                     <Button 
                       size="sm" 
@@ -1615,7 +1731,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'In Progress')}
                       disabled={taskActionLoading || selectedTasks.size === 0}
                     >
-                      Start
+                      Start Tasks
                     </Button>
                     <Button 
                       size="sm" 
@@ -1623,7 +1739,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Completed')}
                       disabled={taskActionLoading || selectedTasks.size === 0}
                     >
-                      Complete
+                      Complete Tasks
                     </Button>
                     <Button 
                       size="sm" 
@@ -1631,7 +1747,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                       onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Cancelled')}
                       disabled={taskActionLoading || selectedTasks.size === 0}
                     >
-                      Cancel
+                      Cancel Tasks
                     </Button>
                   </div>
                 </div>
@@ -2208,6 +2324,154 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             disabled={taskActionLoading || !assignTaskData.assignedUserId}
           >
             {taskActionLoading ? 'Assigning...' : `Assign ${selectedTasks.size} Task${selectedTasks.size !== 1 ? 's' : ''}`}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Start Request Confirmation Modal */}
+      <Modal show={showStartConfirmModal} onHide={() => setShowStartConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Start Confirmation</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to start this request?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowStartConfirmModal(false)}
+            disabled={workActionLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={async () => {
+              setShowStartConfirmModal(false);
+              await handleStartWork();
+            }}
+            disabled={workActionLoading}
+          >
+            {workActionLoading ? 'Starting...' : 'Confirm'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Cancel Request Confirmation Modal */}
+      <Modal show={showCancelConfirmModal} onHide={() => setShowCancelConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Cancel Request</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to cancel this request?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowCancelConfirmModal(false)}
+            disabled={workActionLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={async () => {
+              setShowCancelConfirmModal(false);
+              await handleCancelRequest();
+            }}
+            disabled={workActionLoading}
+          >
+            {workActionLoading ? 'Cancelling...' : 'Confirm'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Complete Request Confirmation Modal */}
+      <Modal show={showCompleteConfirmModal} onHide={() => setShowCompleteConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="text-success">Complete Request</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to complete this request?</p>
+          <div className="alert alert-info">
+            <small>Available from Results tab after saving results</small>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowCompleteConfirmModal(false)}
+            disabled={workActionLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={async () => {
+              setShowCompleteConfirmModal(false);
+              await handleCompleteWork();
+            }}
+            disabled={workActionLoading}
+          >
+            {workActionLoading ? 'Completing...' : 'Complete Request'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Assign Request Modal */}
+      <Modal show={showAssignRequestModal} onHide={() => setShowAssignRequestModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Assign Request</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <div className="alert alert-info py-2">
+              <small>
+                <strong>Assign this request to a user</strong>
+                <br />
+                Select a user who will be responsible for processing this request.
+              </small>
+            </div>
+          </div>
+          
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Assign To *</Form.Label>
+              <Form.Select
+                value={assignRequestData.assignedUserId}
+                onChange={(e) => setAssignRequestData({...assignRequestData, assignedUserId: e.target.value})}
+                required
+              >
+                <option value="">Select a user to assign request to...</option>
+                {users.map((user) => (
+                  <option key={user.USER_ID} value={user.USER_ID}>
+                    {user.FULL_NAME} ({user.ROLE_NAMES})
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">
+                Choose a user who will be responsible for processing this request
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowAssignRequestModal(false);
+              setAssignRequestData({ assignedUserId: '' });
+            }}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleAssignRequest}
+            disabled={loading || !assignRequestData.assignedUserId}
+          >
+            {loading ? 'Assigning...' : 'Assign Request'}
           </Button>
         </Modal.Footer>
       </Modal>
