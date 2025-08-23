@@ -1,0 +1,10 @@
+$ vite
+
+  VITE v7.0.2  ready in 153 ms
+
+  ➜  Local:   http://localhost:5175/
+  ➜  Network: use --host to expose
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
