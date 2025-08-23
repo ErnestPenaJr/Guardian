@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
-import { Upload, MessageSquare, Play, CheckCircle, FileText, Send, Download, Save, X, Plus, Search, Filter, Clock, Users, Activity, BarChart3 } from 'lucide-react';
+import { Upload, MessageSquare, Play, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
 import './RequestModal.css';
 
 interface User {
@@ -64,28 +64,24 @@ interface Task {
 }
 
 interface Milestone {
-  PROGRESS_ID: number;
-  REQUEST_ID: number;
-  PROGRESS_TYPE: 'note' | 'milestone' | 'status' | 'task' | 'document' | 'form' | 'system';
-  TITLE: string;
-  PROGRESS_DETAILS: string;
-  CREATE_BY: number;
-  CREATE_DATE: string;
-  IS_SYSTEM_GENERATED: boolean;
-  RELATED_TASK_ID?: number;
-  STATUS_FROM?: string;
-  STATUS_TO?: string;
-  EVENT_DATA?: string;
-  USER_NAME: string;
+  workProgressId: number;
+  requestId: number;
+  progressType: 'note' | 'milestone' | 'status' | 'task' | 'document' | 'form' | 'system';
+  title: string;
+  description: string;
+  createDate: string;
+  isSystemGenerated: boolean;
+  relatedTaskId?: number;
+  statusFrom?: string;
+  statusTo?: string;
+  eventData?: any;
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 }
 
-interface MilestoneStats {
-  total: number;
-  systemGenerated: number;
-  manual: number;
-  recentCount: number;
-  lastUpdate: string | null;
-}
 
 interface Attachment {
   attachmentId: number;
@@ -161,33 +157,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     assignedUserId: ''
   });
 
-  // Milestone management state
+  // Milestone management state (simplified)
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [milestoneStats, setMilestoneStats] = useState<MilestoneStats>({
-    total: 0,
-    systemGenerated: 0,
-    manual: 0,
-    recentCount: 0,
-    lastUpdate: null
-  });
   const [milestonesLoading, setMilestonesLoading] = useState<boolean>(false);
-  const [showAddMilestoneModal, setShowAddMilestoneModal] = useState<boolean>(false);
-  const [milestoneFilter, setMilestoneFilter] = useState<string>('All');
-  const [milestoneSearch, setMilestoneSearch] = useState<string>('');
-  const [newMilestoneData, setNewMilestoneData] = useState<{
-    title: string;
-    description: string;
-    progressType: 'note' | 'milestone';
-    isPublic: boolean;
-    hoursWorked: string;
-  }>({
-    title: '',
-    description: '',
-    progressType: 'note',
-    isPublic: true,
-    hoursWorked: ''
-  });
-  const [milestoneActionLoading, setMilestoneActionLoading] = useState<boolean>(false);
 
   // Handle assign tasks
   const handleAssignTasks = async () => {
@@ -529,39 +501,17 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     try {
       setMilestonesLoading(true);
       
-      const [milestonesResponse, statsResponse] = await Promise.all([
-        api.get(`/api/requests/${request.REQUEST_ID}/milestones`),
-        api.get(`/api/requests/${request.REQUEST_ID}/milestones/stats`)
-      ]);
+      const response = await api.get(`/api/requests/${request.REQUEST_ID}/milestones`);
       
-      if (milestonesResponse.data && milestonesResponse.data.success) {
-        const milestonesData = milestonesResponse.data.milestones || [];
+      if (response.data && response.data.success) {
+        const milestonesData = response.data.milestones || [];
         setMilestones(milestonesData);
       } else {
         setMilestones([]);
       }
-
-      if (statsResponse.data && statsResponse.data.success) {
-        setMilestoneStats(statsResponse.data.stats);
-      } else {
-        setMilestoneStats({
-          total: 0,
-          systemGenerated: 0,
-          manual: 0,
-          recentCount: 0,
-          lastUpdate: null
-        });
-      }
     } catch (error) {
       console.error('Error fetching milestones:', error);
       setMilestones([]);
-      setMilestoneStats({
-        total: 0,
-        systemGenerated: 0,
-        manual: 0,
-        recentCount: 0,
-        lastUpdate: null
-      });
     } finally {
       setMilestonesLoading(false);
     }
@@ -714,138 +664,45 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
 
-  // Milestone helper functions
-  const getMilestoneIcon = (type: string) => {
-    switch(type) {
-      case 'note': return '📝';
-      case 'milestone': return '🎯';
-      case 'status': return '🔄';
-      case 'task': return '✅';
-      case 'document': return '📎';
-      case 'form': return '📋';
-      case 'system': return '⚙️';
-      default: return '📝';
+  // Helper function to get readable event name
+  const getEventName = (milestone: Milestone) => {
+    switch (milestone.progressType) {
+      case 'status':
+        if (milestone.statusFrom && milestone.statusTo) {
+          return `Status Changed from ${milestone.statusFrom} to ${milestone.statusTo}`;
+        }
+        return milestone.title;
+      case 'system':
+        return milestone.title; // "Submitted", "Assigned", etc.
+      case 'task':
+        return milestone.title; // "Task Created", "Task Completed", etc.
+      case 'document':
+        return milestone.title; // "Document Uploaded", etc.
+      case 'form':
+        return 'Form Submitted';
+      case 'note':
+        return 'Note Added';
+      default:
+        return milestone.title;
     }
   };
 
-  const formatMilestoneDate = (dateString: string) => {
+  // Helper function to format date/time as MM/DD/YYYY, H:MM AM/PM
+  const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    const timeStr = date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    const dateStr = date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
-    
-    if (diffDays === 1) {
-      return `Today • ${timeStr}`;
-    } else if (diffDays === 2) {
-      return `Yesterday • ${timeStr}`;
-    } else if (diffDays <= 7) {
-      return `${diffDays - 1} days ago • ${timeStr}`;
-    } else {
-      return `${date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      })} • ${timeStr}`;
-    }
+    return `${dateStr}, ${timeStr}`;
   };
 
-  const groupMilestonesByDate = (milestones: Milestone[]) => {
-    const groups: { [key: string]: Milestone[] } = {};
-    const now = new Date();
-    
-    milestones.forEach(milestone => {
-      const date = new Date(milestone.CREATE_DATE);
-      const diffTime = Math.abs(now.getTime() - date.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      let groupKey: string;
-      if (diffDays === 1) {
-        groupKey = 'Today';
-      } else if (diffDays === 2) {
-        groupKey = 'Yesterday';
-      } else if (diffDays <= 7) {
-        groupKey = 'This Week';
-      } else if (diffDays <= 30) {
-        groupKey = 'This Month';
-      } else {
-        groupKey = 'Earlier';
-      }
-      
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
-      groups[groupKey].push(milestone);
-    });
-    
-    return groups;
-  };
-
-  const filterMilestones = (milestones: Milestone[]) => {
-    return milestones.filter(milestone => {
-      // Filter by type
-      if (milestoneFilter !== 'All') {
-        if (milestoneFilter === 'Manual' && milestone.IS_SYSTEM_GENERATED) return false;
-        if (milestoneFilter === 'System' && !milestone.IS_SYSTEM_GENERATED) return false;
-        if (milestoneFilter !== 'Manual' && milestoneFilter !== 'System' && 
-            milestone.PROGRESS_TYPE !== milestoneFilter.toLowerCase()) return false;
-      }
-      
-      // Filter by search
-      if (milestoneSearch.trim()) {
-        const searchLower = milestoneSearch.toLowerCase();
-        return milestone.TITLE.toLowerCase().includes(searchLower) ||
-               milestone.PROGRESS_DETAILS.toLowerCase().includes(searchLower) ||
-               milestone.USER_NAME.toLowerCase().includes(searchLower);
-      }
-      
-      return true;
-    });
-  };
-
-  // Handle add manual milestone
-  const handleAddMilestone = async () => {
-    if (!newMilestoneData.title.trim()) {
-      toast.error('Please enter a milestone title');
-      return;
-    }
-
-    try {
-      setMilestoneActionLoading(true);
-      const response = await api.post(`/api/requests/${request.REQUEST_ID}/milestones`, {
-        title: newMilestoneData.title.trim(),
-        description: newMilestoneData.description.trim(),
-        progressType: newMilestoneData.progressType,
-        isVisibleToRequestor: newMilestoneData.isPublic,
-        hoursWorked: newMilestoneData.hoursWorked ? parseFloat(newMilestoneData.hoursWorked) : 0
-      });
-
-      if (response.data && response.data.success) {
-        toast.success('Milestone created successfully!');
-        setShowAddMilestoneModal(false);
-        setNewMilestoneData({
-          title: '',
-          description: '',
-          progressType: 'note',
-          isPublic: true,
-          hoursWorked: ''
-        });
-        await fetchMilestones(); // Refresh milestones list
-      } else {
-        toast.error('Failed to create milestone');
-      }
-    } catch (error: any) {
-      console.error('Error adding milestone:', error);
-      toast.error(error.response?.data?.error || 'Failed to create milestone');
-    } finally {
-      setMilestoneActionLoading(false);
-    }
-  };
 
 
   // Handle form field value changes
@@ -2199,278 +2056,40 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           {/* Milestones Tab */}
           {activeMainTab === 'milestones' && (
             <div className="tab-pane active">
-              {/* Statistics Dashboard */}
-              <div className="row mb-4">
-                <div className="col-md-3 col-sm-6 mb-3">
-                  <div className="card border-0 bg-light">
-                    <div className="card-body py-3">
-                      <div className="d-flex align-items-center">
-                        <div className="me-3">
-                          <BarChart3 size={24} className="text-primary" />
-                        </div>
-                        <div>
-                          <h5 className="card-title mb-1">{milestoneStats.total}</h5>
-                          <p className="card-text text-muted small mb-0">Total Milestones</p>
-                        </div>
-                      </div>
-                    </div>
+              <h6 className="mb-3">Milestones</h6>
+              {milestonesLoading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border spinner-border-sm text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
                   </div>
+                  <div className="mt-2 text-muted small">Loading milestones...</div>
                 </div>
-                <div className="col-md-3 col-sm-6 mb-3">
-                  <div className="card border-0 bg-light">
-                    <div className="card-body py-3">
-                      <div className="d-flex align-items-center">
-                        <div className="me-3">
-                          <Users size={24} className="text-info" />
-                        </div>
-                        <div>
-                          <h5 className="card-title mb-1">{milestoneStats.manual}</h5>
-                          <p className="card-text text-muted small mb-0">Manual</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              ) : milestones.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-muted">No milestones found for this request.</p>
                 </div>
-                <div className="col-md-3 col-sm-6 mb-3">
-                  <div className="card border-0 bg-light">
-                    <div className="card-body py-3">
-                      <div className="d-flex align-items-center">
-                        <div className="me-3">
-                          <Activity size={24} className="text-success" />
-                        </div>
-                        <div>
-                          <h5 className="card-title mb-1">{milestoneStats.systemGenerated}</h5>
-                          <p className="card-text text-muted small mb-0">System</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-md-3 col-sm-6 mb-3">
-                  <div className="card border-0 bg-light">
-                    <div className="card-body py-3">
-                      <div className="d-flex align-items-center">
-                        <div className="me-3">
-                          <Clock size={24} className="text-warning" />
-                        </div>
-                        <div>
-                          <h5 className="card-title mb-1">{milestoneStats.recentCount}</h5>
-                          <p className="card-text text-muted small mb-0">Last 24h</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="row mb-4">
-                <div className="col-md-8">
-                  <div className="d-flex gap-2 flex-wrap">
-                    <Button 
-                      size="sm" 
-                      variant="primary"
-                      onClick={() => setShowAddMilestoneModal(true)}
-                      disabled={milestoneActionLoading}
-                      className="d-flex align-items-center"
-                    >
-                      <Plus size={14} className="me-1" />
-                      Add Milestone
-                    </Button>
-                    
-                    <div className="input-group" style={{ maxWidth: '300px' }}>
-                      <span className="input-group-text bg-light border-end-0">
-                        <Search size={14} className="text-muted" />
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control border-start-0"
-                        placeholder="Search milestones..."
-                        value={milestoneSearch}
-                        onChange={(e) => setMilestoneSearch(e.target.value)}
-                        style={{ fontSize: '0.85rem' }}
-                      />
-                    </div>
-                    
-                    <div className="input-group" style={{ maxWidth: '200px' }}>
-                      <span className="input-group-text bg-light border-end-0">
-                        <Filter size={14} className="text-muted" />
-                      </span>
-                      <select
-                        className="form-select border-start-0"
-                        value={milestoneFilter}
-                        onChange={(e) => setMilestoneFilter(e.target.value)}
-                        style={{ fontSize: '0.85rem' }}
-                      >
-                        <option value="All">All Types</option>
-                        <option value="Manual">Manual Only</option>
-                        <option value="System">System Only</option>
-                        <option value="Status">Status Changes</option>
-                        <option value="Task">Task Events</option>
-                        <option value="Document">Documents</option>
-                        <option value="Note">Notes</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-md-4 text-end">
-                  {milestoneStats.lastUpdate && (
-                    <small className="text-muted">
-                      Last update: {formatMilestoneDate(milestoneStats.lastUpdate)}
-                    </small>
-                  )}
-                </div>
-              </div>
-
-              {/* Timeline */}
-              <div className="card">
-                <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                  <h6 className="mb-0 fw-semibold">Request Timeline</h6>
-                  <span className="badge bg-secondary">
-                    {filterMilestones(milestones).length} of {milestones.length} milestones
-                  </span>
-                </div>
-                <div className="card-body">
-                  {milestonesLoading ? (
-                    <div className="text-center py-5">
-                      <div className="spinner-border spinner-border-sm text-primary" role="status">
-                        <span className="visually-hidden">Loading milestones...</span>
-                      </div>
-                      <div className="mt-2 text-muted small">Loading timeline...</div>
-                    </div>
-                  ) : milestones.length === 0 ? (
-                    <div className="text-center py-5">
-                      <Activity size={48} className="text-muted mb-3" />
-                      <h6 className="text-muted mb-2">No Milestones Yet</h6>
-                      <p className="text-muted small mb-3">
-                        Milestones will appear here as work progresses on this request.
-                      </p>
-                      <Button 
-                        variant="outline-primary" 
-                        size="sm" 
-                        onClick={() => setShowAddMilestoneModal(true)}
-                        className="d-flex align-items-center mx-auto"
-                      >
-                        <Plus size={14} className="me-1" />
-                        Add First Milestone
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="timeline-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                      {(() => {
-                        const filteredMilestones = filterMilestones(milestones);
-                        const groupedMilestones = groupMilestonesByDate(filteredMilestones);
-                        const sortedGroups = ['Today', 'Yesterday', 'This Week', 'This Month', 'Earlier'];
-                        
-                        return sortedGroups.map(groupKey => {
-                          if (!groupedMilestones[groupKey]) return null;
-                          
-                          return (
-                            <div key={groupKey} className="mb-4">
-                              <div className="timeline-group-header mb-3">
-                                <h6 className="text-muted fw-semibold mb-0 d-flex align-items-center">
-                                  <div className="timeline-group-line me-2"></div>
-                                  {groupKey}
-                                  <span className="badge bg-light text-muted ms-2">
-                                    {groupedMilestones[groupKey].length}
-                                  </span>
-                                </h6>
-                              </div>
-                              
-                              <div className="timeline">
-                                {groupedMilestones[groupKey]
-                                  .sort((a, b) => new Date(b.CREATE_DATE).getTime() - new Date(a.CREATE_DATE).getTime())
-                                  .map((milestone, index) => (
-                                  <div key={milestone.PROGRESS_ID} className="timeline-item mb-3">
-                                    <div className={`timeline-marker ${milestone.IS_SYSTEM_GENERATED ? 'bg-secondary' : 'bg-primary'}`}>
-                                      <span style={{ fontSize: '0.7rem' }}>
-                                        {getMilestoneIcon(milestone.PROGRESS_TYPE)}
-                                      </span>
-                                    </div>
-                                    <div className="timeline-content">
-                                      <div className="card border-0 shadow-sm">
-                                        <div className="card-body p-3">
-                                          <div className="d-flex justify-content-between align-items-start mb-2">
-                                            <div className="flex-grow-1">
-                                              <h6 className="mb-1 fw-semibold">
-                                                {milestone.TITLE}
-                                                {milestone.STATUS_FROM && milestone.STATUS_TO && (
-                                                  <span className="text-muted small ms-2">
-                                                    {milestone.STATUS_FROM} → {milestone.STATUS_TO}
-                                                  </span>
-                                                )}
-                                              </h6>
-                                              <div className="d-flex align-items-center gap-2 mb-2">
-                                                <span className={`badge ${milestone.IS_SYSTEM_GENERATED ? 'bg-secondary' : 'bg-primary'}`} 
-                                                      style={{ fontSize: '0.7rem' }}>
-                                                  {milestone.IS_SYSTEM_GENERATED ? 'System' : 'Manual'}
-                                                </span>
-                                                <span className="badge bg-light text-dark" style={{ fontSize: '0.7rem' }}>
-                                                  {milestone.PROGRESS_TYPE}
-                                                </span>
-                                                <small className="text-muted">by {milestone.USER_NAME}</small>
-                                              </div>
-                                            </div>
-                                            <small className="text-muted text-nowrap ms-2">
-                                              {formatMilestoneDate(milestone.CREATE_DATE)}
-                                            </small>
-                                          </div>
-                                          
-                                          {milestone.PROGRESS_DETAILS && (
-                                            <div className="milestone-details mb-2">
-                                              <p className="mb-0 text-muted" style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>
-                                                {milestone.PROGRESS_DETAILS}
-                                              </p>
-                                            </div>
-                                          )}
-                                          
-                                          {milestone.EVENT_DATA && (
-                                            <div className="milestone-event-data mt-2">
-                                              <details className="cursor-pointer">
-                                                <summary className="text-primary small fw-medium">
-                                                  View Event Details
-                                                </summary>
-                                                <div className="mt-2 p-2 bg-light rounded" style={{ fontSize: '0.8rem' }}>
-                                                  <pre className="mb-0" style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                                                    {milestone.EVENT_DATA}
-                                                  </pre>
-                                                </div>
-                                              </details>
-                                            </div>
-                                          )}
-                                          
-                                          {milestone.RELATED_TASK_ID && (
-                                            <div className="mt-2">
-                                              <small className="text-info">
-                                                <FileText size={12} className="me-1" />
-                                                Related to Task T-{milestone.RELATED_TASK_ID}
-                                              </small>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                      
-                      {filterMilestones(milestones).length === 0 && milestoneSearch.trim() && (
-                        <div className="text-center py-4">
-                          <Search size={32} className="text-muted mb-2" />
-                          <h6 className="text-muted">No Results Found</h6>
-                          <p className="text-muted small mb-0">
-                            No milestones match your search criteria. Try adjusting your filters.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              ) : (
+                <table className="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Date/Time</th>
+                      <th>By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {milestones
+                      .sort((a, b) => new Date(b.createDate).getTime() - new Date(a.createDate).getTime())
+                      .map((milestone) => (
+                      <tr key={milestone.workProgressId}>
+                        <td>{getEventName(milestone)}</td>
+                        <td>{formatDateTime(milestone.createDate)}</td>
+                        <td>{`${milestone.user.firstName} ${milestone.user.lastName}`.trim()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </div>
@@ -2593,127 +2212,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         </Modal.Footer>
       </Modal>
 
-      {/* Add Milestone Modal */}
-      <Modal show={showAddMilestoneModal} onHide={() => setShowAddMilestoneModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Milestone</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Milestone Title *</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter milestone title..."
-                value={newMilestoneData.title}
-                onChange={(e) => setNewMilestoneData({...newMilestoneData, title: e.target.value})}
-                maxLength={200}
-                required
-              />
-              <Form.Text className="text-muted">
-                Brief, descriptive title for this milestone (200 characters max)
-              </Form.Text>
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Description / Notes</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={4}
-                placeholder="Add detailed notes about this milestone..."
-                value={newMilestoneData.description}
-                onChange={(e) => setNewMilestoneData({...newMilestoneData, description: e.target.value})}
-                maxLength={1000}
-              />
-              <Form.Text className="text-muted">
-                Detailed information about this milestone (1000 characters max)
-              </Form.Text>
-            </Form.Group>
-
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>Milestone Type</Form.Label>
-                  <Form.Select
-                    value={newMilestoneData.progressType}
-                    onChange={(e) => setNewMilestoneData({...newMilestoneData, progressType: e.target.value as 'note' | 'milestone'})}
-                  >
-                    <option value="note">📝 Note - General update or comment</option>
-                    <option value="milestone">🎯 Milestone - Important progress marker</option>
-                  </Form.Select>
-                </Form.Group>
-              </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>Hours Worked (Optional)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    max="24"
-                    placeholder="0.0"
-                    value={newMilestoneData.hoursWorked}
-                    onChange={(e) => setNewMilestoneData({...newMilestoneData, hoursWorked: e.target.value})}
-                  />
-                  <Form.Text className="text-muted">
-                    Time spent on this milestone
-                  </Form.Text>
-                </Form.Group>
-              </div>
-            </div>
-
-            <Form.Group className="mb-3">
-              <Form.Check
-                type="checkbox"
-                label="Visible to requestor"
-                checked={newMilestoneData.isPublic}
-                onChange={(e) => setNewMilestoneData({...newMilestoneData, isPublic: e.target.checked})}
-              />
-              <Form.Text className="text-muted">
-                When checked, the requestor will be able to see this milestone in their request status
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAddMilestoneModal(false);
-              setNewMilestoneData({
-                title: '',
-                description: '',
-                progressType: 'note',
-                isPublic: true,
-                hoursWorked: ''
-              });
-            }}
-            disabled={milestoneActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAddMilestone}
-            disabled={milestoneActionLoading || !newMilestoneData.title.trim()}
-            className="d-flex align-items-center"
-          >
-            {milestoneActionLoading ? (
-              <>
-                <div className="spinner-border spinner-border-sm me-2" role="status">
-                  <span className="visually-hidden">Creating...</span>
-                </div>
-                Creating...
-              </>
-            ) : (
-              <>
-                <Plus size={14} className="me-1" />
-                Create Milestone
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Modal>
   );
 };

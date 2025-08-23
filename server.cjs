@@ -3574,7 +3574,7 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
         const offset = (pageNum - 1) * limitNum;
 
         // Get milestones with rich user and task data
-        const milestones = await prisma.$queryRaw`
+        const milestonesQuery = `
             SELECT 
                 wp.WORK_PROGRESS_ID,
                 wp.REQUEST_ID,
@@ -3602,7 +3602,7 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
                 creator.FIRST_NAME as CREATOR_FIRST_NAME,
                 creator.LAST_NAME as CREATOR_LAST_NAME,
                 creator.EMAIL as CREATOR_EMAIL,
-                t.TASK_DESCRIPTION,
+                t.DESCRIPTION as TASK_DESCRIPTION,
                 t.STATUS as TASK_STATUS,
                 t.ASSIGNED_USER_ID as TASK_ASSIGNED_USER_ID,
                 assigned_user.FIRST_NAME as TASK_ASSIGNED_FIRST_NAME,
@@ -3618,13 +3618,17 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
             ORDER BY wp.${sortBy} ${sortOrder}
             OFFSET ${offset} ROWS FETCH NEXT ${limitNum} ROWS ONLY
         `;
+        
+        const milestones = await prisma.$queryRawUnsafe(milestonesQuery);
 
         // Get total count for pagination
-        const countResult = await prisma.$queryRaw`
+        const countQuery = `
             SELECT COUNT(*) as total_count
             FROM GUARDIAN.WORK_PROGRESS wp
             WHERE ${whereConditions}
         `;
+        
+        const countResult = await prisma.$queryRawUnsafe(countQuery);
         
         const totalCount = parseInt(countResult[0].total_count);
         const totalPages = Math.ceil(totalCount / limitNum);

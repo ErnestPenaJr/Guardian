@@ -8,3 +8,422 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+9:09:45 PM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:11:07 PM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+9:11:20 PM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+6:38:24 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:38:41 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:39:15 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:41:57 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:41:58 AM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx: Unexpected token, expected "," (2144:14)
+
+  2142 |               </div>
+  2143 |
+> 2144 |               {/* Controls */}
+       |               ^
+  2145 |               <div className="row mb-4">
+  2146 |                 <div className="col-md-8">
+  2147 |                   <div className="d-flex gap-2 flex-wrap">
+  Plugin: vite:react-babel
+  File: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx:2144:14
+  2142|                </div>
+  2143|  
+  2144|                {/* Controls */}
+     |                ^
+  2145|                <div className="row mb-4">
+  2146|                  <div className="col-md-8">
+      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.unexpected (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6647:16)
+      at TypeScriptParserMixin.expect (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6927:12)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11660:14)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10981:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10976:21)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10942:27)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9389:18)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10948:21)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9389:18)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10903:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4662:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4741:36)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+6:41:58 AM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx: Unexpected token, expected "," (2144:14)
+
+  2142 |               </div>
+  2143 |
+> 2144 |               {/* Controls */}
+       |               ^
+  2145 |               <div className="row mb-4">
+  2146 |                 <div className="col-md-8">
+  2147 |                   <div className="d-flex gap-2 flex-wrap">
+  Plugin: vite:react-babel
+  File: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx:2144:14
+  2142|                </div>
+  2143|  
+  2144|                {/* Controls */}
+     |                ^
+  2145|                <div className="row mb-4">
+  2146|                  <div className="col-md-8">
+      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.unexpected (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6647:16)
+      at TypeScriptParserMixin.expect (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6927:12)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11660:14)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10981:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10976:21)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10942:27)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9389:18)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10948:21)
+      at TypeScriptParserMixin.parseExprOp (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9389:18)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10903:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4662:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4741:36)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+6:42:21 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:42:21 AM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx: Expected corresponding JSX closing tag for <Modal.Body>. (2297:8)
+
+  2295 |             </div>
+  2296 |           )}
+> 2297 |         </div>
+       |         ^
+  2298 |       </Modal.Body>
+  2299 |
+  2300 |       {/* Add Task Modal */}
+  Plugin: vite:react-babel
+  File: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx:2297:8
+  2295|              </div>
+  2296|            )}
+  2297|          </div>
+     |          ^
+  2298|        </Modal.Body>
+  2299|  
+      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+6:42:21 AM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx: Expected corresponding JSX closing tag for <Modal.Body>. (2297:8)
+
+  2295 |             </div>
+  2296 |           )}
+> 2297 |         </div>
+       |         ^
+  2298 |       </Modal.Body>
+  2299 |
+  2300 |       {/* Add Task Modal */}
+  Plugin: vite:react-babel
+  File: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx:2297:8
+  2295|              </div>
+  2296|            )}
+  2297|          </div>
+     |          ^
+  2298|        </Modal.Body>
+  2299|  
+      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4728:32)
+      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+6:43:19 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:43:19 AM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx: Expected corresponding JSX closing tag for <Modal>. (2101:8)
+
+  2099 |         </div>
+  2100 |       </Modal.Body>
+> 2101 |         </div>
+       |         ^
+  2102 |       </Modal.Body>
+  2103 |
+  2104 |       {/* Add Task Modal */}
+  Plugin: vite:react-babel
+  File: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx:2101:8
+  2099|          </div>
+  2100|        </Modal.Body>
+  2101|          </div>
+     |          ^
+  2102|        </Modal.Body>
+  2103|  
+      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+6:43:19 AM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx: Expected corresponding JSX closing tag for <Modal>. (2101:8)
+
+  2099 |         </div>
+  2100 |       </Modal.Body>
+> 2101 |         </div>
+       |         ^
+  2102 |       </Modal.Body>
+  2103 |
+  2104 |       {/* Add Task Modal */}
+  Plugin: vite:react-babel
+  File: /opt/homebrew/var/www/projects/Guardian MVP/src/components/RequestModal.tsx:2101:8
+  2099|          </div>
+  2100|        </Modal.Body>
+  2101|          </div>
+     |          ^
+  2102|        </Modal.Body>
+  2103|  
+      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4757:16)
+      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
+      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
+      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
+      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
+      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
+      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
+      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
+      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
+      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
+      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
+      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
+      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
+      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
+      at TypeScriptParserMixin.parseArrowExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12076:10)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11686:12)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
+      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
+6:43:32 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:44:00 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+6:44:21 AM [vite] (client) hmr update /src/components/RequestModal.tsx, /src/index.css
+error: script "dev" exited with code 143
