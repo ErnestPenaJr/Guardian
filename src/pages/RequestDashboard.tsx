@@ -574,18 +574,6 @@ const RequestDashboard: React.FC = () => {
                 Start Work
               </button>
             )}
-            {canContinue && (
-              <button
-                className="btn btn-sm btn-primary"
-                style={{ fontSize: '12px', minWidth: '70px' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleContinueWork(row);
-                }}
-              >
-                Continue
-              </button>
-            )}
             {isCompleted && (
               <span className="badge bg-success" style={{ fontSize: '11px' }}>
                 Completed

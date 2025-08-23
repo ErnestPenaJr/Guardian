@@ -11581,12 +11581,14 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
+// === SPA FALLBACK ROUTE ===
+// Production mode: Handle React Router SPA routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
-// === SPA FALLBACK ROUTE ===
-// In development mode, SPA routing is handled by Vite dev server
-// This route is only needed in production when this server serves static files
-console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);

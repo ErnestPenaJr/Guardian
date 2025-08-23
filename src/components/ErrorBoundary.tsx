@@ -94,14 +94,6 @@ class ErrorBoundary extends Component<Props, State> {
                 >
                   Reload Page
                 </button>
-                <button
-                  onClick={() => {
-                    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-                  }}
-                  className="w-full bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Try Again
-                </button>
                 <a
                   href="/home"
                   className="block w-full text-center bg-gray-100 text-gray-600 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
