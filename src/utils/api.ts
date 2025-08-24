@@ -119,12 +119,21 @@ api.interceptors.response.use(
     }
     
     if (error.response && error.response.status === 401) {
-      // Token expired, invalid, or contains invalid user data - clear all auth data
-      console.warn('[API] Authentication failed - clearing all stored auth data');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('companyId');
-      window.location.href = '/login';
+      // Don't force redirect for the login endpoint itself so the page can show SweetAlert
+      const url = error.config?.url || '';
+      const isLoginCall = url.includes('/api/login');
+      const isAlreadyOnLogin = window.location.pathname === '/login';
+
+      if (!isLoginCall) {
+        // Token expired, invalid, or contains invalid user data - clear all auth data
+        console.warn('[API] Authentication failed - clearing all stored auth data');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('companyId');
+        if (!isAlreadyOnLogin) {
+          window.location.href = '/login';
+        }
+      }
     }
     return Promise.reject(error);
   }

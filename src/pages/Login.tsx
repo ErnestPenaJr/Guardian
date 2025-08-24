@@ -286,7 +286,7 @@ function Login() {
           // Reset password field but keep email for better UX
           setCredentials(prev => ({ ...prev, password: '' }));
           // Focus back to password field after a short delay
-          setTimeout(() => {
+           setTimeout(() => {
             const passwordInput = document.getElementById('password');
             if (passwordInput) passwordInput.focus();
           }, 300);
