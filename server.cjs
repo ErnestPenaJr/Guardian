@@ -518,7 +518,7 @@ app.get('/api/debug/endpoints', (req, res) => {
         timestamp: new Date().toISOString(),
         version: '2.0.0',
         endpoints: [
-            '/api/users', '/api/users/company/:companyId', '/api/invites', 
+            '/api/me', '/api/users', '/api/users/company/:companyId', '/api/invites', 
             '/api/contact-groups', '/api/contact-groups/:id', '/api/contact-groups/:id/members',
             '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/custom-templates', '/api/custom-templates/:id',
@@ -954,6 +954,7 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
                 r.COMPANY_ID,
                 r.REQUESTOR_ID,
                 r.ASSIGNED_ID,
+                r.PRIORITY_LEVEL,
                 ru.FIRST_NAME as REQUESTOR_FIRST_NAME,
                 ru.LAST_NAME as REQUESTOR_LAST_NAME,
                 ru.EMAIL as REQUESTOR_EMAIL,
@@ -1109,6 +1110,8 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             assignedId,
             STATUS,
             status,
+            PRIORITY_LEVEL,
+            priorityLevel,
             formFieldValues
         } = req.body;
 
@@ -1118,6 +1121,16 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         const finalAbbreviation = ABBREVIATION || abbreviation || templateType?.substring(0, 5)?.toUpperCase() || finalRequestName?.substring(0, 5)?.toUpperCase() || 'REQ';
         const finalStatus = STATUS || status || 'P'; // P = Pending
         const finalAssignedId = ASSIGNED_ID || assignedId || null;
+        const finalPriorityLevel = PRIORITY_LEVEL || priorityLevel || 'Standard'; // Default to Standard priority
+        
+        // Validate priority level
+        const validPriorityLevels = ['Low', 'Standard', 'High'];
+        if (!validPriorityLevels.includes(finalPriorityLevel)) {
+            return res.status(400).json({
+                error: 'Invalid priority level',
+                details: 'PRIORITY_LEVEL must be one of: Low, Standard, High'
+            });
+        }
 
         // Validation
         if (!finalRequestName || finalRequestName.trim() === '') {
@@ -1142,7 +1155,8 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             userId: req.userId,
             companyId: req.companyId,
             templateId: templateId || null,
-            finalAssignedId
+            finalAssignedId,
+            finalPriorityLevel
         });
         
         // Insert and get ID in a single query to ensure same connection/transaction
@@ -1155,7 +1169,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 INSERT INTO GUARDIAN.REQUESTS (
                     REQUEST_NAME, REQUEST_DESCRIPTION, ABBREVIATION, STATUS, SUBMITTED_DATE,
                     REQUESTOR_ID, ASSIGNED_ID, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID,
-                    UPDATE_USER_ID, COMPANY_ID, EXTERNAL_USER, FORM_ID
+                    UPDATE_USER_ID, COMPANY_ID, EXTERNAL_USER, FORM_ID, PRIORITY_LEVEL
                 )
                 VALUES (
                     ${finalRequestName.trim()},
@@ -1171,7 +1185,8 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     ${req.userId},
                     ${req.companyId},
                     ${null},
-                    ${templateId || null}
+                    ${templateId || null},
+                    ${finalPriorityLevel}
                 );
                 
                 SET @InsertedId = SCOPE_IDENTITY();
@@ -1203,7 +1218,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         const newRequestResults = await prisma.$queryRaw`
             SELECT REQUEST_ID, REQUEST_NAME, REQUEST_DESCRIPTION, ABBREVIATION, STATUS, 
                    SUBMITTED_DATE, REQUESTOR_ID, ASSIGNED_ID, CREATE_DATE, UPDATE_DATE, 
-                   CREATE_USER_ID, UPDATE_USER_ID, TRACKINGID, COMPANY_ID, EXTERNAL_USER, FORM_ID
+                   CREATE_USER_ID, UPDATE_USER_ID, TRACKINGID, COMPANY_ID, EXTERNAL_USER, FORM_ID, PRIORITY_LEVEL
             FROM GUARDIAN.REQUESTS 
             WHERE REQUEST_ID = ${insertedId} AND COMPANY_ID = ${req.companyId}
         `;
@@ -1314,6 +1329,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 TRACKINGID: newRequest.TRACKINGID,
                 COMPANY_ID: newRequest.COMPANY_ID,
                 FORM_ID: newRequest.FORM_ID,
+                PRIORITY_LEVEL: newRequest.PRIORITY_LEVEL,
                 CREATE_DATE: newRequest.CREATE_DATE,
                 UPDATE_DATE: newRequest.UPDATE_DATE
             }
@@ -1355,6 +1371,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     r.ABBREVIATION,
                     r.COMPANY_ID,
                     r.FORM_ID,
+                    r.PRIORITY_LEVEL,
                     r.RESULTS_DESCRIPTION,
                     requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
                     requestor.LAST_NAME as REQUESTOR_LAST_NAME,
@@ -1447,6 +1464,87 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 timestamp: new Date().toISOString()
             });
         }
+    }
+});
+
+// Get current authenticated user information
+app.get('/api/me', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`👤 Fetching current user info for user ID: ${req.userId} (Company: ${req.companyId})`);
+        
+        // Get complete user information from database
+        const userInfo = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.COMPANY_ID,
+                u.STATUS,
+                u.CREATE_DATE
+            FROM GUARDIAN.USERS u
+            WHERE u.USER_ID = ${req.userId} AND u.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (userInfo.length === 0) {
+            console.error(`❌ User not found: ${req.userId}`);
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
+
+        const user = userInfo[0];
+
+        // Get user roles
+        const userRoles = await prisma.$queryRaw`
+            SELECT 
+                ur.ROLE_ID,
+                r.NAME as ROLE_NAME,
+                r.DISPLAY_NAME,
+                r.DESCRIPTION
+            FROM GUARDIAN.USER_ROLES ur
+            INNER JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+
+        const roles = userRoles.map(role => ({
+            id: role.ROLE_ID,
+            name: role.ROLE_NAME,
+            displayName: role.DISPLAY_NAME,
+            description: role.DESCRIPTION
+        }));
+
+        const roleIds = userRoles.map(role => role.ROLE_ID);
+        const roleNames = userRoles.map(role => role.ROLE_NAME);
+
+        // Format response to match frontend expectations
+        const responseData = {
+            id: user.USER_ID,
+            userId: user.USER_ID,
+            email: user.EMAIL,
+            firstName: user.FIRST_NAME,
+            lastName: user.LAST_NAME,
+            companyId: user.COMPANY_ID,
+            roles: roles,
+            roleIds: roleIds,
+            roleNames: roleNames,
+            status: user.STATUS,
+            createDate: user.CREATE_DATE
+        };
+
+        console.log(`✅ Successfully fetched user info for ${user.EMAIL}`);
+        
+        res.json({
+            success: true,
+            user: responseData
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching current user info:', error);
+        res.status(500).json({
+            error: 'Failed to fetch user information',
+            message: error.message
+        });
     }
 });
 

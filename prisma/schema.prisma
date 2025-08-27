@@ -328,6 +328,7 @@ model REQUESTS {
   REQUEST_DESCRIPTION String?   @db.VarChar(2000)
   RESULTS_DESCRIPTION String?   @db.VarChar(4000)
   FORM_ID             Int?
+  PRIORITY_LEVEL      String    @default("Standard") @db.NVarChar(10)
   
   // Add relationships for REQUESTOR_ID and ASSIGNED_ID
   REQUESTOR           USERS?    @relation("RequestorRequests", fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { FaCode } from 'react-icons/fa';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, FileText, Monitor,
-  LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText
+  LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
+  AlertTriangle, Clock
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -76,6 +77,7 @@ interface Request {
   FORM_ID: number | null;
   ABBREVIATION?: string;
   REQUEST_DESCRIPTION?: string;
+  PRIORITY_LEVEL?: string;
   requestorName: string;
   assignedName: string;
   requestor?: {
@@ -590,6 +592,33 @@ function Home() {
     setCurrentRequest(request);
     setShowRequestModal(true);
   };
+
+  // Priority helper functions
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'High':
+        return <div className="w-2 h-2 bg-red-500 rounded-full"></div>;
+      case 'Standard':
+        return <div className="w-2 h-2 bg-green-500 rounded-full"></div>;
+      case 'Low':
+        return <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>;
+      default:
+        return <div className="w-2 h-2 bg-gray-500 rounded-full"></div>;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'High':
+        return 'text-red-600';
+      case 'Standard':
+        return 'text-green-600';
+      case 'Low':
+        return 'text-yellow-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
   
   // Define columns for the requests table - optimized for mobile
   const requestColumns = [
@@ -659,6 +688,26 @@ function Home() {
             day: 'numeric',
             year: '2-digit'
           })}
+        </div>
+      )
+    },
+    {
+      name: 'Type',
+      selector: (row: Request) => row.ABBREVIATION || 'General',
+      sortable: true,
+      cell: (row: Request) => (
+        <div className="text-xs py-1 whitespace-nowrap">
+          {row.ABBREVIATION || 'General'}
+        </div>
+      )
+    },
+    {
+      name: 'Priority',
+      selector: (row: Request) => row.PRIORITY_LEVEL || 'Standard',
+      sortable: true,
+      cell: (row: Request) => (
+        <div className="flex items-center gap-2 py-1">
+          {getPriorityIcon(row.PRIORITY_LEVEL || 'Standard')}
         </div>
       )
     },

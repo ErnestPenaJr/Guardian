@@ -5,6 +5,20 @@ import fieldTypeService, { UiFieldType } from '../services/fieldTypeService';
 import { getFieldTypeIdByName } from '../services/formService';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/SimpleFormBuilder.css';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   FaFont, 
   FaParagraph,
@@ -24,7 +38,8 @@ import {
   FaMoneyCheckAlt,
   FaIdBadge,
   FaCog,
-  FaQuestionCircle
+  FaQuestionCircle,
+  FaGripVertical
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import FormBuilderTour from './FormBuilderTour';
@@ -34,6 +49,114 @@ interface SimpleFormBuilderProps {
   onChange: (fields: FormField[]) => void;
   formId?: number;
 }
+
+interface DraggableFormFieldProps {
+  field: FormField;
+  onEdit: (field: FormField) => void;
+  onDelete: (id: string) => void;
+  renderFieldPreview: (field: FormField) => React.ReactNode;
+}
+
+const DraggableFormField: React.FC<DraggableFormFieldProps> = ({
+  field,
+  onEdit,
+  onDelete,
+  renderFieldPreview
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: field.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`form-field-item ${isDragging ? 'dragging' : ''}`}
+      onClick={() => onEdit(field)}
+    >
+      <div className="field-header">
+        <div className="field-title-container">
+          <div 
+            className="drag-handle"
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FaGripVertical />
+          </div>
+          <div className="field-title">
+            {field.fieldName}
+            {field.required && (
+              <span style={{ 
+                color: '#dc3545', 
+                marginLeft: '4px', 
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <FaAsterisk size={10} />
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(field);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#0d6efd',
+              fontSize: '14px',
+              padding: '0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <FaEdit />
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-sm btn-outline-secondary ms-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(field.id);
+            }}
+          >
+            <FaTrashAlt />
+          </button>
+        </div>
+      </div>
+      <div className="field-preview">
+        {renderFieldPreview(field)}
+      </div>
+      {field.helpText && (
+        <div className="field-help-text">
+          {field.helpText}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   formFields,
@@ -49,6 +172,41 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const [customTemplates, setCustomTemplates] = useState<any[]>([]);
   const [loadingCustomTemplates, setLoadingCustomTemplates] = useState(false);
   const [showTour, setShowTour] = useState(false);
+
+  // Set up drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Start dragging after moving 8px
+      },
+    })
+  );
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = fields.findIndex((field) => field.id === active.id);
+      const newIndex = fields.findIndex((field) => field.id === over?.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        // Create new array with reordered fields
+        const newFields = [...fields];
+        const [movedField] = newFields.splice(oldIndex, 1);
+        newFields.splice(newIndex, 0, movedField);
+
+        // Update sequence numbers
+        const updatedFields = newFields.map((field, index) => ({
+          ...field,
+          sequence: index + 1
+        }));
+
+        setFields(updatedFields);
+        onChange(updatedFields);
+      }
+    }
+  };
 
   // Auto-launch disabled - users must manually start the tour
   // useEffect(() => {
@@ -350,7 +508,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       fieldTypeId: fieldType.dbFieldTypeId, // Use the database field type ID
       required: false,
       options: '',
-      canDelete: true
+      canDelete: true,
+      sequence: fields.length + 1 // Assign next sequence number
     };
     
     const updatedFields = [...fields, newField];
@@ -405,7 +564,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         fieldTypeId: matchingFieldType?.dbFieldTypeId || 1, // Default to text input if not found
         required: false,
         options: '',
-        canDelete: true
+        canDelete: true,
+        sequence: index + 1 // Assign sequence based on template order
       };
     });
     
@@ -436,14 +596,15 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       console.log('🔍 DEBUG: Loaded custom template data:', templateData);
       
       // Convert template fields to form fields
-      const templateFields = templateData.fields.map((field: any) => ({
+      const templateFields = templateData.fields.map((field: any, index: number) => ({
         id: uuidv4(),
         fieldName: field.FIELD_NAME,
         fieldType: field.fieldType || 'text_input', // fallback to text input
         fieldTypeId: field.FIELD_TYPE_ID || 1,
         required: field.IS_REQUIRED || false,
         options: field.OPTIONS || '',
-        canDelete: true
+        canDelete: true,
+        sequence: index + 1 // Assign sequence based on template field order
       }));
       
       // Replace existing fields with the template fields
@@ -816,75 +977,28 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
               <p>Drag and drop fields here or click a field type to add it.</p>
             </div>
           ) : (
-            <div className="form-fields">
-              {fields.map((field) => (
-                <div 
-                  key={field.id} 
-                  className="form-field-item"
-                  onClick={() => setEditingField(field)}
-                >
-                  <div className="field-header">
-                    <div className="field-title">
-                      {field.fieldName}
-                      {field.required && (
-                        <span style={{ 
-                          color: '#dc3545', 
-                          marginLeft: '4px', 
-                          fontSize: '12px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}>
-                          <FaAsterisk size={10} />
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingField(field);
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#0d6efd',
-                          fontSize: '14px',
-                          padding: '0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button 
-                        type="button" 
-                        className="btn btn-sm btn-outline-secondary ms-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeField(field.id);
-                        }}
-                      >
-                        <FaTrashAlt />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="field-preview">
-                    {renderFieldPreview(field)}
-                  </div>
-                  {field.helpText && (
-                    <div className="field-help-text">
-                      {field.helpText}
-                    </div>
-                  )}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={fields.map(field => field.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="form-fields">
+                  {fields.map((field) => (
+                    <DraggableFormField
+                      key={field.id}
+                      field={field}
+                      onEdit={setEditingField}
+                      onDelete={removeField}
+                      renderFieldPreview={renderFieldPreview}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>

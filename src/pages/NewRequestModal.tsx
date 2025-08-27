@@ -41,6 +41,7 @@ interface RequestMetadata {
   requestName: string;
   requestDescription: string;
   assignedUserId: number | null;
+  priorityLevel: string;
 }
 
 const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialFormData }) => {
@@ -54,7 +55,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
   const [requestMetadata, setRequestMetadata] = useState<RequestMetadata>({
     requestName: '',
     requestDescription: '',
-    assignedUserId: null
+    assignedUserId: null,
+    priorityLevel: 'Standard'
   });
   
   // Clear form values when a new form is opened
@@ -67,7 +69,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       setRequestMetadata({
         requestName: '',
         requestDescription: '',
-        assignedUserId: null
+        assignedUserId: null,
+        priorityLevel: 'Standard'
       });
       
       // Reset form data to ensure it's using the latest initialFormData
@@ -196,7 +199,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         UPDATE_USER_ID: null, // Will be set by the server
         TRACKINGID: generateTrackingId(), // Generate a unique tracking ID
         ABBREVIATION: formData.formType?.substring(0, 5)?.toUpperCase() || null,
-        COMPANY_ID: null // Will be set by the server based on current user's company
+        COMPANY_ID: null, // Will be set by the server based on current user's company
+        PRIORITY_LEVEL: requestMetadata.priorityLevel // Priority level for the request
       };
       
       // Prepare form instance values for storage in FORMS_INSTANCE_VALUES table
@@ -428,7 +432,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       overlayClassName="modal-overlay"
       style={{
         content: {
-          width: step === 2 ? '1200px' : '800px', // Wider for form builder step
+          width: step === 2 ? '800px' : '800px', // Wider for form builder step
           maxWidth: '95%',
           margin: '0',
           borderRadius: '8px',
@@ -644,6 +648,23 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                   <strong>Note:</strong> User assignment is not available. The request will be assigned to the system administrator.
                 </div>
               )}
+              
+              <div className="mb-4 form-field-container">
+                <label className="form-label">
+                  Priority Level <span className="text-danger">*</span>
+                </label>
+                <select 
+                  className="form-select"
+                  value={requestMetadata.priorityLevel || 'Standard'}
+                  onChange={(e) => setRequestMetadata({...requestMetadata, priorityLevel: e.target.value})}
+                  required
+                >
+                  <option value="Low">Low</option>
+                  <option value="Standard">Standard (Default)</option>
+                  <option value="High">High</option>
+                </select>
+                <small className="form-text text-muted">Select the priority level for this request. Standard is the default priority.</small>
+              </div>
               
               <hr className="my-4" />
               <h5 className="mb-3">Form Fields</h5>

@@ -38,6 +38,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   const [templateFields, setTemplateFields] = useState<any[]>([]);
   const [fieldValues, setFieldValues] = useState<{[key: string]: string}>({});
   const [loadingFields, setLoadingFields] = useState(false);
+  const [priorityLevel, setPriorityLevel] = useState('Standard');
   
   // Get icon based on template name
   const getIconForTemplate = (templateName: string) => {
@@ -155,6 +156,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       setDescription('');
       setTemplateFields([]);
       setFieldValues({});
+      setPriorityLevel('Standard');
     }
   }, [isOpen]);
   
@@ -426,7 +428,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         companyId: authUser?.company?.id || 14,
         userId: authUser?.id || 1036,
         formFieldValues: updatedFieldValues, // Use the updated field values with status
-        requestStatus: status // Explicitly set the request status
+        requestStatus: status, // Explicitly set the request status
+        PRIORITY_LEVEL: priorityLevel // Add priority level
       };
       
       console.log(`Creating request with status: ${status}`);
@@ -514,7 +517,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         templateId: formId,
         companyId: authUser?.company?.id || 14, // Get company ID from authenticated user or default to DEV-TEAM (14)
         userId: authUser?.id || 1036, // Get user ID from authenticated user or default to Ernest Pena (1036)
-        formFieldValues: fieldValues // Include the form field values
+        formFieldValues: fieldValues, // Include the form field values
+        PRIORITY_LEVEL: priorityLevel // Add priority level
       };
       
       // Use only the main endpoint to avoid duplicate creation
@@ -574,6 +578,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setSelectedTemplate('SUBJECT');
     setTemplateFields([]);
     setFieldValues({});
+    setPriorityLevel('Standard');
   };
 
   // Helper functions for input field formatting and validation
@@ -875,7 +880,24 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               onChange={(e) => setDescription(e.target.value)}
             ></textarea>
           </div>
-          
+
+          <div className="mb-3">
+            <label htmlFor="priorityLevel" className="form-label">
+              Priority Level <span className="text-danger">*</span>
+            </label>
+            <select 
+              className="form-select"
+              id="priorityLevel"
+              value={priorityLevel}
+              onChange={(e) => setPriorityLevel(e.target.value)}
+              required
+            >
+              <option value="Low">Low</option>
+              <option value="Standard">Standard (Default)</option>
+              <option value="High">High</option>
+            </select>
+            <small className="form-text text-muted">Select the priority level for this request. Standard is the default priority.</small>
+          </div>
 
           
           {/* Submit button for step 1 */}
