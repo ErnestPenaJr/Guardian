@@ -310,38 +310,151 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Error email rate limiting (in-memory store)
+const errorEmailRateLimit = new Map();
+const ERROR_EMAIL_LIMIT_PER_MINUTE = 3; // Max 3 error emails per minute
+const ERROR_EMAIL_RESET_TIME = 60 * 1000; // 1 minute
+
 // Send error email endpoint
 app.post('/api/send-error-email', async (req, res) => {
     try {
-        const { error, userAgent, url, timestamp, userId, companyId } = req.body;
+        const { to, subject, errorDetails, htmlBody } = req.body;
         
+        // Environment detection - only send emails in production
+        const isProduction = process.env.NODE_ENV === 'production' || 
+                           process.env.AZURE_CLIENT_ID || 
+                           req.get('host')?.includes('azurewebsites.net');
+
         console.log('📧 Error email request received:', {
-            error: error?.message || 'Unknown error',
-            url,
-            userId,
-            companyId,
-            timestamp
+            errorType: errorDetails?.errorType || 'unknown',
+            mainError: errorDetails?.mainError || 'Unknown error',
+            pageName: errorDetails?.pageName || 'Unknown page',
+            url: errorDetails?.url,
+            userId: errorDetails?.userId,
+            isProduction,
+            timestamp: errorDetails?.timestamp || new Date().toISOString()
         });
 
-        // For now, just log the error instead of sending email
-        // This prevents the 404 error while maintaining error tracking
+        // Rate limiting for error emails to prevent spam
+        const rateLimitKey = `error-email-${to || 'unknown'}`;
+        const now = Date.now();
+        const rateLimitData = errorEmailRateLimit.get(rateLimitKey);
+
+        if (rateLimitData) {
+            // Reset counter if time window has passed
+            if (now - rateLimitData.firstRequest > ERROR_EMAIL_RESET_TIME) {
+                errorEmailRateLimit.set(rateLimitKey, { count: 1, firstRequest: now });
+            } else if (rateLimitData.count >= ERROR_EMAIL_LIMIT_PER_MINUTE) {
+                console.log('🚫 Error email rate limited:', {
+                    email: to,
+                    attempts: rateLimitData.count,
+                    timeWindow: ERROR_EMAIL_RESET_TIME / 1000
+                });
+                
+                return res.json({
+                    success: true,
+                    message: 'Error logged (rate limited)',
+                    rateLimited: true
+                });
+            } else {
+                rateLimitData.count++;
+            }
+        } else {
+            errorEmailRateLimit.set(rateLimitKey, { count: 1, firstRequest: now });
+        }
+
+        // Always log the error for debugging
         console.error('🚨 Application Error Captured:', {
-            message: error?.message || 'Unknown error',
-            stack: error?.stack,
-            url,
-            userAgent,
-            userId,
-            companyId,
-            timestamp: timestamp || new Date().toISOString()
+            type: errorDetails?.errorType?.toUpperCase() || 'UNKNOWN',
+            message: errorDetails?.mainError || 'Unknown error',
+            page: errorDetails?.pageName,
+            function: errorDetails?.functionName,
+            line: errorDetails?.lineNumber,
+            file: errorDetails?.fileName,
+            url: errorDetails?.url,
+            userId: errorDetails?.userId,
+            email: errorDetails?.email,
+            userAgent: errorDetails?.userAgent?.substring(0, 100) + '...',
+            stackTrace: errorDetails?.stackTrace?.substring(0, 500) + '...',
+            timestamp: errorDetails?.timestamp || new Date().toISOString(),
+            // API-specific details if available
+            apiEndpoint: errorDetails?.apiEndpoint,
+            apiMethod: errorDetails?.apiMethod,
+            apiStatusCode: errorDetails?.apiStatusCode,
+            componentStack: errorDetails?.componentStack?.substring(0, 200) + '...'
         });
 
-        res.json({ 
-            success: true, 
-            message: 'Error logged successfully' 
-        });
+        // Only send actual emails in production environment
+        if (!isProduction) {
+            console.log('📧 Development mode - Error email NOT sent (logged only)');
+            return res.json({ 
+                success: true, 
+                message: 'Error logged (development mode - email not sent)',
+                environment: 'development'
+            });
+        }
+
+        // Validate required fields for email sending
+        if (!to || !subject || !htmlBody) {
+            console.error('❌ Missing required fields for error email:', { to: !!to, subject: !!subject, htmlBody: !!htmlBody });
+            return res.status(400).json({
+                error: 'Missing required fields',
+                message: 'to, subject, and htmlBody are required'
+            });
+        }
+
+        // Send email via Resend API in production
+        try {
+            const emailResult = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: [to],
+                subject: subject,
+                html: htmlBody,
+                headers: {
+                    'X-Guardian-Error-Type': errorDetails?.errorType || 'unknown',
+                    'X-Guardian-Page': errorDetails?.pageName || 'unknown',
+                    'X-Guardian-User-ID': errorDetails?.userId || 'anonymous'
+                }
+            });
+
+            console.log('✅ Error email sent successfully:', {
+                emailId: emailResult.data?.id,
+                to: to,
+                subject: subject.substring(0, 50) + '...',
+                errorType: errorDetails?.errorType,
+                page: errorDetails?.pageName
+            });
+
+            res.json({
+                success: true,
+                message: 'Error email sent successfully',
+                emailId: emailResult.data?.id,
+                environment: 'production'
+            });
+
+        } catch (emailError) {
+            console.error('❌ Failed to send error email via Resend:', {
+                error: emailError.message,
+                code: emailError.code,
+                to: to,
+                subject: subject.substring(0, 50) + '...'
+            });
+
+            // Don't fail the request if email sending fails - error is still logged
+            res.json({
+                success: true,
+                message: 'Error logged (email sending failed)',
+                emailError: emailError.message,
+                environment: 'production'
+            });
+        }
         
     } catch (err) {
-        console.error('❌ Error in send-error-email endpoint:', err);
+        console.error('❌ Error in send-error-email endpoint:', {
+            error: err.message,
+            stack: err.stack?.substring(0, 500) + '...'
+        });
+        
         res.status(500).json({ 
             error: 'Failed to process error email',
             message: err.message 
