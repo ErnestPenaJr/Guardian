@@ -170,8 +170,10 @@ model FORMS {
   UPDATE_DATE      DateTime         @default(now(), map: "DF__FORMS__UPDATE_DA__6ABAD62E") @db.DateTime
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
+  WORKSPACE_ID     Int?
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
   COMPANY          COMPANY?         @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, map: "FK__FORMS__COMPANY")
+  WORKSPACE        WORKSPACES?      @relation("WorkspaceForms", fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_FORMS_WORKSPACE")
   FORMS_INSTANCE   FORMS_INSTANCE[]
   FORMS_FIELDS     FORMS_FIELDS[]
   REQUESTS         REQUESTS[]
@@ -329,11 +331,13 @@ model REQUESTS {
   RESULTS_DESCRIPTION String?   @db.VarChar(4000)
   FORM_ID             Int?
   PRIORITY_LEVEL      String    @default("Standard") @db.NVarChar(10)
+  WORKSPACE_ID        Int?
   
   // Add relationships for REQUESTOR_ID and ASSIGNED_ID
   REQUESTOR           USERS?    @relation("RequestorRequests", fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   ASSIGNED_USER       USERS?    @relation("AssignedRequests", fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   FORM                FORMS?    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, onDelete: NoAction)
+  WORKSPACE           WORKSPACES? @relation("WorkspaceRequests", fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_REQUESTS_WORKSPACE")
   WORK_PROGRESS       WORK_PROGRESS[]
 
   @@schema("GUARDIAN")
@@ -400,6 +404,7 @@ model USERS {
   EMAIL_VALIDATION_CODE_PLAIN   String?        @db.VarChar(10)
   EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
   PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
+  ACTIVE_WORKSPACE_ID           Int?
   COMPANY_INFO                  COMPANY_INFO[]
   
   // Add relationships for REQUESTS
@@ -413,6 +418,9 @@ model USERS {
   ISSUED_NOTICES                NOTICES[]       @relation("IssuedByUserNotices")
   NOTICE_RECIPIENTS             NOTICE_RECIPIENTS[] @relation("NoticeRecipientUser")
   NOTICE_READ_STATUS            NOTICE_READ_STATUS[] @relation("NoticeReadUser")
+  
+  // Add relationships for WORKSPACES module
+  USER_WORKSPACES               USER_WORKSPACES[] @relation("UserWorkspaceUser")
 
   // Add aliases for common field names used in the codebase
   @@map("USERS")
@@ -453,10 +461,12 @@ model NOTICES {
   UPDATE_DATE          DateTime               @default(now()) @db.DateTime
   CREATE_USER_ID       Int?
   UPDATE_USER_ID       Int?
+  WORKSPACE_ID         Int?
   
   // Relationships
   ISSUED_BY_USER       USERS                  @relation("IssuedByUserNotices", fields: [ISSUED_BY_USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICES_ISSUED_BY_USER")
   FORM_TEMPLATE        FORMS?                 @relation("NoticeFormTemplate", fields: [FORM_TEMPLATE_ID], references: [FORM_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICES_FORM_TEMPLATE")
+  WORKSPACE            WORKSPACES?            @relation("WorkspaceNotices", fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICES_WORKSPACE")
   NOTICE_RECIPIENTS    NOTICE_RECIPIENTS[]
   NOTICE_READ_STATUS   NOTICE_READ_STATUS[]
 
@@ -493,5 +503,49 @@ model NOTICE_READ_STATUS {
   USER                  USERS     @relation("NoticeReadUser", fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_NOTICE_READ_STATUS_USER")
 
   @@unique([NOTICE_ID, USER_ID], map: "UQ_NOTICE_READ_STATUS_NOTICE_USER")
+  @@schema("GUARDIAN")
+}
+
+model WORKSPACES {
+  WORKSPACE_ID       Int       @id(map: "PK_WORKSPACES") @default(autoincrement())
+  WORKSPACE_NAME     String    @db.VarChar(100)
+  DESCRIPTION        String?   @db.VarChar(500)
+  COMPANY_ID         Int
+  IS_ACTIVE          Boolean   @default(true)
+  IS_DEFAULT         Boolean   @default(false)
+  CREATE_USER_ID     Int?
+  UPDATE_USER_ID     Int?
+  CREATE_DATE        DateTime  @default(now()) @db.DateTime
+  UPDATE_DATE        DateTime  @default(now()) @db.DateTime
+  
+  // Relationships
+  USER_WORKSPACES    USER_WORKSPACES[]
+  WORKSPACE_REQUESTS REQUESTS[] @relation("WorkspaceRequests")
+  WORKSPACE_FORMS    FORMS[]    @relation("WorkspaceForms")
+  WORKSPACE_NOTICES  NOTICES[]  @relation("WorkspaceNotices")
+  
+  @@unique([COMPANY_ID, WORKSPACE_NAME], map: "UQ_WORKSPACES_COMPANY_NAME")
+  @@index([COMPANY_ID, IS_ACTIVE])
+  @@schema("GUARDIAN")
+}
+
+model USER_WORKSPACES {
+  USER_WORKSPACE_ID  Int       @id(map: "PK_USER_WORKSPACES") @default(autoincrement())
+  USER_ID            Int
+  WORKSPACE_ID       Int
+  IS_ACTIVE          Boolean   @default(true)
+  IS_DEFAULT         Boolean   @default(false)
+  CREATE_USER_ID     Int?
+  UPDATE_USER_ID     Int?
+  CREATE_DATE        DateTime  @default(now()) @db.DateTime
+  UPDATE_DATE        DateTime  @default(now()) @db.DateTime
+  
+  // Relationships
+  USER               USERS     @relation("UserWorkspaceUser", fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_USER_WORKSPACES_USER")
+  WORKSPACE          WORKSPACES @relation(fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_USER_WORKSPACES_WORKSPACE")
+  
+  @@unique([USER_ID, WORKSPACE_ID], map: "UQ_USER_WORKSPACES_USER_WORKSPACE")
+  @@index([USER_ID, IS_ACTIVE])
+  @@index([WORKSPACE_ID, IS_ACTIVE])
   @@schema("GUARDIAN")
 }

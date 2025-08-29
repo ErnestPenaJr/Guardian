@@ -16,6 +16,14 @@ interface UserProfile {
   fullName?: string;
   email?: string;
   companyId?: number;
+  // Workspace fields
+  ACTIVE_WORKSPACE_ID?: number;
+  activeWorkspaceId?: number;
+  currentWorkspace?: {
+    WORKSPACE_ID: number;
+    WORKSPACE_NAME: string;
+    DESCRIPTION?: string;
+  };
 }
 
 // Enhanced useAuth hook with profile switching support
@@ -147,11 +155,68 @@ export function useAuth() {
     }
   };
 
+  const switchWorkspace = async (workspaceId: number, workspaceName: string) => {
+    try {
+      console.log('🔄 [useAuth] Switching to workspace:', workspaceId, workspaceName);
+      
+      if (!user) {
+        throw new Error('No user available for workspace switching');
+      }
+
+      // Call API to switch workspace
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/users/switch-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ workspaceId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to switch workspace');
+      }
+
+      // Update user object with new workspace
+      const updatedUser = {
+        ...user,
+        ACTIVE_WORKSPACE_ID: workspaceId,
+        activeWorkspaceId: workspaceId,
+        currentWorkspace: {
+          WORKSPACE_ID: workspaceId,
+          WORKSPACE_NAME: workspaceName,
+        }
+      };
+
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem('activeWorkspaceId', workspaceId.toString());
+
+      // Update state
+      setUser(updatedUser);
+
+      console.log('✅ [useAuth] Workspace switched successfully to:', workspaceName);
+      
+      // Optionally force page reload to ensure all components update
+      // setTimeout(() => {
+      //   window.location.reload();
+      // }, 100);
+
+      return Promise.resolve(updatedUser);
+    } catch (error) {
+      console.error('❌ [useAuth] Error switching workspace:', error);
+      return Promise.reject(error);
+    }
+  };
+
   return { 
     user, 
     loading, 
     switchUserProfile, 
     switchUserRole,
+    switchWorkspace,
     logout, 
     updateUser,
     refreshUser: loadUserFromStorage

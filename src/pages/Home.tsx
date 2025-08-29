@@ -3,7 +3,7 @@ import { FaCode } from 'react-icons/fa';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, FileText, Monitor,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
-  AlertTriangle, Clock
+  AlertTriangle, Clock, Building2
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -32,6 +32,8 @@ import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import NewRequestModal from './NewRequestModal';
 import formService from '../services/formService';
 import noticeService from '../services/noticeService';
+import WorkspaceSelector from '../components/WorkspaceSelector';
+import WorkspaceManagement from '../components/WorkspaceManagement';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 
@@ -96,7 +98,7 @@ function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager' | 'notices'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
 
@@ -503,6 +505,12 @@ function Home() {
         label: 'Notices',
         onClick: () => setSelectedSection('notices'),
         active: selectedSection === 'notices',
+      },
+      {
+        icon: <Building2 className="w-6 h-6" />,
+        label: 'Workspaces',
+        onClick: () => setSelectedSection('workspaces'),
+        active: selectedSection === 'workspaces',
       }
     ] : []),
     // Admin and Super Admin navigation items (role_id = 1 or 6)
@@ -1023,6 +1031,9 @@ function Home() {
         </div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
           <NotificationDropdown className="mr-2" />
+          
+          {/* Workspace Selector */}
+          <WorkspaceSelector />
           
           {/* Role Switcher - Show for testing purposes */}
           {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' || 
@@ -1673,6 +1684,10 @@ function Home() {
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <NoticesLandingPage />
+            </div>
+          ) : selectedSection === 'workspaces' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <WorkspaceManagement />
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-2xl mb-6">

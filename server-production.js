@@ -11661,6 +11661,729 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
 // === NO CATCH-ALL ROUTE ===
 // IIS handles SPA routing via web.config
 
+// ========================================
+// WORKSPACE MANAGEMENT ENDPOINTS
+// ========================================
+
+// Helper function to check if user has JAFAR role (role_id=6) for workspace management
+const checkJafarRole = async (req, res, next) => {
+    try {
+        console.log(`🔑 Checking JAFAR role for user ${req.userId}`);
+        
+        // Get user roles from database
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID, r.NAME as ROLE_NAME, r.DISPLAY_NAME
+            FROM GUARDIAN.USER_ROLES ur
+            INNER JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+        
+        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
+        
+        if (!hasJafarRole) {
+            console.log(`❌ Access denied - user ${req.userId} does not have JAFAR role (role_id=6)`);
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. Workspace management is only available to JAFAR users (role_id=6).'
+            });
+        }
+        
+        console.log(`✅ JAFAR role verified for user ${req.userId}`);
+        next();
+    } catch (error) {
+        console.error('❌ Error checking JAFAR role:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error validating user permissions'
+        });
+    }
+};
+
+// GET /api/workspaces - List all workspaces for company (role_id=6 only)
+app.get('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        console.log(`📋 Fetching workspaces for company ${req.companyId}`);
+        
+        const workspaces = await prisma.$queryRaw`
+            SELECT 
+                w.WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.DESCRIPTION,
+                w.COMPANY_ID,
+                w.IS_ACTIVE,
+                w.IS_DEFAULT,
+                w.CREATE_DATE,
+                w.UPDATE_DATE,
+                COUNT(uw.USER_ID) as USER_COUNT
+            FROM GUARDIAN.WORKSPACES w
+            LEFT JOIN GUARDIAN.USER_WORKSPACES uw ON w.WORKSPACE_ID = uw.WORKSPACE_ID AND uw.IS_ACTIVE = 1
+            WHERE w.COMPANY_ID = ${req.companyId}
+            GROUP BY w.WORKSPACE_ID, w.WORKSPACE_NAME, w.DESCRIPTION, w.COMPANY_ID, w.IS_ACTIVE, w.IS_DEFAULT, w.CREATE_DATE, w.UPDATE_DATE
+            ORDER BY w.IS_DEFAULT DESC, w.WORKSPACE_NAME ASC
+        `;
+        
+        console.log(`✅ Found ${workspaces.length} workspaces for company ${req.companyId}`);
+        
+        res.json({
+            success: true,
+            workspaces: workspaces
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching workspaces:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch workspaces'
+        });
+    }
+});
+
+// POST /api/workspaces - Create new workspace (role_id=6 only)
+app.post('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const { workspaceName, description, isDefault = false } = req.body;
+        
+        console.log(`➕ Creating new workspace for company ${req.companyId}:`, { workspaceName, description, isDefault });
+        
+        // Validation
+        if (!workspaceName || workspaceName.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Workspace name is required'
+            });
+        }
+        
+        if (workspaceName.length > 100) {
+            return res.status(400).json({
+                success: false,
+                error: 'Workspace name must be 100 characters or less'
+            });
+        }
+        
+        // Check for duplicate workspace name within company
+        const existingWorkspace = await prisma.$queryRaw`
+            SELECT WORKSPACE_ID FROM GUARDIAN.WORKSPACES 
+            WHERE COMPANY_ID = ${req.companyId} AND WORKSPACE_NAME = ${workspaceName.trim()}
+        `;
+        
+        if (existingWorkspace.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'A workspace with this name already exists in your company'
+            });
+        }
+        
+        // If setting as default, unset existing default
+        if (isDefault) {
+            await prisma.$queryRaw`
+                UPDATE GUARDIAN.WORKSPACES 
+                SET IS_DEFAULT = 0, UPDATE_DATE = GETDATE()
+                WHERE COMPANY_ID = ${req.companyId} AND IS_DEFAULT = 1
+            `;
+        }
+        
+        // Create the workspace
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.WORKSPACES 
+            (WORKSPACE_NAME, DESCRIPTION, COMPANY_ID, IS_ACTIVE, IS_DEFAULT, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE)
+            OUTPUT INSERTED.WORKSPACE_ID
+            VALUES (${workspaceName.trim()}, ${description || ''}, ${req.companyId}, 1, ${isDefault ? 1 : 0}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE())
+        `;
+        
+        const newWorkspaceId = result[0].WORKSPACE_ID;
+        
+        // Get the created workspace
+        const newWorkspace = await prisma.$queryRaw`
+            SELECT 
+                w.WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.DESCRIPTION,
+                w.COMPANY_ID,
+                w.IS_ACTIVE,
+                w.IS_DEFAULT,
+                w.CREATE_DATE,
+                w.UPDATE_DATE
+            FROM GUARDIAN.WORKSPACES w
+            WHERE w.WORKSPACE_ID = ${newWorkspaceId}
+        `;
+        
+        console.log(`✅ Created workspace: ${workspaceName} (ID: ${newWorkspaceId})`);
+        
+        res.status(201).json({
+            success: true,
+            workspace: newWorkspace[0],
+            message: 'Workspace created successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error creating workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create workspace'
+        });
+    }
+});
+
+// GET /api/users/workspaces - Get user's available workspaces
+app.get('/api/users/workspaces', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📋 Fetching workspaces for user ${req.userId}`);
+        
+        const workspaces = await prisma.$queryRaw`
+            SELECT 
+                w.WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.DESCRIPTION,
+                w.IS_DEFAULT,
+                uw.IS_DEFAULT as IS_USER_DEFAULT,
+                uw.IS_ACTIVE as IS_ASSIGNED,
+                CASE WHEN u.ACTIVE_WORKSPACE_ID = w.WORKSPACE_ID THEN 1 ELSE 0 END as IS_CURRENT_ACTIVE
+            FROM GUARDIAN.WORKSPACES w
+            INNER JOIN GUARDIAN.USER_WORKSPACES uw ON w.WORKSPACE_ID = uw.WORKSPACE_ID
+            INNER JOIN GUARDIAN.USERS u ON uw.USER_ID = u.USER_ID
+            WHERE uw.USER_ID = ${req.userId} 
+            AND uw.IS_ACTIVE = 1 
+            AND w.IS_ACTIVE = 1
+            AND w.COMPANY_ID = ${req.companyId}
+            ORDER BY uw.IS_DEFAULT DESC, w.IS_DEFAULT DESC, w.WORKSPACE_NAME ASC
+        `;
+        
+        console.log(`✅ Found ${workspaces.length} workspaces for user ${req.userId}`);
+        
+        res.json({
+            success: true,
+            workspaces: workspaces
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching user workspaces:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch user workspaces'
+        });
+    }
+});
+
+// POST /api/users/switch-workspace - Switch user's active workspace
+app.post('/api/users/switch-workspace', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { workspaceId } = req.body;
+        
+        console.log(`🔄 Switching user ${req.userId} to workspace ${workspaceId}`);
+        
+        // Validation
+        if (!workspaceId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Workspace ID is required'
+            });
+        }
+        
+        // Verify user has access to this workspace
+        const userWorkspace = await prisma.$queryRaw`
+            SELECT 
+                uw.USER_WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.COMPANY_ID
+            FROM GUARDIAN.USER_WORKSPACES uw
+            INNER JOIN GUARDIAN.WORKSPACES w ON uw.WORKSPACE_ID = w.WORKSPACE_ID
+            WHERE uw.USER_ID = ${req.userId} 
+            AND uw.WORKSPACE_ID = ${workspaceId}
+            AND uw.IS_ACTIVE = 1 
+            AND w.IS_ACTIVE = 1
+            AND w.COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (userWorkspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found or you do not have access to this workspace'
+            });
+        }
+        
+        // Update user's active workspace
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USERS 
+            SET ACTIVE_WORKSPACE_ID = ${workspaceId}
+            WHERE USER_ID = ${req.userId}
+        `;
+        
+        console.log(`✅ Switched user ${req.userId} to workspace ${workspaceId}: ${userWorkspace[0].WORKSPACE_NAME}`);
+        
+        res.json({
+            success: true,
+            message: 'Workspace switched successfully',
+            workspace: {
+                WORKSPACE_ID: workspaceId,
+                WORKSPACE_NAME: userWorkspace[0].WORKSPACE_NAME
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error switching workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to switch workspace'
+        });
+    }
+});
+
+// PUT /api/workspaces/:id - Update workspace (role_id=6 only)
+app.put('/api/workspaces/:id', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const workspaceId = parseInt(req.params.id);
+        const { workspaceName, description, isActive, isDefault } = req.body;
+        
+        console.log(`✏️ Updating workspace ${workspaceId} for company ${req.companyId}:`, { workspaceName, description, isActive, isDefault });
+        
+        // Verify workspace belongs to user's company
+        const workspace = await prisma.$queryRaw`
+            SELECT WORKSPACE_ID, WORKSPACE_NAME, IS_DEFAULT
+            FROM GUARDIAN.WORKSPACES 
+            WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (workspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found'
+            });
+        }
+        
+        // Validation
+        if (workspaceName && workspaceName.length > 100) {
+            return res.status(400).json({
+                success: false,
+                error: 'Workspace name must be 100 characters or less'
+            });
+        }
+        
+        // Check for duplicate workspace name if name is being changed
+        if (workspaceName && workspaceName !== workspace[0].WORKSPACE_NAME) {
+            const existingWorkspace = await prisma.$queryRaw`
+                SELECT WORKSPACE_ID FROM GUARDIAN.WORKSPACES 
+                WHERE COMPANY_ID = ${req.companyId} AND WORKSPACE_NAME = ${workspaceName.trim()} 
+                AND WORKSPACE_ID != ${workspaceId}
+            `;
+            
+            if (existingWorkspace.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'A workspace with this name already exists in your company'
+                });
+            }
+        }
+        
+        // If setting as default, unset existing default
+        if (isDefault && !workspace[0].IS_DEFAULT) {
+            await prisma.$queryRaw`
+                UPDATE GUARDIAN.WORKSPACES 
+                SET IS_DEFAULT = 0, UPDATE_DATE = GETDATE()
+                WHERE COMPANY_ID = ${req.companyId} AND IS_DEFAULT = 1
+            `;
+        }
+        
+        // Build update query dynamically
+        let updateQuery = `UPDATE GUARDIAN.WORKSPACES SET UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}`;
+        
+        if (workspaceName !== undefined) {
+            updateQuery += `, WORKSPACE_NAME = '${workspaceName.trim().replace(/'/g, "''")}'`;
+        }
+        if (description !== undefined) {
+            updateQuery += `, DESCRIPTION = '${(description || '').replace(/'/g, "''")}'`;
+        }
+        if (isActive !== undefined) {
+            updateQuery += `, IS_ACTIVE = ${isActive ? 1 : 0}`;
+        }
+        if (isDefault !== undefined) {
+            updateQuery += `, IS_DEFAULT = ${isDefault ? 1 : 0}`;
+        }
+        
+        updateQuery += ` WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId}`;
+        
+        await prisma.$queryRawUnsafe(updateQuery);
+        
+        // Get updated workspace
+        const updatedWorkspace = await prisma.$queryRaw`
+            SELECT 
+                w.WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.DESCRIPTION,
+                w.COMPANY_ID,
+                w.IS_ACTIVE,
+                w.IS_DEFAULT,
+                w.CREATE_DATE,
+                w.UPDATE_DATE
+            FROM GUARDIAN.WORKSPACES w
+            WHERE w.WORKSPACE_ID = ${workspaceId}
+        `;
+        
+        console.log(`✅ Updated workspace ${workspaceId}`);
+        
+        res.json({
+            success: true,
+            workspace: updatedWorkspace[0],
+            message: 'Workspace updated successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error updating workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update workspace'
+        });
+    }
+});
+
+// DELETE /api/workspaces/:id - Soft delete workspace (role_id=6 only)
+app.delete('/api/workspaces/:id', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const workspaceId = parseInt(req.params.id);
+        
+        console.log(`🗑️ Soft deleting workspace ${workspaceId} for company ${req.companyId}`);
+        
+        // Verify workspace belongs to user's company
+        const workspace = await prisma.$queryRaw`
+            SELECT WORKSPACE_ID, WORKSPACE_NAME, IS_DEFAULT
+            FROM GUARDIAN.WORKSPACES 
+            WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (workspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found'
+            });
+        }
+        
+        // Prevent deletion of default workspace
+        if (workspace[0].IS_DEFAULT) {
+            return res.status(400).json({
+                success: false,
+                error: 'Cannot delete the default workspace. Please set another workspace as default first.'
+            });
+        }
+        
+        // Check if workspace has active users
+        const activeUsers = await prisma.$queryRaw`
+            SELECT COUNT(*) as USER_COUNT
+            FROM GUARDIAN.USER_WORKSPACES 
+            WHERE WORKSPACE_ID = ${workspaceId} AND IS_ACTIVE = 1
+        `;
+        
+        if (activeUsers[0].USER_COUNT > 0) {
+            return res.status(400).json({
+                success: false,
+                error: `Cannot delete workspace. It has ${activeUsers[0].USER_COUNT} active user(s). Please reassign users to other workspaces first.`
+            });
+        }
+        
+        // Soft delete the workspace
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.WORKSPACES 
+            SET IS_ACTIVE = 0, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        console.log(`✅ Soft deleted workspace ${workspaceId}: ${workspace[0].WORKSPACE_NAME}`);
+        
+        res.json({
+            success: true,
+            message: 'Workspace deleted successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error deleting workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete workspace'
+        });
+    }
+});
+
+// ========================================
+// USER-WORKSPACE ASSIGNMENT ENDPOINTS
+// ========================================
+
+// GET /api/workspaces/:id/users - Get users in specific workspace (role_id=6 only)
+app.get('/api/workspaces/:id/users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const workspaceId = parseInt(req.params.id);
+        
+        console.log(`👥 Fetching users for workspace ${workspaceId}`);
+        
+        // Verify workspace belongs to user's company
+        const workspace = await prisma.$queryRaw`
+            SELECT WORKSPACE_ID FROM GUARDIAN.WORKSPACES 
+            WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (workspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found'
+            });
+        }
+        
+        const users = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                uw.IS_ACTIVE as IS_ASSIGNED,
+                uw.IS_DEFAULT as IS_DEFAULT_WORKSPACE,
+                uw.CREATE_DATE as ASSIGNED_DATE
+            FROM GUARDIAN.USERS u
+            INNER JOIN GUARDIAN.USER_WORKSPACES uw ON u.USER_ID = uw.USER_ID
+            WHERE uw.WORKSPACE_ID = ${workspaceId} 
+            AND u.COMPANY_ID = ${req.companyId}
+            AND u.STATUS = 'P'
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+        
+        console.log(`✅ Found ${users.length} users in workspace ${workspaceId}`);
+        
+        res.json({
+            success: true,
+            users: users
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching workspace users:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch workspace users'
+        });
+    }
+});
+
+// POST /api/workspaces/:id/users - Assign users to workspace (role_id=6 only)
+app.post('/api/workspaces/:id/users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const workspaceId = parseInt(req.params.id);
+        const { userIds, isDefault = false } = req.body;
+        
+        console.log(`➕ Assigning users to workspace ${workspaceId}:`, { userIds, isDefault });
+        
+        // Validation
+        if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'User IDs array is required'
+            });
+        }
+        
+        // Verify workspace belongs to user's company
+        const workspace = await prisma.$queryRaw`
+            SELECT WORKSPACE_ID FROM GUARDIAN.WORKSPACES 
+            WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId} AND IS_ACTIVE = 1
+        `;
+        
+        if (workspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found or inactive'
+            });
+        }
+        
+        // Verify all users belong to the same company
+        const validUsers = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE USER_ID IN (${userIds.join(',')}) AND COMPANY_ID = ${req.companyId} AND STATUS = 'P'
+        `;
+        
+        if (validUsers.length !== userIds.length) {
+            return res.status(400).json({
+                success: false,
+                error: 'One or more users are invalid or not in your company'
+            });
+        }
+        
+        let assignedCount = 0;
+        let skippedCount = 0;
+        
+        for (const userId of userIds) {
+            try {
+                // Check if user is already assigned to this workspace
+                const existingAssignment = await prisma.$queryRaw`
+                    SELECT USER_WORKSPACE_ID FROM GUARDIAN.USER_WORKSPACES 
+                    WHERE USER_ID = ${userId} AND WORKSPACE_ID = ${workspaceId}
+                `;
+                
+                if (existingAssignment.length > 0) {
+                    // Update existing assignment to active
+                    await prisma.$queryRaw`
+                        UPDATE GUARDIAN.USER_WORKSPACES 
+                        SET IS_ACTIVE = 1, IS_DEFAULT = ${isDefault ? 1 : 0}, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+                        WHERE USER_ID = ${userId} AND WORKSPACE_ID = ${workspaceId}
+                    `;
+                    skippedCount++;
+                } else {
+                    // Create new assignment
+                    await prisma.$queryRaw`
+                        INSERT INTO GUARDIAN.USER_WORKSPACES 
+                        (USER_ID, WORKSPACE_ID, IS_ACTIVE, IS_DEFAULT, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE)
+                        VALUES (${userId}, ${workspaceId}, 1, ${isDefault ? 1 : 0}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE())
+                    `;
+                    assignedCount++;
+                }
+                
+                // If this is being set as default workspace, update user's active workspace
+                if (isDefault) {
+                    await prisma.$queryRaw`
+                        UPDATE GUARDIAN.USERS 
+                        SET ACTIVE_WORKSPACE_ID = ${workspaceId}
+                        WHERE USER_ID = ${userId}
+                    `;
+                    
+                    // Remove default flag from other workspaces for this user
+                    await prisma.$queryRaw`
+                        UPDATE GUARDIAN.USER_WORKSPACES 
+                        SET IS_DEFAULT = 0, UPDATE_DATE = GETDATE()
+                        WHERE USER_ID = ${userId} AND WORKSPACE_ID != ${workspaceId}
+                    `;
+                }
+                
+            } catch (error) {
+                console.error(`❌ Error assigning user ${userId} to workspace ${workspaceId}:`, error);
+            }
+        }
+        
+        console.log(`✅ Assigned ${assignedCount} users to workspace ${workspaceId}, ${skippedCount} were already assigned`);
+        
+        res.json({
+            success: true,
+            message: `Successfully processed ${userIds.length} user assignments`,
+            details: {
+                assigned: assignedCount,
+                updated: skippedCount,
+                total: userIds.length
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error assigning users to workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to assign users to workspace'
+        });
+    }
+});
+
+// DELETE /api/workspaces/:id/users/:userId - Remove user from workspace (role_id=6 only)
+app.delete('/api/workspaces/:id/users/:userId', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const workspaceId = parseInt(req.params.id);
+        const userId = parseInt(req.params.userId);
+        
+        console.log(`➖ Removing user ${userId} from workspace ${workspaceId}`);
+        
+        // Verify workspace belongs to user's company
+        const workspace = await prisma.$queryRaw`
+            SELECT WORKSPACE_ID, IS_DEFAULT FROM GUARDIAN.WORKSPACES 
+            WHERE WORKSPACE_ID = ${workspaceId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (workspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found'
+            });
+        }
+        
+        // Verify user belongs to the same company
+        const user = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (user.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found or not in your company'
+            });
+        }
+        
+        // Check if this is the user's default workspace
+        const userWorkspace = await prisma.$queryRaw`
+            SELECT IS_DEFAULT FROM GUARDIAN.USER_WORKSPACES 
+            WHERE USER_ID = ${userId} AND WORKSPACE_ID = ${workspaceId}
+        `;
+        
+        if (userWorkspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'User is not assigned to this workspace'
+            });
+        }
+        
+        if (userWorkspace[0].IS_DEFAULT) {
+            // Check if user has other workspaces
+            const otherWorkspaces = await prisma.$queryRaw`
+                SELECT COUNT(*) as WORKSPACE_COUNT
+                FROM GUARDIAN.USER_WORKSPACES uw
+                INNER JOIN GUARDIAN.WORKSPACES w ON uw.WORKSPACE_ID = w.WORKSPACE_ID
+                WHERE uw.USER_ID = ${userId} AND uw.WORKSPACE_ID != ${workspaceId} 
+                AND uw.IS_ACTIVE = 1 AND w.IS_ACTIVE = 1
+            `;
+            
+            if (otherWorkspaces[0].WORKSPACE_COUNT === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Cannot remove user from their only workspace. Please assign them to another workspace first.'
+                });
+            }
+            
+            // Assign user to another workspace as default
+            const nextWorkspace = await prisma.$queryRaw`
+                SELECT TOP 1 uw.WORKSPACE_ID
+                FROM GUARDIAN.USER_WORKSPACES uw
+                INNER JOIN GUARDIAN.WORKSPACES w ON uw.WORKSPACE_ID = w.WORKSPACE_ID
+                WHERE uw.USER_ID = ${userId} AND uw.WORKSPACE_ID != ${workspaceId} 
+                AND uw.IS_ACTIVE = 1 AND w.IS_ACTIVE = 1
+                ORDER BY w.IS_DEFAULT DESC, w.WORKSPACE_NAME
+            `;
+            
+            if (nextWorkspace.length > 0) {
+                await prisma.$queryRaw`
+                    UPDATE GUARDIAN.USER_WORKSPACES 
+                    SET IS_DEFAULT = 1, UPDATE_DATE = GETDATE()
+                    WHERE USER_ID = ${userId} AND WORKSPACE_ID = ${nextWorkspace[0].WORKSPACE_ID}
+                `;
+                
+                await prisma.$queryRaw`
+                    UPDATE GUARDIAN.USERS 
+                    SET ACTIVE_WORKSPACE_ID = ${nextWorkspace[0].WORKSPACE_ID}
+                    WHERE USER_ID = ${userId}
+                `;
+            }
+        }
+        
+        // Remove user from workspace
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USER_WORKSPACES 
+            SET IS_ACTIVE = 0, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            WHERE USER_ID = ${userId} AND WORKSPACE_ID = ${workspaceId}
+        `;
+        
+        console.log(`✅ Removed user ${userId} from workspace ${workspaceId}`);
+        
+        res.json({
+            success: true,
+            message: 'User removed from workspace successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error removing user from workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to remove user from workspace'
+        });
+    }
+});
+
 // Error handling
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
