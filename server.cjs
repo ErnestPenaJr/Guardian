@@ -41,6 +41,60 @@ const validateEmailServer = (email) => {
     return { valid: true, email: normalizedEmail };
 };
 
+// Military call sign generator for company names
+const generateMilitaryCallSign = async () => {
+    const militaryTerms = [
+        // Brand-aligned terms
+        'GUARDIAN', 'SHIELD', 'DRAGON',
+        // Animals
+        'HAWK', 'EAGLE', 'VIPER', 'WOLF', 'BEAR', 'LION', 'TIGER', 'SHARK', 
+        'RAVEN', 'FALCON', 'COBRA', 'LYNX', 'PANTHER', 'JAGUAR',
+        // Weather/Elements
+        'STORM', 'THUNDER', 'LIGHTNING', 'FROST', 'BLAZE', 'STEEL', 'FLAME', 
+        'ICE', 'WIND', 'RAIN', 'SNOW', 'CYCLONE',
+        // Military Terms
+        'GHOST', 'SHADOW', 'PHANTOM', 'ALPHA', 'BRAVO', 'DELTA', 'ECHO', 
+        'FOXTROT', 'ROMEO', 'SIERRA', 'TANGO', 'VICTOR',
+        // Action Words
+        'STRIKE', 'GUARD', 'SWORD', 'LANCE', 'BOLT', 'ARROW', 'SPEAR', 
+        'TITAN', 'NOVA', 'NEXUS', 'APEX', 'FORGE'
+    ];
+    
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+        // Generate random call sign
+        const randomTerm = militaryTerms[Math.floor(Math.random() * militaryTerms.length)];
+        const randomNumber = Math.floor(Math.random() * 90) + 10; // 10-99
+        const callSign = `${randomTerm}-${randomNumber}`;
+        
+        // Check if call sign already exists in database
+        try {
+            const existingCompany = await prisma.$queryRaw`
+                SELECT COMPANY_ID FROM GUARDIAN.COMPANY 
+                WHERE NAME = ${callSign}
+            `;
+            
+            if (existingCompany.length === 0) {
+                console.log(`✅ Generated unique military call sign: ${callSign}`);
+                return callSign;
+            }
+            
+            console.log(`⚠️ Call sign ${callSign} already exists, generating new one...`);
+            attempts++;
+        } catch (error) {
+            console.error('❌ Error checking call sign uniqueness:', error);
+            attempts++;
+        }
+    }
+    
+    // Fallback: use timestamp-based call sign if all attempts fail
+    const fallbackCallSign = `GUARDIAN-${Date.now().toString().slice(-4)}`;
+    console.log(`⚠️ Using fallback call sign: ${fallbackCallSign}`);
+    return fallbackCallSign;
+};
+
 // Email service using Resend
 let sendVerificationEmail, sendInviteEmail;
 
@@ -7720,16 +7774,20 @@ app.post('/api/reset-password', async (req, res) => {
 // Complete registration after email verification
 app.post('/api/complete-registration', async (req, res) => {
     try {
-        const { email, password, fullName, workspaceName, role, teamSize, companySize } = req.body;
+        const { email, password, fullName, role, teamSize, companySize } = req.body;
         console.log(`👤 Completing registration for: ${email}`);
         console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
 
-        // Validate required fields
+        // Auto-generate military call sign for workspace name
+        const workspaceName = await generateMilitaryCallSign();
+        console.log(`🎖️ Generated military call sign: ${workspaceName}`);
+
+        // Validate required fields (workspaceName now auto-generated)
         console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
-        if (!email || !password || !fullName || !workspaceName) {
+        if (!email || !password || !fullName) {
             console.log(`❌ Missing required fields for complete-registration`);
             return res.status(400).json({
-                error: 'Email, password, full name, and workspace name are required'
+                error: 'Email, password, and full name are required'
             });
         }
 
@@ -7860,14 +7918,15 @@ app.post('/api/complete-registration', async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Registration completed successfully',
+            message: `Registration completed successfully! Welcome to organization ${workspaceName}`,
             user: {
                 id: userId,
                 email: email,
                 firstName: firstName,
                 lastName: lastName,
                 companyId: existingUser.COMPANY_ID
-            }
+            },
+            callSign: workspaceName // Include the generated call sign in response
         });
 
     } catch (error) {

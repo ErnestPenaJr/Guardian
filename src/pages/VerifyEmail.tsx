@@ -33,7 +33,6 @@ const VerifyEmail = () => {
     fullName: '',
     password: '',
     confirmPassword: '',
-    workspaceName: '',
     role: '',
     teamSize: '',
     companySize: ''
@@ -233,7 +232,7 @@ const VerifyEmail = () => {
     setError('');
     try {
       // Validate form data
-      if (!formData.fullName || !formData.password || !formData.confirmPassword || !formData.workspaceName) {
+      if (!formData.fullName || !formData.password || !formData.confirmPassword) {
         setError('Please fill in all required fields');
         setIsLoading(false);
         return;
@@ -248,12 +247,11 @@ const VerifyEmail = () => {
         setIsLoading(false);
         return;
       }
-      // Prepare payload for backend
+      // Prepare payload for backend (workspaceName auto-generated on server)
       const payload = {
         email,
         password: formData.password,
         fullName: formData.fullName, // Send as fullName
-        workspaceName: formData.workspaceName,
         role: formData.role,
         teamSize: formData.teamSize,
         companySize: formData.companySize
@@ -261,10 +259,18 @@ const VerifyEmail = () => {
       // POST to backend to complete registration
       const response = await axios.post('/api/complete-registration', payload);
       if (response.data.success) {
-        // Show success message with SweetAlert2
+        // Show success message with generated call sign
+        const callSign = response.data.callSign || 'GUARDIAN-XX';
         await Swal.fire({
           title: '<strong>Registration Completed!</strong>',
-          html: '<p>Your account has successfully been created. Please sign in to get started!</p>',
+          html: `
+            <p>Your account has been successfully created!</p>
+            <div style="margin: 20px 0; padding: 15px; background: #1e40af; color: white; border-radius: 8px;">
+              <strong>🎖️ Your Organization Call Sign:</strong><br>
+              <span style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${callSign}</span>
+            </div>
+            <p>Please sign in to get started!</p>
+          `,
           icon: 'success',
           confirmButtonText: 'Sign In',
           confirmButtonColor: '#0D9488', // secondary color
@@ -308,10 +314,6 @@ const VerifyEmail = () => {
         return;
       }
       if (!validatePassword(formData.password)) {
-        return;
-      }
-      if (!formData.workspaceName) {
-        setError('Please enter a workspace name');
         return;
       }
       
@@ -585,18 +587,13 @@ const VerifyEmail = () => {
           </div>
         </div>
         
-        <div>
-          <label htmlFor="workspaceName" className="block text-body-sm font-medium text-gray-1 mb-2">
-            Workspace Name
-          </label>
-          <input
-            type="text"
-            id="workspaceName"
-            value={formData.workspaceName}
-            onChange={(e) => setFormData({ ...formData, workspaceName: e.target.value })}
-            placeholder="Add a team name"
-            className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-          />
+        {/* Workspace name auto-generated as military call sign on server */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <p className="text-blue-800 text-body-sm">
+            <strong>🎖️ Your organization will be assigned a unique military call sign automatically!</strong>
+            <br />
+            <span className="text-blue-600">Examples: GUARDIAN-42, SHIELD-87, DRAGON-23</span>
+          </p>
         </div>
         
         {error && (
