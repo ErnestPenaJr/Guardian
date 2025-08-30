@@ -264,21 +264,35 @@ const VerifyEmail = () => {
         await Swal.fire({
           title: '<strong>Registration Completed!</strong>',
           html: `
-            <p>Your account has been successfully created!</p>
-            <div style="margin: 20px 0; padding: 15px; background: #1e40af; color: white; border-radius: 8px;">
-              <strong>🎖️ Your Organization Call Sign:</strong><br>
-              <span style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${callSign}</span>
+            <div style="text-align: center; padding: 10px 0;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+                Your account has been successfully created!
+              </p>
+              
+              <div style="margin: 25px auto; padding: 20px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3); max-width: 280px;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; opacity: 0.9;">
+                  🎖️ ORGANIZATION CALL SIGN
+                </div>
+                <div style="font-size: 28px; font-weight: 800; letter-spacing: 3px; font-family: 'Courier New', monospace;">
+                  ${callSign}
+                </div>
+              </div>
+              
+              <p style="margin: 20px 0 0 0; font-size: 16px; color: #374151;">
+                Please sign in to get started!
+              </p>
             </div>
-            <p>Please sign in to get started!</p>
           `,
           icon: 'success',
           confirmButtonText: 'Sign In',
-          confirmButtonColor: '#0D9488', // secondary color
+          confirmButtonColor: '#0D9488',
           allowOutsideClick: false,
+          width: '480px',
           customClass: {
             title: 'text-h4 font-display font-bold',
-            htmlContainer: 'text-body-md text-gray-1',
-            confirmButton: 'font-semibold'
+            htmlContainer: 'text-body-md',
+            confirmButton: 'font-semibold',
+            popup: 'rounded-2xl'
           }
         });
         // Redirect to login page

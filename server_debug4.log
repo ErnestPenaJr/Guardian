@@ -1,0 +1,58 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 97963
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📝 Registration request for: test5@example.com
+🔍 Found 0 existing users with email: test5@example.com
+🔧 Creating user with raw SQL for: test5@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1154,
+  }
+]
+🔧 Creating company_info for User ID: 1154, Company ID: 1
+prisma:error 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `547`. Message: `The INSERT statement conflicted with the FOREIGN KEY constraint "FK_COMPANY_INFO_COMPANY". The conflict occurred in database "GUARDIAN-DEV", table "GUARDIAN.COMPANY", column 'COMPANY_ID'.`
+❌ Registration error: 141 | `)}
+142 | 
+143 | We suggest to move the contents of ${Je(a)} to ${Je(o)} to consolidate your env vars.
+144 | `;throw new Error(c)}else if(r==="warn"){let c=`Conflict for env var${s.length>1?"s":""} ${s.map(l=>be(l)).join(", ")} in ${Je(o)} and ${Je(a)}
+145 | Env vars from ${Je(a)} overwrite the ones from ${Je(o)}
+146 |       `;console.warn(`${nr("warn(prisma)")} ${c}`)}}}}function kC(t){if(HT(t)){Su(`Environment variables loaded from ${t}`);let e=bu.default.config({path:t,debug:process.env.DOTENV_CONFIG_DEBUG?!0:void 0});return{dotenvResult:xC(e),message:nn(`Environment variables loaded from ${rA.default.relative(process.cwd(),t)}`),path:t}}else Su(`Environment variables not found at ${t}`);return null}function UC(t,e){return t&&e&&rA.default.resolve(t)===rA.default.resolve(e)}function HT(t){return!!(t&&Oo.default.existsSync(t))}function Nu(t,e){return Object.prototype.hasOwnProperty.call(t,e)}function nA(t,e){let r={};for(let n of Object.keys(t))r[n]=e(t[n],n);return r}function Fu(t,e){if(t.length===0)return;let r=t[0];for(let n=1;n<t.length;n++)e(r,t[n])<0&&(r=t[n]);return r}function M(t,e){Object.defineProperty(t,"name",{value:e,configurable:!0})}var LC=new Set,Fi=(t,e,...r)=>{LC.has(t)||(LC.add(t),mu(e,...r))};var Z=class t extends Error{clientVersion;errorCode;retryable;constructor(e,r,n){super(e),this.name="PrismaClie
+
+PrismaClientKnownRequestError: 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `547`. Message: `The INSERT statement conflicted with the FOREIGN KEY constraint "FK_COMPANY_INFO_COMPANY". The conflict occurred in database "GUARDIAN-DEV", table "GUARDIAN.COMPANY", column 'COMPANY_ID'.`
+       meta: {
+  code: "547",
+  message: "The INSERT statement conflicted with the FOREIGN KEY constraint \"FK_COMPANY_INFO_COMPANY\". The conflict occurred in database \"GUARDIAN-DEV\", table \"GUARDIAN.COMPANY\", column 'COMPANY_ID'.",
+},
+ clientVersion: "6.11.1",
+       code: "P2010"
+
+      at new PrismaClientKnownRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:146:1352)
+      at handleRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
+      at handleAndLogRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
+      at request (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
+

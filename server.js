@@ -73,25 +73,25 @@ const generateMilitaryCallSign = async () => {
         try {
             const existingCompany = await prisma.$queryRaw`
                 SELECT COMPANY_ID FROM GUARDIAN.COMPANY 
-                WHERE COMPANY_NAME = ${callSign}
+                WHERE NAME = ${callSign}
             `;
             
             if (existingCompany.length === 0) {
-                console.log(`🎖️ Generated unique military call sign: ${callSign}`);
+                console.log(`✅ Generated unique military call sign: ${callSign}`);
                 return callSign;
             }
             
-            console.log(`⚠️ Call sign ${callSign} already exists, trying again...`);
+            console.log(`⚠️ Call sign ${callSign} already exists, generating new one...`);
             attempts++;
         } catch (error) {
-            console.error(`❌ Error checking call sign uniqueness:`, error);
+            console.error('❌ Error checking call sign uniqueness:', error);
             attempts++;
         }
     }
     
-    // Fallback: Generate call sign with timestamp if all attempts failed
+    // Fallback: use timestamp-based call sign if all attempts fail
     const fallbackCallSign = `GUARDIAN-${Date.now().toString().slice(-4)}`;
-    console.log(`🆘 Using fallback call sign after ${maxAttempts} attempts: ${fallbackCallSign}`);
+    console.log(`⚠️ Using fallback call sign: ${fallbackCallSign}`);
     return fallbackCallSign;
 };
 
@@ -346,13 +346,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILE SERVING ===
-// Production mode: Static files served by Express
-app.use(express.static('.', {
-    maxAge: '1d',
-    etag: false,
-    index: 'index.html'
-}));
-console.log('🏭 Production mode: Static files served by Express');
+// In development mode, static files are served by Vite dev server (port 5175)
+// This backend server (port 3001) only handles API endpoints
+console.log('🔧 Development mode: Static files served by Vite on port 5175');
 
 // === API ROUTES ===
 
@@ -1330,17 +1326,26 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             finalPriorityLevel
         });
         
+        // Get user's active workspace for request assignment
+        const userWorkspace = await prisma.$queryRaw`
+            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${req.userId}
+        `;
+        
+        const activeWorkspaceId = userWorkspace[0]?.ACTIVE_WORKSPACE_ID;
+        console.log(`🏢 Assigning request to workspace: ${activeWorkspaceId || 'None'}`);
+
         // Insert and get ID in a single query to ensure same connection/transaction
         let insertedId;
         try {
-            // Use a single query that inserts and returns the ID
+            // Use a single query that inserts and returns the ID (with workspace)
             const insertResult = await prisma.$queryRaw`
                 DECLARE @InsertedId INT;
                 
                 INSERT INTO GUARDIAN.REQUESTS (
                     REQUEST_NAME, REQUEST_DESCRIPTION, ABBREVIATION, STATUS, SUBMITTED_DATE,
                     REQUESTOR_ID, ASSIGNED_ID, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID,
-                    UPDATE_USER_ID, COMPANY_ID, EXTERNAL_USER, FORM_ID, PRIORITY_LEVEL
+                    UPDATE_USER_ID, COMPANY_ID, EXTERNAL_USER, FORM_ID, PRIORITY_LEVEL, WORKSPACE_ID
                 )
                 VALUES (
                     ${finalRequestName.trim()},
@@ -1357,7 +1362,8 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     ${req.companyId},
                     ${null},
                     ${templateId || null},
-                    ${finalPriorityLevel}
+                    ${finalPriorityLevel},
+                    ${activeWorkspaceId}
                 );
                 
                 SET @InsertedId = SCOPE_IDENTITY();
@@ -1516,13 +1522,23 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
-// Real requests endpoint with database query
+// Real requests endpoint with database query (workspace-filtered)
 app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const startTime = Date.now();
         console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
 
-        // OPTIMIZED: Single query with proper JOINs and timeout handling
+        // Get user's active workspace
+        const userWorkspace = await prisma.$queryRaw`
+            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${req.userId}
+        `;
+        
+        const activeWorkspaceId = userWorkspace[0]?.ACTIVE_WORKSPACE_ID;
+        
+        console.log(`🏢 User ${req.userId} active workspace: ${activeWorkspaceId || 'None'}`);
+
+        // OPTIMIZED: Single query with proper JOINs, timeout handling, and workspace filtering
         const requests = await Promise.race([
             prisma.$queryRaw`
                 SELECT 
@@ -1544,6 +1560,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     r.FORM_ID,
                     r.PRIORITY_LEVEL,
                     r.RESULTS_DESCRIPTION,
+                    r.WORKSPACE_ID,
                     requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
                     requestor.LAST_NAME as REQUESTOR_LAST_NAME,
                     requestor.EMAIL as REQUESTOR_EMAIL,
@@ -1552,12 +1569,15 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                     assigned.EMAIL as ASSIGNED_EMAIL,
                     creator.FIRST_NAME as CREATOR_FIRST_NAME,
                     creator.LAST_NAME as CREATOR_LAST_NAME,
-                    creator.EMAIL as CREATOR_EMAIL
+                    creator.EMAIL as CREATOR_EMAIL,
+                    w.WORKSPACE_NAME
                 FROM GUARDIAN.REQUESTS r
                 LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID AND requestor.COMPANY_ID = ${req.companyId}
                 LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID AND assigned.COMPANY_ID = ${req.companyId}
                 LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID AND creator.COMPANY_ID = ${req.companyId}
+                LEFT JOIN GUARDIAN.WORKSPACES w ON r.WORKSPACE_ID = w.WORKSPACE_ID
                 WHERE r.COMPANY_ID = ${req.companyId}
+                  AND (r.WORKSPACE_ID = ${activeWorkspaceId || null} OR r.WORKSPACE_ID IS NULL)
                 ORDER BY r.CREATE_DATE DESC
             `,
             new Promise((_, reject) => 
@@ -7238,16 +7258,42 @@ app.post('/api/register', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Check if user already exists
-        const existingUser = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
+        // Check if user already exists with this email
+        const existingUsers = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL_VALIDATED, COMPANY_ID FROM GUARDIAN.USERS 
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            ORDER BY CREATE_DATE DESC
         `;
 
-        if (existingUser.length > 0) {
-            return res.status(400).json({
-                error: 'An account with this email already exists'
-            });
+        console.log(`🔍 Found ${existingUsers.length} existing users with email: ${email}`);
+        
+        if (existingUsers.length > 0) {
+            // Check if any user is already verified
+            const verifiedUser = existingUsers.find(user => user.EMAIL_VALIDATED === true);
+            if (verifiedUser) {
+                console.log(`❌ Email already registered and verified: ${email}`);
+                return res.status(409).json({
+                    error: 'An account with this email already exists and is verified. Please sign in instead.'
+                });
+            }
+            
+            // Check if there's an unverified user from the last 30 minutes
+            const recentUnverified = await prisma.$queryRaw`
+                SELECT USER_ID, CREATE_DATE FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                AND EMAIL_VALIDATED = 0
+                AND CREATE_DATE > DATEADD(MINUTE, -30, GETDATE())
+                ORDER BY CREATE_DATE DESC
+            `;
+            
+            if (recentUnverified.length > 0) {
+                console.log(`ℹ️ Recent unverified registration exists for: ${email}`);
+                return res.status(200).json({
+                    success: true,
+                    message: 'Verification code already sent to your email',
+                    existingRegistration: true
+                });
+            }
         }
 
         // Generate 6-digit verification code
@@ -7287,13 +7333,13 @@ app.post('/api/register', async (req, res) => {
         }
 
         // Create company
-        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
+        let company = await prisma.COMPANY.findFirst({ where: { NAME: companyNameToUse } });
         if (!company) {
-          company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
+          company = await prisma.COMPANY.create({ data: { NAME: companyNameToUse } });
         }
 
         // Create user in database
-        const user = await prisma.uSERS.create({
+        const user = await prisma.USERS.create({
           data: {
             EMAIL: email,
             PASSWORD_HASH: passwordHash,
@@ -7310,7 +7356,7 @@ app.post('/api/register', async (req, res) => {
         });
 
         // Create company_info entry
-        await prisma.cOMPANY_INFO.create({
+        await prisma.COMPANY_INFO.create({
           data: {
             USER_ID: user.USER_ID,
             COMPANY_ID: company.COMPANY_ID,
@@ -7318,13 +7364,13 @@ app.post('/api/register', async (req, res) => {
         });
 
         // Assign Admin role
-        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+        let adminRole = await prisma.ROLES.findFirst({ where: { NAME: 'Admin' } });
         if (!adminRole) {
-          adminRole = await prisma.rOLES.create({ 
+          adminRole = await prisma.ROLES.create({ 
             data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } 
           });
         }
-        await prisma.uSER_ROLES.create({ 
+        await prisma.USER_ROLES.create({ 
           data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } 
         });
 
@@ -7377,11 +7423,35 @@ app.post('/api/verify-email', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Look up user in database
-        console.log(`🔍 Looking up user in database for email: ${normalizedEmail}`);
-        const user = await prisma.uSERS.findFirst({
-            where: { EMAIL: normalizedEmail }
+        // Look up most recent unverified user with this email
+        console.log(`🔍 Looking up most recent unverified user in database for email: ${normalizedEmail}`);
+        const user = await prisma.USERS.findFirst({
+            where: { 
+                EMAIL: normalizedEmail,
+                EMAIL_VALIDATED: false,
+                EMAIL_VALIDATION_TOKEN: { not: null }
+            },
+            orderBy: { CREATE_DATE: 'desc' }
         });
+        
+        // If no unverified user found, check if email is already verified
+        if (!user) {
+            const verifiedUser = await prisma.USERS.findFirst({
+                where: { 
+                    EMAIL: normalizedEmail,
+                    EMAIL_VALIDATED: true
+                }
+            });
+            
+            if (verifiedUser) {
+                console.log(`✅ Email already verified for: ${normalizedEmail}`);
+                return res.status(200).json({
+                    success: true,
+                    message: 'Email already verified',
+                    alreadyVerified: true
+                });
+            }
+        }
 
         if (!user) {
             console.log(`❌ No user found with email: ${normalizedEmail}`);
@@ -7426,7 +7496,7 @@ app.post('/api/verify-email', async (req, res) => {
         }
 
         // Mark user as verified in database
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 EMAIL_VALIDATED: true,
@@ -7464,20 +7534,50 @@ app.post('/api/send-verification-email', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for resend: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
+        // Find the most recent unverified user for this email
+        const user = await prisma.USERS.findFirst({
+            where: { 
+                EMAIL: normalizedEmail,
+                EMAIL_VALIDATED: false
+            },
+            orderBy: { CREATE_DATE: 'desc' }
+        });
+
+        if (!user) {
+            console.log(`❌ No unverified user found for resend: ${normalizedEmail}`);
+            return res.status(400).json({
+                error: 'No pending verification found for this email'
+            });
+        }
+
         // Generate new 6-digit verification code
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Set expiration to 30 minutes from now
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+        // Hash the verification code for secure storage
+        const crypto = require('crypto');
+        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
 
-        // Update verification data
-        global.verificationCodes = global.verificationCodes || {};
-        global.verificationCodes[email] = {
-            code: verificationCode,
-            expiresAt: expiresAt,
-            verified: false
-        };
+        // Update the user's verification token in database
+        await prisma.USERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                EMAIL_VALIDATION_TOKEN: hashedCode,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+                UPDATE_DATE: new Date()
+            }
+        });
 
         console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
 
@@ -7529,7 +7629,7 @@ app.post('/api/request-password-reset', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Check if user exists
-        const user = await prisma.uSERS.findFirst({
+        const user = await prisma.USERS.findFirst({
             where: { EMAIL: normalizedEmail }
         });
 
@@ -7550,7 +7650,7 @@ app.post('/api/request-password-reset', async (req, res) => {
         const resetExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
 
         // Store reset code in user record
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 EMAIL_VALIDATION_TOKEN: hashedCode,
@@ -7609,7 +7709,7 @@ app.post('/api/verify-reset-code', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Find user
-        const user = await prisma.uSERS.findFirst({
+        const user = await prisma.USERS.findFirst({
             where: { EMAIL: normalizedEmail }
         });
 
@@ -7688,7 +7788,7 @@ app.post('/api/reset-password', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Find user
-        const user = await prisma.uSERS.findFirst({
+        const user = await prisma.USERS.findFirst({
             where: { EMAIL: normalizedEmail }
         });
 
@@ -7724,7 +7824,7 @@ app.post('/api/reset-password', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         // Update password and clear reset token
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 PASSWORD_HASH: hashedPassword,
@@ -7757,11 +7857,11 @@ app.post('/api/complete-registration', async (req, res) => {
         const { email, password, fullName, role, teamSize, companySize } = req.body;
         console.log(`👤 Completing registration for: ${email}`);
         console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
-        
+
         // Auto-generate military call sign for workspace name
         const workspaceName = await generateMilitaryCallSign();
         console.log(`🎖️ Generated military call sign: ${workspaceName}`);
-        
+
         // Validate required fields (workspaceName now auto-generated)
         console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
         if (!email || !password || !fullName) {
@@ -7775,7 +7875,7 @@ app.post('/api/complete-registration', async (req, res) => {
         console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
         let existingUser;
         try {
-            existingUser = await prisma.uSERS.findFirst({
+            existingUser = await prisma.USERS.findFirst({
                 where: { EMAIL: email }
             });
             console.log(`✅ Database query successful for user lookup`);
@@ -7829,7 +7929,7 @@ app.post('/api/complete-registration', async (req, res) => {
 
         // Update the existing user with password and name
         console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: existingUser.USER_ID },
             data: {
                 PASSWORD_HASH: hashedPassword,
@@ -7844,15 +7944,15 @@ app.post('/api/complete-registration', async (req, res) => {
         const userId = existingUser.USER_ID;
 
         // Check if user already has roles, if not assign Admin role (they already have it from registration)
-        const existingRoles = await prisma.uSER_ROLES.findMany({
+        const existingRoles = await prisma.USER_ROLES.findMany({
             where: { USER_ID: userId }
         });
 
         if (existingRoles.length === 0) {
             // Assign Admin role if no roles exist
-            let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+            let adminRole = await prisma.ROLES.findFirst({ where: { NAME: 'Admin' } });
             if (adminRole) {
-                await prisma.uSER_ROLES.create({
+                await prisma.USER_ROLES.create({
                     data: { USER_ID: userId, ROLE_ID: adminRole.ROLE_ID }
                 });
             }
@@ -7861,7 +7961,7 @@ app.post('/api/complete-registration', async (req, res) => {
         // Update company info if provided
         console.log(`📝 Updating company info for user ${userId}`);
         if (role || teamSize || companySize || workspaceName) {
-            const existingCompanyInfo = await prisma.cOMPANY_INFO.findFirst({
+            const existingCompanyInfo = await prisma.COMPANY_INFO.findFirst({
                 where: { USER_ID: userId }
             });
 
@@ -7878,7 +7978,7 @@ app.post('/api/complete-registration', async (req, res) => {
                 });
                 
                 // Update existing record using the unique COMPANY_INFO_ID
-                const updateResult = await prisma.cOMPANY_INFO.update({
+                const updateResult = await prisma.COMPANY_INFO.update({
                     where: { COMPANY_INFO_ID: existingCompanyInfo.COMPANY_INFO_ID },
                     data: {
                         ...(workspaceName && { WORKSPACE_NAME: workspaceName }),
@@ -11717,11 +11817,8 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
-// === SPA FALLBACK ROUTE ===
-// Production mode: Handle React Router SPA routing
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// === NO CATCH-ALL ROUTE ===
+// IIS handles SPA routing via web.config
 
 // ========================================
 // WORKSPACE MANAGEMENT ENDPOINTS
@@ -11882,110 +11979,6 @@ app.post('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (
         res.status(500).json({
             success: false,
             error: 'Failed to create workspace'
-        });
-    }
-});
-
-// GET /api/users/workspaces - Get user's available workspaces
-app.get('/api/users/workspaces', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        console.log(`📋 Fetching workspaces for user ${req.userId}`);
-        
-        const workspaces = await prisma.$queryRaw`
-            SELECT 
-                w.WORKSPACE_ID,
-                w.WORKSPACE_NAME,
-                w.DESCRIPTION,
-                w.IS_DEFAULT,
-                uw.IS_DEFAULT as IS_USER_DEFAULT,
-                uw.IS_ACTIVE as IS_ASSIGNED,
-                CASE WHEN u.ACTIVE_WORKSPACE_ID = w.WORKSPACE_ID THEN 1 ELSE 0 END as IS_CURRENT_ACTIVE
-            FROM GUARDIAN.WORKSPACES w
-            INNER JOIN GUARDIAN.USER_WORKSPACES uw ON w.WORKSPACE_ID = uw.WORKSPACE_ID
-            INNER JOIN GUARDIAN.USERS u ON uw.USER_ID = u.USER_ID
-            WHERE uw.USER_ID = ${req.userId} 
-            AND uw.IS_ACTIVE = 1 
-            AND w.IS_ACTIVE = 1
-            AND w.COMPANY_ID = ${req.companyId}
-            ORDER BY uw.IS_DEFAULT DESC, w.IS_DEFAULT DESC, w.WORKSPACE_NAME ASC
-        `;
-        
-        console.log(`✅ Found ${workspaces.length} workspaces for user ${req.userId}`);
-        
-        res.json({
-            success: true,
-            workspaces: workspaces
-        });
-        
-    } catch (error) {
-        console.error('❌ Error fetching user workspaces:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch user workspaces'
-        });
-    }
-});
-
-// POST /api/users/switch-workspace - Switch user's active workspace
-app.post('/api/users/switch-workspace', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const { workspaceId } = req.body;
-        
-        console.log(`🔄 Switching user ${req.userId} to workspace ${workspaceId}`);
-        
-        // Validation
-        if (!workspaceId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Workspace ID is required'
-            });
-        }
-        
-        // Verify user has access to this workspace
-        const userWorkspace = await prisma.$queryRaw`
-            SELECT 
-                uw.USER_WORKSPACE_ID,
-                w.WORKSPACE_NAME,
-                w.COMPANY_ID
-            FROM GUARDIAN.USER_WORKSPACES uw
-            INNER JOIN GUARDIAN.WORKSPACES w ON uw.WORKSPACE_ID = w.WORKSPACE_ID
-            WHERE uw.USER_ID = ${req.userId} 
-            AND uw.WORKSPACE_ID = ${workspaceId}
-            AND uw.IS_ACTIVE = 1 
-            AND w.IS_ACTIVE = 1
-            AND w.COMPANY_ID = ${req.companyId}
-        `;
-        
-        if (userWorkspace.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Workspace not found or you do not have access to this workspace'
-            });
-        }
-        
-        // Update user's active workspace
-        await prisma.$queryRaw`
-            UPDATE GUARDIAN.USERS 
-            SET ACTIVE_WORKSPACE_ID = ${workspaceId}
-            WHERE USER_ID = ${req.userId}
-        `;
-        
-        console.log(`✅ Switched user ${req.userId} to workspace ${workspaceId}: ${userWorkspace[0].WORKSPACE_NAME}`);
-        
-        res.json({
-            success: true,
-            message: 'Workspace switched successfully',
-            workspace: {
-                WORKSPACE_ID: workspaceId,
-                WORKSPACE_NAME: userWorkspace[0].WORKSPACE_NAME
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Error switching workspace:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to switch workspace'
         });
     }
 });
@@ -12446,6 +12439,114 @@ app.delete('/api/workspaces/:id/users/:userId', getAuthenticatedUserCompany, che
     }
 });
 
+// ========================================
+// WORKSPACE SWITCHING ENDPOINTS
+// ========================================
+
+// GET /api/users/workspaces - Get user's available workspaces
+app.get('/api/users/workspaces', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📋 Fetching workspaces for user ${req.userId}`);
+        
+        const workspaces = await prisma.$queryRaw`
+            SELECT 
+                w.WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.DESCRIPTION,
+                w.IS_DEFAULT,
+                uw.IS_DEFAULT as IS_USER_DEFAULT,
+                uw.IS_ACTIVE as IS_ASSIGNED,
+                CASE WHEN u.ACTIVE_WORKSPACE_ID = w.WORKSPACE_ID THEN 1 ELSE 0 END as IS_CURRENT_ACTIVE
+            FROM GUARDIAN.WORKSPACES w
+            INNER JOIN GUARDIAN.USER_WORKSPACES uw ON w.WORKSPACE_ID = uw.WORKSPACE_ID
+            INNER JOIN GUARDIAN.USERS u ON uw.USER_ID = u.USER_ID
+            WHERE uw.USER_ID = ${req.userId} 
+            AND uw.IS_ACTIVE = 1 
+            AND w.IS_ACTIVE = 1
+            AND w.COMPANY_ID = ${req.companyId}
+            ORDER BY uw.IS_DEFAULT DESC, w.IS_DEFAULT DESC, w.WORKSPACE_NAME ASC
+        `;
+        
+        console.log(`✅ Found ${workspaces.length} workspaces for user ${req.userId}`);
+        
+        res.json({
+            success: true,
+            workspaces: workspaces
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching user workspaces:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch user workspaces'
+        });
+    }
+});
+
+// POST /api/users/switch-workspace - Switch user's active workspace
+app.post('/api/users/switch-workspace', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { workspaceId } = req.body;
+        
+        console.log(`🔄 Switching user ${req.userId} to workspace ${workspaceId}`);
+        
+        // Validation
+        if (!workspaceId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Workspace ID is required'
+            });
+        }
+        
+        // Verify user has access to this workspace
+        const userWorkspace = await prisma.$queryRaw`
+            SELECT 
+                uw.USER_WORKSPACE_ID,
+                w.WORKSPACE_NAME,
+                w.COMPANY_ID
+            FROM GUARDIAN.USER_WORKSPACES uw
+            INNER JOIN GUARDIAN.WORKSPACES w ON uw.WORKSPACE_ID = w.WORKSPACE_ID
+            WHERE uw.USER_ID = ${req.userId} 
+            AND uw.WORKSPACE_ID = ${workspaceId}
+            AND uw.IS_ACTIVE = 1 
+            AND w.IS_ACTIVE = 1
+            AND w.COMPANY_ID = ${req.companyId}
+        `;
+        
+        if (userWorkspace.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Workspace not found or you do not have access to this workspace'
+            });
+        }
+        
+        // Update user's active workspace
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USERS 
+            SET ACTIVE_WORKSPACE_ID = ${workspaceId}
+            WHERE USER_ID = ${req.userId}
+        `;
+        
+        console.log(`✅ Switched user ${req.userId} to workspace ${workspaceId}: ${userWorkspace[0].WORKSPACE_NAME}`);
+        
+        res.json({
+            success: true,
+            message: 'Workspace switched successfully',
+            workspace: {
+                WORKSPACE_ID: workspaceId,
+                WORKSPACE_NAME: userWorkspace[0].WORKSPACE_NAME
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error switching workspace:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to switch workspace'
+        });
+    }
+});
+
 // Error handling
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
@@ -12455,12 +12556,13 @@ app.use((err, req, res, next) => {
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
 // === SPA FALLBACK ROUTE ===
-// Production mode: SPA routing handled by Express server
-console.log('🏭 Production mode: SPA routing handled by Express server');
+// In development mode, SPA routing is handled by Vite dev server
+// This route is only needed in production when this server serves static files
+console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🏭 Production mode: Full-stack server with static files and API`);
+    console.log(`🔧 Development mode: API server only`);
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');

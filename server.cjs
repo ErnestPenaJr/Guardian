@@ -1005,8 +1005,17 @@ app.post('/api/login', async (req, res) => {
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
         `;
 
+        console.log(`🔍 Login database query result for ${email}:`, users.length > 0 ? users[0] : 'NO USERS FOUND');
+
         if (users.length === 0) {
             console.log(`❌ User not found: ${email}`);
+            // Let's also check if any user exists with similar email (for debugging)
+            const debugUsers = await prisma.$queryRaw`
+                SELECT TOP 5 USER_ID, EMAIL, STATUS FROM GUARDIAN.USERS 
+                WHERE EMAIL LIKE ${'%' + email.split('@')[0] + '%'}
+            `;
+            console.log(`🔧 Debug - Similar email users:`, debugUsers);
+            
             return res.status(401).json({
                 error: 'Invalid email or password'
             });
@@ -7258,16 +7267,42 @@ app.post('/api/register', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Check if user already exists
-        const existingUser = await prisma.$queryRaw`
-            SELECT USER_ID FROM GUARDIAN.USERS 
+        // Check if user already exists with this email
+        const existingUsers = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL_VALIDATED, COMPANY_ID FROM GUARDIAN.USERS 
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            ORDER BY CREATE_DATE DESC
         `;
 
-        if (existingUser.length > 0) {
-            return res.status(400).json({
-                error: 'An account with this email already exists'
-            });
+        console.log(`🔍 Found ${existingUsers.length} existing users with email: ${email}`);
+        
+        if (existingUsers.length > 0) {
+            // Check if any user is already verified
+            const verifiedUser = existingUsers.find(user => user.EMAIL_VALIDATED === true);
+            if (verifiedUser) {
+                console.log(`❌ Email already registered and verified: ${email}`);
+                return res.status(409).json({
+                    error: 'An account with this email already exists and is verified. Please sign in instead.'
+                });
+            }
+            
+            // Check if there's an unverified user from the last 30 minutes
+            const recentUnverified = await prisma.$queryRaw`
+                SELECT USER_ID, CREATE_DATE FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+                AND EMAIL_VALIDATED = 0
+                AND CREATE_DATE > DATEADD(MINUTE, -30, GETDATE())
+                ORDER BY CREATE_DATE DESC
+            `;
+            
+            if (recentUnverified.length > 0) {
+                console.log(`ℹ️ Recent unverified registration exists for: ${email}`);
+                return res.status(200).json({
+                    success: true,
+                    message: 'Verification code already sent to your email',
+                    existingRegistration: true
+                });
+            }
         }
 
         // Generate 6-digit verification code
@@ -7306,47 +7341,92 @@ app.post('/api/register', async (req, res) => {
           }
         }
 
-        // Create company
-        let company = await prisma.cOMPANY.findFirst({ where: { NAME: companyNameToUse } });
-        if (!company) {
-          company = await prisma.cOMPANY.create({ data: { NAME: companyNameToUse } });
+        // Create company using raw SQL
+        console.log(`🔧 Finding/creating company: ${companyNameToUse}`);
+        const existingCompanies = await prisma.$queryRaw`
+            SELECT COMPANY_ID FROM GUARDIAN.COMPANY WHERE NAME = ${companyNameToUse}
+        `;
+        
+        let companyId;
+        if (existingCompanies.length === 0) {
+            console.log(`🔧 Creating new company: ${companyNameToUse}`);
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.COMPANY (NAME, CREATED_AT)
+                VALUES (${companyNameToUse}, GETDATE())
+            `;
+            const newCompanies = await prisma.$queryRaw`
+                SELECT COMPANY_ID FROM GUARDIAN.COMPANY WHERE NAME = ${companyNameToUse}
+            `;
+            companyId = newCompanies[0].COMPANY_ID;
+        } else {
+            companyId = existingCompanies[0].COMPANY_ID;
         }
+        
+        console.log(`🔧 Using company ID: ${companyId}`);
 
-        // Create user in database
-        const user = await prisma.uSERS.create({
-          data: {
-            EMAIL: email,
-            PASSWORD_HASH: passwordHash,
-            EMAIL_VALIDATION_TOKEN: hashedCode,
-            EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
-            EMAIL_VALIDATED: false,
-            STATUS: 'P',
-            CREATE_DATE: new Date(),
-            UPDATE_DATE: new Date(),
-            FIRST_NAME: firstName,
-            LAST_NAME: lastName,
-            COMPANY_ID: company.COMPANY_ID
-          }
-        });
-
-        // Create company_info entry
-        await prisma.cOMPANY_INFO.create({
-          data: {
-            USER_ID: user.USER_ID,
-            COMPANY_ID: company.COMPANY_ID,
-          }
-        });
-
-        // Assign Admin role
-        let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
-        if (!adminRole) {
-          adminRole = await prisma.rOLES.create({ 
-            data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } 
-          });
+        // Create user in database using raw SQL instead of Prisma ORM
+        console.log(`🔧 Creating user with raw SQL for: ${email}`);
+        const createUserResult = await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, EMAIL_VALIDATION_TOKEN, EMAIL_VALIDATION_TOKEN_EXPIRY,
+                EMAIL_VALIDATED, STATUS, CREATE_DATE, UPDATE_DATE, FIRST_NAME, LAST_NAME, COMPANY_ID
+            )
+            VALUES (
+                ${email}, ${passwordHash}, ${hashedCode}, ${tokenExpiry},
+                0, 'P', GETDATE(), GETDATE(), ${firstName}, ${lastName}, ${companyId}
+            )
+        `;
+        console.log(`🔧 Insert result:`, createUserResult);
+        
+        // Get the newly created user
+        const newUsers = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            ORDER BY CREATE_DATE DESC
+        `;
+        
+        console.log(`🔧 Retrieved user after insert:`, newUsers);
+        
+        if (newUsers.length === 0) {
+            throw new Error('Failed to create user - user not found after insert');
         }
-        await prisma.uSER_ROLES.create({ 
-          data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } 
-        });
+        
+        const user = { USER_ID: newUsers[0].USER_ID };
+
+        // Create company_info entry using raw SQL
+        console.log(`🔧 Creating company_info for User ID: ${user.USER_ID}, Company ID: ${companyId}`);
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, CREATED_AT, UPDATED_AT)
+            VALUES (${user.USER_ID}, ${companyId}, GETDATE(), GETDATE())
+        `;
+        console.log(`🔧 Company_info created successfully`);
+
+        // Assign Admin role using raw SQL
+        console.log(`🔧 Finding Admin role for user assignment`);
+        const adminRoles = await prisma.$queryRaw`
+            SELECT ROLE_ID FROM GUARDIAN.ROLES WHERE NAME = 'Admin'
+        `;
+        
+        let adminRoleId;
+        if (adminRoles.length === 0) {
+            console.log(`🔧 Creating Admin role`);
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.ROLES (NAME, DISPLAY_NAME, DESCRIPTION, STATUS)
+                VALUES ('Admin', 'Administrator', 'Default admin role', 'A')
+            `;
+            const newRoles = await prisma.$queryRaw`
+                SELECT ROLE_ID FROM GUARDIAN.ROLES WHERE NAME = 'Admin'
+            `;
+            adminRoleId = newRoles[0].ROLE_ID;
+        } else {
+            adminRoleId = adminRoles[0].ROLE_ID;
+        }
+        
+        console.log(`🔧 Assigning Admin role (${adminRoleId}) to user ${user.USER_ID}`);
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${user.USER_ID}, ${adminRoleId}, GETDATE(), GETDATE())
+        `;
 
         console.log(`✅ User created in database with ID: ${user.USER_ID}, verification code: ${verificationCode}`);
 
@@ -7397,11 +7477,35 @@ app.post('/api/verify-email', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Look up user in database
-        console.log(`🔍 Looking up user in database for email: ${normalizedEmail}`);
-        const user = await prisma.uSERS.findFirst({
-            where: { EMAIL: normalizedEmail }
+        // Look up most recent unverified user with this email
+        console.log(`🔍 Looking up most recent unverified user in database for email: ${normalizedEmail}`);
+        const user = await prisma.USERS.findFirst({
+            where: { 
+                EMAIL: normalizedEmail,
+                EMAIL_VALIDATED: false,
+                EMAIL_VALIDATION_TOKEN: { not: null }
+            },
+            orderBy: { CREATE_DATE: 'desc' }
         });
+        
+        // If no unverified user found, check if email is already verified
+        if (!user) {
+            const verifiedUser = await prisma.USERS.findFirst({
+                where: { 
+                    EMAIL: normalizedEmail,
+                    EMAIL_VALIDATED: true
+                }
+            });
+            
+            if (verifiedUser) {
+                console.log(`✅ Email already verified for: ${normalizedEmail}`);
+                return res.status(200).json({
+                    success: true,
+                    message: 'Email already verified',
+                    alreadyVerified: true
+                });
+            }
+        }
 
         if (!user) {
             console.log(`❌ No user found with email: ${normalizedEmail}`);
@@ -7446,7 +7550,7 @@ app.post('/api/verify-email', async (req, res) => {
         }
 
         // Mark user as verified in database
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 EMAIL_VALIDATED: true,
@@ -7484,20 +7588,50 @@ app.post('/api/send-verification-email', async (req, res) => {
             });
         }
 
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for resend: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
+        // Find the most recent unverified user for this email
+        const user = await prisma.USERS.findFirst({
+            where: { 
+                EMAIL: normalizedEmail,
+                EMAIL_VALIDATED: false
+            },
+            orderBy: { CREATE_DATE: 'desc' }
+        });
+
+        if (!user) {
+            console.log(`❌ No unverified user found for resend: ${normalizedEmail}`);
+            return res.status(400).json({
+                error: 'No pending verification found for this email'
+            });
+        }
+
         // Generate new 6-digit verification code
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Set expiration to 30 minutes from now
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+        // Hash the verification code for secure storage
+        const crypto = require('crypto');
+        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
 
-        // Update verification data
-        global.verificationCodes = global.verificationCodes || {};
-        global.verificationCodes[email] = {
-            code: verificationCode,
-            expiresAt: expiresAt,
-            verified: false
-        };
+        // Update the user's verification token in database
+        await prisma.USERS.update({
+            where: { USER_ID: user.USER_ID },
+            data: {
+                EMAIL_VALIDATION_TOKEN: hashedCode,
+                EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
+                UPDATE_DATE: new Date()
+            }
+        });
 
         console.log(`✅ New verification code generated for ${email}: ${verificationCode}`);
 
@@ -7549,7 +7683,7 @@ app.post('/api/request-password-reset', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Check if user exists
-        const user = await prisma.uSERS.findFirst({
+        const user = await prisma.USERS.findFirst({
             where: { EMAIL: normalizedEmail }
         });
 
@@ -7570,7 +7704,7 @@ app.post('/api/request-password-reset', async (req, res) => {
         const resetExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
 
         // Store reset code in user record
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 EMAIL_VALIDATION_TOKEN: hashedCode,
@@ -7629,7 +7763,7 @@ app.post('/api/verify-reset-code', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Find user
-        const user = await prisma.uSERS.findFirst({
+        const user = await prisma.USERS.findFirst({
             where: { EMAIL: normalizedEmail }
         });
 
@@ -7708,7 +7842,7 @@ app.post('/api/reset-password', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Find user
-        const user = await prisma.uSERS.findFirst({
+        const user = await prisma.USERS.findFirst({
             where: { EMAIL: normalizedEmail }
         });
 
@@ -7744,7 +7878,7 @@ app.post('/api/reset-password', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
         // Update password and clear reset token
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: user.USER_ID },
             data: {
                 PASSWORD_HASH: hashedPassword,
@@ -7795,7 +7929,7 @@ app.post('/api/complete-registration', async (req, res) => {
         console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
         let existingUser;
         try {
-            existingUser = await prisma.uSERS.findFirst({
+            existingUser = await prisma.USERS.findFirst({
                 where: { EMAIL: email }
             });
             console.log(`✅ Database query successful for user lookup`);
@@ -7849,7 +7983,7 @@ app.post('/api/complete-registration', async (req, res) => {
 
         // Update the existing user with password and name
         console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
-        await prisma.uSERS.update({
+        await prisma.USERS.update({
             where: { USER_ID: existingUser.USER_ID },
             data: {
                 PASSWORD_HASH: hashedPassword,
@@ -7864,15 +7998,15 @@ app.post('/api/complete-registration', async (req, res) => {
         const userId = existingUser.USER_ID;
 
         // Check if user already has roles, if not assign Admin role (they already have it from registration)
-        const existingRoles = await prisma.uSER_ROLES.findMany({
+        const existingRoles = await prisma.USER_ROLES.findMany({
             where: { USER_ID: userId }
         });
 
         if (existingRoles.length === 0) {
             // Assign Admin role if no roles exist
-            let adminRole = await prisma.rOLES.findFirst({ where: { NAME: 'Admin' } });
+            let adminRole = await prisma.ROLES.findFirst({ where: { NAME: 'Admin' } });
             if (adminRole) {
-                await prisma.uSER_ROLES.create({
+                await prisma.USER_ROLES.create({
                     data: { USER_ID: userId, ROLE_ID: adminRole.ROLE_ID }
                 });
             }
@@ -7881,7 +8015,7 @@ app.post('/api/complete-registration', async (req, res) => {
         // Update company info if provided
         console.log(`📝 Updating company info for user ${userId}`);
         if (role || teamSize || companySize || workspaceName) {
-            const existingCompanyInfo = await prisma.cOMPANY_INFO.findFirst({
+            const existingCompanyInfo = await prisma.COMPANY_INFO.findFirst({
                 where: { USER_ID: userId }
             });
 
@@ -7898,7 +8032,7 @@ app.post('/api/complete-registration', async (req, res) => {
                 });
                 
                 // Update existing record using the unique COMPANY_INFO_ID
-                const updateResult = await prisma.cOMPANY_INFO.update({
+                const updateResult = await prisma.COMPANY_INFO.update({
                     where: { COMPANY_INFO_ID: existingCompanyInfo.COMPANY_INFO_ID },
                     data: {
                         ...(workspaceName && { WORKSPACE_NAME: workspaceName }),

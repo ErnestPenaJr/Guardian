@@ -1,0 +1,32 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 97564
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+🔐 Login attempt for: test2@example.com
+🔍 Login database query result for test2@example.com: NO USERS FOUND
+❌ User not found: test2@example.com
+🔧 Debug - Similar email users: []
+📝 Registration request for: test3@example.com
+🔍 Found 0 existing users with email: test3@example.com
+✅ User created in database with ID: 16, verification code: 855383
+📧 Sending verification email to: test3@example.com
+✅ Verification email sent successfully: 43208632-90d5-4c8c-ab3e-25d351582246
+🔐 Login attempt for: test3@example.com
+🔍 Login database query result for test3@example.com: NO USERS FOUND
+❌ User not found: test3@example.com
+🔧 Debug - Similar email users: []

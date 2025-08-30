@@ -1,0 +1,111 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 98162
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📝 Registration request for: test6@example.com
+🔍 Found 0 existing users with email: test6@example.com
+🔧 Finding/creating company: Example
+🔧 Creating new company: Example
+🔧 Using company ID: 40
+🔧 Creating user with raw SQL for: test6@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1155,
+  }
+]
+🔧 Creating company_info for User ID: 1155, Company ID: 40
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1155
+✅ User created in database with ID: 1155, verification code: 482011
+📧 Sending verification email to: test6@example.com
+✅ Verification email sent successfully: 0db462a7-8801-4141-bb0a-d71079620afd
+🔐 Login attempt for: test6@example.com
+🔍 Login database query result for test6@example.com: {
+  USER_ID: 1155,
+  EMAIL: "test6@example.com",
+  FIRST_NAME: "test6",
+  LAST_NAME: "",
+  PASSWORD_HASH: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  STATUS: "P",
+  COMPANY_ID: 40,
+}
+❌ User not active: test6@example.com
+🔍 Email verification attempt for: test6@example.com
+📧 Request body: {
+  "email": "test6@example.com",
+  "verificationCode": "482011"
+}
+🔍 Looking up most recent unverified user in database for email: test6@example.com
+❌ No user found with email: test6@example.com
+📝 Registration request for: ernest@shieldlytics.com
+🔍 Found 0 existing users with email: ernest@shieldlytics.com
+🔧 Finding/creating company: Shieldlytics
+🔧 Using company ID: 39
+🔧 Creating user with raw SQL for: ernest@shieldlytics.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1156,
+  }
+]
+🔧 Creating company_info for User ID: 1156, Company ID: 39
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1156
+✅ User created in database with ID: 1156, verification code: 917886
+📧 Sending verification email to: ernest@shieldlytics.com
+✅ Verification email sent successfully: d3d5a6e1-2178-4434-8b16-dc3828d664a4
+🔐 Login attempt for: ernest@shieldlytics.com
+🔍 Login database query result for ernest@shieldlytics.com: {
+  USER_ID: 1156,
+  EMAIL: "ernest@shieldlytics.com",
+  FIRST_NAME: "ernest",
+  LAST_NAME: "",
+  PASSWORD_HASH: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  STATUS: "P",
+  COMPANY_ID: 39,
+}
+❌ User not active: ernest@shieldlytics.com
+📧 Email validation request for: epenajr@gmail.com (purpose: register)
+📝 Registration request for: epenajr@gmail.com
+🔍 Found 0 existing users with email: epenajr@gmail.com
+🔧 Finding/creating company: Gmail
+🔧 Using company ID: 38
+🔧 Creating user with raw SQL for: epenajr@gmail.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1157,
+  }
+]
+🔧 Creating company_info for User ID: 1157, Company ID: 38
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1157
+✅ User created in database with ID: 1157, verification code: 501620
+📧 Sending verification email to: epenajr@gmail.com
+✅ Verification email sent successfully: d8c96fb6-9468-4d9d-8c90-46099c790b19
+🔍 Email verification attempt for: epenajr@gmail.com
+📧 Request body: {
+  "email": "epenajr@gmail.com",
+  "verificationCode": "501620"
+}
+🔍 Looking up most recent unverified user in database for email: epenajr@gmail.com
+❌ No user found with email: epenajr@gmail.com
