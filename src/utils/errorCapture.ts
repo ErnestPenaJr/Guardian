@@ -28,9 +28,7 @@ interface ErrorDetails {
 class ErrorCapture {
   private static instance: ErrorCapture;
   private readonly SUPPORT_EMAIL = 'ernest@shieldlytics.com';
-  private readonly API_BASE = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3001' 
-    : window.location.origin;
+  private readonly API_BASE = window.location.origin;
   
   // Infinite loop protection
   private isProcessingError = false;

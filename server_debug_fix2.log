@@ -1,0 +1,102 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 10893
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📝 Registration request for: test-fix@example.com
+🔍 Found 0 existing users with email: test-fix@example.com
+✅ Generated unique military call sign: VICTOR-80
+🎖️ Generated unique military call sign for company: VICTOR-80
+🔧 Creating new company with call sign: VICTOR-80
+🔧 Using company ID: 47
+🔧 Creating user with raw SQL for: test-fix@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1169,
+  }
+]
+🔧 Creating company_info for User ID: 1169, Company ID: 47
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1169
+✅ User created in database with ID: 1169, verification code: 879912
+📧 Sending verification email to: test-fix@example.com
+✅ Verification email sent successfully: 191d2902-facf-4b28-88b8-55955e1ec770
+🔍 Email verification attempt for: test-fix@example.com
+📧 Request body: {
+  "email": "test-fix@example.com",
+  "verificationCode": "879912"
+}
+🔍 Looking up most recent unverified user in database for email: test-fix@example.com
+✅ Found unverified user - ID: 1169, Email: test-fix@example.com
+✅ User found - ID: 1169, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sat Aug 30 2025 19:19:09 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for test-fix@example.com:
+📥 Provided code: 879912
+🔐 Hashed provided: 88a3fea004482fa1121cfd58d2436e46192b43406d68b68355e538189c760fe1
+💾 Stored hash: 88a3fea004482fa1121cfd58d2436e46192b43406d68b68355e538189c760fe1
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1169
+✅ Email verified successfully for: test-fix@example.com
+👤 Completing registration for: test-fix@example.com
+📋 Complete registration request body: {
+  "email": "test-fix@example.com",
+  "password": "TestPassword123$",
+  "fullName": "Test Fix User",
+  "role": "Manager",
+  "teamSize": "2-10",
+  "companySize": "20-99"
+}
+✅ Generated unique military call sign: SHADOW-63
+🎖️ Generated military call sign: SHADOW-63
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: test-fix@example.com
+🔍 DEBUG: Checking ALL users with email test-fix@example.com
+🔍 DEBUG: Found 1 total users with this email:
+  - User ID: 1169, EMAIL_VALIDATED: true (type: boolean), Status: A, Created: Sat Aug 30 2025 19:04:10 GMT-0500 (Central Daylight Time)
+🔍 Looking for verified users (EMAIL_VALIDATED = 1 OR EMAIL_VALIDATED = true)
+🔍 Verified users query returned 1 results
+✅ Found most recent verified user - ID: 1169, Email: test-fix@example.com, Created: Sat Aug 30 2025 19:04:10 GMT-0500 (Central Daylight Time)
+✅ EMAIL_VALIDATED value: true (type: boolean)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: test-fix@example.com
+✅ Most recent verified user found - ID: 1169, Email: test-fix@example.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 47
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: test-fix@example.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Test Fix User
+✅ Name parsed - First: Test, Last: Fix User
+💾 Starting database update for user ID: 1169 (type: number)
+🔍 DEBUG: Full existingUser object: {
+  "USER_ID": 1169,
+  "EMAIL": "test-fix@example.com",
+  "EMAIL_VALIDATED": true,
+  "PASSWORD_HASH": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "COMPANY_ID": 47,
+  "CREATE_DATE": "2025-08-31T00:04:10.003Z"
+}
+🔍 Converting USER_ID: 1169 -> 1169 (type: number)
+🔍 User exists check: NOT FOUND
+❌ User with ID 1169 not found for update

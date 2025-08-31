@@ -109,3 +109,30 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 }
 🔍 Looking up most recent unverified user in database for email: epenajr@gmail.com
 ❌ No user found with email: epenajr@gmail.com
+📧 Email validation request for: ernestpenajr@me.com (purpose: register)
+📝 Registration request for: ernestpenajr@me.com
+🔍 Found 0 existing users with email: ernestpenajr@me.com
+🔧 Finding/creating company: Apple
+🔧 Creating new company: Apple
+🔧 Using company ID: 43
+🔧 Creating user with raw SQL for: ernestpenajr@me.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1164,
+  }
+]
+🔧 Creating company_info for User ID: 1164, Company ID: 43
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1164
+✅ User created in database with ID: 1164, verification code: 493875
+📧 Sending verification email to: ernestpenajr@me.com
+✅ Verification email sent successfully: 30d21064-6dc1-4e1b-b5ac-03ab68ef3033
+🔍 Email verification attempt for: ernestpenajr@me.com
+📧 Request body: {
+  "email": "ernestpenajr@me.com",
+  "verificationCode": "493875"
+}
+🔍 Looking up most recent unverified user in database for email: ernestpenajr@me.com
+❌ No user found with email: ernestpenajr@me.com

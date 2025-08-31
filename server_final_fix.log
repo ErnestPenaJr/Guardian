@@ -1,0 +1,215 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 11068
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📝 Registration request for: final-test@example.com
+🔍 Found 0 existing users with email: final-test@example.com
+✅ Generated unique military call sign: LANCE-37
+🎖️ Generated unique military call sign for company: LANCE-37
+🔧 Creating new company with call sign: LANCE-37
+🔧 Using company ID: 48
+🔧 Creating user with raw SQL for: final-test@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1170,
+  }
+]
+🔧 Creating company_info for User ID: 1170, Company ID: 48
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1170
+✅ User created in database with ID: 1170, verification code: 756298
+📧 Sending verification email to: final-test@example.com
+✅ Verification email sent successfully: f17804d8-e14b-41a7-83e0-8fa6c2f74a7e
+🔍 Email verification attempt for: final-test@example.com
+📧 Request body: {
+  "email": "final-test@example.com",
+  "verificationCode": "756298"
+}
+🔍 Looking up most recent unverified user in database for email: final-test@example.com
+✅ Found unverified user - ID: 1170, Email: final-test@example.com
+✅ User found - ID: 1170, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sat Aug 30 2025 19:20:27 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for final-test@example.com:
+📥 Provided code: 756298
+🔐 Hashed provided: cfc6214be359dbe26ebf7df852fddbf03a82b658de1c221a75d3861520c6ea6a
+💾 Stored hash: cfc6214be359dbe26ebf7df852fddbf03a82b658de1c221a75d3861520c6ea6a
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1170
+✅ Email verified successfully for: final-test@example.com
+👤 Completing registration for: final-test@example.com
+📋 Complete registration request body: {
+  "email": "final-test@example.com",
+  "password": "TestPassword123$",
+  "fullName": "Final Test User",
+  "role": "Manager",
+  "teamSize": "2-10",
+  "companySize": "20-99"
+}
+✅ Generated unique military call sign: SHIELD-83
+🎖️ Generated military call sign: SHIELD-83
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: final-test@example.com
+🔍 DEBUG: Checking ALL users with email final-test@example.com
+🔍 DEBUG: Found 1 total users with this email:
+  - User ID: 1170, EMAIL_VALIDATED: true (type: boolean), Status: A, Created: Sat Aug 30 2025 19:05:28 GMT-0500 (Central Daylight Time)
+🔍 Looking for verified users (EMAIL_VALIDATED = 1 OR EMAIL_VALIDATED = true)
+🔍 Verified users query returned 1 results
+✅ Found most recent verified user - ID: 1170, Email: final-test@example.com, Created: Sat Aug 30 2025 19:05:28 GMT-0500 (Central Daylight Time)
+✅ EMAIL_VALIDATED value: true (type: boolean)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: final-test@example.com
+✅ Most recent verified user found - ID: 1170, Email: final-test@example.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 48
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: final-test@example.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Final Test User
+✅ Name parsed - First: Final, Last: Test User
+💾 Starting database update for user ID: 1170 (type: number)
+🔍 DEBUG: Full existingUser object: {
+  "USER_ID": 1170,
+  "EMAIL": "final-test@example.com",
+  "EMAIL_VALIDATED": true,
+  "PASSWORD_HASH": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "COMPANY_ID": 48,
+  "CREATE_DATE": "2025-08-31T00:05:28.023Z"
+}
+🔍 Converting USER_ID: 1170 -> 1170 (type: number)
+🔍 DEBUG: Double-checking user existence with raw SQL
+🔍 Raw SQL user check found 1 users
+✅ Raw SQL found user: {
+  "USER_ID": 1170,
+  "EMAIL": "final-test@example.com",
+  "EMAIL_VALIDATED": true,
+  "PASSWORD_HASH": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "COMPANY_ID": 48,
+  "CREATE_DATE": "2025-08-31T00:05:28.023Z"
+}
+🔍 Prisma findUnique check: NOT FOUND
+⚠️ WARNING: Raw SQL found user but Prisma findUnique didn't - using raw SQL update instead
+✅ User updated successfully using raw SQL
+✅ User updated successfully in database
+📝 Updating company info for user 1170
+❌ No existing company info found for user 1170
+✅ Registration completed successfully for: final-test@example.com (User ID: 1170)
+📝 Registration request for: validation-test@example.com
+🔍 Found 0 existing users with email: validation-test@example.com
+✅ Generated unique military call sign: VICTOR-84
+🎖️ Generated unique military call sign for company: VICTOR-84
+🔧 Creating new company with call sign: VICTOR-84
+🔧 Using company ID: 49
+🔧 Creating user with raw SQL for: validation-test@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1171,
+  }
+]
+🔧 Creating company_info for User ID: 1171, Company ID: 49
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1171
+✅ User created in database with ID: 1171, verification code: 172040
+📧 Sending verification email to: validation-test@example.com
+✅ Verification email sent successfully: dffe1531-d09b-4995-a913-a2d4fe45f0ba
+🔍 Email verification attempt for: validation-test@example.com
+📧 Request body: {
+  "email": "validation-test@example.com",
+  "verificationCode": "172040"
+}
+🔍 Looking up most recent unverified user in database for email: validation-test@example.com
+✅ Found unverified user - ID: 1171, Email: validation-test@example.com
+✅ User found - ID: 1171, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sat Aug 30 2025 19:22:49 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for validation-test@example.com:
+📥 Provided code: 172040
+🔐 Hashed provided: 4d13b20bda73b731fdb2455ab6b611e4fe34a09a0e70265b91c1f5c2abca1feb
+💾 Stored hash: 4d13b20bda73b731fdb2455ab6b611e4fe34a09a0e70265b91c1f5c2abca1feb
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1171
+✅ Email verified successfully for: validation-test@example.com
+👤 Completing registration for: validation-test@example.com
+📋 Complete registration request body: {
+  "email": "validation-test@example.com",
+  "password": "TestPassword123$",
+  "fullName": "Validation Test User",
+  "role": "Manager",
+  "teamSize": "2-10",
+  "companySize": "20-99"
+}
+✅ Generated unique military call sign: STEEL-25
+🎖️ Generated military call sign: STEEL-25
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: validation-test@example.com
+🔍 DEBUG: Checking ALL users with email validation-test@example.com
+🔍 DEBUG: Found 1 total users with this email:
+  - User ID: 1171, EMAIL_VALIDATED: true (type: boolean), Status: A, Created: Sat Aug 30 2025 19:07:50 GMT-0500 (Central Daylight Time)
+🔍 Looking for verified users (EMAIL_VALIDATED = 1 OR EMAIL_VALIDATED = true)
+🔍 Verified users query returned 1 results
+✅ Found most recent verified user - ID: 1171, Email: validation-test@example.com, Created: Sat Aug 30 2025 19:07:50 GMT-0500 (Central Daylight Time)
+✅ EMAIL_VALIDATED value: true (type: boolean)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: validation-test@example.com
+✅ Most recent verified user found - ID: 1171, Email: validation-test@example.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 49
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: validation-test@example.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Validation Test User
+✅ Name parsed - First: Validation, Last: Test User
+💾 Starting database update for user ID: 1171 (type: number)
+🔍 DEBUG: Full existingUser object: {
+  "USER_ID": 1171,
+  "EMAIL": "validation-test@example.com",
+  "EMAIL_VALIDATED": true,
+  "PASSWORD_HASH": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "COMPANY_ID": 49,
+  "CREATE_DATE": "2025-08-31T00:07:50.186Z"
+}
+🔍 Converting USER_ID: 1171 -> 1171 (type: number)
+🔍 DEBUG: Double-checking user existence with raw SQL
+🔍 Raw SQL user check found 1 users
+✅ Raw SQL found user: {
+  "USER_ID": 1171,
+  "EMAIL": "validation-test@example.com",
+  "EMAIL_VALIDATED": true,
+  "PASSWORD_HASH": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "COMPANY_ID": 49,
+  "CREATE_DATE": "2025-08-31T00:07:50.186Z"
+}
+🔍 Prisma findUnique check: NOT FOUND
+⚠️ WARNING: Raw SQL found user but Prisma findUnique didn't - using raw SQL update instead
+✅ User updated successfully using raw SQL
+✅ User updated successfully in database
+📝 Updating company info for user 1171
+❌ No existing company info found for user 1171
+✅ Registration completed successfully for: validation-test@example.com (User ID: 1171)

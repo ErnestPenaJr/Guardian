@@ -7309,34 +7309,12 @@ app.post('/api/register', async (req, res) => {
         const firstName = email.split('@')[0].split('.')[0];
         const lastName = email.split('@')[0].split('.')[1] || '';
 
-        // Extract domain for company name
-        let companyNameToUse = 'Default Company';
-        if (email && email.includes('@')) {
-          const emailDomain = email.split('@')[1];
-          if (emailDomain) {
-            const domainParts = emailDomain.split('.');
-            if (domainParts.length > 0 && domainParts[0].length > 0) {
-              companyNameToUse = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
-              
-              // Handle common domains
-              if (emailDomain.includes('gmail.com')) {
-                companyNameToUse = 'Gmail';
-              } else if (emailDomain.includes('outlook.com') || emailDomain.includes('hotmail.com')) {
-                companyNameToUse = 'Microsoft';
-              } else if (emailDomain.includes('yahoo.com')) {
-                companyNameToUse = 'Yahoo';
-              } else if (emailDomain.includes('icloud.com') || emailDomain.includes('me.com') || emailDomain.includes('mac.com')) {
-                companyNameToUse = 'Apple';
-              }
-            }
-          }
-        }
-
-        // Create company
-        let company = await prisma.COMPANY.findFirst({ where: { NAME: companyNameToUse } });
-        if (!company) {
-          company = await prisma.COMPANY.create({ data: { NAME: companyNameToUse } });
-        }
+        // Generate unique military call sign for company name
+        const companyNameToUse = await generateMilitaryCallSign();
+        console.log(`🎖️ Generated unique military call sign for company: ${companyNameToUse}`);
+        
+        // Create unique company using military call sign
+        const company = await prisma.COMPANY.create({ data: { NAME: companyNameToUse } });
 
         // Create user in database
         const user = await prisma.USERS.create({
@@ -7423,27 +7401,35 @@ app.post('/api/verify-email', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Look up most recent unverified user with this email
+        // Look up most recent unverified user with this email using raw SQL (matches registration pattern)
         console.log(`🔍 Looking up most recent unverified user in database for email: ${normalizedEmail}`);
-        const user = await prisma.USERS.findFirst({
-            where: { 
-                EMAIL: normalizedEmail,
-                EMAIL_VALIDATED: false,
-                EMAIL_VALIDATION_TOKEN: { not: null }
-            },
-            orderBy: { CREATE_DATE: 'desc' }
-        });
+        const unverifiedUsers = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL, EMAIL_VALIDATED, EMAIL_VALIDATION_TOKEN, EMAIL_VALIDATION_TOKEN_EXPIRY, CREATE_DATE
+            FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+            AND EMAIL_VALIDATED = 0
+            AND EMAIL_VALIDATION_TOKEN IS NOT NULL
+            ORDER BY CREATE_DATE DESC
+        `;
+        
+        let user = null;
+        if (unverifiedUsers.length > 0) {
+            user = unverifiedUsers[0];
+            console.log(`✅ Found unverified user - ID: ${user.USER_ID}, Email: ${user.EMAIL}`);
+        }
         
         // If no unverified user found, check if email is already verified
         if (!user) {
-            const verifiedUser = await prisma.USERS.findFirst({
-                where: { 
-                    EMAIL: normalizedEmail,
-                    EMAIL_VALIDATED: true
-                }
-            });
+            console.log(`🔍 No unverified user found, checking for verified user with email: ${normalizedEmail}`);
+            const verifiedUsers = await prisma.$queryRaw`
+                SELECT USER_ID, EMAIL, EMAIL_VALIDATED
+                FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+                AND EMAIL_VALIDATED = 1
+                ORDER BY CREATE_DATE DESC
+            `;
             
-            if (verifiedUser) {
+            if (verifiedUsers.length > 0) {
                 console.log(`✅ Email already verified for: ${normalizedEmail}`);
                 return res.status(200).json({
                     success: true,
@@ -7495,17 +7481,17 @@ app.post('/api/verify-email', async (req, res) => {
             });
         }
 
-        // Mark user as verified in database
-        await prisma.USERS.update({
-            where: { USER_ID: user.USER_ID },
-            data: {
-                EMAIL_VALIDATED: true,
-                EMAIL_VALIDATION_TOKEN: null,
-                EMAIL_VALIDATION_TOKEN_EXPIRY: null,
-                STATUS: 'A', // Active
-                UPDATE_DATE: new Date()
-            }
-        });
+        // Mark user as verified in database using raw SQL (matches registration pattern)
+        console.log(`🔧 Updating user verification status for User ID: ${user.USER_ID}`);
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET EMAIL_VALIDATED = 1,
+                EMAIL_VALIDATION_TOKEN = NULL,
+                EMAIL_VALIDATION_TOKEN_EXPIRY = NULL,
+                STATUS = 'A',
+                UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${user.USER_ID}
+        `;
         console.log(`✅ Email verified successfully for: ${email}`);
 
         res.json({
@@ -7871,13 +7857,36 @@ app.post('/api/complete-registration', async (req, res) => {
             });
         }
 
-        // Check if user exists and email was verified
-        console.log(`🔍 Looking up user in database for complete-registration: ${email}`);
+        // Enhanced email validation before database operations
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            console.log(`❌ Invalid email format for complete-registration: ${email}`);
+            return res.status(400).json({
+                error: 'Invalid email format'
+            });
+        }
+
+        const normalizedEmail = emailValidation.email;
+
+        // Check if user exists and email was verified - use same logic as verify-email endpoint
+        console.log(`🔍 Looking up most recent verified user in database for complete-registration: ${normalizedEmail}`);
         let existingUser;
         try {
-            existingUser = await prisma.USERS.findFirst({
-                where: { EMAIL: email }
-            });
+            // Find most recent verified user with this email using raw SQL (matches verification pattern)
+            const verifiedUsers = await prisma.$queryRaw`
+                SELECT USER_ID, EMAIL, EMAIL_VALIDATED, PASSWORD_HASH, COMPANY_ID, CREATE_DATE
+                FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+                AND (EMAIL_VALIDATED = 1 OR EMAIL_VALIDATED = CAST(1 as BIT))
+                ORDER BY CREATE_DATE DESC
+            `;
+            
+            if (verifiedUsers.length > 0) {
+                existingUser = verifiedUsers[0];
+                console.log(`✅ Found most recent verified user - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}, Created: ${existingUser.CREATE_DATE}`);
+            } else {
+                existingUser = null;
+            }
             console.log(`✅ Database query successful for user lookup`);
         } catch (dbError) {
             console.error(`❌ Database error during user lookup:`, dbError);
@@ -7887,24 +7896,21 @@ app.post('/api/complete-registration', async (req, res) => {
             });
         }
 
-        console.log(`🔍 Checking user existence for: ${email}`);
+        console.log(`🔍 Checking user existence for: ${normalizedEmail}`);
         if (!existingUser) {
-            console.log(`❌ No user found for email: ${email}`);
+            console.log(`❌ No verified user found for email: ${normalizedEmail}`);
             return res.status(400).json({
-                error: 'User not found. Please register first.'
+                error: 'No verified user found. Please register and verify your email first.'
             });
         }
 
-        console.log(`✅ User found - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}`);
+        console.log(`✅ Most recent verified user found - ID: ${existingUser.USER_ID}, Email: ${existingUser.EMAIL}`);
         console.log(`📧 Email validated: ${existingUser.EMAIL_VALIDATED}`);
         console.log(`🔐 Has password: ${!!existingUser.PASSWORD_HASH}`);
+        console.log(`🏢 Company ID: ${existingUser.COMPANY_ID}`);
 
-        if (!existingUser.EMAIL_VALIDATED) {
-            console.log(`❌ Email not validated for: ${email}`);
-            return res.status(400).json({
-                error: 'Email must be verified before completing registration'
-            });
-        }
+        // Email validation check is redundant since we only selected EMAIL_VALIDATED = 1 users
+        console.log(`✅ Email validation confirmed (selected only verified users)`);
 
         console.log(`✅ Email validation check passed`);
 
@@ -7927,18 +7933,20 @@ app.post('/api/complete-registration', async (req, res) => {
         const lastName = nameParts.slice(1).join(' ') || '';
         console.log(`✅ Name parsed - First: ${firstName}, Last: ${lastName}`);
 
-        // Update the existing user with password and name
+        // Update the existing user with password and name using raw SQL for compatibility
         console.log(`💾 Starting database update for user ID: ${existingUser.USER_ID}`);
-        await prisma.USERS.update({
-            where: { USER_ID: existingUser.USER_ID },
-            data: {
-                PASSWORD_HASH: hashedPassword,
-                FIRST_NAME: firstName,
-                LAST_NAME: lastName,
-                STATUS: 'A', // Active
-                UPDATE_DATE: new Date()
-            }
-        });
+        const userIdInt = parseInt(existingUser.USER_ID);
+        
+        // Use raw SQL update for better compatibility with database connection timing
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET PASSWORD_HASH = ${hashedPassword},
+                FIRST_NAME = ${firstName},
+                LAST_NAME = ${lastName},
+                STATUS = 'A',
+                UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${userIdInt}
+        `;
         console.log(`✅ User updated successfully in database`);
 
         const userId = existingUser.USER_ID;

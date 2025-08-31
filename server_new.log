@@ -3,7 +3,7 @@
 Node version: v24.3.0
 Environment: development
 Port: 3001
-Process PID: 87859
+Process PID: 9277
 Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
@@ -17,112 +17,55 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 🧪 Simple test: /api/simple-test
 🎉 Server startup complete!
 ✅ Database connected successfully
-📝 Registration request for: fix-test@guardian.demo
-🔍 Found 0 existing users with email: fix-test@guardian.demo
-✅ User created in database with ID: 9, verification code: 960727
-📧 Sending verification email to: fix-test@guardian.demo
-✅ Verification email sent successfully: d61930c1-8b7f-454a-81fd-dc019bcb7b16
-📧 Email validation request for: final-test@guardian.demo (purpose: register)
-📝 Registration request for: final-test@guardian.demo
-🔍 Found 0 existing users with email: final-test@guardian.demo
-✅ User created in database with ID: 10, verification code: 721972
-📧 Sending verification email to: final-test@guardian.demo
-✅ Verification email sent successfully: a0eb08e1-148e-480c-b61d-365485603e31
-🔍 Email verification attempt for: final-test@guardian.demo
-📧 Request body: {
-  "email": "final-test@guardian.demo",
-  "verificationCode": "721972"
-}
-🔍 Looking up most recent unverified user in database for email: final-test@guardian.demo
-✅ User found - ID: 10, Email Validated: false
-🔑 Has validation token: true
-⏰ Token expiry: Sat Aug 30 2025 07:45:52 GMT-0500 (Central Daylight Time)
-🔍 Comparing codes for final-test@guardian.demo:
-📥 Provided code: 721972
-🔐 Hashed provided: fb9e6ae35ca59c2830380ed7108643cb9d45b7e5723e1fa97ea328b1d9f7a9dd
-💾 Stored hash: fb9e6ae35ca59c2830380ed7108643cb9d45b7e5723e1fa97ea328b1d9f7a9dd
-✅ Codes match: true
-✅ Email verified successfully for: final-test@guardian.demo
-👤 Completing registration for: final-test@guardian.demo
-📋 Complete registration request body: {
-  "email": "final-test@guardian.demo",
-  "password": "TestGuardian123!",
-  "fullName": "Final Tester",
-  "role": "Officer",
-  "teamSize": "6-10",
-  "companySize": "100-250"
-}
-✅ Generated unique military call sign: TIGER-34
-🎖️ Generated military call sign: TIGER-34
-✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
-🔍 Looking up user in database for complete-registration: final-test@guardian.demo
-✅ Database query successful for user lookup
-🔍 Checking user existence for: final-test@guardian.demo
-✅ User found - ID: 10, Email: final-test@guardian.demo
-📧 Email validated: true
-🔐 Has password: true
-✅ Email validation check passed
-ℹ️ User already has password, will update profile information for: final-test@guardian.demo
-✅ Password check passed - ready to update user
-🔐 Starting password hashing process
-✅ Password hashed successfully
-📝 Processing name: Final Tester
-✅ Name parsed - First: Final, Last: Tester
-💾 Starting database update for user ID: 10
-✅ User updated successfully in database
-📝 Updating company info for user 10
-✅ Found existing company info record with ID: 10
-📝 Updating company info with values: {
-  companyInfoId: 10,
-  workspaceName: "TIGER-34",
-  role: "Officer",
-  teamSize: "6-10",
-  companySize: "100-250",
-}
-✅ Company info updated successfully - Updated record: {
-  COMPANY_INFO_ID: 10,
-  COMPANY_ID: 3,
-  USER_ID: 10,
-  WORKSPACE_NAME: "TIGER-34",
-  ROLE: "Officer",
-  TEAM_SIZE: "6-10",
-  COMPANY_SIZE: "100-250",
-  CREATED_AT: 2025-08-30T12:30:52.616Z,
-  UPDATED_AT: 2025-08-30T12:31:35.486Z,
-}
-✅ Registration completed successfully for: final-test@guardian.demo (User ID: 10)
 📧 Email validation request for: ernest@shieldlytics.com (purpose: register)
 📝 Registration request for: ernest@shieldlytics.com
 🔍 Found 0 existing users with email: ernest@shieldlytics.com
-✅ User created in database with ID: 11, verification code: 270211
+✅ Generated unique military call sign: GUARD-90
+🎖️ Generated unique military call sign for company: GUARD-90
+🔧 Creating new company with call sign: GUARD-90
+🔧 Using company ID: 44
+🔧 Creating user with raw SQL for: ernest@shieldlytics.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1166,
+  }
+]
+🔧 Creating company_info for User ID: 1166, Company ID: 44
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1166
+✅ User created in database with ID: 1166, verification code: 814146
 📧 Sending verification email to: ernest@shieldlytics.com
-✅ Verification email sent successfully: 2c05768f-37ea-4077-b89b-7203816ca3d9
+✅ Verification email sent successfully: 753e17e6-817b-42d5-83d7-ff3f9e3c7910
 🔍 Email verification attempt for: ernest@shieldlytics.com
 📧 Request body: {
   "email": "ernest@shieldlytics.com",
-  "verificationCode": "270211"
+  "verificationCode": "814146"
 }
 🔍 Looking up most recent unverified user in database for email: ernest@shieldlytics.com
-✅ User found - ID: 11, Email Validated: false
+✅ Found unverified user - ID: 1166, Email: ernest@shieldlytics.com
+✅ User found - ID: 1166, Email Validated: false
 🔑 Has validation token: true
-⏰ Token expiry: Sat Aug 30 2025 08:00:00 GMT-0500 (Central Daylight Time)
+⏰ Token expiry: Sat Aug 30 2025 19:05:55 GMT-0500 (Central Daylight Time)
 🔍 Comparing codes for ernest@shieldlytics.com:
-📥 Provided code: 270211
-🔐 Hashed provided: 06a4ee761c98c16727699fc6659cf5320cb04c86fba88fec444c10a9818d4c94
-💾 Stored hash: 06a4ee761c98c16727699fc6659cf5320cb04c86fba88fec444c10a9818d4c94
+📥 Provided code: 814146
+🔐 Hashed provided: 373db93ff0b5f880aa28c55c5a740cf70e531ce52dad37eb8f69969f77012ea9
+💾 Stored hash: 373db93ff0b5f880aa28c55c5a740cf70e531ce52dad37eb8f69969f77012ea9
 ✅ Codes match: true
+🔧 Updating user verification status for User ID: 1166
 ✅ Email verified successfully for: ernest@shieldlytics.com
 👤 Completing registration for: ernest@shieldlytics.com
 📋 Complete registration request body: {
   "email": "ernest@shieldlytics.com",
   "password": "MDA268RedDragon$",
-  "fullName": "ernest@shieldlytics.com",
+  "fullName": "Ernest@shieldlytics.com",
   "role": "Executive",
-  "teamSize": "2-5",
+  "teamSize": "Only me",
   "companySize": "1-19"
 }
-✅ Generated unique military call sign: FROST-17
-🎖️ Generated military call sign: FROST-17
+✅ Generated unique military call sign: ARROW-13
+🎖️ Generated military call sign: ARROW-13
 ✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
 🔍 Looking up user in database for complete-registration: ernest@shieldlytics.com
 ✅ Database query successful for user lookup
@@ -135,295 +78,110 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 ✅ Password check passed - ready to update user
 🔐 Starting password hashing process
 ✅ Password hashed successfully
-📝 Processing name: ernest@shieldlytics.com
-✅ Name parsed - First: ernest@shieldlytics.com, Last: 
+📝 Processing name: Ernest@shieldlytics.com
+✅ Name parsed - First: Ernest@shieldlytics.com, Last: 
 💾 Starting database update for user ID: 2
 ✅ User updated successfully in database
 📝 Updating company info for user 2
 ✅ Found existing company info record with ID: 2
 📝 Updating company info with values: {
   companyInfoId: 2,
-  workspaceName: "FROST-17",
+  workspaceName: "ARROW-13",
   role: "Executive",
-  teamSize: "2-5",
+  teamSize: "Only me",
   companySize: "1-19",
 }
 ✅ Company info updated successfully - Updated record: {
   COMPANY_INFO_ID: 2,
   COMPANY_ID: 2,
   USER_ID: 2,
-  WORKSPACE_NAME: "FROST-17",
+  WORKSPACE_NAME: "ARROW-13",
   ROLE: "Executive",
-  TEAM_SIZE: "2-5",
+  TEAM_SIZE: "Only me",
   COMPANY_SIZE: "1-19",
   CREATED_AT: 2025-08-30T11:27:18.260Z,
-  UPDATED_AT: 2025-08-30T12:45:16.116Z,
+  UPDATED_AT: 2025-08-30T23:51:23.410Z,
 }
 ✅ Registration completed successfully for: ernest@shieldlytics.com (User ID: 2)
-📧 Email validation request for: ernest@shieldlytics.com (purpose: register)
-📝 Registration request for: ernest@shieldlytics.com
-🔍 Found 0 existing users with email: ernest@shieldlytics.com
-✅ User created in database with ID: 12, verification code: 330341
-📧 Sending verification email to: ernest@shieldlytics.com
-✅ Verification email sent successfully: 4cbbde3f-6fad-4a46-9e3a-03fe51611635
-🔍 Email verification attempt for: ernest@shieldlytics.com
+📧 Email validation request for: epenajr@gmail.com (purpose: register)
+📝 Registration request for: epenajr@gmail.com
+🔍 Found 0 existing users with email: epenajr@gmail.com
+✅ Generated unique military call sign: SIERRA-54
+🎖️ Generated unique military call sign for company: SIERRA-54
+🔧 Creating new company with call sign: SIERRA-54
+🔧 Using company ID: 45
+🔧 Creating user with raw SQL for: epenajr@gmail.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1167,
+  }
+]
+🔧 Creating company_info for User ID: 1167, Company ID: 45
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1167
+✅ User created in database with ID: 1167, verification code: 119103
+📧 Sending verification email to: epenajr@gmail.com
+✅ Verification email sent successfully: e5567029-1b5d-4ceb-9e39-ce899097eead
+🔍 Email verification attempt for: epenajr@gmail.com
 📧 Request body: {
-  "email": "ernest@shieldlytics.com",
-  "verificationCode": "330341"
+  "email": "epenajr@gmail.com",
+  "verificationCode": "119103"
 }
-🔍 Looking up most recent unverified user in database for email: ernest@shieldlytics.com
-✅ User found - ID: 12, Email Validated: false
+🔍 Looking up most recent unverified user in database for email: epenajr@gmail.com
+✅ Found unverified user - ID: 1167, Email: epenajr@gmail.com
+✅ User found - ID: 1167, Email Validated: false
 🔑 Has validation token: true
-⏰ Token expiry: Sat Aug 30 2025 11:32:15 GMT-0500 (Central Daylight Time)
-🔍 Comparing codes for ernest@shieldlytics.com:
-📥 Provided code: 330341
-🔐 Hashed provided: 6f18fe88521d32d32fbd31922edad0422c48bd97076912378fd1906179ed0a7a
-💾 Stored hash: 6f18fe88521d32d32fbd31922edad0422c48bd97076912378fd1906179ed0a7a
+⏰ Token expiry: Sat Aug 30 2025 19:12:02 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for epenajr@gmail.com:
+📥 Provided code: 119103
+🔐 Hashed provided: 04a677594cd91fa650b73b6dd59954d28beea9f3fb3f5098d42e8c0fc6b55d2d
+💾 Stored hash: 04a677594cd91fa650b73b6dd59954d28beea9f3fb3f5098d42e8c0fc6b55d2d
 ✅ Codes match: true
-✅ Email verified successfully for: ernest@shieldlytics.com
-👤 Completing registration for: ernest@shieldlytics.com
+🔧 Updating user verification status for User ID: 1167
+✅ Email verified successfully for: epenajr@gmail.com
+👤 Completing registration for: epenajr@gmail.com
 📋 Complete registration request body: {
-  "email": "ernest@shieldlytics.com",
+  "email": "epenajr@gmail.com",
   "password": "MDA268RedDragon$",
-  "fullName": "ernest@shieldlytics.com",
+  "fullName": "Ernest Pena Jr",
   "role": "Investigator",
   "teamSize": "Only me",
   "companySize": "1-19"
 }
-✅ Generated unique military call sign: GUARD-66
-🎖️ Generated military call sign: GUARD-66
+✅ Generated unique military call sign: SHADOW-90
+🎖️ Generated military call sign: SHADOW-90
 ✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
-🔍 Looking up user in database for complete-registration: ernest@shieldlytics.com
+🔍 Looking up user in database for complete-registration: epenajr@gmail.com
 ✅ Database query successful for user lookup
-🔍 Checking user existence for: ernest@shieldlytics.com
-✅ User found - ID: 2, Email: ernest@shieldlytics.com
-📧 Email validated: true
-🔐 Has password: true
-✅ Email validation check passed
-ℹ️ User already has password, will update profile information for: ernest@shieldlytics.com
-✅ Password check passed - ready to update user
-🔐 Starting password hashing process
-✅ Password hashed successfully
-📝 Processing name: ernest@shieldlytics.com
-✅ Name parsed - First: ernest@shieldlytics.com, Last: 
-💾 Starting database update for user ID: 2
-✅ User updated successfully in database
-📝 Updating company info for user 2
-✅ Found existing company info record with ID: 2
-📝 Updating company info with values: {
-  companyInfoId: 2,
-  workspaceName: "GUARD-66",
-  role: "Investigator",
-  teamSize: "Only me",
-  companySize: "1-19",
-}
-✅ Company info updated successfully - Updated record: {
-  COMPANY_INFO_ID: 2,
-  COMPANY_ID: 2,
-  USER_ID: 2,
-  WORKSPACE_NAME: "GUARD-66",
-  ROLE: "Investigator",
-  TEAM_SIZE: "Only me",
-  COMPANY_SIZE: "1-19",
-  CREATED_AT: 2025-08-30T11:27:18.260Z,
-  UPDATED_AT: 2025-08-30T16:17:38.480Z,
-}
-✅ Registration completed successfully for: ernest@shieldlytics.com (User ID: 2)
-📧 Email validation request for: ernest@shieldlytics.com (purpose: register)
-📝 Registration request for: ernest@shieldlytics.com
-🔍 Found 0 existing users with email: ernest@shieldlytics.com
-✅ User created in database with ID: 13, verification code: 457376
-📧 Sending verification email to: ernest@shieldlytics.com
-✅ Verification email sent successfully: f5bd35d5-d38d-4c61-b07c-a8e38494db13
-🔍 Email verification attempt for: ernest@shieldlytics.com
-📧 Request body: {
-  "email": "ernest@shieldlytics.com",
-  "verificationCode": "457376"
-}
-🔍 Looking up most recent unverified user in database for email: ernest@shieldlytics.com
-✅ User found - ID: 13, Email Validated: false
-🔑 Has validation token: true
-⏰ Token expiry: Sat Aug 30 2025 11:46:10 GMT-0500 (Central Daylight Time)
-🔍 Comparing codes for ernest@shieldlytics.com:
-📥 Provided code: 457376
-🔐 Hashed provided: e9dccbf3cdac825f14bf41d9f7ba341b5f3bc2ce09edf01e76d1a6bec2a4eae1
-💾 Stored hash: e9dccbf3cdac825f14bf41d9f7ba341b5f3bc2ce09edf01e76d1a6bec2a4eae1
-✅ Codes match: true
-✅ Email verified successfully for: ernest@shieldlytics.com
-👤 Completing registration for: ernest@shieldlytics.com
-📋 Complete registration request body: {
-  "email": "ernest@shieldlytics.com",
-  "password": "MDA268RedDragon$",
-  "fullName": "ernest@shieldlytics.com",
-  "role": "Executive",
-  "teamSize": "Only me",
-  "companySize": "1-19"
-}
-✅ Generated unique military call sign: COBRA-72
-🎖️ Generated military call sign: COBRA-72
-✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
-🔍 Looking up user in database for complete-registration: ernest@shieldlytics.com
-✅ Database query successful for user lookup
-🔍 Checking user existence for: ernest@shieldlytics.com
-✅ User found - ID: 2, Email: ernest@shieldlytics.com
-📧 Email validated: true
-🔐 Has password: true
-✅ Email validation check passed
-ℹ️ User already has password, will update profile information for: ernest@shieldlytics.com
-✅ Password check passed - ready to update user
-🔐 Starting password hashing process
-✅ Password hashed successfully
-📝 Processing name: ernest@shieldlytics.com
-✅ Name parsed - First: ernest@shieldlytics.com, Last: 
-💾 Starting database update for user ID: 2
-✅ User updated successfully in database
-📝 Updating company info for user 2
-✅ Found existing company info record with ID: 2
-📝 Updating company info with values: {
-  companyInfoId: 2,
-  workspaceName: "COBRA-72",
-  role: "Executive",
-  teamSize: "Only me",
-  companySize: "1-19",
-}
-✅ Company info updated successfully - Updated record: {
-  COMPANY_INFO_ID: 2,
-  COMPANY_ID: 2,
-  USER_ID: 2,
-  WORKSPACE_NAME: "COBRA-72",
-  ROLE: "Executive",
-  TEAM_SIZE: "Only me",
-  COMPANY_SIZE: "1-19",
-  CREATED_AT: 2025-08-30T11:27:18.260Z,
-  UPDATED_AT: 2025-08-30T16:31:40.666Z,
-}
-✅ Registration completed successfully for: ernest@shieldlytics.com (User ID: 2)
-🔐 Login attempt for: ernest@shieldlytics.com
-❌ User not found: ernest@shieldlytics.com
+🔍 Checking user existence for: epenajr@gmail.com
+❌ No user found for email: epenajr@gmail.com
 📧 Error email request received: {
-  errorType: "api",
-  mainError: "API Error: Request failed with status code 401",
-  pageName: "Login",
-  url: "http://localhost:5175/login",
+  errorType: "console",
+  mainError: "Console Error: %c Registration completion error: background: #F44336; color: #fff AxiosError: Request failed with status code 400",
+  pageName: "Email Verification",
+  url: "http://localhost:5175/verify-email",
   userId: undefined,
   isProduction: false,
-  timestamp: "2025-08-30T16:35:43.488Z",
+  timestamp: "2025-08-30T23:58:09.270Z",
 }
 🚨 Application Error Captured: {
-  type: "API",
-  message: "API Error: Request failed with status code 401",
-  page: "Login",
-  function: "settle",
+  type: "CONSOLE",
+  message: "Console Error: %c Registration completion error: background: #F44336; color: #fff AxiosError: Request failed with status code 400",
+  page: "Email Verification",
+  function: "console",
   line: 0,
-  file: "API Request",
-  url: "http://localhost:5175/login",
+  file: "Console",
+  url: "http://localhost:5175/verify-email",
   userId: undefined,
   email: undefined,
-  userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0....",
-  stackTrace: "AxiosError: Request failed with status code 401\n    at settle (http://localhost:5175/node_modules/.vite/deps/axios.js?v=c260c6fe:1232:12)\n    at XMLHttpRequest.onloadend (http://localhost:5175/node_modules/.vite/deps/axios.js?v=c260c6fe:1564:7)...",
-  timestamp: "2025-08-30T16:35:43.488Z",
-  apiEndpoint: "/api/login",
-  apiMethod: "POST",
-  apiStatusCode: 401,
+  userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0....",
+  stackTrace: "Error: %c Registration completion error: background: #F44336; color: #fff AxiosError: Request failed with status code 400\n    at console.error (http://localhost:5175/src/utils/errorCapture.ts?t=1756597746005:84:20)\n    at handleCompleteRegistration (http://localhost:5175/src/pages/VerifyEmail.tsx?t=1756557749420:278:15)...",
+  timestamp: "2025-08-30T23:58:09.270Z",
+  apiEndpoint: undefined,
+  apiMethod: undefined,
+  apiStatusCode: undefined,
   componentStack: "undefined...",
 }
 📧 Development mode - Error email NOT sent (logged only)
-📝 Registration request for: test@example.com
-🔍 Found 0 existing users with email: test@example.com
-✅ User created in database with ID: 14, verification code: 829301
-📧 Sending verification email to: test@example.com
-✅ Verification email sent successfully: b233341c-f2a3-41ae-91e8-ed0080b347c1
-🔍 Email verification attempt for: test@example.com
-📧 Request body: {
-  "email": "test@example.com",
-  "code": "829301"
-}
-❌ Missing required fields - email: true, verificationCode: false
-🔍 Email verification attempt for: test@example.com
-📧 Request body: {
-  "email": "test@example.com",
-  "verificationCode": "829301"
-}
-🔍 Looking up most recent unverified user in database for email: test@example.com
-✅ User found - ID: 14, Email Validated: false
-🔑 Has validation token: true
-⏰ Token expiry: Sat Aug 30 2025 12:09:05 GMT-0500 (Central Daylight Time)
-🔍 Comparing codes for test@example.com:
-📥 Provided code: 829301
-🔐 Hashed provided: b754b59727e65c8879d1a4e1a3f060ff6c01be1ef8f99321d9afc2bb318840b4
-💾 Stored hash: b754b59727e65c8879d1a4e1a3f060ff6c01be1ef8f99321d9afc2bb318840b4
-✅ Codes match: true
-✅ Email verified successfully for: test@example.com
-Server error: 87 |       }
-88 |     }
-89 | 
-90 |     try {
-91 |       debug('parse json')
-92 |       return JSON.parse(body, reviver)
-     ^
-SyntaxError: JSON Parse error: Invalid escape character !
-     expose: true,
- statusCode: 400,
-     status: 400,
-       body: "{\"email\": \"test@example.com\", \"password\": \"Test123\\!\", \"fullName\": \"Test User\"}",
-       type: "entity.parse.failed",
-
-      at <parse> ()
-      at parse (unknown:1:1)
-      at parse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/body-parser/lib/types/json.js:92:19)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/body-parser/lib/read.js:128:18
-      at runInAsyncScope (node:async_hooks:140:23)
-      at invokeCallback (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/raw-body/index.js:238:16)
-      at done (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/raw-body/index.js:227:7)
-      at onEnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/raw-body/index.js:287:7)
-      at emit (node:events:92:22)
-      at endReadableNT (internal:streams/readable:862:50)
-      at processTicksAndRejections (native:7:39)
-
-👤 Completing registration for: test@example.com
-📋 Complete registration request body: {
-  "email": "test@example.com",
-  "password": "Test123",
-  "fullName": "Test User"
-}
-✅ Generated unique military call sign: CYCLONE-51
-🎖️ Generated military call sign: CYCLONE-51
-✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
-🔍 Looking up user in database for complete-registration: test@example.com
-✅ Database query successful for user lookup
-🔍 Checking user existence for: test@example.com
-✅ User found - ID: 14, Email: test@example.com
-📧 Email validated: true
-🔐 Has password: true
-✅ Email validation check passed
-ℹ️ User already has password, will update profile information for: test@example.com
-✅ Password check passed - ready to update user
-🔐 Starting password hashing process
-✅ Password hashed successfully
-📝 Processing name: Test User
-✅ Name parsed - First: Test, Last: User
-💾 Starting database update for user ID: 14
-✅ User updated successfully in database
-📝 Updating company info for user 14
-✅ Found existing company info record with ID: 14
-📝 Updating company info with values: {
-  companyInfoId: 14,
-  workspaceName: "CYCLONE-51",
-  role: "NULL",
-  teamSize: "NULL",
-  companySize: "NULL",
-}
-✅ Company info updated successfully - Updated record: {
-  COMPANY_INFO_ID: 14,
-  COMPANY_ID: 1,
-  USER_ID: 14,
-  WORKSPACE_NAME: "CYCLONE-51",
-  ROLE: null,
-  TEAM_SIZE: null,
-  COMPANY_SIZE: null,
-  CREATED_AT: 2025-08-30T16:54:05.870Z,
-  UPDATED_AT: 2025-08-30T17:09:30.690Z,
-}
-✅ Registration completed successfully for: test@example.com (User ID: 14)
-🔐 Login attempt for: test@example.com
-❌ User not found: test@example.com
