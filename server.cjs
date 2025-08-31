@@ -7373,12 +7373,13 @@ app.post('/api/register', async (req, res) => {
 
         // Create company_info entry using raw SQL with initial workspace name
         console.log(`🔧 Creating company_info for User ID: ${user.USER_ID}, Company ID: ${companyId}`);
-        console.log(`🎖️ Setting initial workspace name to: ${companyNameToUse}`);
+        const workspaceName = `MIL-WRKSPC-${companyId}`;
+        console.log(`🎖️ Setting initial workspace name to: ${workspaceName}`);
         await prisma.$executeRaw`
             INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, WORKSPACE_NAME, CREATED_AT, UPDATED_AT)
-            VALUES (${user.USER_ID}, ${companyId}, ${companyNameToUse}, GETDATE(), GETDATE())
+            VALUES (${user.USER_ID}, ${companyId}, ${workspaceName}, GETDATE(), GETDATE())
         `;
-        console.log(`✅ Company_info created successfully with workspace name: ${companyNameToUse}`);
+        console.log(`✅ Company_info created successfully with workspace name: ${workspaceName}`);
 
         // Assign Admin role using raw SQL
         console.log(`🔧 Finding Admin role for user assignment`);

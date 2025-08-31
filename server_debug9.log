@@ -1,0 +1,40 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 29300
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📝 Registration request for: test-workspace@example.com
+🔍 Found 0 existing users with email: test-workspace@example.com
+✅ Generated unique military call sign: SPEAR-82
+🎖️ Generated unique military call sign for company: SPEAR-82
+🔧 Creating new company with call sign: SPEAR-82
+🔧 Using company ID: 55
+🔧 Creating user with raw SQL for: test-workspace@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1177,
+  }
+]
+🔧 Creating company_info for User ID: 1177, Company ID: 55
+🎖️ Setting initial workspace name to: MIL-WRKSPC-55
+✅ Company_info created successfully with workspace name: MIL-WRKSPC-55
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1177
+✅ User created in database with ID: 1177, verification code: 348930
+📧 Sending verification email to: test-workspace@example.com
+✅ Verification email sent successfully: c227f68c-9dd3-48bd-927d-25f1d5069619
