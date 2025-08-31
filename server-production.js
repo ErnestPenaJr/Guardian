@@ -1005,8 +1005,17 @@ app.post('/api/login', async (req, res) => {
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
         `;
 
+        console.log(`🔍 Login database query result for ${email}:`, users.length > 0 ? users[0] : 'NO USERS FOUND');
+
         if (users.length === 0) {
             console.log(`❌ User not found: ${email}`);
+            // Let's also check if any user exists with similar email (for debugging)
+            const debugUsers = await prisma.$queryRaw`
+                SELECT TOP 5 USER_ID, EMAIL, STATUS FROM GUARDIAN.USERS 
+                WHERE EMAIL LIKE ${'%' + email.split('@')[0] + '%'}
+            `;
+            console.log(`🔧 Debug - Similar email users:`, debugUsers);
+            
             return res.status(401).json({
                 error: 'Invalid email or password'
             });
@@ -7314,43 +7323,89 @@ app.post('/api/register', async (req, res) => {
         console.log(`🎖️ Generated unique military call sign for company: ${companyNameToUse}`);
         
         // Create unique company using military call sign
-        const company = await prisma.COMPANY.create({ data: { NAME: companyNameToUse } });
-
-        // Create user in database
-        const user = await prisma.USERS.create({
-          data: {
-            EMAIL: email,
-            PASSWORD_HASH: passwordHash,
-            EMAIL_VALIDATION_TOKEN: hashedCode,
-            EMAIL_VALIDATION_TOKEN_EXPIRY: tokenExpiry,
-            EMAIL_VALIDATED: false,
-            STATUS: 'P',
-            CREATE_DATE: new Date(),
-            UPDATE_DATE: new Date(),
-            FIRST_NAME: firstName,
-            LAST_NAME: lastName,
-            COMPANY_ID: company.COMPANY_ID
-          }
-        });
-
-        // Create company_info entry
-        await prisma.COMPANY_INFO.create({
-          data: {
-            USER_ID: user.USER_ID,
-            COMPANY_ID: company.COMPANY_ID,
-          }
-        });
-
-        // Assign Admin role
-        let adminRole = await prisma.ROLES.findFirst({ where: { NAME: 'Admin' } });
-        if (!adminRole) {
-          adminRole = await prisma.ROLES.create({ 
-            data: { NAME: 'ADMIN', DISPLAY_NAME: 'Administrator', DESCRIPTION: 'Default admin role' } 
-          });
+        console.log(`🔧 Creating new company with call sign: ${companyNameToUse}`);
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.COMPANY (NAME, CREATED_AT)
+            VALUES (${companyNameToUse}, GETDATE())
+        `;
+        
+        // Get the newly created company ID
+        const newCompanies = await prisma.$queryRaw`
+            SELECT COMPANY_ID FROM GUARDIAN.COMPANY WHERE NAME = ${companyNameToUse}
+        `;
+        
+        if (newCompanies.length === 0) {
+            throw new Error('Failed to create company - company not found after insert');
         }
-        await prisma.USER_ROLES.create({ 
-          data: { USER_ID: user.USER_ID, ROLE_ID: adminRole.ROLE_ID } 
-        });
+        
+        const companyId = newCompanies[0].COMPANY_ID;
+        
+        console.log(`🔧 Using company ID: ${companyId}`);
+
+        // Create user in database using raw SQL instead of Prisma ORM
+        console.log(`🔧 Creating user with raw SQL for: ${email}`);
+        const createUserResult = await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USERS (
+                EMAIL, PASSWORD_HASH, EMAIL_VALIDATION_TOKEN, EMAIL_VALIDATION_TOKEN_EXPIRY,
+                EMAIL_VALIDATED, STATUS, CREATE_DATE, UPDATE_DATE, FIRST_NAME, LAST_NAME, COMPANY_ID
+            )
+            VALUES (
+                ${email}, ${passwordHash}, ${hashedCode}, ${tokenExpiry},
+                0, 'P', GETDATE(), GETDATE(), ${firstName}, ${lastName}, ${companyId}
+            )
+        `;
+        console.log(`🔧 Insert result:`, createUserResult);
+        
+        // Get the newly created user
+        const newUsers = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+            ORDER BY CREATE_DATE DESC
+        `;
+        
+        console.log(`🔧 Retrieved user after insert:`, newUsers);
+        
+        if (newUsers.length === 0) {
+            throw new Error('Failed to create user - user not found after insert');
+        }
+        
+        const user = { USER_ID: newUsers[0].USER_ID };
+
+        // Create company_info entry using raw SQL with initial workspace name
+        console.log(`🔧 Creating company_info for User ID: ${user.USER_ID}, Company ID: ${companyId}`);
+        console.log(`🎖️ Setting initial workspace name to: ${companyNameToUse}`);
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, WORKSPACE_NAME, CREATED_AT, UPDATED_AT)
+            VALUES (${user.USER_ID}, ${companyId}, ${companyNameToUse}, GETDATE(), GETDATE())
+        `;
+        console.log(`✅ Company_info created successfully with workspace name: ${companyNameToUse}`);
+
+        // Assign Admin role using raw SQL
+        console.log(`🔧 Finding Admin role for user assignment`);
+        const adminRoles = await prisma.$queryRaw`
+            SELECT ROLE_ID FROM GUARDIAN.ROLES WHERE NAME = 'Admin'
+        `;
+        
+        let adminRoleId;
+        if (adminRoles.length === 0) {
+            console.log(`🔧 Creating Admin role`);
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.ROLES (NAME, DISPLAY_NAME, DESCRIPTION, STATUS)
+                VALUES ('Admin', 'Administrator', 'Default admin role', 'A')
+            `;
+            const newRoles = await prisma.$queryRaw`
+                SELECT ROLE_ID FROM GUARDIAN.ROLES WHERE NAME = 'Admin'
+            `;
+            adminRoleId = newRoles[0].ROLE_ID;
+        } else {
+            adminRoleId = adminRoles[0].ROLE_ID;
+        }
+        
+        console.log(`🔧 Assigning Admin role (${adminRoleId}) to user ${user.USER_ID}`);
+        await prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, CREATE_DATE, UPDATE_DATE)
+            VALUES (${user.USER_ID}, ${adminRoleId}, GETDATE(), GETDATE())
+        `;
 
         console.log(`✅ User created in database with ID: ${user.USER_ID}, verification code: ${verificationCode}`);
 
@@ -7868,11 +7923,11 @@ app.post('/api/complete-registration', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Check if user exists and email was verified - use same logic as verify-email endpoint
+        // Check if user exists and email was verified - use enhanced query for compatibility
         console.log(`🔍 Looking up most recent verified user in database for complete-registration: ${normalizedEmail}`);
         let existingUser;
         try {
-            // Find most recent verified user with this email using raw SQL (matches verification pattern)
+            // Find most recent verified user with enhanced EMAIL_VALIDATED compatibility
             const verifiedUsers = await prisma.$queryRaw`
                 SELECT USER_ID, EMAIL, EMAIL_VALIDATED, PASSWORD_HASH, COMPANY_ID, CREATE_DATE
                 FROM GUARDIAN.USERS 
@@ -7898,7 +7953,7 @@ app.post('/api/complete-registration', async (req, res) => {
 
         console.log(`🔍 Checking user existence for: ${normalizedEmail}`);
         if (!existingUser) {
-            console.log(`❌ No verified user found for email: ${normalizedEmail}`);
+            console.log(`❌ No user found for email: ${normalizedEmail}`);
             return res.status(400).json({
                 error: 'No verified user found. Please register and verify your email first.'
             });
@@ -7966,47 +8021,95 @@ app.post('/api/complete-registration', async (req, res) => {
             }
         }
 
-        // Update company info if provided
-        console.log(`📝 Updating company info for user ${userId}`);
-        if (role || teamSize || companySize || workspaceName) {
-            const existingCompanyInfo = await prisma.COMPANY_INFO.findFirst({
-                where: { USER_ID: userId }
-            });
+        // Update company info - ALWAYS update with new workspace name
+        console.log(`📝 Updating company info for user ${userId} (USER_ID type: ${typeof userId})`);
+        
+        // Use the existing userIdInt from above
+        console.log(`🔍 Looking up company info for user ID: ${userIdInt} (converted from ${userId})`);
+        console.log(`🎖️ New workspace name to set: ${workspaceName}`);
+        
+        // Use raw SQL for more reliable lookup and debugging
+        const existingCompanyInfoResult = await prisma.$queryRaw`
+            SELECT COMPANY_INFO_ID, USER_ID, COMPANY_ID, WORKSPACE_NAME, ROLE, TEAM_SIZE, COMPANY_SIZE
+            FROM GUARDIAN.COMPANY_INFO 
+            WHERE USER_ID = ${userIdInt}
+        `;
+        
+        console.log(`🔍 Company info lookup result:`, existingCompanyInfoResult);
 
-            if (existingCompanyInfo) {
-                console.log(`✅ Found existing company info record with ID: ${existingCompanyInfo.COMPANY_INFO_ID}`);
-                
-                // Log values being saved
-                console.log(`📝 Updating company info with values:`, {
-                    companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
-                    workspaceName: workspaceName || 'NULL',
-                    role: role || 'NULL',
-                    teamSize: teamSize || 'NULL',
-                    companySize: companySize || 'NULL'
-                });
-                
-                // Update existing record using the unique COMPANY_INFO_ID
-                const updateResult = await prisma.COMPANY_INFO.update({
-                    where: { COMPANY_INFO_ID: existingCompanyInfo.COMPANY_INFO_ID },
-                    data: {
-                        ...(workspaceName && { WORKSPACE_NAME: workspaceName }),
-                        ...(role && { ROLE: role }),
-                        ...(teamSize && { TEAM_SIZE: teamSize }),
-                        ...(companySize && { COMPANY_SIZE: companySize }),
-                        UPDATED_AT: new Date()
-                    }
-                });
-                console.log(`✅ Company info updated successfully - Updated record:`, updateResult);
-            } else {
-                console.log(`❌ No existing company info found for user ${userId}`);
-            }
+        if (existingCompanyInfoResult.length > 0) {
+            const existingCompanyInfo = existingCompanyInfoResult[0];
+            console.log(`✅ Found existing company info record:`, {
+                companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
+                userId: existingCompanyInfo.USER_ID,
+                companyId: existingCompanyInfo.COMPANY_ID,
+                currentWorkspaceName: existingCompanyInfo.WORKSPACE_NAME || 'NULL'
+            });
+            
+            // Log values being saved
+            console.log(`📝 Updating company info with values:`, {
+                companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
+                workspaceName: workspaceName,
+                role: role || 'NULL',
+                teamSize: teamSize || 'NULL',
+                companySize: companySize || 'NULL'
+            });
+            
+            // Use raw SQL for the update to ensure compatibility
+            const updateData = {
+                WORKSPACE_NAME: workspaceName,
+                UPDATED_AT: 'GETDATE()'
+            };
+            
+            if (role) updateData.ROLE = role;
+            if (teamSize) updateData.TEAM_SIZE = teamSize;
+            if (companySize) updateData.COMPANY_SIZE = companySize;
+            
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.COMPANY_INFO
+                SET WORKSPACE_NAME = ${workspaceName},
+                    ROLE = ${role || existingCompanyInfo.ROLE},
+                    TEAM_SIZE = ${teamSize || existingCompanyInfo.TEAM_SIZE},
+                    COMPANY_SIZE = ${companySize || existingCompanyInfo.COMPANY_SIZE},
+                    UPDATED_AT = GETDATE()
+                WHERE COMPANY_INFO_ID = ${existingCompanyInfo.COMPANY_INFO_ID}
+            `;
+            
+            console.log(`✅ Company info updated successfully with workspace name: ${workspaceName}`);
+            
+            // Verify the update
+            const verificationResult = await prisma.$queryRaw`
+                SELECT WORKSPACE_NAME, ROLE, TEAM_SIZE, COMPANY_SIZE
+                FROM GUARDIAN.COMPANY_INFO 
+                WHERE COMPANY_INFO_ID = ${existingCompanyInfo.COMPANY_INFO_ID}
+            `;
+            console.log(`🔍 Updated company info verification:`, verificationResult[0]);
+            
+        } else {
+            console.log(`❌ No existing company info found for user ${userIdInt}`);
+            console.log(`🔍 Attempting to create missing company_info record for user ${userIdInt}, company ${existingUser.COMPANY_ID}`);
+            
+            // Create the missing company_info record
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, WORKSPACE_NAME, CREATED_AT, UPDATED_AT)
+                VALUES (${userIdInt}, ${existingUser.COMPANY_ID}, ${workspaceName}, GETDATE(), GETDATE())
+            `;
+            console.log(`✅ Created missing company_info record with workspace name: ${workspaceName}`);
         }
 
         console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
 
+        // Get the actual company name (call sign) from the database
+        const companyResult = await prisma.$queryRaw`
+            SELECT NAME FROM GUARDIAN.COMPANY 
+            WHERE COMPANY_ID = ${existingUser.COMPANY_ID}
+        `;
+        const actualCallSign = companyResult.length > 0 ? companyResult[0].NAME : workspaceName;
+        console.log(`🎖️ Using actual company call sign from database: ${actualCallSign}`);
+
         res.json({
             success: true,
-            message: `Registration completed successfully! Welcome to organization ${workspaceName}`,
+            message: `Registration completed successfully! Welcome to organization ${actualCallSign}`,
             user: {
                 id: userId,
                 email: email,
@@ -8014,7 +8117,7 @@ app.post('/api/complete-registration', async (req, res) => {
                 lastName: lastName,
                 companyId: existingUser.COMPANY_ID
             },
-            callSign: workspaceName // Include the generated call sign in response
+            callSign: actualCallSign // Use the actual company name from database
         });
 
     } catch (error) {

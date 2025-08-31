@@ -1,0 +1,124 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 27849
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📧 Email validation request for: ernest@shieldlytics.com (purpose: register)
+📝 Registration request for: ernest@shieldlytics.com
+🔍 Found 0 existing users with email: ernest@shieldlytics.com
+✅ Generated unique military call sign: BRAVO-86
+🎖️ Generated unique military call sign for company: BRAVO-86
+🔧 Creating new company with call sign: BRAVO-86
+🔧 Using company ID: 54
+🔧 Creating user with raw SQL for: ernest@shieldlytics.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1176,
+  }
+]
+🔧 Creating company_info for User ID: 1176, Company ID: 54
+🎖️ Setting initial workspace name to: BRAVO-86
+✅ Company_info created successfully with workspace name: BRAVO-86
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1176
+✅ User created in database with ID: 1176, verification code: 626714
+📧 Sending verification email to: ernest@shieldlytics.com
+✅ Verification email sent successfully: 0d61e433-0e29-4b81-89fc-f6db9ba532ad
+🔍 Email verification attempt for: ernest@shieldlytics.com
+📧 Request body: {
+  "email": "ernest@shieldlytics.com",
+  "verificationCode": "626714"
+}
+🔍 Looking up most recent unverified user in database for email: ernest@shieldlytics.com
+✅ Found unverified user - ID: 1176, Email: ernest@shieldlytics.com
+✅ User found - ID: 1176, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sun Aug 31 2025 05:50:25 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for ernest@shieldlytics.com:
+📥 Provided code: 626714
+🔐 Hashed provided: 27722fe668eaa3118973196a9d3aebcd27b3923c74e3c10fa95e2c1eb9bc8073
+💾 Stored hash: 27722fe668eaa3118973196a9d3aebcd27b3923c74e3c10fa95e2c1eb9bc8073
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1176
+✅ Email verified successfully for: ernest@shieldlytics.com
+👤 Completing registration for: ernest@shieldlytics.com
+📋 Complete registration request body: {
+  "email": "ernest@shieldlytics.com",
+  "password": "MDA268RedDragon$",
+  "fullName": "Ernest Pena Jr",
+  "role": "Executive",
+  "teamSize": "Only me",
+  "companySize": "1-19"
+}
+✅ Generated unique military call sign: JAGUAR-52
+🎖️ Generated military call sign: JAGUAR-52
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: ernest@shieldlytics.com
+✅ Found most recent verified user - ID: 1176, Email: ernest@shieldlytics.com, Created: Sun Aug 31 2025 05:35:25 GMT-0500 (Central Daylight Time)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: ernest@shieldlytics.com
+✅ Most recent verified user found - ID: 1176, Email: ernest@shieldlytics.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 54
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: ernest@shieldlytics.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Ernest Pena Jr
+✅ Name parsed - First: Ernest, Last: Pena Jr
+💾 Starting database update for user ID: 1176
+✅ User updated successfully in database
+📝 Updating company info for user 1176 (USER_ID type: number)
+🔍 Looking up company info for user ID: 1176 (converted from 1176)
+🎖️ New workspace name to set: JAGUAR-52
+🔍 Company info lookup result: [
+  {
+    COMPANY_INFO_ID: 90,
+    USER_ID: 1176,
+    COMPANY_ID: 54,
+    WORKSPACE_NAME: "BRAVO-86",
+    ROLE: null,
+    TEAM_SIZE: null,
+    COMPANY_SIZE: null,
+  }
+]
+✅ Found existing company info record: {
+  companyInfoId: 90,
+  userId: 1176,
+  companyId: 54,
+  currentWorkspaceName: "BRAVO-86",
+}
+📝 Updating company info with values: {
+  companyInfoId: 90,
+  workspaceName: "JAGUAR-52",
+  role: "Executive",
+  teamSize: "Only me",
+  companySize: "1-19",
+}
+✅ Company info updated successfully with workspace name: JAGUAR-52
+🔍 Updated company info verification: {
+  WORKSPACE_NAME: "JAGUAR-52",
+  ROLE: "Executive",
+  TEAM_SIZE: "Only me",
+  COMPANY_SIZE: "1-19",
+}
+✅ Registration completed successfully for: ernest@shieldlytics.com (User ID: 1176)
+🎖️ Using actual company call sign from database: BRAVO-86

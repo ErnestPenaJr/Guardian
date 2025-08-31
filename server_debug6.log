@@ -1,0 +1,272 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 11908
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+📧 Email validation request for: test@example.com (purpose: register)
+📧 Email validation request for: ernestpenajr@me.com (purpose: register)
+📝 Registration request for: ernestpenajr@me.com
+🔍 Found 0 existing users with email: ernestpenajr@me.com
+✅ Generated unique military call sign: STORM-95
+🎖️ Generated unique military call sign for company: STORM-95
+🔧 Creating new company with call sign: STORM-95
+🔧 Using company ID: 50
+🔧 Creating user with raw SQL for: ernestpenajr@me.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1172,
+  }
+]
+🔧 Creating company_info for User ID: 1172, Company ID: 50
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1172
+✅ User created in database with ID: 1172, verification code: 637235
+📧 Sending verification email to: ernestpenajr@me.com
+✅ Verification email sent successfully: 79ee09fd-786b-4864-b97f-32e7d6888c4e
+🔍 Email verification attempt for: ernestpenajr@me.com
+📧 Request body: {
+  "email": "ernestpenajr@me.com",
+  "verificationCode": "637235"
+}
+🔍 Looking up most recent unverified user in database for email: ernestpenajr@me.com
+✅ Found unverified user - ID: 1172, Email: ernestpenajr@me.com
+✅ User found - ID: 1172, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sat Aug 30 2025 19:29:59 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for ernestpenajr@me.com:
+📥 Provided code: 637235
+🔐 Hashed provided: f3e5c06c893a339977da3acf23cb88e2108a2e454bd875acd88aee09e01fcf98
+💾 Stored hash: f3e5c06c893a339977da3acf23cb88e2108a2e454bd875acd88aee09e01fcf98
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1172
+✅ Email verified successfully for: ernestpenajr@me.com
+📧 Email validation request for: ernestpenajr@me.com (purpose: register)
+📧 Email validation request for: ernestpenajr@me.com (purpose: register)
+📝 Registration request for: ernestpenajr@me.com
+🔍 Found 0 existing users with email: ernestpenajr@me.com
+✅ Generated unique military call sign: APEX-20
+🎖️ Generated unique military call sign for company: APEX-20
+🔧 Creating new company with call sign: APEX-20
+🔧 Using company ID: 51
+🔧 Creating user with raw SQL for: ernestpenajr@me.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1173,
+  }
+]
+🔧 Creating company_info for User ID: 1173, Company ID: 51
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1173
+✅ User created in database with ID: 1173, verification code: 245500
+📧 Sending verification email to: ernestpenajr@me.com
+✅ Verification email sent successfully: 3bdaa7c3-ebda-487c-9592-8b5379b172fc
+🔍 Email verification attempt for: ernestpenajr@me.com
+📧 Request body: {
+  "email": "ernestpenajr@me.com",
+  "verificationCode": "245500"
+}
+🔍 Looking up most recent unverified user in database for email: ernestpenajr@me.com
+✅ Found unverified user - ID: 1173, Email: ernestpenajr@me.com
+✅ User found - ID: 1173, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sat Aug 30 2025 19:32:26 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for ernestpenajr@me.com:
+📥 Provided code: 245500
+🔐 Hashed provided: 93dc75132873b06718c18c4b49ba5ddd93efdefe4501b4a9ad3c1e89935dd9ad
+💾 Stored hash: 93dc75132873b06718c18c4b49ba5ddd93efdefe4501b4a9ad3c1e89935dd9ad
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1173
+✅ Email verified successfully for: ernestpenajr@me.com
+👤 Completing registration for: ernestpenajr@me.com
+📋 Complete registration request body: {
+  "email": "ernestpenajr@me.com",
+  "password": "MDA268RedDragon$",
+  "fullName": "Ernest Pena Jr",
+  "role": "Executive",
+  "teamSize": "Only me",
+  "companySize": "1-19"
+}
+✅ Generated unique military call sign: LYNX-22
+🎖️ Generated military call sign: LYNX-22
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: ernestpenajr@me.com
+✅ Found most recent verified user - ID: 1173, Email: ernestpenajr@me.com, Created: Sat Aug 30 2025 19:17:26 GMT-0500 (Central Daylight Time)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: ernestpenajr@me.com
+✅ Most recent verified user found - ID: 1173, Email: ernestpenajr@me.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 51
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: ernestpenajr@me.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Ernest Pena Jr
+✅ Name parsed - First: Ernest, Last: Pena Jr
+💾 Starting database update for user ID: 1173
+✅ User updated successfully in database
+📝 Updating company info for user 1173
+❌ No existing company info found for user 1173
+✅ Registration completed successfully for: ernestpenajr@me.com (User ID: 1173)
+📧 Email validation request for: ernest@shieldlytics.com (purpose: register)
+📝 Registration request for: ernest@shieldlytics.com
+🔍 Found 0 existing users with email: ernest@shieldlytics.com
+✅ Generated unique military call sign: TANGO-46
+🎖️ Generated unique military call sign for company: TANGO-46
+🔧 Creating new company with call sign: TANGO-46
+🔧 Using company ID: 52
+🔧 Creating user with raw SQL for: ernest@shieldlytics.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1174,
+  }
+]
+🔧 Creating company_info for User ID: 1174, Company ID: 52
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1174
+✅ User created in database with ID: 1174, verification code: 890663
+📧 Sending verification email to: ernest@shieldlytics.com
+✅ Verification email sent successfully: 48407706-c4a3-477a-b8e4-7c16ea90304b
+🔍 Email verification attempt for: ernest@shieldlytics.com
+📧 Request body: {
+  "email": "ernest@shieldlytics.com",
+  "verificationCode": "890663"
+}
+🔍 Looking up most recent unverified user in database for email: ernest@shieldlytics.com
+✅ Found unverified user - ID: 1174, Email: ernest@shieldlytics.com
+✅ User found - ID: 1174, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sun Aug 31 2025 05:39:49 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for ernest@shieldlytics.com:
+📥 Provided code: 890663
+🔐 Hashed provided: d4496c255aaa5747d9362bdc9467a25d69b0d8b2c159ca0bb34ae8d6cedeaec7
+💾 Stored hash: d4496c255aaa5747d9362bdc9467a25d69b0d8b2c159ca0bb34ae8d6cedeaec7
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1174
+✅ Email verified successfully for: ernest@shieldlytics.com
+👤 Completing registration for: ernest@shieldlytics.com
+📋 Complete registration request body: {
+  "email": "ernest@shieldlytics.com",
+  "password": "MDA268RedDragon$",
+  "fullName": "Ernest Pena Jr",
+  "role": "Executive",
+  "teamSize": "Only me",
+  "companySize": "1-19"
+}
+✅ Generated unique military call sign: BOLT-17
+🎖️ Generated military call sign: BOLT-17
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: ernest@shieldlytics.com
+✅ Found most recent verified user - ID: 1174, Email: ernest@shieldlytics.com, Created: Sun Aug 31 2025 05:24:49 GMT-0500 (Central Daylight Time)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: ernest@shieldlytics.com
+✅ Most recent verified user found - ID: 1174, Email: ernest@shieldlytics.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 52
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: ernest@shieldlytics.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Ernest Pena Jr
+✅ Name parsed - First: Ernest, Last: Pena Jr
+💾 Starting database update for user ID: 1174
+✅ User updated successfully in database
+📝 Updating company info for user 1174
+❌ No existing company info found for user 1174
+✅ Registration completed successfully for: ernest@shieldlytics.com (User ID: 1174)
+📧 Email validation request for: ernest@shieldlytics.com (purpose: register)
+📝 Registration request for: ernest@shieldlytics.com
+🔍 Found 0 existing users with email: ernest@shieldlytics.com
+✅ Generated unique military call sign: DRAGON-87
+🎖️ Generated unique military call sign for company: DRAGON-87
+🔧 Creating new company with call sign: DRAGON-87
+🔧 Using company ID: 53
+🔧 Creating user with raw SQL for: ernest@shieldlytics.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1175,
+  }
+]
+🔧 Creating company_info for User ID: 1175, Company ID: 53
+🔧 Company_info created successfully
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1175
+✅ User created in database with ID: 1175, verification code: 138107
+📧 Sending verification email to: ernest@shieldlytics.com
+✅ Verification email sent successfully: 0c0ad453-7bae-4563-b0be-d923465dd131
+🔍 Email verification attempt for: ernest@shieldlytics.com
+📧 Request body: {
+  "email": "ernest@shieldlytics.com",
+  "verificationCode": "138107"
+}
+🔍 Looking up most recent unverified user in database for email: ernest@shieldlytics.com
+✅ Found unverified user - ID: 1175, Email: ernest@shieldlytics.com
+✅ User found - ID: 1175, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Sun Aug 31 2025 05:44:58 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for ernest@shieldlytics.com:
+📥 Provided code: 138107
+🔐 Hashed provided: 5b72e95bb9df576c0b828c67e249b2cdf9ceb7ae2b3ff4c12e7475778bf90e0d
+💾 Stored hash: 5b72e95bb9df576c0b828c67e249b2cdf9ceb7ae2b3ff4c12e7475778bf90e0d
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1175
+✅ Email verified successfully for: ernest@shieldlytics.com
+👤 Completing registration for: ernest@shieldlytics.com
+📋 Complete registration request body: {
+  "email": "ernest@shieldlytics.com",
+  "password": "MDA268RedDragon$",
+  "fullName": "Ernest Pena Jr",
+  "role": "Other",
+  "teamSize": "Only me",
+  "companySize": "1-19"
+}
+✅ Generated unique military call sign: SIERRA-61
+🎖️ Generated military call sign: SIERRA-61
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: ernest@shieldlytics.com
+✅ Found most recent verified user - ID: 1175, Email: ernest@shieldlytics.com, Created: Sun Aug 31 2025 05:29:59 GMT-0500 (Central Daylight Time)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: ernest@shieldlytics.com
+✅ Most recent verified user found - ID: 1175, Email: ernest@shieldlytics.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: 53
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: ernest@shieldlytics.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Ernest Pena Jr
+✅ Name parsed - First: Ernest, Last: Pena Jr
+💾 Starting database update for user ID: 1175
+✅ User updated successfully in database
+📝 Updating company info for user 1175
+❌ No existing company info found for user 1175
+✅ Registration completed successfully for: ernest@shieldlytics.com (User ID: 1175)

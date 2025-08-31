@@ -7371,13 +7371,14 @@ app.post('/api/register', async (req, res) => {
         
         const user = { USER_ID: newUsers[0].USER_ID };
 
-        // Create company_info entry using raw SQL
+        // Create company_info entry using raw SQL with initial workspace name
         console.log(`🔧 Creating company_info for User ID: ${user.USER_ID}, Company ID: ${companyId}`);
+        console.log(`🎖️ Setting initial workspace name to: ${companyNameToUse}`);
         await prisma.$executeRaw`
-            INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, CREATED_AT, UPDATED_AT)
-            VALUES (${user.USER_ID}, ${companyId}, GETDATE(), GETDATE())
+            INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, WORKSPACE_NAME, CREATED_AT, UPDATED_AT)
+            VALUES (${user.USER_ID}, ${companyId}, ${companyNameToUse}, GETDATE(), GETDATE())
         `;
-        console.log(`🔧 Company_info created successfully`);
+        console.log(`✅ Company_info created successfully with workspace name: ${companyNameToUse}`);
 
         // Assign Admin role using raw SQL
         console.log(`🔧 Finding Admin role for user assignment`);
@@ -8020,47 +8021,95 @@ app.post('/api/complete-registration', async (req, res) => {
             }
         }
 
-        // Update company info if provided
-        console.log(`📝 Updating company info for user ${userId}`);
-        if (role || teamSize || companySize || workspaceName) {
-            const existingCompanyInfo = await prisma.COMPANY_INFO.findFirst({
-                where: { USER_ID: userId }
-            });
+        // Update company info - ALWAYS update with new workspace name
+        console.log(`📝 Updating company info for user ${userId} (USER_ID type: ${typeof userId})`);
+        
+        // Use the existing userIdInt from above
+        console.log(`🔍 Looking up company info for user ID: ${userIdInt} (converted from ${userId})`);
+        console.log(`🎖️ New workspace name to set: ${workspaceName}`);
+        
+        // Use raw SQL for more reliable lookup and debugging
+        const existingCompanyInfoResult = await prisma.$queryRaw`
+            SELECT COMPANY_INFO_ID, USER_ID, COMPANY_ID, WORKSPACE_NAME, ROLE, TEAM_SIZE, COMPANY_SIZE
+            FROM GUARDIAN.COMPANY_INFO 
+            WHERE USER_ID = ${userIdInt}
+        `;
+        
+        console.log(`🔍 Company info lookup result:`, existingCompanyInfoResult);
 
-            if (existingCompanyInfo) {
-                console.log(`✅ Found existing company info record with ID: ${existingCompanyInfo.COMPANY_INFO_ID}`);
-                
-                // Log values being saved
-                console.log(`📝 Updating company info with values:`, {
-                    companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
-                    workspaceName: workspaceName || 'NULL',
-                    role: role || 'NULL',
-                    teamSize: teamSize || 'NULL',
-                    companySize: companySize || 'NULL'
-                });
-                
-                // Update existing record using the unique COMPANY_INFO_ID
-                const updateResult = await prisma.COMPANY_INFO.update({
-                    where: { COMPANY_INFO_ID: existingCompanyInfo.COMPANY_INFO_ID },
-                    data: {
-                        ...(workspaceName && { WORKSPACE_NAME: workspaceName }),
-                        ...(role && { ROLE: role }),
-                        ...(teamSize && { TEAM_SIZE: teamSize }),
-                        ...(companySize && { COMPANY_SIZE: companySize }),
-                        UPDATED_AT: new Date()
-                    }
-                });
-                console.log(`✅ Company info updated successfully - Updated record:`, updateResult);
-            } else {
-                console.log(`❌ No existing company info found for user ${userId}`);
-            }
+        if (existingCompanyInfoResult.length > 0) {
+            const existingCompanyInfo = existingCompanyInfoResult[0];
+            console.log(`✅ Found existing company info record:`, {
+                companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
+                userId: existingCompanyInfo.USER_ID,
+                companyId: existingCompanyInfo.COMPANY_ID,
+                currentWorkspaceName: existingCompanyInfo.WORKSPACE_NAME || 'NULL'
+            });
+            
+            // Log values being saved
+            console.log(`📝 Updating company info with values:`, {
+                companyInfoId: existingCompanyInfo.COMPANY_INFO_ID,
+                workspaceName: workspaceName,
+                role: role || 'NULL',
+                teamSize: teamSize || 'NULL',
+                companySize: companySize || 'NULL'
+            });
+            
+            // Use raw SQL for the update to ensure compatibility
+            const updateData = {
+                WORKSPACE_NAME: workspaceName,
+                UPDATED_AT: 'GETDATE()'
+            };
+            
+            if (role) updateData.ROLE = role;
+            if (teamSize) updateData.TEAM_SIZE = teamSize;
+            if (companySize) updateData.COMPANY_SIZE = companySize;
+            
+            await prisma.$executeRaw`
+                UPDATE GUARDIAN.COMPANY_INFO
+                SET WORKSPACE_NAME = ${workspaceName},
+                    ROLE = ${role || existingCompanyInfo.ROLE},
+                    TEAM_SIZE = ${teamSize || existingCompanyInfo.TEAM_SIZE},
+                    COMPANY_SIZE = ${companySize || existingCompanyInfo.COMPANY_SIZE},
+                    UPDATED_AT = GETDATE()
+                WHERE COMPANY_INFO_ID = ${existingCompanyInfo.COMPANY_INFO_ID}
+            `;
+            
+            console.log(`✅ Company info updated successfully with workspace name: ${workspaceName}`);
+            
+            // Verify the update
+            const verificationResult = await prisma.$queryRaw`
+                SELECT WORKSPACE_NAME, ROLE, TEAM_SIZE, COMPANY_SIZE
+                FROM GUARDIAN.COMPANY_INFO 
+                WHERE COMPANY_INFO_ID = ${existingCompanyInfo.COMPANY_INFO_ID}
+            `;
+            console.log(`🔍 Updated company info verification:`, verificationResult[0]);
+            
+        } else {
+            console.log(`❌ No existing company info found for user ${userIdInt}`);
+            console.log(`🔍 Attempting to create missing company_info record for user ${userIdInt}, company ${existingUser.COMPANY_ID}`);
+            
+            // Create the missing company_info record
+            await prisma.$executeRaw`
+                INSERT INTO GUARDIAN.COMPANY_INFO (USER_ID, COMPANY_ID, WORKSPACE_NAME, CREATED_AT, UPDATED_AT)
+                VALUES (${userIdInt}, ${existingUser.COMPANY_ID}, ${workspaceName}, GETDATE(), GETDATE())
+            `;
+            console.log(`✅ Created missing company_info record with workspace name: ${workspaceName}`);
         }
 
         console.log(`✅ Registration completed successfully for: ${email} (User ID: ${userId})`);
 
+        // Get the actual company name (call sign) from the database
+        const companyResult = await prisma.$queryRaw`
+            SELECT NAME FROM GUARDIAN.COMPANY 
+            WHERE COMPANY_ID = ${existingUser.COMPANY_ID}
+        `;
+        const actualCallSign = companyResult.length > 0 ? companyResult[0].NAME : workspaceName;
+        console.log(`🎖️ Using actual company call sign from database: ${actualCallSign}`);
+
         res.json({
             success: true,
-            message: `Registration completed successfully! Welcome to organization ${workspaceName}`,
+            message: `Registration completed successfully! Welcome to organization ${actualCallSign}`,
             user: {
                 id: userId,
                 email: email,
@@ -8068,7 +8117,7 @@ app.post('/api/complete-registration', async (req, res) => {
                 lastName: lastName,
                 companyId: existingUser.COMPANY_ID
             },
-            callSign: workspaceName // Include the generated call sign in response
+            callSign: actualCallSign // Use the actual company name from database
         });
 
     } catch (error) {
