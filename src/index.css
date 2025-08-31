@@ -44,3 +44,118 @@
   margin: 0 auto;
   padding: 0 !important;
 }
+
+/* Guardian Invite Acceptance Delightful Animations */
+@keyframes celebrationBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -15px, 0);
+  }
+  70% {
+    transform: translate3d(0, -7px, 0);
+  }
+  90% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+@keyframes sparkleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-5px) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+@keyframes progressPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 188, 188, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(46, 188, 188, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 188, 188, 0);
+  }
+}
+
+@keyframes welcomeWave {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(14deg);
+  }
+  20% {
+    transform: rotate(-8deg);
+  }
+  30% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  60% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Success celebration animations */
+.celebration-bounce {
+  animation: celebrationBounce 1.2s ease-in-out;
+}
+
+.sparkle-float {
+  animation: sparkleFloat 2s ease-in-out infinite;
+}
+
+.progress-pulse {
+  animation: progressPulse 2s infinite;
+}
+
+.welcome-wave {
+  animation: welcomeWave 2.5s ease-in-out;
+}
+
+/* Enhanced hover effects for professional delight */
+.guardian-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.guardian-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 188, 188, 0.3);
+}
+
+.guardian-input:focus {
+  transform: scale(1.01);
+  box-shadow: 0 0 0 3px rgba(46, 188, 188, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Subtle loading state enhancements */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

@@ -160,7 +160,7 @@ try {
             console.log(`📧 Sending invite email to: ${email}`);
             
             // Create invite acceptance URL
-            const inviteUrl = `${process.env.FRONTEND_URL || 'https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net'}/accept-invite?token=${token}`;
+            const inviteUrl = `${process.env.FRONTEND_URL || 'https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net'}/invite/accept?token=${token}`;
             
             const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
