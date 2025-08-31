@@ -1036,7 +1036,35 @@ const AdminUserManagement: React.FC = () => {
       // Close loading dialog
       Swal.close();
       
-      Swal.fire('Failed to send invitation', err?.response?.data?.error || err.message || 'Unknown error', 'error');
+      // Enhanced authentication error handling
+      let errorMessage = err?.response?.data?.error || err.message || 'Unknown error';
+      let shouldRedirect = false;
+      
+      if (err?.response?.status === 401) {
+        const errorType = err.response.data?.errorType;
+        if (errorType === 'TOKEN_EXPIRED') {
+          errorMessage = 'Your session has expired. Redirecting to login...';
+          shouldRedirect = true;
+        } else if (errorType === 'TOKEN_MALFORMED' || errorType === 'TOKEN_INVALID') {
+          errorMessage = 'Authentication error. Redirecting to login...';
+          shouldRedirect = true;
+        } else {
+          errorMessage = 'Authentication failed. Please log in again.';
+          shouldRedirect = true;
+        }
+      }
+      
+      Swal.fire({
+        title: shouldRedirect ? 'Session Expired' : 'Failed to send invitation',
+        text: errorMessage,
+        icon: 'error'
+      });
+      
+      if (shouldRedirect) {
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
     }
   };
 

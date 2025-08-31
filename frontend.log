@@ -1,66 +1,137 @@
 $ vite
 
-  VITE v7.0.2  ready in 145 ms
+  VITE v7.0.2  ready in 546 ms
 
   ➜  Local:   http://localhost:5175/
   ➜  Network: use --host to expose
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+12:01:48 PM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:01:48 PM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:18 PM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:18 PM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/requests/assigned/me?
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/notices/my
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/users/workspaces
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/roles/all
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/forms
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-6:25:00 AM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
+12:02:28 PM [vite] http proxy error: /api/roles
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/me
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:28 PM [vite] http proxy error: /api/users
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/requests/assigned/me?
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/notices/my
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/users/workspaces
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/roles/all
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/forms
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+12:02:42 PM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-7:19:47 AM [vite] http proxy error: /api/validate-email
+12:02:42 PM [vite] http proxy error: /api/roles
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-7:19:47 AM [vite] http proxy error: /api/register
+12:02:42 PM [vite] http proxy error: /api/me
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-7:42:29 AM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
-6:47:37 PM [vite] http proxy error: /api/validate-email
+12:02:42 PM [vite] http proxy error: /api/users
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:47:37 PM [vite] http proxy error: /api/register
+12:03:12 PM [vite] http proxy error: /api/notifications/count
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:49:06 PM [vite] (client) page reload src/utils/errorCapture.ts
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-7:11:29 PM [vite] http proxy error: /api/validate-email
+12:03:12 PM [vite] http proxy error: /api/send-error-email
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-7:11:29 PM [vite] http proxy error: /api/send-error-email
+12:03:42 PM [vite] http proxy error: /api/notifications/count
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-7:11:29 PM [vite] http proxy error: /api/register
+12:03:42 PM [vite] http proxy error: /api/send-error-email
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-7:11:56 PM [vite] http proxy error: /api/validate-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-7:11:56 PM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-7:11:56 PM [vite] http proxy error: /api/register
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.

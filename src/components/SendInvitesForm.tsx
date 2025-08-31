@@ -112,11 +112,28 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
     } catch (err: any) {
       console.error('[SendInvitesForm] Error sending invites:', err);
       
-      // More detailed error messages
+      // Enhanced error messages with authentication handling
       let errorMessage = 'Failed to send invites.';
       
       if (err?.response?.status === 401) {
-        errorMessage = 'You are not authorized to send invites. Please log in again.';
+        const errorType = err.response.data?.errorType;
+        if (errorType === 'TOKEN_EXPIRED') {
+          errorMessage = 'Your session has expired. Please log in again.';
+          // Auto-redirect to login after showing error
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        } else if (errorType === 'TOKEN_MALFORMED' || errorType === 'TOKEN_INVALID') {
+          errorMessage = 'Authentication error. Please log in again.';
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        } else {
+          errorMessage = 'You are not authorized to send invites. Please log in again.';
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        }
       } else if (err?.response?.status === 403) {
         errorMessage = 'You do not have permission to send invites.';
       } else if (err?.response?.status === 500) {

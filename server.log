@@ -1,0 +1,155 @@
+✅ Email service initialized with Resend
+=== GUARDIAN SIMPLE SERVER STARTING ===
+Node version: v24.3.0
+Environment: development
+Port: 3001
+Process PID: 38427
+Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
+📦 Creating Prisma client...
+🔑 JWT configured
+🔌 Testing database connection...
+🔧 Development mode: Static files served by Vite on port 5175
+🚀 Starting Express server...
+🔧 Development mode: SPA routing handled by Vite dev server
+✅ Server running on port 3001
+🔧 Development mode: API server only
+🌐 Health check: /api/health
+🧪 Simple test: /api/simple-test
+🎉 Server startup complete!
+✅ Database connected successfully
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔐 Login attempt for: joel_upright@yahoo.com
+🔍 Login database query result for joel_upright@yahoo.com: {
+  USER_ID: 1179,
+  EMAIL: "joel_upright@yahoo.com",
+  FIRST_NAME: "Joel",
+  LAST_NAME: "Upright",
+  PASSWORD_HASH: "$2b$12$QE7mhys/GgTKMeBvMWKMC.WI1oN4V9YfgUWNMDvytzABCqwMZ9sj2",
+  STATUS: "A",
+  COMPANY_ID: 57,
+}
+❌ Invalid password for user: joel_upright@yahoo.com
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: POST /api/invites
+🔍 Attempting to verify JWT token (length: 227, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📧 Processing 1 invite requests for company 54
+📧 Attempting to send invite email to test-invite-api@example.com with role: General User
+📧 Sending invite email to: test-invite-api@example.com
+✅ Invite email sent successfully: 607c4f98-9737-429a-80ad-b82c84bba844
+✅ Invite sent to test-invite-api@example.com for role General User
+📧 Invite processing complete: 1 sent, 0 errors
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/invites
+🔍 Attempting to verify JWT token (length: 227, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📧 Fetching invites for company ID: 54
+✅ Found 1 invites
+🔍 [AUTH] Processing request for: POST /api/invites
+🔍 Attempting to verify JWT token (length: 227, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📧 Processing 1 invite requests for company 54
+📧 Invite processing complete: 0 sent, 1 errors
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: DELETE /api/invites/44
+🔍 Attempting to verify JWT token (length: 227, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🗑️ Deleting invite 44 for company 54
+✅ Invite 44 deleted successfully
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: POST /api/invites
+🔍 Attempting to verify JWT token (length: 227, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📧 Processing 1 invite requests for company 54
+📧 Attempting to send invite email to test-complete-flow@example.com with role: General User
+📧 Sending invite email to: test-complete-flow@example.com
+✅ Invite email sent successfully: af1e6e80-764b-4498-8356-4de4bd0dc450
+✅ Invite sent to test-complete-flow@example.com for role General User
+📧 Invite processing complete: 1 sent, 0 errors
+Server error: 87 |       }
+88 |     }
+89 | 
+90 |     try {
+91 |       debug('parse json')
+92 |       return JSON.parse(body, reviver)
+     ^
+SyntaxError: JSON Parse error: Invalid escape character !
+     expose: true,
+ statusCode: 400,
+     status: 400,
+       body: "{\n    \"token\": \"5a1e6ab6673a625f1fe93fe04ebaebdeae5ab0cd9a05845013b8bbdb65e99f0c\",\n    \"firstName\": \"Test\",\n    \"lastName\": \"User\",\n    \"password\": \"TestPassword123\\!\"\n  }",
+       type: "entity.parse.failed",
+
+      at <parse> ()
+      at parse (unknown:1:1)
+      at parse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/body-parser/lib/types/json.js:92:19)
+      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/body-parser/lib/read.js:128:18
+      at runInAsyncScope (node:async_hooks:140:23)
+      at invokeCallback (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/raw-body/index.js:238:16)
+      at done (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/raw-body/index.js:227:7)
+      at onEnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/express/node_modules/raw-body/index.js:287:7)
+      at emit (node:events:92:22)
+      at endReadableNT (internal:streams/readable:862:50)
+      at processTicksAndRejections (native:7:39)
+
+📩 Processing invite acceptance with token: 5a1e6ab6673a625f1fe93fe04ebaebdeae5ab0cd9a05845013b8bbdb65e99f0c
+✅ Invite accepted successfully for: test-complete-flow@example.com (User ID: 1180)
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔐 Login attempt for: test-complete-flow@example.com
+🔍 Login database query result for test-complete-flow@example.com: {
+  USER_ID: 1180,
+  EMAIL: "test-complete-flow@example.com",
+  FIRST_NAME: "Test",
+  LAST_NAME: "User",
+  PASSWORD_HASH: "$2b$12$eTcfad4Chk7Ry.JlKtFZB.aDc9Hz9kVjDfdw3KdiP8to6LirJfvYO",
+  STATUS: "A",
+  COMPANY_ID: 54,
+}
+✅ Login successful for: test-complete-flow@example.com (User ID: 1180, Company: 54)
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications

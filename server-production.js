@@ -156,8 +156,75 @@ try {
     };
 
     sendInviteEmail = async (email, token, role) => {
-        console.log(`📧 [PLACEHOLDER] Would send invite email to ${email} with token: ${token}`);
-        return false;
+        try {
+            console.log(`📧 Sending invite email to: ${email}`);
+            
+            // Create invite acceptance URL
+            const inviteUrl = `${process.env.FRONTEND_URL || 'https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net'}/accept-invite?token=${token}`;
+            
+            const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: [email],
+                subject: 'You\'re Invited to Join Guardian',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #0D9488; margin: 0;">Guardian</h1>
+                        </div>
+                        
+                        <h2 style="color: #333; text-align: center;">You're Invited to Join Guardian</h2>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                            Hello,
+                        </p>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                            You have been invited to join Guardian as a <strong>${role}</strong>. Guardian is a comprehensive request management system designed to streamline your organization's workflow.
+                        </p>
+                        
+                        <div style="background-color: #e0f2f1; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0D9488;">
+                            <h3 style="margin: 0 0 10px 0; color: #0D9488;">Getting Started</h3>
+                            <p style="margin: 5px 0; color: #333;">Click the button below to accept your invitation and create your account:</p>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${inviteUrl}" style="display: inline-block; background-color: #0D9488; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                Accept Invitation
+                            </a>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                            If the button doesn't work, you can copy and paste this link into your browser:
+                        </p>
+                        
+                        <div style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px; color: #666; margin: 15px 0;">
+                            ${inviteUrl}
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                            This invitation will expire in 7 days. If you didn't expect this invitation or have any questions, please contact your administrator.
+                        </p>
+                        
+                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <p style="color: #999; font-size: 12px;">
+                                © 2024 Guardian. All rights reserved.
+                            </p>
+                        </div>
+                    </div>
+                `
+            });
+            
+            if (error) {
+                console.error('❌ Resend error:', error);
+                return false;
+            }
+            
+            console.log('✅ Invite email sent successfully:', data?.id);
+            return true;
+        } catch (error) {
+            console.error('❌ Email sending failed:', error);
+            return false;
+        }
     };
 
     sendAssignmentEmail = async (email, userName, requestName, trackingId, assignedBy) => {
@@ -289,7 +356,8 @@ try {
         return false; // Return false to indicate email not sent
     };
     sendInviteEmail = async (email, token, role) => {
-        console.log(`📧 [FALLBACK] Would send invite email to ${email} with token: ${token}`);
+        console.log(`📧 [FALLBACK] Would send invite email to ${email} with token: ${token} (role: ${role})`);
+        console.log(`⚠️ Email service not available - invite record created but email not sent`);
         return false; // Return false to indicate email not sent
     };
     sendAssignmentEmail = async (email, userName, requestName, trackingId, assignedBy) => {
@@ -759,7 +827,32 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
             name: error.name,
             stack: error.stack?.split('\n')[0] // Just first line of stack trace
         });
-        return res.status(401).json({ error: 'Invalid authentication token' });
+        // Enhanced error handling with specific error types
+        if (error.name === 'TokenExpiredError') {
+            console.error('❌ JWT token expired at:', error.expiredAt);
+            return res.status(401).json({ 
+                error: 'Authentication token has expired',
+                errorType: 'TOKEN_EXPIRED',
+                expiredAt: error.expiredAt 
+            });
+        } else if (error.name === 'JsonWebTokenError') {
+            console.error('❌ JWT token malformed:', error.message);
+            return res.status(401).json({ 
+                error: 'Invalid authentication token format',
+                errorType: 'TOKEN_MALFORMED'
+            });
+        } else if (error.name === 'NotBeforeError') {
+            console.error('❌ JWT token not active yet:', error.date);
+            return res.status(401).json({ 
+                error: 'Authentication token not yet active',
+                errorType: 'TOKEN_NOT_ACTIVE'
+            });
+        } else {
+            return res.status(401).json({ 
+                error: 'Invalid authentication token',
+                errorType: 'TOKEN_INVALID'
+            });
+        }
     }
 };
 
@@ -2107,6 +2200,13 @@ app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
                 // Set expiration to 7 days from now
                 const expiresAt = new Date();
                 expiresAt.setDate(expiresAt.getDate() + 7);
+                
+                // Get role name for the email
+                const roleData = await prisma.$queryRaw`
+                    SELECT DISPLAY_NAME, NAME FROM GUARDIAN.ROLES 
+                    WHERE ROLE_ID = ${roleId}
+                `;
+                const roleName = roleData.length > 0 ? (roleData[0].DISPLAY_NAME || roleData[0].NAME) : 'User';
 
                 // Insert the invite
                 await prisma.$executeRaw`
@@ -2114,14 +2214,26 @@ app.post('/api/invites', getAuthenticatedUserCompany, async (req, res) => {
                     VALUES (${email}, ${roleId}, ${req.companyId}, ${token}, 'P', ${expiresAt})
                 `;
 
+                // Send actual invite email using Resend
+                console.log(`📧 Attempting to send invite email to ${email} with role: ${roleName}`);
+                const emailSent = await sendInviteEmail(email, token, roleName);
+                const status = emailSent ? 'sent' : 'created'; // Mark as 'created' if email failed but record exists
+
                 results.push({
                     email: email,
                     roleId: roleId,
                     token: token,
-                    status: 'sent'
+                    status: status,
+                    emailSent: emailSent,
+                    roleName: roleName
                 });
 
-                console.log(`✅ Invite sent to ${email} for role ${roleId}`);
+                if (emailSent) {
+                    console.log(`✅ Invite sent to ${email} for role ${roleName}`);
+                } else {
+                    console.log(`⚠️ Failed to send invite email to ${email}, but invite record created`);
+                    console.log(`📧 Invite token for ${email}: ${token} (expires: ${expiresAt.toISOString()})`);
+                }
 
             } catch (inviteError) {
                 console.error(`❌ Error processing invite for ${invite.email}:`, inviteError);
