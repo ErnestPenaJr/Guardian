@@ -3,7 +3,7 @@
 Node version: v24.3.0
 Environment: development
 Port: 3001
-Process PID: 39276
+Process PID: 65723
 Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
@@ -26,6 +26,9 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 🔍 [AUTH] Processing request for: GET /api/requests
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/roles/all
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
 🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
@@ -38,13 +41,10 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 🔍 [AUTH] Processing request for: GET /api/users/workspaces
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
 ✅ Authentication successful for user 1176 in company 54
 📋 Fetching requests for company ID: 54
 🏢 User 1176 active workspace: None
-✅ Found 0 requests in database (query took 111ms)
+✅ Found 0 requests in database (query took 110ms)
 📤 Sending 0 formatted requests to frontend
 🔍 [AUTH] Processing request for: GET /api/forms
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
@@ -52,6 +52,8 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 ✅ Authentication successful for user 1176 in company 54
 📋 Fetching forms from database for company: 54
 🔍 Company ID type: number
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
 ✅ Found 0 forms for company 54
 🔍 ===== RAW DATABASE FORMS DATA =====
 🔍 ===== FORMATTED FORMS BEFORE SENDING =====
@@ -59,26 +61,37 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 🔍 [AUTH] Processing request for: GET /api/me
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-👤 Fetching current user info for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ Authentication successful for user 1176 in company 54
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1176 in company 54
-📢 Fetching my notices for user 1176 (Company: 54)
-✅ Successfully fetched user info for ernest@shieldlytics.com
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ User has 0 unread notifications
-✅ Found 0 notices for user
-✅ Retrieved 0 assigned requests in 55ms
+✅ Retrieved 0 assigned requests in 46ms
 🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching workspaces for user 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ Authentication successful for user 1176 in company 54
+📢 Fetching my notices for user 1176 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+👤 Fetching current user info for user ID: 1176 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+🎭 Fetching all roles for role switcher...
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+✅ Found 0 workspaces for user 1176
+✅ User has 0 unread notifications
+✅ Retrieved 0 assigned requests in 45ms
+✅ Found 0 notices for user
+🔍 [AUTH] Processing request for: GET /api/notices/stats
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Successfully fetched user info for ernest@shieldlytics.com
+✅ Authentication successful for user 1176 in company 54
+📊 Fetching notice statistics for user 1176 (Company: 54)
+🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 5 roles for role switcher
+📤 Sending 5 roles for role switcher
 ✅ Authentication successful for user 1176 in company 54
  [DEBUG] Fetching users for company ID: 54
  [DEBUG] Request user info: {
@@ -86,24 +99,13 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
   companyId: 54,
   userRoleIds: [ 6 ],
 }
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching workspaces for user 1176
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
+ [DEBUG] Total users in database: 8
+ [DEBUG] All users by company: [ "Ernie Pena (Company: 54, Status: A)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Test User (Company: 54, Status: A)", "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)",
+  "joel_upright@yahoo.com  (Company: 58, Status: A)", "RDV  (Company: 59, Status: A)",
+  "Ernest Pena Jr (Company: 59, Status: A)"
 ]
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-📊 Fetching notice statistics for user 1176 (Company: 54)
-✅ Found 0 workspaces for user 1176
-✅ Retrieved 0 assigned requests in 56ms
- [DEBUG] Found 2 users for company 54
+ [DEBUG] Found 3 users for company 54
 ✅ Notice stats: {
   totalNotices: 0,
   unreadNotices: 0,
@@ -129,337 +131,21 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 ✅ Authentication successful for user 1176 in company 54
 📧 Fetching invites for company ID: 54
 🎭 Fetching roles from database...
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
+ [DEBUG] Total users in database: 8
+ [DEBUG] All users by company: [ "Ernie Pena (Company: 54, Status: A)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Test User (Company: 54, Status: A)", "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)",
+  "joel_upright@yahoo.com  (Company: 58, Status: A)", "RDV  (Company: 59, Status: A)",
+  "Ernest Pena Jr (Company: 59, Status: A)"
 ]
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
-✅ Found 1 invites
-🔍 [AUTH] Processing request for: GET /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
- [DEBUG] Found 2 users for company 54
-✅ Authentication successful for user 1176 in company 54
-📧 Fetching invites for company ID: 54
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Found 1 invites
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-🔍 [AUTH] Processing request for: POST /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📧 Processing 1 invite requests for company 54
-📧 Invite processing complete: 0 sent, 1 errors
-🔍 [AUTH] Processing request for: GET /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🎭 Fetching roles from database...
-✅ Authentication successful for user 1176 in company 54
-📧 Fetching invites for company ID: 54
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
-✅ Found 1 invites
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/users/workspaces
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching requests for company ID: 54
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching forms from database for company: 54
-🔍 Company ID type: number
-🏢 User 1176 active workspace: None
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching workspaces for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Retrieved 0 assigned requests in 65ms
-✅ Found 0 forms for company 54
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-📤 Sending 0 formatted forms to frontend
-✅ Found 0 requests in database (query took 120ms)
-📤 Sending 0 formatted requests to frontend
-✅ Authentication successful for user 1176 in company 54
-📢 Fetching my notices for user 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-🎭 Fetching all roles for role switcher...
-✅ Found 0 workspaces for user 1176
-🔍 [AUTH] Processing request for: GET /api/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-👤 Fetching current user info for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Found 0 notices for user
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Retrieved 0 assigned requests in 58ms
-✅ Authentication successful for user 1176 in company 54
-📊 Fetching notice statistics for user 1176 (Company: 54)
-✅ Successfully fetched user info for ernest@shieldlytics.com
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🎭 Fetching roles from database...
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
-✅ Authentication successful for user 1176 in company 54
-📧 Fetching invites for company ID: 54
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
-🎭 Fetching roles from database...
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
-✅ Found 1 invites
-🔍 [AUTH] Processing request for: GET /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
- [DEBUG] Found 2 users for company 54
-✅ Authentication successful for user 1176 in company 54
-📧 Fetching invites for company ID: 54
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Found 1 invites
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/users/workspaces
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching requests for company ID: 54
-✅ Authentication successful for user 1176 in company 54
-📢 Fetching my notices for user 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching workspaces for user 1176
-✅ Authentication successful for user 1176 in company 54
-🎭 Fetching all roles for role switcher...
-🏢 User 1176 active workspace: None
-✅ Retrieved 0 assigned requests in 67ms
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ User has 0 unread notifications
-✅ Found 0 notices for user
-✅ Found 0 workspaces for user 1176
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching forms from database for company: 54
-🔍 Company ID type: number
-✅ Found 0 requests in database (query took 128ms)
-📤 Sending 0 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Authentication successful for user 1176 in company 54
-📊 Fetching notice statistics for user 1176 (Company: 54)
-✅ Found 0 forms for company 54
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-📤 Sending 0 formatted forms to frontend
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-🔍 [AUTH] Processing request for: GET /api/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Retrieved 0 assigned requests in 86ms
-✅ Authentication successful for user 1176 in company 54
-👤 Fetching current user info for user ID: 1176 (Company: 54)
-✅ Successfully fetched user info for ernest@shieldlytics.com
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🎭 Fetching roles from database...
-✅ Found 5 roles in database
-📤 Sending 5 formatted roles to frontend
-✅ Authentication successful for user 1176 in company 54
-📧 Fetching invites for company ID: 54
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
-🎭 Fetching roles from database...
 ✅ Found 5 roles in database
 📤 Sending 5 formatted roles to frontend
 ✅ Found 0 invites
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
 🔍 [AUTH] Processing request for: GET /api/invites
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
+ [DEBUG] Found 3 users for company 54
 ✅ Authentication successful for user 1176 in company 54
 📧 Fetching invites for company ID: 54
- [DEBUG] Found 2 users for company 54
 ✅ Found 0 invites
 🔍 [AUTH] Processing request for: GET /api/users
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
@@ -471,364 +157,74 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
   companyId: 54,
   userRoleIds: [ 6 ],
 }
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
+ [DEBUG] Total users in database: 8
+ [DEBUG] All users by company: [ "Ernie Pena (Company: 54, Status: A)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Test User (Company: 54, Status: A)", "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)",
+  "joel_upright@yahoo.com  (Company: 58, Status: A)", "RDV  (Company: 59, Status: A)",
+  "Ernest Pena Jr (Company: 59, Status: A)"
 ]
- [DEBUG] Found 2 users for company 54
-🔍 [AUTH] Processing request for: GET /api/notifications/count
+ [DEBUG] Found 3 users for company 54
+🔍 [AUTH] Processing request for: DELETE /api/delete-user/1184
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
 ✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: POST /api/invites
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📧 Processing 1 invite requests for company 54
-📧 Attempting to send invite email to epenajr@gmail.com with role: External
-📧 Sending invite email to: epenajr@gmail.com
-✅ Invite email sent successfully: 825c2feb-85dd-4fea-a984-807d82da8ebb
-✅ Invite sent to epenajr@gmail.com for role External
-📧 Invite processing complete: 1 sent, 0 errors
+🗑️ Delete user request for ID: 1184 by user 1176 (company: 54)
+✅ User 1184 (Ernie Pena) soft deleted by admin 1176
 🔍 [AUTH] Processing request for: GET /api/invites
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
+🎭 Fetching roles from database...
 🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 5 roles in database
+📤 Sending 5 formatted roles to frontend
+✅ Authentication successful for user 1176 in company 54
+📧 Fetching invites for company ID: 54
+✅ Authentication successful for user 1176 in company 54
+ [DEBUG] Fetching users for company ID: 54
+ [DEBUG] Request user info: {
+  userId: 1176,
+  companyId: 54,
+  userRoleIds: [ 6 ],
+}
+ [DEBUG] Total users in database: 8
+ [DEBUG] All users by company: [ "Ernie Pena (Company: 54, Status: D)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Test User (Company: 54, Status: A)", "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)",
+  "joel_upright@yahoo.com  (Company: 58, Status: A)", "RDV  (Company: 59, Status: A)",
+  "Ernest Pena Jr (Company: 59, Status: A)"
+]
+✅ Found 0 invites
+ [DEBUG] Found 2 users for company 54
+🔍 [AUTH] Processing request for: DELETE /api/delete-user/1180
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🗑️ Delete user request for ID: 1180 by user 1176 (company: 54)
+✅ User 1180 (Test User) soft deleted by admin 1176
+🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/invites
 🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
 ✅ JWT token verified successfully for user: 1176
 🎭 Fetching roles from database...
 ✅ Authentication successful for user 1176 in company 54
-📧 Fetching invites for company ID: 54
+ [DEBUG] Fetching users for company ID: 54
+ [DEBUG] Request user info: {
+  userId: 1176,
+  companyId: 54,
+  userRoleIds: [ 6 ],
+}
 ✅ Found 5 roles in database
 📤 Sending 5 formatted roles to frontend
 ✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
-✅ Found 1 invites
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
+📧 Fetching invites for company ID: 54
+ [DEBUG] Total users in database: 8
+ [DEBUG] All users by company: [ "Ernie Pena (Company: 54, Status: D)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Test User (Company: 54, Status: D)", "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)",
+  "joel_upright@yahoo.com  (Company: 58, Status: A)", "RDV  (Company: 59, Status: A)",
+  "Ernest Pena Jr (Company: 59, Status: A)"
 ]
- [DEBUG] Found 2 users for company 54
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/users/workspaces
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching requests for company ID: 54
-🏢 User 1176 active workspace: None
-✅ Found 0 requests in database (query took 125ms)
-📤 Sending 0 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching forms from database for company: 54
-🔍 Company ID type: number
-✅ Found 0 forms for company 54
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-📤 Sending 0 formatted forms to frontend
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-🔍 [AUTH] Processing request for: GET /api/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching workspaces for user 1176
-✅ Authentication successful for user 1176 in company 54
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1176 in company 54
-📢 Fetching my notices for user 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-👤 Fetching current user info for user ID: 1176 (Company: 54)
-✅ User has 0 unread notifications
-✅ Retrieved 0 assigned requests in 77ms
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Found 0 notices for user
-✅ Found 0 workspaces for user 1176
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Successfully fetched user info for ernest@shieldlytics.com
-✅ Authentication successful for user 1176 in company 54
-📊 Fetching notice statistics for user 1176 (Company: 54)
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Retrieved 0 assigned requests in 54ms
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ User has 0 unread notifications
-🔍 [AUTH] Processing request for: GET /api/requests
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notifications/count
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notices/my
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/users/workspaces
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/roles/all
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching requests for company ID: 54
-🏢 User 1176 active workspace: None
-✅ Found 0 requests in database (query took 153ms)
-📤 Sending 0 formatted requests to frontend
-🔍 [AUTH] Processing request for: GET /api/forms
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching forms from database for company: 54
-🔍 Company ID type: number
-✅ Found 0 forms for company 54
-🔍 ===== RAW DATABASE FORMS DATA =====
-🔍 ===== FORMATTED FORMS BEFORE SENDING =====
-📤 Sending 0 formatted forms to frontend
-🔍 [AUTH] Processing request for: GET /api/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-👤 Fetching current user info for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching workspaces for user 1176
-✅ Authentication successful for user 1176 in company 54
-🎭 Fetching all roles for role switcher...
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-📢 Fetching my notices for user 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
-🔢 Getting notification count for user 1176
-✅ Retrieved 0 assigned requests in 79ms
-✅ User has 0 unread notifications
-✅ Found 0 notices for user
-✅ Found 0 workspaces for user 1176
-🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-🔍 [AUTH] Processing request for: GET /api/notices/stats
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Successfully fetched user info for ernest@shieldlytics.com
-🔍 [AUTH] Processing request for: GET /api/users
-🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
-✅ JWT token verified successfully for user: 1176
-✅ Authentication successful for user 1176 in company 54
-📊 Fetching notice statistics for user 1176 (Company: 54)
-✅ Found 5 roles for role switcher
-📤 Sending 5 roles for role switcher
-✅ Authentication successful for user 1176 in company 54
-📋 Fetching assigned requests for user ID: 1176 (Company: 54)
-✅ Authentication successful for user 1176 in company 54
- [DEBUG] Fetching users for company ID: 54
- [DEBUG] Request user info: {
-  userId: 1176,
-  companyId: 54,
-  userRoleIds: [ 6 ],
-}
-✅ Retrieved 0 assigned requests in 67ms
- [DEBUG] Total users in database: 5
- [DEBUG] All users by company: [ "Ernest Pena Jr (Company: 54, Status: A)", "Test User (Company: 54, Status: A)",
-  "test-workspace  (Company: 55, Status: P)", "RDV  (Company: 56, Status: A)", "Joel Upright (Company: 57, Status: A)"
-]
- [DEBUG] Found 2 users for company 54
-✅ Notice stats: {
-  totalNotices: 0,
-  unreadNotices: 0,
-  issuedByMe: 0,
-  activeNotices: 0,
-}
-📧 Error email request received: {
-  errorType: "console",
-  mainError: "Console Error: [vite] Failed to reload /src/pages/InviteAccept.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)",
-  pageName: "invite/accept",
-  url: "http://localhost:5175/invite/accept?token=5c702e0974d9f36a7e36d0da474b973d1552f186a9337f3692c5b79b5b92b56a",
-  userId: undefined,
-  isProduction: false,
-  timestamp: "2025-08-31T21:55:50.775Z",
-}
-🚨 Application Error Captured: {
-  type: "CONSOLE",
-  message: "Console Error: [vite] Failed to reload /src/pages/InviteAccept.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)",
-  page: "invite/accept",
-  function: "console",
-  line: 0,
-  file: "Console",
-  url: "http://localhost:5175/invite/accept?token=5c702e0974d9f36a7e36d0da474b973d1552f186a9337f3692c5b79b5b92b56a",
-  userId: undefined,
-  email: undefined,
-  userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0....",
-  stackTrace: "Error: [vite] Failed to reload /src/pages/InviteAccept.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)\n    at console.error (http://localhost:5175/src/utils/errorCapture.ts:84:20)\n    at Object.error (http://localhost:5175/@vite/client:809:26)\n    at HMRClient.warnFailedUpdate (http://localhost:5175/@vite/client:181:15)\n    at HMRClient.fetchUpdate (http://localhost:5175/@vite/client:212:10)\n    at async Promise.all (index 0)\n    at async HMRClient.q...",
-  timestamp: "2025-08-31T21:55:50.775Z",
-  apiEndpoint: undefined,
-  apiMethod: undefined,
-  apiStatusCode: undefined,
-  componentStack: "undefined...",
-}
-📧 Development mode - Error email NOT sent (logged only)
+✅ Found 0 invites
+ [DEBUG] Found 1 users for company 54

@@ -6364,6 +6364,101 @@ app.put('/api/users/:id', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// DELETE /api/delete-user/:id - Soft delete user (Admin only)
+app.delete('/api/delete-user/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        
+        console.log(`🗑️ Delete user request for ID: ${userId} by user ${req.userId} (company: ${req.companyId})`);
+        
+        // Validate userId parameter
+        if (!userId || isNaN(userId)) {
+            console.error('❌ Invalid user ID provided:', req.params.id);
+            return res.status(400).json({
+                error: 'Invalid user ID',
+                message: 'User ID must be a valid number'
+            });
+        }
+
+        // Check if requesting user has admin privileges (role IDs 1 or 6)
+        const isAdmin = req.userRoleIds && req.userRoleIds.some(roleId => [1, 6].includes(roleId));
+        if (!isAdmin) {
+            console.error('❌ Non-admin user attempted to delete user:', req.userId);
+            return res.status(403).json({
+                error: 'Access denied',
+                message: 'Only administrators can delete users'
+            });
+        }
+
+        // Check if user exists and belongs to the same company
+        const existingUser = await prisma.$queryRaw`
+            SELECT USER_ID, COMPANY_ID, EMAIL, FIRST_NAME, LAST_NAME, STATUS
+            FROM GUARDIAN.USERS 
+            WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (existingUser.length === 0) {
+            console.error('❌ User not found or permission denied:', userId);
+            return res.status(404).json({
+                error: 'User not found',
+                message: 'User not found or you do not have permission to delete this user'
+            });
+        }
+
+        const userToDelete = existingUser[0];
+
+        // Check if user is already deleted
+        if (userToDelete.STATUS === 'D') {
+            console.log('⚠️ User already deleted:', userId);
+            return res.status(400).json({
+                error: 'User already deleted',
+                message: 'This user has already been deleted'
+            });
+        }
+
+        // Prevent users from deleting themselves
+        if (userId === req.userId) {
+            console.error('❌ User attempted to delete themselves:', userId);
+            return res.status(400).json({
+                error: 'Cannot delete yourself',
+                message: 'You cannot delete your own account'
+            });
+        }
+
+        // Perform soft delete by setting STATUS to 'D' (deleted)
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.USERS 
+            SET 
+                STATUS = 'D',
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE USER_ID = ${userId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`✅ User ${userId} (${userToDelete.FIRST_NAME} ${userToDelete.LAST_NAME}) soft deleted by admin ${req.userId}`);
+
+        // Return success response
+        res.json({
+            success: true,
+            message: 'User successfully deleted',
+            data: {
+                deletedUserId: userId,
+                deletedUserName: `${userToDelete.FIRST_NAME} ${userToDelete.LAST_NAME}`,
+                deletedUserEmail: userToDelete.EMAIL,
+                deletedBy: req.userId,
+                deletedAt: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting user:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'An error occurred while deleting the user'
+        });
+    }
+});
+
 // Get roles endpoint for invite forms
 app.get('/api/roles', async (req, res) => {
     try {
