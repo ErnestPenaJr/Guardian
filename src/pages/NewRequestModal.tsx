@@ -48,6 +48,13 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
   // If initialFormData is from a template, we want to show the form to fill out, not the form builder
   const isTemplateForm = !!initialFormData;
   const [step, setStep] = useState(initialFormData ? 2 : 0); // Skip to form builder if initialFormData is provided
+
+  // Debug logging for modal rendering
+  console.log('🎯 ===== NewRequestModal RENDER =====');
+  console.log('🎯 isOpen:', isOpen);
+  console.log('🎯 isTemplateForm:', isTemplateForm);
+  console.log('🎯 initialFormData:', initialFormData);
+  console.log('🎯 step:', step);
   const [saving, setSaving] = useState(false);
   const [fieldValues, setFieldValues] = useState<FieldValue[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -422,6 +429,13 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `REQ-${timestamp}-${random}`;
   };
+
+  // Final render debug check
+  if (isOpen) {
+    console.log('🎯 ===== MODAL IS OPEN - RENDERING =====');
+  } else {
+    console.log('🎯 ===== MODAL IS CLOSED - NOT RENDERING =====');
+  }
 
   return (
     <Modal

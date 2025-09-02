@@ -29,15 +29,19 @@ import AdminUserManagement from './AdminUserManagement';
 import NoticesLandingPage from './NoticesLandingPage';
 import requestService from '../services/requestService';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
-import NewRequestModal from './NewRequestModal';
+import AddRequestModal from '../components/AddRequestModal';
 import formService from '../services/formService';
 import noticeService from '../services/noticeService';
 import WorkspaceSelector from '../components/WorkspaceSelector';
 import WorkspaceManagement from '../components/WorkspaceManagement';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
+import Modal from 'react-modal';
 
 ChartJS.register(ArcElement, ChartTooltip, Legend);
+
+// Set the app element for react-modal
+Modal.setAppElement('#root');
 
 const MySwal = withReactContent(Swal);
 
@@ -114,144 +118,146 @@ function Home() {
   
   // Check if user is admin (role ID 1 or 6)
   const isAdmin = () => {
-    if (!user) return false;
+    console.log('🔐 ===== CHECKING ADMIN STATUS =====');
+    console.log('🔐 User object:', user);
+    
+    if (!user) {
+      console.log('🔐 No user - returning false');
+      return false;
+    }
+    
     // Check roles array (objects with id property) - Admin (1), JAFAR (6)
-    const hasRoleInArray = user.roles?.some((role: any) => role.id === 1 || role.id === 6);
+    const hasRoleInArray = user.roles?.some((role: any) => {
+      console.log('🔐 Checking role:', role, 'ID:', role.id, 'Is Admin (1)?', role.id === 1, 'Is JAFAR (6)?', role.id === 6);
+      return role.id === 1 || role.id === 6;
+    });
+    
     // Check role string property
     const hasRoleAsString = user.role === '1' || user.role === '6';
-    return hasRoleInArray || hasRoleAsString;
+    
+    console.log('🔐 Roles array:', user.roles);
+    console.log('🔐 Role string:', user.role);
+    console.log('🔐 hasRoleInArray:', hasRoleInArray);
+    console.log('🔐 hasRoleAsString:', hasRoleAsString);
+    
+    const result = hasRoleInArray || hasRoleAsString;
+    console.log('🔐 Final admin result:', result);
+    
+    return result;
   };
   
-  // Check if admin has existing form templates for their company
-  const checkForExistingTemplates = async () => {
-    if (!isAdmin() || hasCheckedForExistingTemplates) {
-      console.log('🔍 ===== SKIPPING TEMPLATE CHECK =====');
-      console.log('🔍 isAdmin():', isAdmin());
-      console.log('🔍 hasCheckedForExistingTemplates:', hasCheckedForExistingTemplates);
+  // Check if user has existing requests
+  const checkForExistingRequests = async () => {
+    if (hasCheckedForExistingRequests) {
+      console.log('🔍 ===== SKIPPING REQUEST CHECK - ALREADY CHECKED =====');
+      console.log('🔍 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
       return;
     }
     
     try {
-      console.log('🔍 ===== CHECKING FOR EXISTING FORM TEMPLATES =====');
+      console.log('🔍 ===== CHECKING FOR EXISTING USER REQUESTS =====');
       console.log('🔍 User object:', user);
       console.log('🔍 User company ID:', user?.companyId, 'Type:', typeof user?.companyId);
       
-      const forms = await formService.getAllForms();
-      console.log('🔍 ===== FORMS FROM API =====');
-      console.log('🔍 Raw forms from API:', forms);
-      console.log('🔍 Forms array length:', forms?.length);
-      console.log('🔍 Forms is array?', Array.isArray(forms));
+      const requests = await requestService.getAllRequests();
+      console.log('🔍 ===== REQUESTS FROM API =====');
+      console.log('🔍 Raw requests from API:', requests);
+      console.log('🔍 Requests array length:', requests?.length);
+      console.log('🔍 Requests is array?', Array.isArray(requests));
       
-      if (forms && forms.length > 0) {
-        console.log('🔍 ===== FIRST FORM ANALYSIS =====');
-        console.log('🔍 First form structure:', forms[0]);
-        console.log('🔍 Available form properties:', Object.keys(forms[0]));
-        
-        // Log each form's COMPANY_ID for debugging
-        console.log('🔍 ===== ALL FORMS DETAILED ANALYSIS =====');
-        forms.forEach((form, index) => {
-          console.log(`🔍 Form ${index + 1}:`, {
-            FORM_ID: form.FORM_ID,
-            FORM_NAME: form.FORM_NAME,
-            COMPANY_ID: form.COMPANY_ID,
-            ORGANIZATION_ID: form.ORGANIZATION_ID,
-            IS_ACTIVE: form.IS_ACTIVE,
-            IS_DELETED: form.IS_DELETED,
-            CompanyIdType: typeof form.COMPANY_ID,
-            CompanyIdValue: form.COMPANY_ID,
-            CompanyIdIsNull: form.COMPANY_ID === null,
-            CompanyIdIsUndefined: form.COMPANY_ID === undefined
-          });
-        });
+      if (requests && requests.length > 0) {
+        console.log('🔍 ===== FIRST REQUEST ANALYSIS =====');
+        console.log('🔍 First request structure:', requests[0]);
+        console.log('🔍 Available request properties:', Object.keys(requests[0]));
       }
       
-      console.log('🔍 ===== FILTERING LOGIC =====');
-      console.log('🔍 Looking for forms where COMPANY_ID matches user companyId...');
+      console.log('🔍 ===== REQUEST COUNT =====');
+      console.log('🔍 Total requests found:', requests?.length || 0);
       
-      // Filter forms associated with the user's company
-      // Check for company-specific forms (COMPANY_ID matches companyId)
-      // Handle potential type mismatches (string vs number)
-      const companySpecificForms = forms.filter(form => {
-        const formCompanyId = form.COMPANY_ID;
-        const userCompanyId = user?.companyId;
-        
-        console.log(`🔍 ===== FORM COMPARISON =====`);
-        console.log(`🔍 Form: "${form.FORM_NAME}" (ID: ${form.FORM_ID})`);
-        console.log(`🔍 Form COMPANY_ID: ${formCompanyId} (${typeof formCompanyId})`);
-        console.log(`🔍 User companyId: ${userCompanyId} (${typeof userCompanyId})`);
-        console.log(`🔍 Form COMPANY_ID === null: ${formCompanyId === null}`);
-        console.log(`🔍 Form COMPANY_ID === undefined: ${formCompanyId === undefined}`);
-        console.log(`🔍 User companyId === null: ${userCompanyId === null}`);
-        console.log(`🔍 User companyId === undefined: ${userCompanyId === undefined}`);
-        
-        // Early return if either value is null/undefined
-        if (formCompanyId == null || userCompanyId == null) {
-          console.log(`🔍 ❌ Skipping form due to null/undefined values`);
-          return false;
-        }
-        
-        // Handle type conversion for comparison - check both exact and loose equality
-        const strictMatch = formCompanyId === userCompanyId;
-        const looseMatch = formCompanyId == userCompanyId;
-        const stringMatch = String(formCompanyId) === String(userCompanyId);
-        const numberMatch = Number(formCompanyId) === Number(userCompanyId);
-        
-        console.log(`🔍 Match tests - strict: ${strictMatch}, loose: ${looseMatch}, string: ${stringMatch}, number: ${numberMatch}`);
-        
-        // Additional validation: ensure both values are valid numbers if they should be
-        const formCompanyIdNumber = Number(formCompanyId);
-        const userCompanyIdNumber = Number(userCompanyId);
-        const bothAreNumbers = !isNaN(formCompanyIdNumber) && !isNaN(userCompanyIdNumber);
-        const numberMatches = bothAreNumbers && formCompanyIdNumber === userCompanyIdNumber;
-        
-        console.log(`🔍 Number validation - formCompanyIdNumber: ${formCompanyIdNumber}, userCompanyIdNumber: ${userCompanyIdNumber}`);
-        console.log(`🔍 Number validation - bothAreNumbers: ${bothAreNumbers}, numberMatches: ${numberMatches}`);
-        
-        // Use multiple comparison strategies to handle type mismatches
-        const finalMatch = strictMatch || looseMatch || stringMatch || numberMatch || numberMatches;
-        
-        console.log(`🔍 Final match result: ${finalMatch}`);
-        console.log(`🔍 ===== END FORM COMPARISON =====`);
-        
-        return finalMatch;
-      });
-      
-      console.log('🔍 ===== FILTERING RESULTS =====');
-      console.log('🔍 Company-specific forms found:', companySpecificForms.length);
-      console.log('🔍 Company-specific forms:', companySpecificForms);
-      
-      // If no company-specific templates exist, show the first-time form creation modal
-      if (companySpecificForms.length === 0) {
+      // If no requests exist, show the first-time request creation modal
+      if (!requests || requests.length === 0) {
         console.log('🚨 ===== SHOWING MODAL =====');
-        console.log('🚨 No existing company templates found, showing first-time form creation modal');
-        setShowFirstTimeFormModal(true);
+        console.log('🚨 No existing requests found, showing first-time request creation modal');
+        console.log('🚨 Setting showFirstTimeRequestModal to true...');
+        setShowFirstTimeRequestModal(true);
+        
+        // Force a small delay and check if state was actually set
+        setTimeout(() => {
+          console.log('🚨 Modal state after setting:', showFirstTimeRequestModal);
+        }, 100);
       } else {
         console.log('✅ ===== NOT SHOWING MODAL =====');
-        console.log('✅ Found existing company templates, not showing modal');
-        console.log('✅ Templates found:', companySpecificForms.map(f => ({ id: f.FORM_ID, name: f.FORM_NAME, companyId: f.COMPANY_ID })));
+        console.log('✅ Found existing requests, not showing modal');
+        console.log('✅ Request count:', requests.length);
       }
       
-      setHasCheckedForExistingTemplates(true);
+      setHasCheckedForExistingRequests(true);
       console.log('🔍 ===== CHECK COMPLETE =====');
     } catch (error) {
-      console.error('❌ ===== ERROR IN TEMPLATE CHECK =====');
-      console.error('❌ Error checking for existing templates:', error);
-      setHasCheckedForExistingTemplates(true);
+      console.error('❌ ===== ERROR IN REQUEST CHECK =====');
+      console.error('❌ Error checking for existing requests:', error);
+      setHasCheckedForExistingRequests(true);
     }
   };
   
-  // Debug function to manually trigger template check (for testing)
-  const debugCheckTemplates = () => {
+  // Debug function to manually trigger request check (for testing)
+  const debugCheckRequests = () => {
     console.log('🔧 ===== MANUAL DEBUG TRIGGER =====');
-    setHasCheckedForExistingTemplates(false);
-    checkForExistingTemplates();
+    setHasCheckedForExistingRequests(false);
+    checkForExistingRequests();
   };
   
   // Debug function to manually show/hide modal (for testing)
   const debugToggleModal = () => {
     console.log('🔧 ===== MANUAL MODAL TOGGLE =====');
-    console.log('🔧 Current showFirstTimeFormModal:', showFirstTimeFormModal);
-    setShowFirstTimeFormModal(!showFirstTimeFormModal);
+    console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
+    console.log('🔧 Current user:', user);
+    setShowFirstTimeRequestModal(!showFirstTimeRequestModal);
+  };
+  
+  // Debug function to manually show modal (for testing)
+  const debugShowModal = () => {
+    console.log('🔧 ===== MANUAL MODAL SHOW =====');
+    console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
+    console.log('🔧 Setting to true...');
+    setShowFirstTimeRequestModal(true);
+    setTimeout(() => {
+      console.log('🔧 Modal state after setting:', showFirstTimeRequestModal);
+    }, 100);
+  };
+  
+  // Debug function to check current state
+  const debugCurrentState = () => {
+    console.log('🔧 ===== CURRENT STATE DEBUG =====');
+    console.log('🔧 showFirstTimeRequestModal:', showFirstTimeRequestModal);
+    console.log('🔧 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
+    console.log('🔧 user:', user);
+    console.log('🔧 isAdmin():', isAdmin());
+    console.log('🔧 user?.companyId:', user?.companyId);
+  };
+  
+  // Debug function to examine requests data
+  const debugRequestsData = async () => {
+    console.log('🔧 ===== REQUESTS DATA DEBUG =====');
+    try {
+      const requests = await requestService.getAllRequests();
+      console.log('🔧 All requests from API:', requests);
+      console.log('🔧 Requests count:', requests?.length);
+      
+      if (requests && requests.length > 0) {
+        console.log('🔧 First request sample:', requests[0]);
+        console.log('🔧 Available properties:', Object.keys(requests[0]));
+        
+        // Show all requests
+        requests.forEach((request, index) => {
+          console.log(`🔧 Request ${index + 1}: "${request.REQUEST_NAME}" - ID: ${request.REQUEST_ID}`);
+        });
+      }
+      
+      console.log('🔧 Should show modal?', !requests || requests.length === 0);
+    } catch (error) {
+      console.error('🔧 Error fetching requests data:', error);
+    }
   };
   
   // Handle logout
@@ -360,10 +366,16 @@ function Home() {
     fetchNotices();
   }, []);
   
-  // Check for existing form templates when user is loaded
+  // Check for existing requests when user is loaded
   useEffect(() => {
-    if (user && isAdmin()) {
-      checkForExistingTemplates();
+    console.log('🔄 ===== USE EFFECT FOR REQUEST CHECK =====');
+    console.log('🔄 User exists:', !!user);
+    
+    if (user) {
+      console.log('🔄 Calling checkForExistingRequests...');
+      checkForExistingRequests();
+    } else {
+      console.log('🔄 Not checking requests - user not loaded');
     }
   }, [user]);
 
@@ -430,48 +442,26 @@ function Home() {
     });
   };
   
-  // Handle first-time form creation
-  const handleFirstTimeFormSave = async (formData: any) => {
-    console.log('Saving first-time form:', formData);
+  // Handle first-time request creation
+  const handleFirstTimeRequestSave = async (requestData: any) => {
+    console.log('Saving first-time request:', requestData);
     try {
-      // Create the form template using the formService
-      const formToSave: any = {
-        FORM_NAME: formData.name,
-        FORM_DESCRIPTION: formData.description,
-        COMPANY_ID: user?.companyId, // Company-specific form template
-        IS_PUBLIC: true,
-        IS_ACTIVE: true,
-        IS_DELETED: false,
-        FORM_TYPE: formData.formType?.toLowerCase() || 'request'
-      };
+      // The AddRequestModal will handle the request creation
+      // Just close the modal and refresh the request list
+      setShowFirstTimeRequestModal(false);
+      toast.success('Your first request has been created successfully!');
       
-      // Convert form fields to DB fields format
-      const fieldsToSave = formData.formFields.map((field: any, index: number) => ({
-        FIELD_NAME: field.fieldName,
-        FIELD_TYPE_ID: field.fieldTypeId || field.dbFieldTypeId || 1, // Use fieldTypeId from SimpleFormBuilder, fallback to dbFieldTypeId or text
-        IS_REQUIRED: field.required || false,
-        OPTIONS: field.options || null,
-        SEQUENCE: index + 1,
-        IS_ACTIVE: true,
-        IS_DELETED: false
-      }));
-      
-      // Save the form template to the database
-      await formService.createForm(formToSave, fieldsToSave);
-      
-      setShowFirstTimeFormModal(false);
-      toast.success('Your Workflow Template has been created.');
-      
-      // Refresh the templates check to update the UI
-      checkForExistingTemplates();
+      // Refresh the requests check to update the UI
+      fetchRequests();
+      checkForExistingRequests();
     } catch (error: any) {
-      console.error('Error saving first-time form:', error);
-      toast.error(error.response?.data?.error || error.message || 'Failed to save form template. Please try again.');
+      console.error('Error saving first-time request:', error);
+      toast.error(error.response?.data?.error || error.message || 'Failed to create request. Please try again.');
     }
   };
   
-  const handleFirstTimeFormClose = () => {
-    setShowFirstTimeFormModal(false);
+  const handleFirstTimeRequestClose = () => {
+    setShowFirstTimeRequestModal(false);
   };
 
   const navItems: NavItem[] = [
@@ -589,9 +579,9 @@ function Home() {
     activeNotices: 0
   });
   
-  // First-time admin workflow template creation modal
-  const [showFirstTimeFormModal, setShowFirstTimeFormModal] = useState(false);
-  const [hasCheckedForExistingTemplates, setHasCheckedForExistingTemplates] = useState(false);
+  // First-time request creation modal (for users with no requests)
+  const [showFirstTimeRequestModal, setShowFirstTimeRequestModal] = useState(false);
+  const [hasCheckedForExistingRequests, setHasCheckedForExistingRequests] = useState(false);
   
   // User is already declared at the top of the component
 
@@ -1635,25 +1625,50 @@ function Home() {
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl gap-4 mb-6 px-4">
             <div className="text-center">Search (coming soon)</div>
             {/* Debug buttons - remove after testing */}
-            {isAdmin() && (
-              <div className="flex flex-col gap-2 text-sm">
-                <button 
-                  onClick={debugCheckTemplates}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  🔧 Debug: Check Templates
-                </button>
-                <button 
-                  onClick={debugToggleModal}
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                >
-                  🔧 Debug: Toggle Modal
-                </button>
-                <div className="text-xs text-gray-600">
-                  Modal State: {showFirstTimeFormModal ? 'SHOWING' : 'HIDDEN'}
-                </div>
+            <div className="flex flex-col gap-2 text-sm">
+              <button 
+                onClick={debugCheckRequests}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                🔧 Debug: Check Requests
+              </button>
+              <button 
+                onClick={debugToggleModal}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                🔧 Debug: Toggle Modal
+              </button>
+              <button 
+                onClick={debugShowModal}
+                className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+              >
+                🔧 Debug: Force Show Modal
+              </button>
+              <button 
+                onClick={debugCurrentState}
+                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+              >
+                🔧 Debug: Check State
+              </button>
+              <button 
+                onClick={debugRequestsData}
+                className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+              >
+                🔧 Debug: Check Requests
+              </button>
+              <div className="text-xs text-gray-600">
+                Modal State: {showFirstTimeRequestModal ? 'SHOWING' : 'HIDDEN'}
               </div>
-            )}
+              <div className="text-xs text-gray-600">
+                Has Checked Requests: {hasCheckedForExistingRequests ? 'YES' : 'NO'}
+              </div>
+              <div className="text-xs text-gray-600">
+                User ID: {user?.id || 'N/A'}
+              </div>
+              <div className="text-xs text-gray-600">
+                Request Count: {requests?.length || 0}
+              </div>
+            </div>
           </div>
         ) : mobileNav === 'notifications' ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl mb-6 px-4">
@@ -1712,14 +1727,27 @@ function Home() {
         />
       )}
       
-      {/* First-time Form Creation Modal */}
-      {showFirstTimeFormModal && (
-        <NewRequestModal
-          isOpen={showFirstTimeFormModal}
-          onClose={handleFirstTimeFormClose}
-          onSave={handleFirstTimeFormSave}
-        />
-      )}
+      {/* First-time Request Creation Modal */}
+      {console.log('🎯 HOME: About to render AddRequestModal for first request with isOpen =', showFirstTimeRequestModal)}
+      <AddRequestModal
+        isOpen={showFirstTimeRequestModal}
+        onClose={handleFirstTimeRequestClose}
+        onSubmit={handleFirstTimeRequestSave}
+      />
+      
+      {/* Debug: Show modal state in UI */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        background: 'red',
+        color: 'white',
+        padding: '10px',
+        zIndex: 9999,
+        fontSize: '12px'
+      }}>
+        Modal State: {showFirstTimeRequestModal ? 'OPEN' : 'CLOSED'}
+      </div>
       {/* Mobile Bottom Nav */}
       <MobileNavBar
         selected={mobileNav}

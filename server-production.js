@@ -7232,9 +7232,18 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS 
-            WHERE (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            WHERE (
+                ORGANIZATION_ID = ${req.companyId} 
+                OR COMPANY_ID = ${req.companyId}
+                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL AND IS_PUBLIC = 1)
+            )
             AND IS_DELETED = 0
-            ORDER BY FORM_NAME
+            ORDER BY 
+                CASE 
+                    WHEN ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL THEN 0
+                    ELSE 1
+                END,
+                FORM_NAME
         `;
 
         console.log(`✅ Found ${forms.length} forms for company ${req.companyId}`);

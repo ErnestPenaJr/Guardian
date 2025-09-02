@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import '../styles/Modal.css';
 import { toast } from 'react-toastify';
-import { FaUser, FaMoneyBill, FaHome, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaMoneyBill, FaHome, FaCar, FaSpinner } from 'react-icons/fa';
 import formService from '../services/formService';
 import requestService from '../services/requestService';
 import Swal from 'sweetalert2';
@@ -49,6 +49,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         return <FaMoneyBill />;
       case 'ADDRESS':
         return <FaHome />;
+      case 'VEHICLE':
+        return <FaCar />;
       default:
         return <FaUser />;
     }
@@ -69,6 +71,13 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       description: 'Banking information template',
       icon: <FaMoneyBill />,
       fields: 'Bank Name, Account #, Routing #'
+    },
+    {
+      id: 'default-vehicle',
+      name: 'VEHICLE',
+      description: 'Vehicle information template',
+      icon: <FaCar />,
+      fields: 'Make, Model, Year, License Plate, VIN'
     },
     {
       id: 'default-address',
@@ -135,7 +144,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       case 'SUBJECT':
         return 'First Name, Middle Name, Last Name, DOB, SSN';
       case 'FINANCIAL':
-        return 'Bank Name, Account #, Routing #';
+        return 'Bank Name, Account #, Routing #, Account Type';
+      case 'VEHICLE':
+        return 'Make, Model, Year, License Plate, VIN';
       case 'ADDRESS':
         return 'Address Line 1, Address Line 2, City, State, ZIP Code';
       default:
