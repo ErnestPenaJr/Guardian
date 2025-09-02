@@ -755,7 +755,7 @@ app.get('/api/debug/endpoints', (req, res) => {
         endpoints: [
             '/api/me', '/api/users', '/api/users/company/:companyId', '/api/invites', 
             '/api/contact-groups', '/api/contact-groups/:id', '/api/contact-groups/:id/members',
-            '/api/roles', '/api/requests', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
+            '/api/roles', '/api/requests', '/api/requests/:id', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/custom-templates', '/api/custom-templates/:id',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
             '/api/validate-email', '/api/send-verification-email', 
@@ -1757,6 +1757,113 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 timestamp: new Date().toISOString()
             });
         }
+    }
+});
+
+// Get single request by ID
+app.get('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        console.log(`📋 Fetching request ${requestId} for company ${req.companyId}`);
+        
+        if (isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Invalid request ID',
+                message: 'Request ID must be a valid number'
+            });
+        }
+
+        // Query single request with all details and proper company filtering
+        const requests = await prisma.$queryRaw`
+            SELECT 
+                r.REQUEST_ID,
+                r.REQUEST_NAME,
+                r.REQUEST_DESCRIPTION,
+                r.STATUS,
+                r.SUBMITTED_DATE,
+                r.REQUESTOR_ID,
+                r.ASSIGNED_ID,
+                r.CREATE_DATE,
+                r.UPDATE_DATE,
+                r.CREATE_USER_ID,
+                r.UPDATE_USER_ID,
+                r.TRACKINGID,
+                r.COMPANY_ID,
+                r.EXTERNAL_USER,
+                r.FORM_ID,
+                r.PRIORITY_LEVEL,
+                r.ABBREVIATION,
+                r.WORKSPACE_ID,
+                requestor.FIRST_NAME as REQUESTOR_FIRST_NAME,
+                requestor.LAST_NAME as REQUESTOR_LAST_NAME,
+                requestor.EMAIL as REQUESTOR_EMAIL,
+                assigned.FIRST_NAME as ASSIGNED_FIRST_NAME,
+                assigned.LAST_NAME as ASSIGNED_LAST_NAME,
+                assigned.EMAIL as ASSIGNED_EMAIL,
+                creator.FIRST_NAME as CREATOR_FIRST_NAME,
+                creator.LAST_NAME as CREATOR_LAST_NAME,
+                creator.EMAIL as CREATOR_EMAIL,
+                w.WORKSPACE_NAME
+            FROM GUARDIAN.REQUESTS r
+            LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID AND requestor.COMPANY_ID = ${req.companyId}
+            LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID AND assigned.COMPANY_ID = ${req.companyId}
+            LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID AND creator.COMPANY_ID = ${req.companyId}
+            LEFT JOIN GUARDIAN.WORKSPACES w ON r.WORKSPACE_ID = w.WORKSPACE_ID
+            WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requests.length) {
+            console.log(`❌ Request ${requestId} not found or not accessible for company ${req.companyId}`);
+            return res.status(404).json({
+                error: 'Request not found',
+                message: 'Request does not exist or you do not have permission to access it'
+            });
+        }
+
+        const request = requests[0];
+        
+        // Format the response similar to the main requests endpoint
+        const formattedRequest = {
+            REQUEST_ID: request.REQUEST_ID,
+            REQUEST_NAME: request.REQUEST_NAME,
+            REQUEST_DESCRIPTION: request.REQUEST_DESCRIPTION,
+            STATUS: request.STATUS,
+            SUBMITTED_DATE: request.SUBMITTED_DATE,
+            REQUESTOR_ID: request.REQUESTOR_ID,
+            ASSIGNED_ID: request.ASSIGNED_ID,
+            CREATE_DATE: request.CREATE_DATE,
+            UPDATE_DATE: request.UPDATE_DATE,
+            CREATE_USER_ID: request.CREATE_USER_ID,
+            UPDATE_USER_ID: request.UPDATE_USER_ID,
+            TRACKINGID: request.TRACKINGID,
+            COMPANY_ID: request.COMPANY_ID,
+            EXTERNAL_USER: request.EXTERNAL_USER,
+            FORM_ID: request.FORM_ID,
+            PRIORITY_LEVEL: request.PRIORITY_LEVEL,
+            ABBREVIATION: request.ABBREVIATION,
+            WORKSPACE_ID: request.WORKSPACE_ID,
+            WORKSPACE_NAME: request.WORKSPACE_NAME,
+            REQUESTOR_FIRST_NAME: request.REQUESTOR_FIRST_NAME,
+            REQUESTOR_LAST_NAME: request.REQUESTOR_LAST_NAME,
+            REQUESTOR_EMAIL: request.REQUESTOR_EMAIL,
+            ASSIGNED_FIRST_NAME: request.ASSIGNED_FIRST_NAME,
+            ASSIGNED_LAST_NAME: request.ASSIGNED_LAST_NAME,
+            ASSIGNED_EMAIL: request.ASSIGNED_EMAIL,
+            CREATOR_FIRST_NAME: request.CREATOR_FIRST_NAME,
+            CREATOR_LAST_NAME: request.CREATOR_LAST_NAME,
+            CREATOR_EMAIL: request.CREATOR_EMAIL
+        };
+
+        console.log(`✅ Found request: ${request.REQUEST_NAME} (ID: ${request.REQUEST_ID})`);
+        res.json(formattedRequest);
+
+    } catch (error) {
+        console.error(`❌ Error fetching request ${req.params.id}:`, error);
+        res.status(500).json({
+            error: 'Failed to fetch request',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
     }
 });
 
