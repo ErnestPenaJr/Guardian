@@ -159,10 +159,18 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     error: any,
     filename?: string
   ): Promise<ErrorHandlerResponse> => {
+    // Sanitize filename to prevent path leakage
+    const sanitizedFilename = filename ? 
+      filename.split('/').pop() || filename.split('\\').pop() || filename 
+      : undefined;
+    
     return errorManager.handleFileError(error, {
       ...baseContext,
       action: 'file_upload',
-      additionalInfo: { filename }
+      additionalInfo: { 
+        filename: sanitizedFilename,
+        originalProvided: !!filename
+      }
     });
   }, [baseContext]);
 

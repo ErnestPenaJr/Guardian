@@ -150,7 +150,7 @@ export class ErrorManager {
       severity: 'high',
       code: errorCode,
       message: error.message || 'Database operation failed',
-      technicalMessage: error.stack || error.message,
+      technicalMessage: this.sanitizeStackTrace(error.stack || error.message),
       userFriendlyMessage: errorMessage.title,
       context: { ...this.userContext, ...context },
       timestamp: new Date(),
@@ -185,7 +185,7 @@ export class ErrorManager {
       severity: this.getNetworkErrorSeverity(error),
       code: errorCode,
       message: error.message || 'Network request failed',
-      technicalMessage: error.stack || error.message,
+      technicalMessage: this.sanitizeStackTrace(error.stack || error.message),
       userFriendlyMessage: errorMessage.title,
       context: { ...this.userContext, ...context },
       timestamp: new Date(),
@@ -256,7 +256,7 @@ export class ErrorManager {
       severity: 'high',
       code: errorCode,
       message: error.message || 'Access denied',
-      technicalMessage: error.stack || error.message,
+      technicalMessage: this.sanitizeStackTrace(error.stack || error.message),
       userFriendlyMessage: errorMessage.message,
       context: { ...this.userContext, ...context },
       timestamp: new Date(),
@@ -290,11 +290,11 @@ export class ErrorManager {
       severity: 'medium',
       code: errorCode,
       message: error.message || 'File operation failed',
-      technicalMessage: error.stack || error.message,
+      technicalMessage: this.sanitizeStackTrace(error.stack || error.message),
       userFriendlyMessage: errorMessage.message,
       context: { ...this.userContext, ...context },
       timestamp: new Date(),
-      filename: error.filename,
+      filename: this.sanitizeFilePath(error.filename),
       fileSize: error.fileSize,
       fileType: error.fileType,
       maxSize: error.maxSize,
@@ -324,7 +324,7 @@ export class ErrorManager {
       severity: this.getApiErrorSeverity(statusCode),
       code: errorCode,
       message: error.message || 'API request failed',
-      technicalMessage: JSON.stringify(error.response?.data, null, 2) || error.stack,
+      technicalMessage: JSON.stringify(error.response?.data, null, 2) || this.sanitizeStackTrace(error.stack),
       userFriendlyMessage: errorMessage.message,
       context: { ...this.userContext, ...context },
       timestamp: new Date(),
@@ -356,7 +356,7 @@ export class ErrorManager {
       severity: 'medium',
       code: ErrorCodes.SYSTEM_ERROR,
       message: error.message || 'An unexpected error occurred',
-      technicalMessage: error.stack || error.toString(),
+      technicalMessage: this.sanitizeStackTrace(error.stack || error.toString()),
       userFriendlyMessage: 'Something went wrong. Please try again.',
       context: { ...this.userContext, ...context },
       timestamp: new Date(),
@@ -447,7 +447,7 @@ export class ErrorManager {
 
   private isFileError(error: any): boolean {
     return error?.code?.startsWith('FILE_') ||
-           error?.filename ||
+           this.sanitizeFilePath(error?.filename) ||
            error?.fileSize ||
            error?.type === 'file';
   }
@@ -752,6 +752,42 @@ export class ErrorManager {
   // Utility methods
   private generateErrorId(): string {
     return `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Sanitize file paths to prevent development file path leakage in production
+  private sanitizeFilePath(filePath?: string): string | undefined {
+    if (!filePath) return undefined;
+    
+    // In production, only show the filename, not the full path
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction) {
+      // Extract just the filename from the full path
+      return filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
+    }
+    
+    return filePath;
+  }
+
+  // Sanitize stack traces to prevent development file path leakage in production
+  private sanitizeStackTrace(stackTrace?: string): string | undefined {
+    if (!stackTrace) return undefined;
+    
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!isProduction) {
+      return stackTrace;
+    }
+    
+    // In production, remove file paths from stack traces
+    return stackTrace
+      .split('\n')
+      .map(line => {
+        // Remove absolute file paths, keep only relative paths and function names
+        return line.replace(/\/[^:\s]*\/[^:\s]*\//g, '...')
+                  .replace(/C:\\[^:\s]*\\[^:\s]*\\/g, '...')
+                  .replace(/\/Users\/[^\/]*\/[^:\s]*\//g, '...')
+                  .replace(/\/opt\/[^:\s]*\//g, '...');
+      })
+      .join('\n');
   }
 
   private async retryWithDelay(fn: () => Promise<void>, delay: number): Promise<void> {

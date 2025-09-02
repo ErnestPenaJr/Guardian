@@ -7,6 +7,46 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient, Prisma } = require('@prisma/client');
 
+// Production Environment Detection and Security Configuration
+const isProduction = process.env.NODE_ENV === 'production' || 
+                    process.env.WEBSITE_SITE_NAME || 
+                    process.env.PORT || 
+                    (process.env.APPSETTING_WEBSITE_SITE_NAME && process.env.APPSETTING_WEBSITE_SITE_NAME !== '');
+
+// Set NODE_ENV to production if we're in an Azure environment but it's not set
+if (isProduction && !process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'production';
+}
+
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'} (Production: ${isProduction})`);
+
+// Production-safe error logging utility
+const safeErrorLog = (message, errorInfo = {}) => {
+    if (process.env.NODE_ENV === 'production') {
+        // In production, sanitize error information to prevent path leakage
+        const sanitizedInfo = {};
+        Object.keys(errorInfo).forEach(key => {
+            if (key === 'stack') {
+                // Don't log stack traces in production
+                sanitizedInfo[key] = '[REDACTED IN PRODUCTION]';
+            } else if (typeof errorInfo[key] === 'string') {
+                // Remove file paths from any string values
+                sanitizedInfo[key] = errorInfo[key]
+                    .replace(/\/[^:\s]*\/[^:\s]*\//g, '.../')
+                    .replace(/C:\\[^:\s]*\\[^:\s]*\\/g, '...\\')
+                    .replace(/\/Users\/[^\/]*\/[^:\s]*\//g, '.../')
+                    .replace(/\/opt\/[^:\s]*\//g, '.../');
+            } else {
+                sanitizedInfo[key] = errorInfo[key];
+            }
+        });
+        console.error(message, sanitizedInfo);
+    } else {
+        // In development, log everything
+        console.error(message, errorInfo);
+    }
+};
+
 // Enhanced security-hardened email validation function
 const validateEmailServer = (email) => {
     // Input length protection (125 character limit)
@@ -486,7 +526,7 @@ app.post('/api/send-error-email', async (req, res) => {
         }
 
         // Always log the error for debugging
-        console.error('🚨 Application Error Captured:', {
+        safeErrorLog('🚨 Application Error Captured:', {
             type: errorDetails?.errorType?.toUpperCase() || 'UNKNOWN',
             message: errorDetails?.mainError || 'Unknown error',
             page: errorDetails?.pageName,
@@ -572,7 +612,10 @@ app.post('/api/send-error-email', async (req, res) => {
         }
         
     } catch (err) {
-        console.error('❌ Error in send-error-email endpoint:', {
+        // Only log stack traces in development to prevent file path leakage
+        const isProduction = process.env.NODE_ENV === 'production';
+        
+        safeErrorLog('❌ Error in send-error-email endpoint:', {
             error: err.message,
             stack: err.stack?.substring(0, 500) + '...'
         });
@@ -822,7 +865,7 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         req.userRoleIds = user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : [];
         next();
     } catch (error) {
-        console.error('❌ Authentication error details:', {
+        safeErrorLog('❌ Authentication error details:', {
             message: error.message,
             name: error.name,
             stack: error.stack?.split('\n')[0] // Just first line of stack trace
