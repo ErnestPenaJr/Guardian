@@ -118,30 +118,40 @@ function Home() {
   
   // Check if user is admin (role ID 1 or 6)
   const isAdmin = () => {
-    console.log('🔐 ===== CHECKING ADMIN STATUS =====');
-    console.log('🔐 User object:', user);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 ===== CHECKING ADMIN STATUS =====');
+      console.log('🔐 User object:', user);
+    }
     
     if (!user) {
-      console.log('🔐 No user - returning false');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 No user - returning false');
+      }
       return false;
     }
     
     // Check roles array (objects with id property) - Admin (1), JAFAR (6)
     const hasRoleInArray = user.roles?.some((role: any) => {
-      console.log('🔐 Checking role:', role, 'ID:', role.id, 'Is Admin (1)?', role.id === 1, 'Is JAFAR (6)?', role.id === 6);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 Checking role:', role, 'ID:', role.id, 'Is Admin (1)?', role.id === 1, 'Is JAFAR (6)?', role.id === 6);
+      }
       return role.id === 1 || role.id === 6;
     });
     
     // Check role string property
     const hasRoleAsString = user.role === '1' || user.role === '6';
     
-    console.log('🔐 Roles array:', user.roles);
-    console.log('🔐 Role string:', user.role);
-    console.log('🔐 hasRoleInArray:', hasRoleInArray);
-    console.log('🔐 hasRoleAsString:', hasRoleAsString);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 Roles array:', user.roles);
+      console.log('🔐 Role string:', user.role);
+      console.log('🔐 hasRoleInArray:', hasRoleInArray);
+      console.log('🔐 hasRoleAsString:', hasRoleAsString);
+    }
     
     const result = hasRoleInArray || hasRoleAsString;
-    console.log('🔐 Final admin result:', result);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 Final admin result:', result);
+    }
     
     return result;
   };
@@ -149,114 +159,142 @@ function Home() {
   // Check if user has existing requests
   const checkForExistingRequests = async () => {
     if (hasCheckedForExistingRequests) {
-      console.log('🔍 ===== SKIPPING REQUEST CHECK - ALREADY CHECKED =====');
-      console.log('🔍 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 ===== SKIPPING REQUEST CHECK - ALREADY CHECKED =====');
+        console.log('🔍 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
+      }
       return;
     }
     
     try {
-      console.log('🔍 ===== CHECKING FOR EXISTING USER REQUESTS =====');
-      console.log('🔍 User object:', user);
-      console.log('🔍 User company ID:', user?.companyId, 'Type:', typeof user?.companyId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 ===== CHECKING FOR EXISTING USER REQUESTS =====');
+        console.log('🔍 User object:', user);
+        console.log('🔍 User company ID:', user?.companyId, 'Type:', typeof user?.companyId);
+      }
       
       const requests = await requestService.getAllRequests();
-      console.log('🔍 ===== REQUESTS FROM API =====');
-      console.log('🔍 Raw requests from API:', requests);
-      console.log('🔍 Requests array length:', requests?.length);
-      console.log('🔍 Requests is array?', Array.isArray(requests));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 ===== REQUESTS FROM API =====');
+        console.log('🔍 Raw requests from API:', requests);
+        console.log('🔍 Requests array length:', requests?.length);
+        console.log('🔍 Requests is array?', Array.isArray(requests));
+      }
       
-      if (requests && requests.length > 0) {
+      if (requests && requests.length > 0 && process.env.NODE_ENV === 'development') {
         console.log('🔍 ===== FIRST REQUEST ANALYSIS =====');
         console.log('🔍 First request structure:', requests[0]);
         console.log('🔍 Available request properties:', Object.keys(requests[0]));
       }
       
-      console.log('🔍 ===== REQUEST COUNT =====');
-      console.log('🔍 Total requests found:', requests?.length || 0);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 ===== REQUEST COUNT =====');
+        console.log('🔍 Total requests found:', requests?.length || 0);
+      }
       
       // If no requests exist, show the first-time request creation modal
       if (!requests || requests.length === 0) {
-        console.log('🚨 ===== SHOWING MODAL =====');
-        console.log('🚨 No existing requests found, showing first-time request creation modal');
-        console.log('🚨 Setting showFirstTimeRequestModal to true...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚨 ===== SHOWING MODAL =====');
+          console.log('🚨 No existing requests found, showing first-time request creation modal');
+          console.log('🚨 Setting showFirstTimeRequestModal to true...');
+        }
         setShowFirstTimeRequestModal(true);
         
         // Force a small delay and check if state was actually set
-        setTimeout(() => {
-          console.log('🚨 Modal state after setting:', showFirstTimeRequestModal);
-        }, 100);
+        if (process.env.NODE_ENV === 'development') {
+          setTimeout(() => {
+            console.log('🚨 Modal state after setting:', showFirstTimeRequestModal);
+          }, 100);
+        }
       } else {
-        console.log('✅ ===== NOT SHOWING MODAL =====');
-        console.log('✅ Found existing requests, not showing modal');
-        console.log('✅ Request count:', requests.length);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ ===== NOT SHOWING MODAL =====');
+          console.log('✅ Found existing requests, not showing modal');
+          console.log('✅ Request count:', requests.length);
+        }
       }
       
       setHasCheckedForExistingRequests(true);
-      console.log('🔍 ===== CHECK COMPLETE =====');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 ===== CHECK COMPLETE =====');
+      }
     } catch (error) {
-      console.error('❌ ===== ERROR IN REQUEST CHECK =====');
-      console.error('❌ Error checking for existing requests:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ ===== ERROR IN REQUEST CHECK =====');
+        console.error('❌ Error checking for existing requests:', error);
+      }
       setHasCheckedForExistingRequests(true);
     }
   };
   
   // Debug function to manually trigger request check (for testing)
   const debugCheckRequests = () => {
-    console.log('🔧 ===== MANUAL DEBUG TRIGGER =====');
-    setHasCheckedForExistingRequests(false);
-    checkForExistingRequests();
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 ===== MANUAL DEBUG TRIGGER =====');
+      setHasCheckedForExistingRequests(false);
+      checkForExistingRequests();
+    }
   };
   
   // Debug function to manually show/hide modal (for testing)
   const debugToggleModal = () => {
-    console.log('🔧 ===== MANUAL MODAL TOGGLE =====');
-    console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
-    console.log('🔧 Current user:', user);
-    setShowFirstTimeRequestModal(!showFirstTimeRequestModal);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 ===== MANUAL MODAL TOGGLE =====');
+      console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
+      console.log('🔧 Current user:', user);
+      setShowFirstTimeRequestModal(!showFirstTimeRequestModal);
+    }
   };
   
   // Debug function to manually show modal (for testing)
   const debugShowModal = () => {
-    console.log('🔧 ===== MANUAL MODAL SHOW =====');
-    console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
-    console.log('🔧 Setting to true...');
-    setShowFirstTimeRequestModal(true);
-    setTimeout(() => {
-      console.log('🔧 Modal state after setting:', showFirstTimeRequestModal);
-    }, 100);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 ===== MANUAL MODAL SHOW =====');
+      console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
+      console.log('🔧 Setting to true...');
+      setShowFirstTimeRequestModal(true);
+      setTimeout(() => {
+        console.log('🔧 Modal state after setting:', showFirstTimeRequestModal);
+      }, 100);
+    }
   };
   
   // Debug function to check current state
   const debugCurrentState = () => {
-    console.log('🔧 ===== CURRENT STATE DEBUG =====');
-    console.log('🔧 showFirstTimeRequestModal:', showFirstTimeRequestModal);
-    console.log('🔧 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
-    console.log('🔧 user:', user);
-    console.log('🔧 isAdmin():', isAdmin());
-    console.log('🔧 user?.companyId:', user?.companyId);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 ===== CURRENT STATE DEBUG =====');
+      console.log('🔧 showFirstTimeRequestModal:', showFirstTimeRequestModal);
+      console.log('🔧 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
+      console.log('🔧 user:', user);
+      console.log('🔧 isAdmin():', isAdmin());
+      console.log('🔧 user?.companyId:', user?.companyId);
+    }
   };
   
   // Debug function to examine requests data
   const debugRequestsData = async () => {
-    console.log('🔧 ===== REQUESTS DATA DEBUG =====');
-    try {
-      const requests = await requestService.getAllRequests();
-      console.log('🔧 All requests from API:', requests);
-      console.log('🔧 Requests count:', requests?.length);
-      
-      if (requests && requests.length > 0) {
-        console.log('🔧 First request sample:', requests[0]);
-        console.log('🔧 Available properties:', Object.keys(requests[0]));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 ===== REQUESTS DATA DEBUG =====');
+      try {
+        const requests = await requestService.getAllRequests();
+        console.log('🔧 All requests from API:', requests);
+        console.log('🔧 Requests count:', requests?.length);
         
-        // Show all requests
-        requests.forEach((request, index) => {
-          console.log(`🔧 Request ${index + 1}: "${request.REQUEST_NAME}" - ID: ${request.REQUEST_ID}`);
-        });
+        if (requests && requests.length > 0) {
+          console.log('🔧 First request sample:', requests[0]);
+          console.log('🔧 Available properties:', Object.keys(requests[0]));
+          
+          // Show all requests
+          requests.forEach((request, index) => {
+            console.log(`🔧 Request ${index + 1}: "${request.REQUEST_NAME}" - ID: ${request.REQUEST_ID}`);
+          });
+        }
+        
+        console.log('🔧 Should show modal?', !requests || requests.length === 0);
+      } catch (error) {
+        console.error('🔧 Error fetching requests data:', error);
       }
-      
-      console.log('🔧 Should show modal?', !requests || requests.length === 0);
-    } catch (error) {
-      console.error('🔧 Error fetching requests data:', error);
     }
   };
   
@@ -360,7 +398,9 @@ function Home() {
 
   // Fetch requests and notices when component mounts
   useEffect(() => {
-    console.log('Home component mounted, fetching data...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Home component mounted, fetching data...');
+    }
     fetchRequests();
     fetchAssignedRequestsCount();
     fetchNotices();
@@ -368,14 +408,20 @@ function Home() {
   
   // Check for existing requests when user is loaded
   useEffect(() => {
-    console.log('🔄 ===== USE EFFECT FOR REQUEST CHECK =====');
-    console.log('🔄 User exists:', !!user);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 ===== USE EFFECT FOR REQUEST CHECK =====');
+      console.log('🔄 User exists:', !!user);
+    }
     
     if (user) {
-      console.log('🔄 Calling checkForExistingRequests...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Calling checkForExistingRequests...');
+      }
       checkForExistingRequests();
     } else {
-      console.log('🔄 Not checking requests - user not loaded');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Not checking requests - user not loaded');
+      }
     }
   }, [user]);
 
@@ -879,13 +925,17 @@ function Home() {
 
   // Function to fetch requests and prepare chart data
   const fetchRequests = async () => {
-    console.log('Fetching requests...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fetching requests...');
+    }
     setLoading(true);
     setError(null);
     
     try {
       // Use axios directly with the full URL to bypass any proxy issues
-      console.log('Fetching requests from backend server...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetching requests from backend server...');
+      }
       const authToken = localStorage.getItem('token');
       
       // Make direct request to backend server
@@ -901,20 +951,28 @@ function Home() {
         timeout: 10000
       });
       
-      console.log('API response status:', response.status);
-      console.log('API response headers:', response.headers);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('API response status:', response.status);
+        console.log('API response headers:', response.headers);
+      }
       
       const requestsData = response.data;
-      console.log('Requests data type:', typeof requestsData);
-      console.log('Is array?', Array.isArray(requestsData));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Requests data type:', typeof requestsData);
+        console.log('Is array?', Array.isArray(requestsData));
+      }
       
       if (Array.isArray(requestsData)) {
-        console.log('Successfully received array data, length:', requestsData.length);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Successfully received array data, length:', requestsData.length);
+        }
         setRequests(requestsData);
         setFilteredRequests(requestsData);
         setTotalRequests(requestsData.length);
       } else {
-        console.error('Received non-array data from API:', requestsData);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Received non-array data from API:', requestsData);
+        }
         setError('Invalid data format received from server');
       }
       
@@ -961,7 +1019,9 @@ function Home() {
   // Function to fetch notices data for dashboard
   const fetchNotices = async () => {
     try {
-      console.log('Fetching notices for dashboard...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetching notices for dashboard...');
+      }
       
       // Get recent notices for current user
       const myNotices = await noticeService.getMyNotices({ 
@@ -971,8 +1031,10 @@ function Home() {
       // Get notice statistics
       const stats = await noticeService.getNoticeStats();
       
-      console.log('My notices:', myNotices);
-      console.log('Notice stats:', stats);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('My notices:', myNotices);
+        console.log('Notice stats:', stats);
+      }
       
       setNotices(myNotices.slice(0, 5)); // Show recent 5 notices on dashboard
       setNoticeStats(stats);
@@ -1405,7 +1467,9 @@ function Home() {
                         selectableRows
                         selectableRowsHighlight
                         onSelectedRowsChange={(state) => {
-                          console.log('Selected Rows:', state.selectedRows);
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log('Selected Rows:', state.selectedRows);
+                          }
                           setSelectedRows(state.selectedRows);
                         }}
                         onRowClicked={handleViewRequest}
@@ -1624,8 +1688,9 @@ function Home() {
         ) : mobileNav === 'search' ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl gap-4 mb-6 px-4">
             <div className="text-center">Search (coming soon)</div>
-            {/* Debug buttons - remove after testing */}
-            <div className="flex flex-col gap-2 text-sm">
+            {/* Debug buttons - development only */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="flex flex-col gap-2 text-sm">
               <button 
                 onClick={debugCheckRequests}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -1669,6 +1734,7 @@ function Home() {
                 Request Count: {requests?.length || 0}
               </div>
             </div>
+            )}
           </div>
         ) : mobileNav === 'notifications' ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl mb-6 px-4">
@@ -1728,7 +1794,6 @@ function Home() {
       )}
       
       {/* First-time Request Creation Modal */}
-      {console.log('🎯 HOME: About to render AddRequestModal for first request with isOpen =', showFirstTimeRequestModal)}
       <AddRequestModal
         isOpen={showFirstTimeRequestModal}
         onClose={handleFirstTimeRequestClose}
@@ -1736,18 +1801,20 @@ function Home() {
       />
       
       {/* Debug: Show modal state in UI */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        background: 'red',
-        color: 'white',
-        padding: '10px',
-        zIndex: 9999,
-        fontSize: '12px'
-      }}>
-        Modal State: {showFirstTimeRequestModal ? 'OPEN' : 'CLOSED'}
-      </div>
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: 'red',
+          color: 'white',
+          padding: '10px',
+          zIndex: 9999,
+          fontSize: '12px'
+        }}>
+          Modal State: {showFirstTimeRequestModal ? 'OPEN' : 'CLOSED'}
+        </div>
+      )}
       {/* Mobile Bottom Nav */}
       <MobileNavBar
         selected={mobileNav}
