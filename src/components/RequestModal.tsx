@@ -44,6 +44,7 @@ interface Request {
 }
 
 interface FormFieldValue {
+  fieldId: number;
   fieldName: string;
   fieldValue: any;
 }
@@ -482,6 +483,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             const value = valueByName || valueById;
             
             fieldValues.push({
+              fieldId: field.FIELD_ID,
               fieldName: field.FIELD_NAME,
               fieldValue: value && value.toString().trim() !== '' 
                 ? value // Real database value from FORMS_INSTANCE_VALUES
@@ -807,7 +809,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       // Prepare form data in the format the server expects
       const fieldValues = formFieldValues.reduce((acc, field) => {
         if (field.fieldValue && field.fieldValue.toString().trim() !== '') {
-          acc[field.fieldName] = field.fieldValue;
+          acc[field.fieldId.toString()] = field.fieldValue;
         }
         return acc;
       }, {} as Record<string, string>);
