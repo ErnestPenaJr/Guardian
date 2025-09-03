@@ -10,7 +10,6 @@ const { PrismaClient, Prisma } = require('@prisma/client');
 // Production Environment Detection and Security Configuration
 const isProduction = process.env.NODE_ENV === 'production' || 
                     process.env.WEBSITE_SITE_NAME || 
-                    process.env.PORT || 
                     (process.env.APPSETTING_WEBSITE_SITE_NAME && process.env.APPSETTING_WEBSITE_SITE_NAME !== '');
 
 // Set NODE_ENV to production if we're in an Azure environment but it's not set
@@ -13038,16 +13037,33 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
+// === STATIC FILE SERVING & SPA ROUTING ===
+if (isProduction) {
+    // Production: Serve static files and handle SPA routing
+    console.log('🏭 Production mode: Serving static files from current directory');
+    app.use(express.static('.'));
+    
+    // SPA fallback route - must be AFTER all API routes
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+    console.log('🏭 Production mode: SPA routing enabled');
+} else {
+    // Development: Static files served by Vite dev server
+    console.log('🔧 Development mode: Static files served by Vite on port 5175');
+    console.log('🔧 Development mode: SPA routing handled by Vite dev server');
+}
+
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
-// === SPA FALLBACK ROUTE ===
-// In development mode, SPA routing is handled by Vite dev server
-// This route is only needed in production when this server serves static files
-console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔧 Development mode: API server only`);
+    if (isProduction) {
+        console.log(`🏭 Production mode: API + Static files + SPA routing`);
+    } else {
+        console.log(`🔧 Development mode: API server only`);
+    }
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');

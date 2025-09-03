@@ -1464,17 +1464,8 @@ function Home() {
                           rowsPerPageText: 'Records per page:',
                           rangeSeparatorText: 'of',
                         }}
-                        selectableRows
-                        selectableRowsHighlight
-                        onSelectedRowsChange={(state) => {
-                          if (process.env.NODE_ENV === 'development') {
-                            console.log('Selected Rows:', state.selectedRows);
-                          }
-                          setSelectedRows(state.selectedRows);
-                        }}
                         onRowClicked={handleViewRequest}
                         pointerOnHover
-                        clearSelectedRows={toggleCleared}
                         sortServer={false}
                         defaultSortFieldId={1}
                         defaultSortAsc={false}
@@ -1574,38 +1565,6 @@ function Home() {
                         }}
                       />
                     </div>
-                    
-                    {selectedRows && selectedRows.length > 0 && (
-                      <div className="mt-4 p-3 bg-gray-100 rounded-md mb-8">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-                          <span className="font-medium text-sm">{selectedRows.length} request(s) selected</span>
-                          <div className="flex gap-2 flex-wrap">
-                            <button 
-                              className="px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
-                              onClick={handleProcessRequests}
-                              disabled={selectedRows.length === 0}
-                            >
-                              Process
-                            </button>
-                            <button 
-                              className="px-3 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
-                              onClick={handleDeleteRequests}
-                              disabled={selectedRows.length === 0}
-                            >
-                              Delete
-                            </button>
-                            <button 
-                              className="px-3 py-1.5 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm"
-                              onClick={() => {
-                                setToggleCleared(!toggleCleared);
-                              }}
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
               </section>
