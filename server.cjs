@@ -6094,7 +6094,12 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             }
             
             return res.status(404).json({
-                error: 'Form not found or access denied'
+                error: 'Form not found or access denied',
+                details: anyForm.length > 0 
+                    ? `Form ${formId} exists but belongs to a different company`
+                    : `Form ${formId} does not exist in the database`,
+                formId: formId,
+                userCompanyId: req.companyId
             });
         }
 
@@ -7291,23 +7296,25 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
 
         console.log(`✅ Found ${forms.length} forms for company ${req.companyId}`);
         
-        // Debug: Log raw database results with extensive details
-        console.log('🔍 ===== RAW DATABASE FORMS DATA =====');
-        forms.forEach((form, index) => {
-            console.log(`🔍 Form ${index + 1} raw data:`, {
-                FORM_ID: form.FORM_ID,
-                FORM_NAME: form.FORM_NAME,
-                ORGANIZATION_ID: form.ORGANIZATION_ID,
-                COMPANY_ID: form.COMPANY_ID,
-                COMPANY_ID_TYPE: typeof form.COMPANY_ID,
-                COMPANY_ID_IS_NULL: form.COMPANY_ID === null,
-                COMPANY_ID_IS_UNDEFINED: form.COMPANY_ID === undefined,
-                COMPANY_ID_VALUE: form.COMPANY_ID
-            });
-        });
+        // Validate all form IDs before returning to prevent 404 errors in frontend
+        const invalidForms = forms.filter(form => !form.FORM_ID || form.FORM_ID <= 0);
+        if (invalidForms.length > 0) {
+            console.warn(`⚠️ WARNING: Found ${invalidForms.length} forms with invalid IDs:`, 
+                invalidForms.map(f => ({ name: f.FORM_NAME, id: f.FORM_ID })));
+        }
+        
+        // Filter out any forms with invalid IDs to prevent frontend 404 errors
+        const validForms = forms.filter(form => form.FORM_ID && form.FORM_ID > 0);
+        
+        if (validForms.length !== forms.length) {
+            console.warn(`⚠️ Filtered out ${forms.length - validForms.length} invalid forms. Returning ${validForms.length} valid forms.`);
+        }
+        
+        // Debug: Log form IDs that will be returned to frontend
+        console.log('📋 Valid form IDs being returned:', validForms.map(f => `${f.FORM_NAME}(${f.FORM_ID})`).join(', '));
 
-        // Format the data to match frontend expectations
-        const formattedForms = forms.map(form => ({
+        // Format the data to match frontend expectations - use validForms instead of forms
+        const formattedForms = validForms.map(form => ({
             FORM_ID: form.FORM_ID,
             FORM_NAME: form.FORM_NAME,
             FORM_DESCRIPTION: form.FORM_DESCRIPTION,

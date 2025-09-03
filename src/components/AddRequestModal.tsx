@@ -100,20 +100,25 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         const activeTemplates = forms.filter(form => 
           form.IS_ACTIVE && 
           form.IS_PUBLIC && 
-          !form.IS_DELETED
+          !form.IS_DELETED &&
+          form.FORM_ID && // Ensure FORM_ID exists and is valid
+          form.FORM_ID > 0
         );
         
-        // Create templates with basic info
-        const templatesWithBasicInfo = activeTemplates.map(form => ({
-          id: form.FORM_ID?.toString() || `default-${form.FORM_NAME.toLowerCase()}`,
-          name: form.FORM_NAME,
-          description: form.FORM_DESCRIPTION || '',
-          icon: getIconForTemplate(form.FORM_NAME),
-          fields: getDefaultFieldsForTemplate(form.FORM_NAME)
-        }));
+        // Create templates with basic info - validate form IDs
+        const templatesWithBasicInfo = activeTemplates
+          .filter(form => form.FORM_ID && form.FORM_ID > 0) // Double check form ID validity
+          .map(form => ({
+            id: form.FORM_ID!.toString(), // Use non-null assertion since we filtered for valid IDs above
+            name: form.FORM_NAME,
+            description: form.FORM_DESCRIPTION || '',
+            icon: getIconForTemplate(form.FORM_NAME),
+            fields: getDefaultFieldsForTemplate(form.FORM_NAME)
+          }));
         
         if (templatesWithBasicInfo.length > 0) {
           console.log('Successfully loaded templates from database:', templatesWithBasicInfo.length);
+          console.log('Template IDs loaded:', templatesWithBasicInfo.map(t => `${t.name}(${t.id})`).join(', '));
           setFormTemplates(templatesWithBasicInfo);
           setSelectedTemplate(templatesWithBasicInfo[0].id);
         } else {
@@ -228,17 +233,39 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         formId = parseInt(selectedTemplateObj?.id || '0');
       }
       
-      if (formId) {
-        // Get form with fields
-        const formWithFields = await formService.getFormById(formId);
-        setTemplateFields(formWithFields.fields || []);
+      if (formId && formId > 0) {
+        try {
+          // Get form with fields
+          console.log(`🔍 Loading template fields for form ID: ${formId}`);
+          const formWithFields = await formService.getFormById(formId);
+          setTemplateFields(formWithFields.fields || []);
+          console.log(`✅ Successfully loaded ${formWithFields.fields?.length || 0} fields for form ${formId}`);
+        } catch (formError: any) {
+          console.error(`❌ Error loading form ${formId}:`, formError);
+          
+          // Handle specific 404 error
+          if (formError.response?.status === 404) {
+            toast.error(`Form template not found (ID: ${formId}). Using default fields instead.`);
+            console.warn(`⚠️ Form ${formId} not found in database, falling back to default fields`);
+          } else {
+            toast.error(`Error loading form template. Using default fields instead.`);
+            console.warn(`⚠️ Error loading form ${formId}, falling back to default fields:`, formError.message);
+          }
+          
+          // Use default fields as fallback for API errors
+          const defaultFields = getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || '');
+          setTemplateFields(defaultFields);
+        }
       } else {
+        console.log(`ℹ️ No valid form ID found for template ${templateId}, using default fields`);
         // Use default fields for the template
         const defaultFields = getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || '');
         setTemplateFields(defaultFields);
       }
     } catch (error) {
       console.error('Error loading template fields:', error);
+      toast.error('Error loading template. Using default fields instead.');
+      
       // Use default fields as fallback
       const selectedTemplateObj = formTemplates.find(t => t.id === templateId);
       setTemplateFields(getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || ''));
