@@ -30,6 +30,7 @@ import NoticesLandingPage from './NoticesLandingPage';
 import requestService from '../services/requestService';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import AddRequestModal from '../components/AddRequestModal';
+import NewRequestModal from './NewRequestModal';
 import formService from '../services/formService';
 import noticeService from '../services/noticeService';
 import WorkspaceSelector from '../components/WorkspaceSelector';
@@ -156,84 +157,129 @@ function Home() {
     return result;
   };
   
-  // Check if user has existing requests
-  const checkForExistingRequests = async () => {
-    if (hasCheckedForExistingRequests) {
+  // Check if user has existing form templates (for first-time admin experience)
+  const checkForExistingTemplates = async () => {
+    if (hasCheckedForExistingTemplates) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 ===== SKIPPING REQUEST CHECK - ALREADY CHECKED =====');
-        console.log('🔍 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
+        console.log('🔍 ===== SKIPPING TEMPLATE CHECK - ALREADY CHECKED =====');
+        console.log('🔍 hasCheckedForExistingTemplates:', hasCheckedForExistingTemplates);
       }
       return;
     }
     
+    // Only check for admins (role ID 1 or 6) who are account creators
+    if (!isAdmin()) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 User is not admin, skipping template check');
+      }
+      setHasCheckedForExistingTemplates(true);
+      return;
+    }
+    
+    // Check if this user is the account creator (first user in their company)
+    // This logic assumes the account creator would typically be the first user ID in their company
+    try {
+      const companyUsers = await api.get(`/api/users/company/${user?.companyId}`);
+      const isAccountCreator = companyUsers?.data && companyUsers.data.length > 0 && 
+                              companyUsers.data[0].USER_ID === user?.id;
+      
+      if (!isAccountCreator) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 User is not the account creator, skipping template check');
+          console.log('🔍 First user in company:', companyUsers?.data?.[0]);
+          console.log('🔍 Current user ID:', user?.id);
+        }
+        setHasCheckedForExistingTemplates(true);
+        return;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 User is account creator:', isAccountCreator);
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Could not verify account creator status, proceeding with template check');
+      }
+      // Continue with template check even if we can't verify account creator status
+    }
+    
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 ===== CHECKING FOR EXISTING USER REQUESTS =====');
+        console.log('🔍 ===== CHECKING FOR EXISTING FORM TEMPLATES =====');
         console.log('🔍 User object:', user);
         console.log('🔍 User company ID:', user?.companyId, 'Type:', typeof user?.companyId);
+        console.log('🔍 User is admin:', isAdmin());
       }
       
-      const requests = await requestService.getAllRequests();
+      const forms = await formService.getAllForms();
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 ===== REQUESTS FROM API =====');
-        console.log('🔍 Raw requests from API:', requests);
-        console.log('🔍 Requests array length:', requests?.length);
-        console.log('🔍 Requests is array?', Array.isArray(requests));
+        console.log('🔍 ===== FORMS FROM API =====');
+        console.log('🔍 Raw forms from API:', forms);
+        console.log('🔍 Forms array length:', forms?.length);
+        console.log('🔍 Forms is array?', Array.isArray(forms));
       }
       
-      if (requests && requests.length > 0 && process.env.NODE_ENV === 'development') {
-        console.log('🔍 ===== FIRST REQUEST ANALYSIS =====');
-        console.log('🔍 First request structure:', requests[0]);
-        console.log('🔍 Available request properties:', Object.keys(requests[0]));
+      if (forms && forms.length > 0 && process.env.NODE_ENV === 'development') {
+        console.log('🔍 ===== FIRST FORM ANALYSIS =====');
+        console.log('🔍 First form structure:', forms[0]);
+        console.log('🔍 Available form properties:', Object.keys(forms[0]));
       }
+      
+      // Filter for company-specific templates (not global ones)
+      const companyForms = forms?.filter(form => 
+        form.COMPANY_ID === user?.companyId && 
+        form.IS_ACTIVE && 
+        !form.IS_DELETED
+      ) || [];
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 ===== REQUEST COUNT =====');
-        console.log('🔍 Total requests found:', requests?.length || 0);
+        console.log('🔍 ===== COMPANY TEMPLATE COUNT =====');
+        console.log('🔍 Total company forms found:', companyForms?.length || 0);
+        console.log('🔍 User company ID:', user?.companyId);
       }
       
-      // If no requests exist, show the first-time request creation modal
-      if (!requests || requests.length === 0) {
+      // If no company-specific templates exist, show the first-time workflow creation modal
+      if (!companyForms || companyForms.length === 0) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('🚨 ===== SHOWING MODAL =====');
-          console.log('🚨 No existing requests found, showing first-time request creation modal');
-          console.log('🚨 Setting showFirstTimeRequestModal to true...');
+          console.log('🚨 ===== SHOWING WORKFLOW MODAL =====');
+          console.log('🚨 No existing company templates found, showing first-time workflow creation modal');
+          console.log('🚨 Setting showFirstTimeWorkflowModal to true...');
         }
-        setShowFirstTimeRequestModal(true);
+        setShowFirstTimeWorkflowModal(true);
         
         // Force a small delay and check if state was actually set
         if (process.env.NODE_ENV === 'development') {
           setTimeout(() => {
-            console.log('🚨 Modal state after setting:', showFirstTimeRequestModal);
+            console.log('🚨 Modal state after setting:', showFirstTimeWorkflowModal);
           }, 100);
         }
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ ===== NOT SHOWING MODAL =====');
-          console.log('✅ Found existing requests, not showing modal');
-          console.log('✅ Request count:', requests.length);
+          console.log('✅ ===== NOT SHOWING WORKFLOW MODAL =====');
+          console.log('✅ Found existing company templates, not showing modal');
+          console.log('✅ Company template count:', companyForms.length);
         }
       }
       
-      setHasCheckedForExistingRequests(true);
+      setHasCheckedForExistingTemplates(true);
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 ===== CHECK COMPLETE =====');
+        console.log('🔍 ===== TEMPLATE CHECK COMPLETE =====');
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('❌ ===== ERROR IN REQUEST CHECK =====');
-        console.error('❌ Error checking for existing requests:', error);
+        console.error('❌ ===== ERROR IN TEMPLATE CHECK =====');
+        console.error('❌ Error checking for existing templates:', error);
       }
-      setHasCheckedForExistingRequests(true);
+      setHasCheckedForExistingTemplates(true);
     }
   };
   
-  // Debug function to manually trigger request check (for testing)
-  const debugCheckRequests = () => {
+  // Debug function to manually trigger template check (for testing)
+  const debugCheckTemplates = () => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔧 ===== MANUAL DEBUG TRIGGER =====');
-      setHasCheckedForExistingRequests(false);
-      checkForExistingRequests();
+      setHasCheckedForExistingTemplates(false);
+      checkForExistingTemplates();
     }
   };
   
@@ -241,9 +287,9 @@ function Home() {
   const debugToggleModal = () => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔧 ===== MANUAL MODAL TOGGLE =====');
-      console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
+      console.log('🔧 Current showFirstTimeWorkflowModal:', showFirstTimeWorkflowModal);
       console.log('🔧 Current user:', user);
-      setShowFirstTimeRequestModal(!showFirstTimeRequestModal);
+      setShowFirstTimeWorkflowModal(!showFirstTimeWorkflowModal);
     }
   };
   
@@ -251,11 +297,11 @@ function Home() {
   const debugShowModal = () => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔧 ===== MANUAL MODAL SHOW =====');
-      console.log('🔧 Current showFirstTimeRequestModal:', showFirstTimeRequestModal);
+      console.log('🔧 Current showFirstTimeWorkflowModal:', showFirstTimeWorkflowModal);
       console.log('🔧 Setting to true...');
-      setShowFirstTimeRequestModal(true);
+      setShowFirstTimeWorkflowModal(true);
       setTimeout(() => {
-        console.log('🔧 Modal state after setting:', showFirstTimeRequestModal);
+        console.log('🔧 Modal state after setting:', showFirstTimeWorkflowModal);
       }, 100);
     }
   };
@@ -264,36 +310,45 @@ function Home() {
   const debugCurrentState = () => {
     if (process.env.NODE_ENV === 'development') {
       console.log('🔧 ===== CURRENT STATE DEBUG =====');
-      console.log('🔧 showFirstTimeRequestModal:', showFirstTimeRequestModal);
-      console.log('🔧 hasCheckedForExistingRequests:', hasCheckedForExistingRequests);
+      console.log('🔧 showFirstTimeWorkflowModal:', showFirstTimeWorkflowModal);
+      console.log('🔧 hasCheckedForExistingTemplates:', hasCheckedForExistingTemplates);
       console.log('🔧 user:', user);
       console.log('🔧 isAdmin():', isAdmin());
       console.log('🔧 user?.companyId:', user?.companyId);
     }
   };
   
-  // Debug function to examine requests data
-  const debugRequestsData = async () => {
+  // Debug function to examine templates data
+  const debugTemplatesData = async () => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 ===== REQUESTS DATA DEBUG =====');
+      console.log('🔧 ===== TEMPLATES DATA DEBUG =====');
       try {
-        const requests = await requestService.getAllRequests();
-        console.log('🔧 All requests from API:', requests);
-        console.log('🔧 Requests count:', requests?.length);
+        const forms = await formService.getAllForms();
+        console.log('🔧 All forms from API:', forms);
+        console.log('🔧 Forms count:', forms?.length);
         
-        if (requests && requests.length > 0) {
-          console.log('🔧 First request sample:', requests[0]);
-          console.log('🔧 Available properties:', Object.keys(requests[0]));
+        const companyForms = forms?.filter(form => 
+          form.COMPANY_ID === user?.companyId && 
+          form.IS_ACTIVE && 
+          !form.IS_DELETED
+        ) || [];
+        
+        console.log('🔧 Company-specific forms:', companyForms);
+        console.log('🔧 Company forms count:', companyForms?.length);
+        
+        if (forms && forms.length > 0) {
+          console.log('🔧 First form sample:', forms[0]);
+          console.log('🔧 Available properties:', Object.keys(forms[0]));
           
-          // Show all requests
-          requests.forEach((request, index) => {
-            console.log(`🔧 Request ${index + 1}: "${request.REQUEST_NAME}" - ID: ${request.REQUEST_ID}`);
+          // Show all forms
+          forms.forEach((form, index) => {
+            console.log(`🔧 Form ${index + 1}: "${form.FORM_NAME}" - ID: ${form.FORM_ID} - Company: ${form.COMPANY_ID}`);
           });
         }
         
-        console.log('🔧 Should show modal?', !requests || requests.length === 0);
+        console.log('🔧 Should show modal?', !companyForms || companyForms.length === 0);
       } catch (error) {
-        console.error('🔧 Error fetching requests data:', error);
+        console.error('🔧 Error fetching templates data:', error);
       }
     }
   };
@@ -406,21 +461,21 @@ function Home() {
     fetchNotices();
   }, []);
   
-  // Check for existing requests when user is loaded
+  // Check for existing templates when user is loaded (for first-time admin experience)
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 ===== USE EFFECT FOR REQUEST CHECK =====');
+      console.log('🔄 ===== USE EFFECT FOR TEMPLATE CHECK =====');
       console.log('🔄 User exists:', !!user);
     }
     
     if (user) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Calling checkForExistingRequests...');
+        console.log('🔄 Calling checkForExistingTemplates...');
       }
-      checkForExistingRequests();
+      checkForExistingTemplates();
     } else {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Not checking requests - user not loaded');
+        console.log('🔄 Not checking templates - user not loaded');
       }
     }
   }, [user]);
@@ -488,26 +543,47 @@ function Home() {
     });
   };
   
-  // Handle first-time request creation
-  const handleFirstTimeRequestSave = async (requestData: any) => {
-    console.log('Saving first-time request:', requestData);
+  // Handle first-time workflow template creation
+  const handleFirstTimeWorkflowSave = async (formData: any) => {
+    console.log('Saving first-time workflow template:', formData);
     try {
-      // The AddRequestModal will handle the request creation
-      // Just close the modal and refresh the request list
-      setShowFirstTimeRequestModal(false);
-      toast.success('Your first request has been created successfully!');
+      // Create the form using the formService
+      const formToSave: any = {
+        FORM_NAME: formData.name,
+        FORM_DESCRIPTION: formData.description,
+        IS_PUBLIC: true,
+        IS_ACTIVE: true,
+        IS_DELETED: false,
+        FORM_TYPE: formData.formType?.toLowerCase() || 'request'
+      };
       
-      // Refresh the requests check to update the UI
-      fetchRequests();
-      checkForExistingRequests();
+      // Convert form fields to DB fields format if needed
+      const fieldsToSave = formData.formFields?.map((field: any, index: number) => ({
+        FIELD_NAME: field.fieldName,
+        FIELD_TYPE_ID: field.dbFieldTypeId || 1, // Default to text if not specified
+        IS_REQUIRED: field.required || false,
+        OPTIONS: field.options || null,
+        SEQUENCE: index + 1,
+        IS_ACTIVE: true,
+        IS_DELETED: false
+      })) || [];
+      
+      await formService.createForm(formToSave, fieldsToSave);
+      
+      // Close the modal and show success
+      setShowFirstTimeWorkflowModal(false);
+      toast.success('Your first workflow template has been created successfully! You can now create requests using this template.');
+      
+      // Refresh the templates check to update the UI
+      checkForExistingTemplates();
     } catch (error: any) {
-      console.error('Error saving first-time request:', error);
-      toast.error(error.response?.data?.error || error.message || 'Failed to create request. Please try again.');
+      console.error('Error saving first-time workflow template:', error);
+      toast.error(error.response?.data?.error || error.message || 'Failed to create workflow template. Please try again.');
     }
   };
   
-  const handleFirstTimeRequestClose = () => {
-    setShowFirstTimeRequestModal(false);
+  const handleFirstTimeWorkflowClose = () => {
+    setShowFirstTimeWorkflowModal(false);
   };
 
   const navItems: NavItem[] = [
@@ -625,9 +701,9 @@ function Home() {
     activeNotices: 0
   });
   
-  // First-time request creation modal (for users with no requests)
-  const [showFirstTimeRequestModal, setShowFirstTimeRequestModal] = useState(false);
-  const [hasCheckedForExistingRequests, setHasCheckedForExistingRequests] = useState(false);
+  // First-time admin workflow creation modal (for admins with no form templates)
+  const [showFirstTimeWorkflowModal, setShowFirstTimeWorkflowModal] = useState(false);
+  const [hasCheckedForExistingTemplates, setHasCheckedForExistingTemplates] = useState(false);
   
   // User is already declared at the top of the component
 
@@ -1651,10 +1727,10 @@ function Home() {
             {process.env.NODE_ENV === 'development' && (
               <div className="flex flex-col gap-2 text-sm">
               <button 
-                onClick={debugCheckRequests}
+                onClick={debugCheckTemplates}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
-                🔧 Debug: Check Requests
+                🔧 Debug: Check Templates
               </button>
               <button 
                 onClick={debugToggleModal}
@@ -1675,22 +1751,22 @@ function Home() {
                 🔧 Debug: Check State
               </button>
               <button 
-                onClick={debugRequestsData}
+                onClick={debugTemplatesData}
                 className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
               >
-                🔧 Debug: Check Requests
+                🔧 Debug: Check Templates
               </button>
               <div className="text-xs text-gray-600">
-                Modal State: {showFirstTimeRequestModal ? 'SHOWING' : 'HIDDEN'}
+                Modal State: {showFirstTimeWorkflowModal ? 'SHOWING' : 'HIDDEN'}
               </div>
               <div className="text-xs text-gray-600">
-                Has Checked Requests: {hasCheckedForExistingRequests ? 'YES' : 'NO'}
+                Has Checked Templates: {hasCheckedForExistingTemplates ? 'YES' : 'NO'}
               </div>
               <div className="text-xs text-gray-600">
                 User ID: {user?.id || 'N/A'}
               </div>
               <div className="text-xs text-gray-600">
-                Request Count: {requests?.length || 0}
+                Is Admin: {isAdmin() ? 'YES' : 'NO'}
               </div>
             </div>
             )}
@@ -1752,11 +1828,11 @@ function Home() {
         />
       )}
       
-      {/* First-time Request Creation Modal */}
-      <AddRequestModal
-        isOpen={showFirstTimeRequestModal}
-        onClose={handleFirstTimeRequestClose}
-        onSubmit={handleFirstTimeRequestSave}
+      {/* First-time Workflow Template Creation Modal */}
+      <NewRequestModal
+        isOpen={showFirstTimeWorkflowModal}
+        onClose={handleFirstTimeWorkflowClose}
+        onSave={handleFirstTimeWorkflowSave}
       />
       
       {/* Debug: Show modal state in UI */}
@@ -1771,7 +1847,7 @@ function Home() {
           zIndex: 9999,
           fontSize: '12px'
         }}>
-          Modal State: {showFirstTimeRequestModal ? 'OPEN' : 'CLOSED'}
+          Modal State: {showFirstTimeWorkflowModal ? 'OPEN' : 'CLOSED'}
         </div>
       )}
       {/* Mobile Bottom Nav */}
