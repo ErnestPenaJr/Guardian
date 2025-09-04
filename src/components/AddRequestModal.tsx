@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import '../styles/Modal.css';
 import { toast } from 'react-toastify';
-import { FaUser, FaMoneyBill, FaHome, FaCar, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaSpinner, FaClipboardList } from 'react-icons/fa';
 import formService from '../services/formService';
 import requestService from '../services/requestService';
 import Swal from 'sweetalert2';
@@ -40,53 +40,11 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   const [loadingFields, setLoadingFields] = useState(false);
   const [priorityLevel, setPriorityLevel] = useState('Standard');
   
-  // Get icon based on template name
+  // Get icon for user-created templates (using a generic workflow icon)
   const getIconForTemplate = (templateName: string) => {
-    switch(templateName.toUpperCase()) {
-      case 'SUBJECT':
-        return <FaUser />;
-      case 'FINANCIAL':
-        return <FaMoneyBill />;
-      case 'ADDRESS':
-        return <FaHome />;
-      case 'VEHICLE':
-        return <FaCar />;
-      default:
-        return <FaUser />;
-    }
+    return <FaClipboardList />;
   };
   
-  // Default templates to use as fallback if API fails
-  const defaultTemplates = [
-    {
-      id: 'default-subject',
-      name: 'SUBJECT',
-      description: 'Personal information template',
-      icon: <FaUser />,
-      fields: 'First Name, Middle Name, Last Name, DOB, SSN'
-    },
-    {
-      id: 'default-financial',
-      name: 'FINANCIAL',
-      description: 'Banking information template',
-      icon: <FaMoneyBill />,
-      fields: 'Bank Name, Account #, Routing #'
-    },
-    {
-      id: 'default-vehicle',
-      name: 'VEHICLE',
-      description: 'Vehicle information template',
-      icon: <FaCar />,
-      fields: 'Make, Model, Year, License Plate, VIN'
-    },
-    {
-      id: 'default-address',
-      name: 'ADDRESS',
-      description: 'Address information template',
-      icon: <FaHome />,
-      fields: 'Address Line 1, Address Line 2, City, State, ZIP Code'
-    }
-  ];
 
   // Fetch form templates from database
   const fetchFormTemplates = async () => {
@@ -113,51 +71,34 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             name: form.FORM_NAME,
             description: form.FORM_DESCRIPTION || '',
             icon: getIconForTemplate(form.FORM_NAME),
-            fields: getDefaultFieldsForTemplate(form.FORM_NAME)
+            fields: form.FORM_DESCRIPTION || 'Custom workflow template'
           }));
         
         if (templatesWithBasicInfo.length > 0) {
-          console.log('Successfully loaded templates from database:', templatesWithBasicInfo.length);
+          console.log('Successfully loaded user-created templates:', templatesWithBasicInfo.length);
           console.log('Template IDs loaded:', templatesWithBasicInfo.map(t => `${t.name}(${t.id})`).join(', '));
           setFormTemplates(templatesWithBasicInfo);
           setSelectedTemplate(templatesWithBasicInfo[0].id);
         } else {
-          console.log('No active templates found in database, using defaults');
-          setFormTemplates(defaultTemplates);
-          setSelectedTemplate(defaultTemplates[0].id);
+          console.log('No user-created templates found in database');
+          setFormTemplates([]);
+          setSelectedTemplate('');
         }
       } else {
-        console.log('No templates found in database, using defaults');
-        setFormTemplates(defaultTemplates);
-        setSelectedTemplate(defaultTemplates[0].id);
+        console.log('No templates found in database');
+        setFormTemplates([]);
+        setSelectedTemplate('');
       }
     } catch (error) {
       console.error('Error fetching templates from database:', error);
-      toast.error('Error loading templates from database, using defaults');
-      
-      // Use default templates as fallback
-      setFormTemplates(defaultTemplates);
-      setSelectedTemplate(defaultTemplates[0].id);
+      toast.error('Error loading templates from database');
+      setFormTemplates([]);
+      setSelectedTemplate('');
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Get default fields description based on template name
-  const getDefaultFieldsForTemplate = (templateName: string): string => {
-    switch(templateName.toUpperCase()) {
-      case 'SUBJECT':
-        return 'First Name, Middle Name, Last Name, DOB, SSN';
-      case 'FINANCIAL':
-        return 'Bank Name, Account #, Routing #, Account Type';
-      case 'VEHICLE':
-        return 'Make, Model, Year, License Plate, VIN';
-      case 'ADDRESS':
-        return 'Address Line 1, Address Line 2, City, State, ZIP Code';
-      default:
-        return 'Custom template';
-    }
-  };
 
   // Fetch templates and reset form when modal opens
   useEffect(() => {
@@ -183,11 +124,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     // Find the selected template
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      if (template.id.startsWith('default-')) {
-        toast.info(`Selected default template: ${template.name}`);
-      } else {
-        toast.info(`Selected template: ${template.name}`);
-      }
+      toast.info(`Selected workflow: ${template.name}`);
     }
   };
 
@@ -205,7 +142,13 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     }
     
     if (!selectedTemplate) {
-      toast.error('Please select a form template');
+      toast.error('Please select a workflow');
+      return;
+    }
+
+    // Prevent proceeding if no workflows available
+    if (formTemplates.length === 0) {
+      toast.error('No workflows available. Please create a workflow first.');
       return;
     }
     
@@ -219,90 +162,43 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setLoadingFields(true);
     try {
       const selectedTemplateObj = formTemplates.find(t => t.id === templateId);
-      let formId: number;
-      
-      if (selectedTemplateObj?.id.startsWith('default-')) {
-        const forms = await formService.getAllForms();
-        const matchingForm = forms.find(f => 
-          f.FORM_NAME.toUpperCase() === selectedTemplateObj.name.toUpperCase() && 
-          f.IS_ACTIVE && 
-          f.IS_PUBLIC
-        );
-        formId = matchingForm?.FORM_ID || 0;
-      } else {
-        formId = parseInt(selectedTemplateObj?.id || '0');
-      }
+      const formId = parseInt(selectedTemplateObj?.id || '0');
       
       if (formId && formId > 0) {
         try {
           // Get form with fields
-          console.log(`🔍 Loading template fields for form ID: ${formId}`);
+          console.log(`🔍 Loading workflow fields for form ID: ${formId}`);
           const formWithFields = await formService.getFormById(formId);
           setTemplateFields(formWithFields.fields || []);
-          console.log(`✅ Successfully loaded ${formWithFields.fields?.length || 0} fields for form ${formId}`);
+          console.log(`✅ Successfully loaded ${formWithFields.fields?.length || 0} fields for workflow ${formId}`);
         } catch (formError: any) {
-          console.error(`❌ Error loading form ${formId}:`, formError);
+          console.error(`❌ Error loading workflow ${formId}:`, formError);
           
           // Handle specific 404 error
           if (formError.response?.status === 404) {
-            toast.error(`Form template not found (ID: ${formId}). Using default fields instead.`);
-            console.warn(`⚠️ Form ${formId} not found in database, falling back to default fields`);
+            toast.error(`Workflow not found (ID: ${formId}). Please contact your administrator.`);
+            console.warn(`⚠️ Workflow ${formId} not found in database`);
           } else {
-            toast.error(`Error loading form template. Using default fields instead.`);
-            console.warn(`⚠️ Error loading form ${formId}, falling back to default fields:`, formError.message);
+            toast.error(`Error loading workflow. Please try again or contact your administrator.`);
+            console.warn(`⚠️ Error loading workflow ${formId}:`, formError.message);
           }
           
-          // Use default fields as fallback for API errors
-          const defaultFields = getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || '');
-          setTemplateFields(defaultFields);
+          // Set empty fields for errors
+          setTemplateFields([]);
         }
       } else {
-        console.log(`ℹ️ No valid form ID found for template ${templateId}, using default fields`);
-        // Use default fields for the template
-        const defaultFields = getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || '');
-        setTemplateFields(defaultFields);
+        console.log(`ℹ️ No valid form ID found for workflow ${templateId}`);
+        setTemplateFields([]);
       }
     } catch (error) {
-      console.error('Error loading template fields:', error);
-      toast.error('Error loading template. Using default fields instead.');
-      
-      // Use default fields as fallback
-      const selectedTemplateObj = formTemplates.find(t => t.id === templateId);
-      setTemplateFields(getDefaultFieldsForTemplateObj(selectedTemplateObj?.name || ''));
+      console.error('Error loading workflow fields:', error);
+      toast.error('Error loading workflow. Please try again.');
+      setTemplateFields([]);
     } finally {
       setLoadingFields(false);
     }
   };
   
-  // Get default fields as objects for template
-  const getDefaultFieldsForTemplateObj = (templateName: string) => {
-    switch(templateName.toUpperCase()) {
-      case 'FINANCIAL':
-        return [
-          { FIELD_ID: 'bank_name', FIELD_NAME: 'Bank Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'routing_number', FIELD_NAME: 'Routing #', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'account_holder', FIELD_NAME: 'Account Holder', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true }
-        ];
-      case 'ADDRESS':
-        return [
-          { FIELD_ID: 'address_line_1', FIELD_NAME: 'Address Line 1', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'address_line_2', FIELD_NAME: 'Address Line 2', FIELD_TYPE_DESC: 'text', IS_REQUIRED: false },
-          { FIELD_ID: 'city', FIELD_NAME: 'City', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'state', FIELD_NAME: 'State', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'zip_code', FIELD_NAME: 'ZIP Code', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true }
-        ];
-      case 'SUBJECT':
-        return [
-          { FIELD_ID: 'first_name', FIELD_NAME: 'First Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'middle_name', FIELD_NAME: 'Middle Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: false },
-          { FIELD_ID: 'last_name', FIELD_NAME: 'Last Name', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true },
-          { FIELD_ID: 'dob', FIELD_NAME: 'Date of Birth', FIELD_TYPE_DESC: 'date', IS_REQUIRED: true },
-          { FIELD_ID: 'ssn', FIELD_NAME: 'SSN', FIELD_TYPE_DESC: 'text', IS_REQUIRED: true }
-        ];
-      default:
-        return [];
-    }
-  };
   
   // Handle form field value changes
   const handleFieldValueChange = (fieldId: string, value: string) => {
@@ -425,31 +321,12 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     try {
       setIsSubmitting(true);
       
-      // Get the selected template's form ID
+      // Get the selected workflow's form ID
       const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
-      let formId: number;
-      
-      if (selectedTemplateObj?.id.startsWith('default-')) {
-        const forms = await formService.getAllForms();
-        const matchingForm = forms.find(f => 
-          f.FORM_NAME.toUpperCase() === selectedTemplateObj.name.toUpperCase() && 
-          f.IS_ACTIVE && 
-          f.IS_PUBLIC
-        );
-        
-        if (matchingForm && matchingForm.FORM_ID) {
-          formId = matchingForm.FORM_ID;
-        } else {
-          toast.error('Selected template not found in database');
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        formId = parseInt(selectedTemplateObj?.id || '0');
-      }
+      const formId = parseInt(selectedTemplateObj?.id || '0');
       
       if (!formId || isNaN(formId)) {
-        toast.error('Invalid template selected');
+        toast.error('Invalid workflow selected');
         setIsSubmitting(false);
         return;
       }
@@ -511,34 +388,12 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setIsSubmitting(true);
     
     try {
-      // Get the selected template's form ID (convert from string to number)
+      // Get the selected workflow's form ID
       const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
-      let formId: number;
-      
-      if (selectedTemplateObj?.id.startsWith('default-')) {
-        // For default templates, we need to find the corresponding form ID in the database
-        // or create a new form if it doesn't exist
-        const forms = await formService.getAllForms();
-        const matchingForm = forms.find(f => 
-          f.FORM_NAME.toUpperCase() === selectedTemplateObj.name.toUpperCase() && 
-          f.IS_ACTIVE && 
-          f.IS_PUBLIC
-        );
-        
-        if (matchingForm && matchingForm.FORM_ID) {
-          formId = matchingForm.FORM_ID;
-        } else {
-          toast.error('Selected template not found in database');
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        // For database templates, the ID is already a string representation of a number
-        formId = parseInt(selectedTemplateObj?.id || '0');
-      }
+      const formId = parseInt(selectedTemplateObj?.id || '0');
       
       if (!formId || isNaN(formId)) {
-        toast.error('Invalid template selected');
+        toast.error('Invalid workflow selected');
         setIsSubmitting(false);
         return;
       }
@@ -613,7 +468,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setRequestName('');
     setAbbreviation('');
     setDescription('');
-    setSelectedTemplate('SUBJECT');
+    setSelectedTemplate('');
     setTemplateFields([]);
     setFieldValues({});
     setPriorityLevel('Standard');
@@ -821,7 +676,10 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                 </div>
               ) : formTemplates.length === 0 ? (
                 <div className="text-center p-4">
-                  <p>No templates available. Please create templates in the database.</p>
+                  <FaClipboardList className="text-muted mb-3" style={{ fontSize: '48px' }} />
+                  <h5 className="text-muted mb-2">No Workflows Available</h5>
+                  <p className="text-muted mb-0">No user-created workflows found. Please create a workflow first using the form builder.</p>
+                  <small className="text-muted">Contact your administrator to set up workflows for your organization.</small>
                 </div>
               ) : (
                 formTemplates.map((template) => (
@@ -951,7 +809,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             <button 
               type="submit" 
               className="btn btn-primary" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || formTemplates.length === 0 || !selectedTemplate}
               style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
             >
               Next
@@ -965,12 +823,10 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               {/* Template info header */}
               <div className="mb-4 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '0.375rem' }}>
                 <h5 className="text-primary mb-1">
-                  {formTemplates.find(t => t.id === selectedTemplate)?.name} Template
+                  {formTemplates.find(t => t.id === selectedTemplate)?.name} Workflow
                 </h5>
                 <p className="text-muted mb-0 small">
-                  {formTemplates.find(t => t.id === selectedTemplate)?.name === 'FINANCIAL' 
-                    ? 'Banking information template' 
-                    : formTemplates.find(t => t.id === selectedTemplate)?.description || 'Form template'}
+                  {formTemplates.find(t => t.id === selectedTemplate)?.description || 'Custom workflow'}
                 </p>
               </div>
               
