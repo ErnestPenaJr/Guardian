@@ -1365,10 +1365,10 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         const { completionNotes } = req.body;
         console.log(`✅ Completing request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'C' (Completed)
+        // Update request status to 'D' (Complete)
         await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'C', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            SET STATUS = 'D', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
@@ -1382,7 +1382,7 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
 
         // Create milestone for request completion
         try {
-            await createStatusChangeMilestone(requestId, 'A', 'C', req.userId, req.companyId);
+            await createStatusChangeMilestone(requestId, 'A', 'D', req.userId, req.companyId);
             console.log(`🏁 Request completion milestone created for request ${requestId}`);
         } catch (milestoneError) {
             console.error('⚠️ Failed to create request completion milestone (continuing):', milestoneError);
@@ -1394,6 +1394,66 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         console.error(`❌ Error completing request ${req.params.id}:`, error);
         res.status(500).json({ 
             error: 'Failed to complete request',
+            message: error.message 
+        });
+    }
+});
+
+// Cancel a request (change status to 'X')
+app.post('/api/requests/:id/cancel', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const { cancellationReason } = req.body;
+        console.log(`❌ Cancelling request ${requestId} by user ${req.userId}`);
+
+        // Update request status to 'X' (Cancelled)
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS 
+            SET STATUS = 'X', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            WHERE REQUEST_ID = ${requestId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND (ASSIGNED_ID = ${req.userId} OR REQUESTOR_ID = ${req.userId})
+        `;
+
+        // Add cancellation notes if provided
+        if (cancellationReason) {
+            console.log(`📝 Adding cancellation reason for request ${requestId}`);
+            // Create a work progress entry for the cancellation reason
+            try {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.WORK_PROGRESS (
+                        REQUEST_ID, TITLE, DESCRIPTION, CREATE_USER_ID, 
+                        UPDATE_USER_ID, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${requestId}, 
+                        'Request Cancelled',
+                        ${cancellationReason},
+                        ${req.userId},
+                        ${req.userId},
+                        ${req.companyId},
+                        GETDATE(),
+                        GETDATE()
+                    )
+                `;
+            } catch (progressError) {
+                console.error('⚠️ Failed to create cancellation progress entry (continuing):', progressError);
+            }
+        }
+
+        // Create milestone for request cancellation
+        try {
+            await createStatusChangeMilestone(requestId, 'A', 'X', req.userId, req.companyId);
+            console.log(`🏁 Request cancellation milestone created for request ${requestId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create request cancellation milestone (continuing):', milestoneError);
+        }
+
+        console.log(`❌ Request ${requestId} cancelled successfully`);
+        res.json({ success: true, message: 'Request cancelled successfully' });
+    } catch (error) {
+        console.error(`❌ Error cancelling request ${req.params.id}:`, error);
+        res.status(500).json({ 
+            error: 'Failed to cancel request',
             message: error.message 
         });
     }
@@ -4019,7 +4079,9 @@ const createStatusChangeMilestone = async (requestId, fromStatus, toStatus, user
     const statusLabels = {
         'P': 'Pending',
         'A': 'Active', 
-        'C': 'Completed',
+        'D': 'Complete',
+        'I': 'In Progress',
+        'X': 'Cancelled',
         'H': 'On Hold',
         'R': 'Rejected'
     };

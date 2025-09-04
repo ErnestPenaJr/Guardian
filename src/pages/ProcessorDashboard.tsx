@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Button, Alert, Tabs, Tab, Spinner } from 'react-bootstrap';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
-import { FaEye, FaEdit, FaPlus, FaClipboardList, FaBell, FaTasks, FaUser, FaPlay, FaCheck } from 'react-icons/fa';
+import { FaEye, FaEdit, FaPlus, FaClipboardList, FaBell, FaTasks, FaUser, FaPlay, FaCheck, FaUserCog, FaFilter } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import ConsistentCard from '../components/ui/ConsistentCard';
 import Swal from 'sweetalert2';
@@ -47,14 +47,20 @@ const ProcessorDashboard: React.FC = () => {
   // Format status for display
   const formatStatus = (status: string) => {
     switch (status) {
-      case 'A':
-        return <Badge bg="primary">Active</Badge>;
       case 'P':
         return <Badge bg="warning">Pending</Badge>;
-      case 'C':
-        return <Badge bg="success">Completed</Badge>;
+      case 'A':
+        return <Badge bg="primary">Active</Badge>;
       case 'D':
-        return <Badge bg="danger">Deleted</Badge>;
+        return <Badge bg="success">Complete</Badge>;
+      case 'X':
+        return <Badge bg="warning">Cancelled</Badge>;
+      case 'I':
+        return <Badge bg="info">In Progress</Badge>;
+      case 'H':
+        return <Badge bg="secondary">On Hold</Badge>;
+      case 'R':
+        return <Badge bg="danger">Rejected</Badge>;
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -148,7 +154,7 @@ const ProcessorDashboard: React.FC = () => {
           // Update local state
           setTasks(tasks.map(task => 
             task.TASK_ID === taskId 
-              ? { ...task, STATUS: 'C' } 
+              ? { ...task, STATUS: 'D' } 
               : task
           ));
           
@@ -272,7 +278,7 @@ const ProcessorDashboard: React.FC = () => {
                     <option value="all">All Statuses</option>
                     <option value="P">Pending</option>
                     <option value="A">Active</option>
-                    <option value="C">Completed</option>
+                    <option value="D">Complete</option>
                   </Form.Select>
                   <FaFilter className="text-muted" />
                 </div>
@@ -387,7 +393,7 @@ const ProcessorDashboard: React.FC = () => {
                           >
                             <FaEdit />
                           </Button>
-                          {task.STATUS !== 'C' && (
+                          {task.STATUS !== 'D' && (
                             <Button 
                               variant="outline-success" 
                               size="sm" 

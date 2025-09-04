@@ -774,20 +774,22 @@ function Home() {
       cell: (row: Request) => {
         const statusColor = {
           'P': 'bg-yellow-200 text-yellow-800',
-          'A': 'bg-green-200 text-green-800',
-          'R': 'bg-red-200 text-red-800',
-          'C': 'bg-blue-200 text-blue-800',
-          'N': 'bg-gray-200 text-gray-800',
-          'X': 'bg-red-200 text-red-800'
+          'A': 'bg-blue-200 text-blue-800',
+          'D': 'bg-green-200 text-green-800',
+          'I': 'bg-cyan-200 text-cyan-800',
+          'X': 'bg-orange-200 text-orange-800',
+          'H': 'bg-purple-200 text-purple-800',
+          'R': 'bg-red-200 text-red-800'
         }[row.STATUS] || 'bg-gray-200 text-gray-800';
         
         const statusText = {
-          'P': 'Progress',
-          'A': 'Approved',
-          'R': 'Rejected',
-          'C': 'Complete',
-          'N': 'New',
-          'X': 'Cancelled'
+          'P': 'Pending',
+          'A': 'Active',
+          'D': 'Complete',
+          'I': 'In Progress',
+          'X': 'Cancelled',
+          'H': 'On Hold',
+          'R': 'Rejected'
         }[row.STATUS] || 'Unknown';
 
         return (
@@ -990,7 +992,7 @@ function Home() {
       const assignedRequests = await requestService.getAssignedRequests();
       // Count only active assignments (not completed or cancelled)
       const activeCount = assignedRequests.filter(req => 
-        req.STATUS && !['C', 'X'].includes(req.STATUS)
+        req.STATUS && !['D', 'X'].includes(req.STATUS)
       ).length;
       setAssignedRequestsCount(activeCount);
     } catch (error) {
@@ -1055,10 +1057,12 @@ function Home() {
       // Prepare chart data for request status visualization
       const statusCounts: Record<string, number> = {
         'N': 0, // New
-        'P': 0, // In Progress
-        'A': 0, // Approved
+        'P': 0, // Pending
+        'A': 0, // Active
+        'D': 0, // Complete
+        'I': 0, // In Progress
+        'H': 0, // On Hold
         'R': 0, // Rejected
-        'C': 0, // Completed
         'X': 0  // Cancelled
       };
       
@@ -1072,11 +1076,13 @@ function Home() {
       // Map to chart data format
       const chartData = [
         { label: 'New', value: statusCounts['N'], color: '#9CA3AF' },
-        { label: 'In Progress', value: statusCounts['P'], color: '#FBBF24' },
-        { label: 'Approved', value: statusCounts['A'], color: '#34D399' },
-        { label: 'Rejected', value: statusCounts['R'], color: '#F87171' },
-        { label: 'Completed', value: statusCounts['C'], color: '#60A5FA' },
-        { label: 'Cancelled', value: statusCounts['X'], color: '#F87171' }
+        { label: 'Pending', value: statusCounts['P'], color: '#FBBF24' },
+        { label: 'Active', value: statusCounts['A'], color: '#3B82F6' },
+        { label: 'Complete', value: statusCounts['D'], color: '#10B981' },
+        { label: 'In Progress', value: statusCounts['I'], color: '#06B6D4' },
+        { label: 'On Hold', value: statusCounts['H'], color: '#8B5CF6' },
+        { label: 'Rejected', value: statusCounts['R'], color: '#EF4444' },
+        { label: 'Cancelled', value: statusCounts['X'], color: '#F97316' }
       ];
       
       setRequestStatusData(chartData);

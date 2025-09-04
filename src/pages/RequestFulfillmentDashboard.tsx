@@ -104,7 +104,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
         priority: determinePriority(request),
         milestones: generateMockMilestones(request),
         estimatedDuration: 8,
-        actualDuration: request.STATUS === 'C' ? 6 : undefined
+        actualDuration: request.STATUS === 'D' ? 6 : undefined
       }));
       
       setRequests(enhancedRequests);
@@ -119,7 +119,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
     switch (request.STATUS) {
       case 'P': return 10;
       case 'A': return 50;
-      case 'C': return 100;
+      case 'D': return 100;
       case 'R': return 0;
       default: return 0;
     }
@@ -147,9 +147,9 @@ const RequestFulfillmentDashboard: React.FC = () => {
 
     return baseMilestones.map((milestone, index) => ({
       ...milestone,
-      completed: request.STATUS === 'C' || (request.STATUS === 'A' && index < 2),
+      completed: request.STATUS === 'D' || (request.STATUS === 'A' && index < 2),
       dueDate: new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toISOString(),
-      completedDate: (request.STATUS === 'C' || (request.STATUS === 'A' && index < 2)) 
+      completedDate: (request.STATUS === 'D' || (request.STATUS === 'A' && index < 2)) 
         ? new Date(Date.now() - (5 - index) * 24 * 60 * 60 * 1000).toISOString() 
         : undefined
     }));
@@ -327,7 +327,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'A':
         return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
-      case 'C':
+      case 'D':
         return <Badge className="bg-green-100 text-green-800">Complete</Badge>;
       case 'R':
         return <Badge className="bg-red-100 text-red-800">Canceled</Badge>;
@@ -439,7 +439,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
     switch (status) {
       case 'P': return 'Pending';
       case 'A': return 'In Progress';
-      case 'C': return 'Complete';
+      case 'D': return 'Complete';
       case 'R': return 'Canceled';
       default: return status;
     }
@@ -533,7 +533,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
                 <option value="all">All Requests</option>
                 <option value="P">Pending</option>
                 <option value="A">In Progress</option>
-                <option value="C">Complete</option>
+                <option value="D">Complete</option>
                 <option value="R">Canceled</option>
               </Select>
             </div>

@@ -173,12 +173,22 @@ const requestService = {
     }
   },
 
-  // Complete a request (change status from A to C)
+  // Complete a request (change status from A to D)
   completeRequest: async (requestId: number, data: { completionNotes?: string }): Promise<void> => {
     try {
       await api.post(`/api/requests/${requestId}/complete`, data);
     } catch (error) {
       console.error(`Error completing request ${requestId}:`, error);
+      throw error;
+    }
+  },
+
+  // Cancel a request (change status to X)
+  cancelRequest: async (requestId: number, data: { cancellationReason?: string }): Promise<void> => {
+    try {
+      await api.post(`/api/requests/${requestId}/cancel`, data);
+    } catch (error) {
+      console.error(`Error cancelling request ${requestId}:`, error);
       throw error;
     }
   },

@@ -62,8 +62,10 @@ const ExternalUserDashboard: React.FC = () => {
         return <Badge bg="success">Approved</Badge>;
       case 'R':
         return <Badge bg="danger">Rejected</Badge>;
-      case 'C':
-        return <Badge bg="info">Completed</Badge>;
+      case 'D':
+        return <Badge bg="success">Complete</Badge>;
+      case 'X':
+        return <Badge bg="warning">Cancelled</Badge>;
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -76,8 +78,10 @@ const ExternalUserDashboard: React.FC = () => {
         return <Badge bg="danger">New</Badge>;
       case 'R':
         return <Badge bg="warning">Response Required</Badge>;
-      case 'C':
-        return <Badge bg="success">Completed</Badge>;
+      case 'D':
+        return <Badge bg="success">Complete</Badge>;
+      case 'X':
+        return <Badge bg="warning">Cancelled</Badge>;
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }

@@ -40,14 +40,20 @@ const UserDashboard: React.FC = () => {
   // Format status for display
   const formatStatus = (status: string) => {
     switch (status) {
-      case 'A':
-        return <Badge bg="primary">Active</Badge>;
       case 'P':
         return <Badge bg="warning">Pending</Badge>;
-      case 'C':
-        return <Badge bg="success">Completed</Badge>;
+      case 'A':
+        return <Badge bg="primary">Active</Badge>;
       case 'D':
-        return <Badge bg="danger">Deleted</Badge>;
+        return <Badge bg="success">Complete</Badge>;
+      case 'X':
+        return <Badge bg="warning">Cancelled</Badge>;
+      case 'I':
+        return <Badge bg="info">In Progress</Badge>;
+      case 'H':
+        return <Badge bg="secondary">On Hold</Badge>;
+      case 'R':
+        return <Badge bg="danger">Rejected</Badge>;
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }

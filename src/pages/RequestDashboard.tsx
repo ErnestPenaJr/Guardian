@@ -285,7 +285,7 @@ const RequestDashboard: React.FC = () => {
           case 'active':
             return request.STATUS === 'A';
           case 'completed':
-            return request.STATUS === 'C';
+            return request.STATUS === 'D';
           default:
             return true;
         }
@@ -338,17 +338,33 @@ const RequestDashboard: React.FC = () => {
         
         // Determine badge color and text based on status code
         switch(row.STATUS) {
-          case 'A':
-            statusClass = 'bg-success'; // Green for Approved
-            statusText = 'Approved';
-            break;
           case 'P':
             statusClass = 'bg-warning'; // Yellow for Pending
             statusText = 'Pending';
             break;
+          case 'A':
+            statusClass = 'bg-primary'; // Blue for Active
+            statusText = 'Active';
+            break;
+          case 'D':
+            statusClass = 'bg-success'; // Green for Complete
+            statusText = 'Complete';
+            break;
           case 'I':
-            statusClass = 'bg-primary'; // Blue for In Progress
+            statusClass = 'bg-info'; // Cyan for In Progress
             statusText = 'In Progress';
+            break;
+          case 'X':
+            statusClass = 'bg-danger'; // Red for Cancelled
+            statusText = 'Cancelled';
+            break;
+          case 'H':
+            statusClass = 'bg-secondary'; // Gray for On Hold
+            statusText = 'On Hold';
+            break;
+          case 'R':
+            statusClass = 'bg-danger'; // Red for Rejected
+            statusText = 'Rejected';
             break;
           case 'pending':
             statusClass = 'bg-warning';
@@ -356,7 +372,7 @@ const RequestDashboard: React.FC = () => {
             break;
           case 'approved':
             statusClass = 'bg-success';
-            statusText = 'Approved';
+            statusText = 'Active';
             break;
           case 'rejected':
             statusClass = 'bg-danger';
@@ -522,9 +538,25 @@ const RequestDashboard: React.FC = () => {
             badgeClass = 'badge bg-primary text-white';
             statusText = 'Active';
             break;
-          case 'C':
+          case 'D':
             badgeClass = 'badge bg-success text-white';
             statusText = 'Complete';
+            break;
+          case 'I':
+            badgeClass = 'badge bg-info text-white';
+            statusText = 'In Progress';
+            break;
+          case 'X':
+            badgeClass = 'badge bg-danger text-white';
+            statusText = 'Cancelled';
+            break;
+          case 'H':
+            badgeClass = 'badge bg-secondary text-white';
+            statusText = 'On Hold';
+            break;
+          case 'R':
+            badgeClass = 'badge bg-danger text-white';
+            statusText = 'Rejected';
             break;
           default:
             badgeClass = 'badge bg-secondary text-white';
@@ -558,7 +590,7 @@ const RequestDashboard: React.FC = () => {
       cell: row => {
         const canStart = row.STATUS === 'P';
         const canContinue = row.STATUS === 'A';
-        const isCompleted = row.STATUS === 'C';
+        const isCompleted = row.STATUS === 'D';
         
         return (
           <div className="d-flex gap-2">
@@ -1477,8 +1509,10 @@ const RequestDashboard: React.FC = () => {
                         required
                       >
                         <option value="P">Pending</option>
-                        <option value="A">In Progress</option>
-                        <option value="C">Completed</option>
+                        <option value="A">Active</option>
+                        <option value="D">Complete</option>
+                        <option value="I">In Progress</option>
+                        <option value="X">Cancelled</option>
                         <option value="H">On Hold</option>
                         <option value="R">Rejected</option>
                       </select>
