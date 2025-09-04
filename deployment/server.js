@@ -10,7 +10,6 @@ const { PrismaClient, Prisma } = require('@prisma/client');
 // Production Environment Detection and Security Configuration
 const isProduction = process.env.NODE_ENV === 'production' || 
                     process.env.WEBSITE_SITE_NAME || 
-                    process.env.PORT || 
                     (process.env.APPSETTING_WEBSITE_SITE_NAME && process.env.APPSETTING_WEBSITE_SITE_NAME !== '');
 
 // Set NODE_ENV to production if we're in an Azure environment but it's not set
@@ -1366,10 +1365,10 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         const { completionNotes } = req.body;
         console.log(`✅ Completing request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'C' (Completed)
+        // Update request status to 'D' (Complete)
         await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'C', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            SET STATUS = 'D', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
@@ -1383,7 +1382,7 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
 
         // Create milestone for request completion
         try {
-            await createStatusChangeMilestone(requestId, 'A', 'C', req.userId, req.companyId);
+            await createStatusChangeMilestone(requestId, 'A', 'D', req.userId, req.companyId);
             console.log(`🏁 Request completion milestone created for request ${requestId}`);
         } catch (milestoneError) {
             console.error('⚠️ Failed to create request completion milestone (continuing):', milestoneError);
@@ -1395,6 +1394,66 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         console.error(`❌ Error completing request ${req.params.id}:`, error);
         res.status(500).json({ 
             error: 'Failed to complete request',
+            message: error.message 
+        });
+    }
+});
+
+// Cancel a request (change status to 'X')
+app.post('/api/requests/:id/cancel', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id);
+        const { cancellationReason } = req.body;
+        console.log(`❌ Cancelling request ${requestId} by user ${req.userId}`);
+
+        // Update request status to 'X' (Cancelled)
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS 
+            SET STATUS = 'X', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            WHERE REQUEST_ID = ${requestId} 
+                AND COMPANY_ID = ${req.companyId}
+                AND (ASSIGNED_ID = ${req.userId} OR REQUESTOR_ID = ${req.userId})
+        `;
+
+        // Add cancellation notes if provided
+        if (cancellationReason) {
+            console.log(`📝 Adding cancellation reason for request ${requestId}`);
+            // Create a work progress entry for the cancellation reason
+            try {
+                await prisma.$executeRaw`
+                    INSERT INTO GUARDIAN.WORK_PROGRESS (
+                        REQUEST_ID, TITLE, DESCRIPTION, CREATE_USER_ID, 
+                        UPDATE_USER_ID, COMPANY_ID, CREATE_DATE, UPDATE_DATE
+                    ) VALUES (
+                        ${requestId}, 
+                        'Request Cancelled',
+                        ${cancellationReason},
+                        ${req.userId},
+                        ${req.userId},
+                        ${req.companyId},
+                        GETDATE(),
+                        GETDATE()
+                    )
+                `;
+            } catch (progressError) {
+                console.error('⚠️ Failed to create cancellation progress entry (continuing):', progressError);
+            }
+        }
+
+        // Create milestone for request cancellation
+        try {
+            await createStatusChangeMilestone(requestId, 'A', 'X', req.userId, req.companyId);
+            console.log(`🏁 Request cancellation milestone created for request ${requestId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create request cancellation milestone (continuing):', milestoneError);
+        }
+
+        console.log(`❌ Request ${requestId} cancelled successfully`);
+        res.json({ success: true, message: 'Request cancelled successfully' });
+    } catch (error) {
+        console.error(`❌ Error cancelling request ${req.params.id}:`, error);
+        res.status(500).json({ 
+            error: 'Failed to cancel request',
             message: error.message 
         });
     }
@@ -4020,7 +4079,9 @@ const createStatusChangeMilestone = async (requestId, fromStatus, toStatus, user
     const statusLabels = {
         'P': 'Pending',
         'A': 'Active', 
-        'C': 'Completed',
+        'D': 'Complete',
+        'I': 'In Progress',
+        'X': 'Cancelled',
         'H': 'On Hold',
         'R': 'Rejected'
     };
@@ -5018,15 +5079,15 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
         const assignedId = assignedUserId === undefined || assignedUserId === null
             ? assignedUserId
             : parseInt(assignedUserId);
-        const statusInt = status === undefined || status === null ? status : parseInt(status);
+        // Status is stored as VARCHAR(20) with string values like "Pending", "In Progress", "Completed", "Cancelled"
 
         console.log('🧪 [TASK UPDATE] Incoming:', {
             taskId,
             descriptionType: typeof description,
             statusType: typeof status,
+            statusValue: status,
             assignedUserIdRaw: assignedUserId,
-            assignedIdParsed: assignedId,
-            statusParsed: statusInt
+            assignedIdParsed: assignedId
         });
 
         console.log(`✏️ Updating task ${taskId} (Company: ${req.companyId})`);
@@ -5116,16 +5177,26 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             `;
         }
 
-        if (status !== undefined && statusInt !== undefined && Number.isInteger(statusInt)) {
-            await prisma.$executeRaw`
-                UPDATE GUARDIAN.TASKS
-                SET STATUS = ${statusInt},
-                    UPDATE_DATE = GETDATE(),
-                    UPDATE_USER_ID = ${req.userId}
-                WHERE TASK_ID = ${taskId}
-            `;
-        } else if (status !== undefined) {
-            console.warn('⚠️ [TASK UPDATE] Ignoring non-numeric status:', status);
+        if (status !== undefined && status !== null) {
+            // Validate status is one of the allowed string values
+            const validStatuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+            if (validStatuses.includes(status)) {
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.TASKS
+                    SET STATUS = ${status},
+                        UPDATE_DATE = GETDATE(),
+                        UPDATE_USER_ID = ${req.userId}
+                    WHERE TASK_ID = ${taskId}
+                `;
+                console.log(`✅ Task ${taskId} status updated to: ${status}`);
+            } else {
+                console.warn('⚠️ [TASK UPDATE] Invalid status value:', status, 'Valid values:', validStatuses);
+                return res.status(400).json({
+                    error: 'Invalid status value',
+                    validValues: validStatuses,
+                    receivedValue: status
+                });
+            }
         }
 
         console.log(`✅ Task ${taskId} updated successfully`);
@@ -13038,16 +13109,33 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
+// === STATIC FILE SERVING & SPA ROUTING ===
+if (isProduction) {
+    // Production: Serve static files and handle SPA routing
+    console.log('🏭 Production mode: Serving static files from current directory');
+    app.use(express.static('.'));
+    
+    // SPA fallback route - must be AFTER all API routes
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+    console.log('🏭 Production mode: SPA routing enabled');
+} else {
+    // Development: Static files served by Vite dev server
+    console.log('🔧 Development mode: Static files served by Vite on port 5175');
+    console.log('🔧 Development mode: SPA routing handled by Vite dev server');
+}
+
 // Start server immediately, don't wait for database
 console.log('🚀 Starting Express server...');
-// === SPA FALLBACK ROUTE ===
-// In development mode, SPA routing is handled by Vite dev server
-// This route is only needed in production when this server serves static files
-console.log('🔧 Development mode: SPA routing handled by Vite dev server');
 
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔧 Development mode: API server only`);
+    if (isProduction) {
+        console.log(`🏭 Production mode: API + Static files + SPA routing`);
+    } else {
+        console.log(`🔧 Development mode: API server only`);
+    }
     console.log(`🌐 Health check: /api/health`);
     console.log(`🧪 Simple test: /api/simple-test`);
     console.log('🎉 Server startup complete!');
