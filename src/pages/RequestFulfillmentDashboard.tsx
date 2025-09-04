@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { requestStateManager } from '../hooks/useRequestState';
 import requestService from '../services/requestService';
 import formService from '../services/formService';
 import Card from '../components/ui/Card';
@@ -177,6 +178,9 @@ const RequestFulfillmentDashboard: React.FC = () => {
       setNotes('');
       setShowActionModal(false);
       await fetchAssignedRequests();
+      
+      // Trigger global state refresh to update other components
+      requestStateManager.triggerRefresh();
     } catch (error) {
       console.error('Error performing action:', error);
     } finally {
@@ -213,6 +217,9 @@ const RequestFulfillmentDashboard: React.FC = () => {
   const handleWorkProgressUpdate = () => {
     // Refresh the request list to show updated progress
     fetchAssignedRequests();
+    
+    // Trigger global state refresh to update other components
+    requestStateManager.triggerRefresh();
   };
 
   // Feedback functions
@@ -313,6 +320,9 @@ const RequestFulfillmentDashboard: React.FC = () => {
       }
       
       fetchAssignedRequests(); // Refresh the list
+      
+      // Trigger global state refresh to update other components
+      requestStateManager.triggerRefresh();
     } catch (error) {
       console.error('Error saving form:', error);
       toast.error('Failed to save form data');

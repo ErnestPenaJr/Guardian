@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useRequestState } from '../hooks/useRequestState';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { Tooltip } from 'react-tooltip';
@@ -103,6 +104,7 @@ function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { subscribeToRefresh } = useRequestState();
   const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
@@ -460,6 +462,19 @@ function Home() {
     fetchAssignedRequestsCount();
     fetchNotices();
   }, []);
+  
+  // Subscribe to global request state changes for real-time updates
+  useEffect(() => {
+    const unsubscribe = subscribeToRefresh(() => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Global state refresh triggered - updating Home.tsx data');
+      }
+      fetchRequests();
+      fetchAssignedRequestsCount();
+    });
+    
+    return unsubscribe;
+  }, [subscribeToRefresh]);
   
   // Check for existing templates when user is loaded (for first-time admin experience)
   useEffect(() => {

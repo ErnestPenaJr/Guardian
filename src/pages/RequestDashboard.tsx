@@ -13,6 +13,7 @@ import RequestModal from '../components/RequestModal';
 import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
 import { useAuth } from '../hooks/useAuth';
+import { useRequestState } from '../hooks/useRequestState';
 
 interface FormFieldWithLayout extends FormField {
   colWidth?: string;
@@ -114,6 +115,7 @@ interface Request {
 
 const RequestDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { subscribeToRefresh } = useRequestState();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -183,6 +185,16 @@ const RequestDashboard: React.FC = () => {
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  // Subscribe to global request state changes for real-time updates
+  useEffect(() => {
+    const unsubscribe = subscribeToRefresh(() => {
+      console.log('🔄 Global state refresh triggered - updating RequestDashboard.tsx data');
+      fetchRequests();
+    });
+    
+    return unsubscribe;
+  }, [subscribeToRefresh]);
 
   // Monitor modal state changes
   useEffect(() => {
