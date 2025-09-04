@@ -5017,15 +5017,15 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
         const assignedId = assignedUserId === undefined || assignedUserId === null
             ? assignedUserId
             : parseInt(assignedUserId);
-        const statusInt = status === undefined || status === null ? status : parseInt(status);
+        // Status is stored as VARCHAR(20) with string values like "Pending", "In Progress", "Completed", "Cancelled"
 
         console.log('🧪 [TASK UPDATE] Incoming:', {
             taskId,
             descriptionType: typeof description,
             statusType: typeof status,
+            statusValue: status,
             assignedUserIdRaw: assignedUserId,
-            assignedIdParsed: assignedId,
-            statusParsed: statusInt
+            assignedIdParsed: assignedId
         });
 
         console.log(`✏️ Updating task ${taskId} (Company: ${req.companyId})`);
@@ -5115,16 +5115,26 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             `;
         }
 
-        if (status !== undefined && statusInt !== undefined && Number.isInteger(statusInt)) {
-            await prisma.$executeRaw`
-                UPDATE GUARDIAN.TASKS
-                SET STATUS = ${statusInt},
-                    UPDATE_DATE = GETDATE(),
-                    UPDATE_USER_ID = ${req.userId}
-                WHERE TASK_ID = ${taskId}
-            `;
-        } else if (status !== undefined) {
-            console.warn('⚠️ [TASK UPDATE] Ignoring non-numeric status:', status);
+        if (status !== undefined && status !== null) {
+            // Validate status is one of the allowed string values
+            const validStatuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+            if (validStatuses.includes(status)) {
+                await prisma.$executeRaw`
+                    UPDATE GUARDIAN.TASKS
+                    SET STATUS = ${status},
+                        UPDATE_DATE = GETDATE(),
+                        UPDATE_USER_ID = ${req.userId}
+                    WHERE TASK_ID = ${taskId}
+                `;
+                console.log(`✅ Task ${taskId} status updated to: ${status}`);
+            } else {
+                console.warn('⚠️ [TASK UPDATE] Invalid status value:', status, 'Valid values:', validStatuses);
+                return res.status(400).json({
+                    error: 'Invalid status value',
+                    validValues: validStatuses,
+                    receivedValue: status
+                });
+            }
         }
 
         console.log(`✅ Task ${taskId} updated successfully`);

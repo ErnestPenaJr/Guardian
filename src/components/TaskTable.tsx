@@ -12,12 +12,14 @@ import {
   Clock,
   Play,
   CheckCircle,
-  X
+  X,
+  UserCheck
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import AddTaskModal from './AddTaskModal';
+import AssignTaskModal from './AssignTaskModal';
 import Modal from './Modal';
 
 interface Task {
@@ -73,6 +75,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const [showStartModal, setShowStartModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Task status configuration
@@ -442,6 +445,43 @@ const TaskTable: React.FC<TaskTableProps> = ({
     }
   };
 
+  // Handle assign tasks
+  const handleAssignTasks = async (assignedUserId: number | null, tasks: Task[]) => {
+    if (tasks.length === 0) return;
+
+    setIsUpdating(true);
+    let successCount = 0;
+    const errors: string[] = [];
+
+    for (const task of tasks) {
+      const result = await updateTaskStatus(task.TASK_ID, task.STATUS, assignedUserId);
+      if (result.success) {
+        successCount++;
+      } else {
+        errors.push(`Task ${task.TASK_ID}: ${result.error}`);
+      }
+    }
+
+    setIsUpdating(false);
+    setShowAssignModal(false);
+    
+    if (successCount > 0) {
+      const assignmentText = assignedUserId ? 'assigned' : 'unassigned';
+      toast.success(`Successfully ${assignmentText} ${successCount} task(s)`);
+      loadTasks();
+      onTaskUpdate?.();
+      setSelectedTasks([]);
+      if (gridApi) {
+        gridApi.deselectAll();
+      }
+    }
+
+    if (errors.length > 0) {
+      toast.error(`Failed to assign ${errors.length} task(s). Check console for details.`);
+      console.error('Task assignment errors:', errors);
+    }
+  };
+
   const canAddTask = isAssignedToCurrentUser && requestStatus !== 'C';
 
   return (
@@ -458,102 +498,121 @@ const TaskTable: React.FC<TaskTableProps> = ({
           )}
         </div>
         
-        <div className="d-flex gap-2">
-          {/* Filter dropdown */}
-          <Dropdown>
-            <Dropdown.Toggle variant="outline-secondary" size="sm">
-              <Filter size={16} className="me-1" />
-              Filter
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Header>Task Status</Dropdown.Header>
-              <Dropdown.Item 
-                active={statusFilter === 'all'}
-                onClick={() => setStatusFilter('all')}
+        <div className="d-flex justify-content-between align-items-center">
+          {/* Left side - Main action buttons */}
+          <div className="d-flex gap-2">
+            {/* Add task button */}
+            {canAddTask && (
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => setShowAddModal(true)}
               >
-                All Status
-              </Dropdown.Item>
-              {Object.entries(taskStatusConfig).map(([status, config]) => (
-                <Dropdown.Item
-                  key={status}
-                  active={statusFilter === status}
-                  onClick={() => setStatusFilter(status)}
+                <Plus size={16} className="me-1" />
+                Add Task
+              </Button>
+            )}
+
+            {/* Assign Tasks button */}
+            {selectedTasks.length > 0 && (
+              <Button
+                variant="outline-info"
+                size="sm"
+                onClick={() => setShowAssignModal(true)}
+                disabled={isUpdating}
+              >
+                <UserCheck size={16} className="me-1" />
+                {isUpdating ? 'Updating...' : `Assign Tasks (${selectedTasks.length})`}
+              </Button>
+            )}
+
+            {/* Start Tasks button */}
+            {isAssignedToCurrentUser && (
+              <Button
+                variant="success"
+                size="sm"
+                onClick={() => setShowStartModal(true)}
+                disabled={!canStartTasks || isUpdating}
+              >
+                <Play size={16} className="me-1" />
+                {isUpdating ? 'Updating...' : `Start Tasks ${getPendingSelectedTasks().length > 0 ? `(${getPendingSelectedTasks().length})` : ''}`}
+              </Button>
+            )}
+
+            {/* Complete Tasks button */}
+            {isAssignedToCurrentUser && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowCompleteModal(true)}
+                disabled={!canCompleteTasks || isUpdating}
+              >
+                <CheckCircle size={16} className="me-1" />
+                {isUpdating ? 'Updating...' : `Complete Tasks ${getCompletableSelectedTasks().length > 0 ? `(${getCompletableSelectedTasks().length})` : ''}`}
+              </Button>
+            )}
+
+            {/* Cancel Tasks button */}
+            {isAssignedToCurrentUser && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowCancelModal(true)}
+                disabled={!canCancelTasks || isUpdating}
+              >
+                <X size={16} className="me-1" />
+                {isUpdating ? 'Updating...' : `Cancel Tasks ${getCancellableSelectedTasks().length > 0 ? `(${getCancellableSelectedTasks().length})` : ''}`}
+              </Button>
+            )}
+          </div>
+
+          {/* Right side - Filter and Export */}
+          <div className="d-flex gap-2">
+            {/* Filter dropdown */}
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-secondary" size="sm">
+                <Filter size={16} className="me-1" />
+                Filter
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Header>Task Status</Dropdown.Header>
+                <Dropdown.Item 
+                  active={statusFilter === 'all'}
+                  onClick={() => setStatusFilter('all')}
                 >
-                  <Badge bg={config.color} className="me-2">
-                    {config.label}
-                  </Badge>
-                  {config.label}
+                  All Status
                 </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
+                {Object.entries(taskStatusConfig).map(([status, config]) => (
+                  <Dropdown.Item
+                    key={status}
+                    active={statusFilter === status}
+                    onClick={() => setStatusFilter(status)}
+                  >
+                    <Badge bg={config.color} className="me-2">
+                      {config.label}
+                    </Badge>
+                    {config.label}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
 
-          {/* Export dropdown */}
-          <Dropdown>
-            <Dropdown.Toggle variant="outline-primary" size="sm">
-              <Download size={16} className="me-1" />
-              Export
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item onClick={() => handleExport('csv')}>
-                Export as CSV
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => handleExport('excel')}>
-                Export as Excel
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-
-          {/* Start Tasks button */}
-          {isAssignedToCurrentUser && (
-            <Button
-              variant="success"
-              size="sm"
-              onClick={() => setShowStartModal(true)}
-              disabled={!canStartTasks || isUpdating}
-            >
-              <Play size={16} className="me-1" />
-              {isUpdating ? 'Updating...' : `Start ${getPendingSelectedTasks().length > 0 ? `(${getPendingSelectedTasks().length})` : ''}`}
-            </Button>
-          )}
-
-          {/* Complete Tasks button */}
-          {isAssignedToCurrentUser && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowCompleteModal(true)}
-              disabled={!canCompleteTasks || isUpdating}
-            >
-              <CheckCircle size={16} className="me-1" />
-              {isUpdating ? 'Updating...' : `Complete ${getCompletableSelectedTasks().length > 0 ? `(${getCompletableSelectedTasks().length})` : ''}`}
-            </Button>
-          )}
-
-          {/* Cancel Tasks button */}
-          {isAssignedToCurrentUser && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setShowCancelModal(true)}
-              disabled={!canCancelTasks || isUpdating}
-            >
-              <X size={16} className="me-1" />
-              {isUpdating ? 'Updating...' : `Cancel ${getCancellableSelectedTasks().length > 0 ? `(${getCancellableSelectedTasks().length})` : ''}`}
-            </Button>
-          )}
-
-          {/* Add task button */}
-          {canAddTask && (
-            <Button
-              variant="outline-primary"
-              size="sm"
-              onClick={() => setShowAddModal(true)}
-            >
-              <Plus size={16} className="me-1" />
-              Add
-            </Button>
-          )}
+            {/* Export dropdown */}
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-primary" size="sm">
+                <Download size={16} className="me-1" />
+                Export
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => handleExport('csv')}>
+                  Export as CSV
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleExport('excel')}>
+                  Export as Excel
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
         </div>
       </div>
 
@@ -620,6 +679,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
         onHide={() => setShowAddModal(false)}
         requestId={requestId}
         onSuccess={handleAddTaskSuccess}
+      />
+
+      {/* Assign Task Modal */}
+      <AssignTaskModal
+        show={showAssignModal}
+        onHide={() => setShowAssignModal(false)}
+        selectedTasks={selectedTasks}
+        onAssign={handleAssignTasks}
       />
 
       {/* Start Tasks Confirmation Modal */}
