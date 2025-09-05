@@ -66,7 +66,7 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
     >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="bg-gradient-to-r from-teal-500 to-blue-600 text-white p-6 rounded-t-xl">
+        <div className="text-black p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="bg-white/20 p-2 rounded-lg">
