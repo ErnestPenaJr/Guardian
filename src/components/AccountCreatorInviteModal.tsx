@@ -74,7 +74,7 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Welcome to Guardian!</h2>
-                <p className="text-white/90 text-sm">Build your team and get started</p>
+                <p className="text-black/90 text-sm">Build your team and get started</p>
               </div>
             </div>
             <button
@@ -137,10 +137,10 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t p-6 bg-gray-50 rounded-b-xl">
+        <div className="border-t p-6 bg-gray-50 rounded-b-xl mb-10">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              You can invite team members anytime from the main menu
+              You can invite team members anytime in settings/User Management page 
             </p>
             <div className="flex space-x-3">
               <button

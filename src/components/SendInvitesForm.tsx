@@ -216,14 +216,14 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
         <button type="button" className="mb-4 text-primary underline" onClick={handleAddEmailField}>+ Add another</button>
       </div>
       <div className="flex justify-end gap-2">
-        <button
+        {/* <button
           type="button"
           className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
           onClick={onClose}
           disabled={isSending}
         >
           Skip This Step
-        </button>
+        </button> */}
         <button
           type="button"
           className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
