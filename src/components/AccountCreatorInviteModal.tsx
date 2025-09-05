@@ -104,7 +104,7 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
             </div>
 
             {/* Benefits Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
+            {/* <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                 <UserPlus className="w-5 h-5 mr-2 text-teal-600" />
                 Why invite your team now?
@@ -127,7 +127,7 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
                   <span>You can always invite more people later</span>
                 </li>
               </ul>
-            </div>
+            </div> */}
 
             {/* Invite Form */}
             <div className="border-t pt-6">
