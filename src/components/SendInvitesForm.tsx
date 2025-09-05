@@ -222,7 +222,7 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           disabled={isSending}
         >
-          Cancel
+          Skip This Step
         </button>
         <button
           type="button"
