@@ -1,132 +1,59 @@
 $ vite
 
-  VITE v7.0.2  ready in 546 ms
+  VITE v7.0.2  ready in 139 ms
 
   ➜  Local:   http://localhost:5175/
   ➜  Network: use --host to expose
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-12:01:48 PM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:01:48 PM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:18 PM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:18 PM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/requests
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/requests/assigned/me?
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/notices/my
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/users/workspaces
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/roles/all
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/forms
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
+8:14:10 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+8:14:25 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-12:02:28 PM [vite] http proxy error: /api/roles
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/me
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:28 PM [vite] http proxy error: /api/users
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/requests
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/requests/assigned/me?
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/notices/my
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/users/workspaces
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/roles/all
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/forms
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-12:02:42 PM [vite] http proxy error: /api/roles
+12:53:10 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+12:53:16 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+12:53:29 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+2:35:36 PM [vite] http proxy error: /api/notifications/count
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/me
+2:35:36 PM [vite] http proxy error: /api/send-error-email
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-12:02:42 PM [vite] http proxy error: /api/users
+2:35:40 PM [vite] http proxy error: /api/requests
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-12:03:12 PM [vite] http proxy error: /api/notifications/count
+2:35:40 PM [vite] http proxy error: /api/notifications/count
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-12:03:12 PM [vite] http proxy error: /api/send-error-email
+2:35:40 PM [vite] http proxy error: /api/requests/assigned/me?
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-12:03:42 PM [vite] http proxy error: /api/notifications/count
+2:35:40 PM [vite] http proxy error: /api/roles/all
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-12:03:42 PM [vite] http proxy error: /api/send-error-email
+2:35:40 PM [vite] http proxy error: /api/notices/my
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+2:35:40 PM [vite] http proxy error: /api/users/workspaces
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+2:35:40 PM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+2:35:40 PM [vite] http proxy error: /api/roles
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
@@ -140,483 +67,70 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-2:11:49 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:47:30 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:47:36 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-4:49:40 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:49:48 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:49:55 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:50:06 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:50:14 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:55:20 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:55:24 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:55:31 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:55:41 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:55:50 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:55:50 PM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx: Adjacent JSX elements must be wrapped in an enclosing tag. Did you want a JSX fragment <>...</>? (236:4)
-
-  234 |         </div>
-  235 |       </div>
-> 236 |     </div>
-      |     ^
-  237 |   );
-  238 | }
-  239 |
-  Plugin: vite:react-babel
-  File: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx:236:4
-  234|          </div>
-  235|        </div>
-  236|      </div>
-     |      ^
-  237|    );
-  238|  }
-      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
-      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
-      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4772:18)
-      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
-      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
-      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
-      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
-      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
-      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
-      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
-      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
-      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
-      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
-      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
-      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
-      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
-      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12087:10)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9248:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13445:12
-      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12404:14)
-      at TypeScriptParserMixin.parseFunction (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13444:10)
-4:56:15 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:56:15 PM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx: Adjacent JSX elements must be wrapped in an enclosing tag. Did you want a JSX fragment <>...</>? (272:4)
-
-  270 |         </div>
-  271 |       </div>
-> 272 |     </div>
-      |     ^
-  273 |   );
-  274 | }
-  275 |
-  Plugin: vite:react-babel
-  File: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx:272:4
-  270|          </div>
-  271|        </div>
-  272|      </div>
-     |      ^
-  273|    );
-  274|  }
-      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
-      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
-      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4772:18)
-      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
-      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
-      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
-      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
-      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
-      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
-      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
-      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
-      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
-      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
-      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
-      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
-      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
-      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12087:10)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9248:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13445:12
-      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12404:14)
-      at TypeScriptParserMixin.parseFunction (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13444:10)
-4:56:28 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-4:56:28 PM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx: Adjacent JSX elements must be wrapped in an enclosing tag. Did you want a JSX fragment <>...</>? (275:4)
-
-  273 |         </div>
-  274 |       </div>
-> 275 |     </div>
-      |     ^
-  276 |   );
-  277 | }
-  278 |
-  Plugin: vite:react-babel
-  File: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx:275:4
-  273|          </div>
-  274|        </div>
-  275|      </div>
-     |      ^
-  276|    );
-  277|  }
-      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
-      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
-      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4772:18)
-      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
-      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
-      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
-      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
-      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
-      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
-      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
-      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
-      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
-      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
-      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
-      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
-      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
-      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12087:10)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9248:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13445:12
-      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12404:14)
-      at TypeScriptParserMixin.parseFunction (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13444:10)
-4:56:33 PM [vite] (client) Pre-transform error: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx: Adjacent JSX elements must be wrapped in an enclosing tag. Did you want a JSX fragment <>...</>? (275:4)
-
-  273 |         </div>
-  274 |       </div>
-> 275 |     </div>
-      |     ^
-  276 |   );
-  277 | }
-  278 |
-  Plugin: vite:react-babel
-  File: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx:275:4
-  273|          </div>
-  274|        </div>
-  275|      </div>
-     |      ^
-  276|    );
-  277|  }
-4:56:33 PM [vite] Internal server error: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx: Adjacent JSX elements must be wrapped in an enclosing tag. Did you want a JSX fragment <>...</>? (275:4)
-
-  273 |         </div>
-  274 |       </div>
-> 275 |     </div>
-      |     ^
-  276 |   );
-  277 | }
-  278 |
-  Plugin: vite:react-babel
-  File: /opt/homebrew/var/www/projects/Guardian MVP/src/pages/InviteAccept.tsx:275:4
-  273|          </div>
-  274|        </div>
-  275|      </div>
-     |      ^
-  276|    );
-  277|  }
-      at constructor (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:367:19)
-      at TypeScriptParserMixin.raise (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6627:19)
-      at TypeScriptParserMixin.jsxParseElementAt (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4772:18)
-      at TypeScriptParserMixin.jsxParseElement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4779:17)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4789:19)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:39
-      at TypeScriptParserMixin.tryParse (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:6935:20)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9790:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12427:12)
-      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10795:17)
-      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12494:17)
-      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11674:28)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11326:23)
-      at TypeScriptParserMixin.parseExprAtom (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:4794:20)
-      at TypeScriptParserMixin.parseExprSubscripts (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11076:23)
-      at TypeScriptParserMixin.parseUpdate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11061:21)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:11041:23)
-      at TypeScriptParserMixin.parseMaybeUnary (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9852:18)
-      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10894:61)
-      at TypeScriptParserMixin.parseExprOps (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10899:23)
-      at TypeScriptParserMixin.parseMaybeConditional (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10876:23)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10826:21)
-      at TypeScriptParserMixin.parseMaybeAssign (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9801:20)
-      at TypeScriptParserMixin.parseExpressionBase (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10779:23)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:39
-      at TypeScriptParserMixin.allowInAnd (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12422:16)
-      at TypeScriptParserMixin.parseExpression (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:10775:17)
-      at TypeScriptParserMixin.parseReturnStatement (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13142:28)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12798:21)
-      at TypeScriptParserMixin.parseStatementContent (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9527:18)
-      at TypeScriptParserMixin.parseStatementLike (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12767:17)
-      at TypeScriptParserMixin.parseStatementListItem (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12747:17)
-      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13316:61)
-      at TypeScriptParserMixin.parseBlockBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13309:10)
-      at TypeScriptParserMixin.parseBlock (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13297:10)
-      at TypeScriptParserMixin.parseFunctionBody (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12101:24)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12087:10)
-      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:9248:18)
-      at /opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13445:12
-      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:12404:14)
-      at TypeScriptParserMixin.parseFunction (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@babel/parser/lib/index.js:13444:10)
-4:57:12 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:01:00 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:01:08 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:01:17 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:01:24 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:01:38 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:01:50 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:02:00 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:02:14 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:02:25 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:02:25 PM [vite] (client) ✨ new dependencies optimized: react-icons/hi2
-5:02:25 PM [vite] (client) ✨ optimized dependencies changed. reloading
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-5:02:35 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:02:42 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:02:53 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:03:04 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:03:13 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:03:22 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:03:34 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:03:43 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:03:59 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:04:04 PM [vite] (client) hmr update /src/pages/InviteAccept.tsx, /src/index.css
-5:04:22 PM [vite] (client) hmr update /src/index.css
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-6:19:14 AM [vite] http proxy error: /api/notifications/count
+2:45:05 PM [vite] http proxy error: /api/notifications/count
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:19:14 AM [vite] http proxy error: /api/send-error-email
+2:45:05 PM [vite] http proxy error: /api/requests
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:19:44 AM [vite] http proxy error: /api/notifications/count
+2:45:05 PM [vite] http proxy error: /api/requests/assigned/me?
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:19:44 AM [vite] http proxy error: /api/send-error-email
+2:45:05 PM [vite] http proxy error: /api/notices/my
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:20:14 AM [vite] http proxy error: /api/notifications/count
+2:45:05 PM [vite] http proxy error: /api/roles/all
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:20:14 AM [vite] http proxy error: /api/send-error-email
+2:45:05 PM [vite] http proxy error: /api/users/workspaces
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:20:44 AM [vite] http proxy error: /api/notifications/count
+2:45:05 PM [vite] http proxy error: /api/send-error-email
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:20:44 AM [vite] http proxy error: /api/send-error-email
+2:45:05 PM [vite] http proxy error: /api/roles
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:21:14 AM [vite] http proxy error: /api/notifications/count
+2:45:08 PM [vite] http proxy error: /api/requests
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:21:14 AM [vite] http proxy error: /api/send-error-email
+2:45:08 PM [vite] http proxy error: /api/notifications/count
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:21:44 AM [vite] http proxy error: /api/notifications/count
+2:45:08 PM [vite] http proxy error: /api/roles/all
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:21:44 AM [vite] http proxy error: /api/send-error-email
+2:45:08 PM [vite] http proxy error: /api/notices/my
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:22:14 AM [vite] http proxy error: /api/notifications/count
+2:45:08 PM [vite] http proxy error: /api/requests/assigned/me?
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:22:14 AM [vite] http proxy error: /api/send-error-email
+2:45:08 PM [vite] http proxy error: /api/users/workspaces
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:22:44 AM [vite] http proxy error: /api/notifications/count
+2:45:08 PM [vite] http proxy error: /api/send-error-email
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
-6:22:44 AM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:14 AM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:14 AM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/requests
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/requests/assigned/me?
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/notices/my
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/roles/all
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/users/workspaces
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/forms
+2:45:08 PM [vite] http proxy error: /api/roles
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
-6:23:27 AM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/roles
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/me
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:27 AM [vite] http proxy error: /api/users
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:57 AM [vite] http proxy error: /api/notifications/count
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-6:23:57 AM [vite] http proxy error: /api/send-error-email
-AggregateError [ECONNREFUSED]: 
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-Files in the public directory are served at the root path.
-Instead of /public/images/favicon.png, use /images/favicon.png.
-error: script "dev" exited with code 143
+2:51:45 PM [vite] (client) hmr update /src/pages/AccountSettings.tsx, /src/index.css

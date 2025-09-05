@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaCode } from 'react-icons/fa';
 import {
   LogOut, User, Settings, KeyRound, Bell, SunMoon, FileText, Monitor,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
@@ -1311,21 +1310,16 @@ function Home() {
           {/* Dropdown Menu */}
           {profileMenuOpen && (
             <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-sm border-t-4 border-t-secondary py-2 z-50 border border-gray-100 animate-fade-in">
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Account Settings */}}>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/account-settings')}>
                 <Settings size={16} /> Account Settings
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Update Profile */}}>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/update-profile')}>
                 <User size={16} /> Update Profile
               </button>
-              {(user?.roles?.some((role: any) => role.id === 6) || user?.role === '6') && (
-                <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/api-explorer')}>
-                  <FaCode size={16} /> API Explorer
-                </button>
-              )}
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Change Password */}}>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/change-password')}>
                 <KeyRound size={16} /> Change Password
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => {/* Navigate to Notification Preferences */}}>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/notification-preferences')}>
                 <Bell size={16} /> Notification Preferences
               </button>
               {/* Theme Nested Dropdown */}

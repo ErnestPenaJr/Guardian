@@ -2051,6 +2051,78 @@ app.get('/api/me', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Get current user's complete account information
+app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📋 Fetching complete account info for user ${req.userId} in company ${req.companyId}`);
+        
+        const accountInfo = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL_VALIDATED,
+                u.STATUS,
+                u.CREATE_DATE,
+                u.COMPANY_ID,
+                c.NAME as COMPANY_NAME,
+                ci.WORKSPACE_NAME,
+                STRING_AGG(r.DISPLAY_NAME, ', ') as ROLE_NAMES
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.COMPANY c ON u.COMPANY_ID = c.COMPANY_ID
+            LEFT JOIN GUARDIAN.COMPANY_INFO ci ON u.USER_ID = ci.USER_ID AND u.COMPANY_ID = ci.COMPANY_ID
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'A'
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID AND r.STATUS = 'A'
+            WHERE u.USER_ID = ${req.userId} AND u.COMPANY_ID = ${req.companyId}
+            GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.EMAIL_VALIDATED, 
+                     u.STATUS, u.CREATE_DATE, u.COMPANY_ID, c.NAME, ci.WORKSPACE_NAME
+        `;
+        
+        if (!accountInfo || accountInfo.length === 0) {
+            console.error(`❌ Account info not found for user ${req.userId}`);
+            return res.status(404).json({ error: 'Account information not found' });
+        }
+        
+        const account = accountInfo[0];
+        console.log(`✅ Account info retrieved:`, {
+            userId: account.USER_ID,
+            email: account.EMAIL,
+            emailValidated: account.EMAIL_VALIDATED,
+            status: account.STATUS,
+            companyName: account.COMPANY_NAME
+        });
+        
+        // Format the response
+        const response = {
+            userId: account.USER_ID,
+            email: account.EMAIL,
+            firstName: account.FIRST_NAME,
+            lastName: account.LAST_NAME,
+            fullName: `${account.FIRST_NAME || ''} ${account.LAST_NAME || ''}`.trim(),
+            emailValidated: Boolean(account.EMAIL_VALIDATED),
+            status: account.STATUS,
+            statusDisplay: account.STATUS === 'A' ? 'Active' : account.STATUS === 'P' ? 'Pending' : 'Inactive',
+            companyId: account.COMPANY_ID,
+            companyName: account.COMPANY_NAME || 'Unknown Company',
+            workspaceName: account.WORKSPACE_NAME,
+            roles: account.ROLE_NAMES || 'User',
+            createDate: account.CREATE_DATE
+        };
+        
+        res.json(response);
+        
+    } catch (error) {
+        console.error(`❌ Error fetching account info for user ${req.userId}:`, error);
+        safeErrorLog('Error in /api/users/account-info:', { 
+            error: error.message, 
+            userId: req.userId, 
+            companyId: req.companyId 
+        });
+        res.status(500).json({ error: 'Failed to retrieve account information' });
+    }
+});
+
 // Get all users (for backward compatibility)
 app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -2291,6 +2363,202 @@ app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req
         res.status(500).json({
             error: 'Failed to fetch users',
             message: error.message
+        });
+    }
+});
+
+// Get user notification preferences
+app.get('/api/users/notification-preferences', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📊 [NOTIFICATION-PREFERENCES] Getting notification preferences for user ID: ${req.userId}, company: ${req.companyId}`);
+
+        const user = await prisma.$queryRawUnsafe(
+            `SELECT NOTIFICATION_PREFERENCES 
+             FROM GUARDIAN.USERS 
+             WHERE USER_ID = ${req.userId} AND COMPANY_ID = ${req.companyId}`
+        );
+
+        if (!user || user.length === 0) {
+            return res.status(404).json({ 
+                error: 'User not found or access denied',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Parse notification preferences or return default values
+        let preferences = {
+            emailNotifications: {
+                requestAssignments: true,
+                requestUpdates: true,
+                systemAnnouncements: true,
+                weeklyReports: false
+            },
+            inAppNotifications: {
+                requestAssignments: true,
+                requestUpdates: true,
+                mentions: true,
+                systemAlerts: true
+            },
+            frequency: 'immediate'
+        };
+
+        if (user[0].NOTIFICATION_PREFERENCES) {
+            try {
+                const savedPreferences = JSON.parse(user[0].NOTIFICATION_PREFERENCES);
+                preferences = { ...preferences, ...savedPreferences };
+            } catch (parseError) {
+                console.warn(`⚠️ [NOTIFICATION-PREFERENCES] Failed to parse saved preferences for user ${req.userId}:`, parseError);
+                // Use default preferences if parsing fails
+            }
+        }
+
+        res.json({
+            success: true,
+            preferences: preferences,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error(`❌ [NOTIFICATION-PREFERENCES] Error fetching notification preferences:`, error);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: 'Failed to retrieve notification preferences',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Update user notification preferences
+app.put('/api/users/notification-preferences', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📊 [NOTIFICATION-PREFERENCES] Updating notification preferences for user ID: ${req.userId}, company: ${req.companyId}`);
+        
+        const { preferences } = req.body;
+
+        if (!preferences) {
+            return res.status(400).json({
+                error: 'Preferences data is required',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Validate preferences structure
+        const validatedPreferences = {
+            emailNotifications: {
+                requestAssignments: Boolean(preferences.emailNotifications?.requestAssignments ?? true),
+                requestUpdates: Boolean(preferences.emailNotifications?.requestUpdates ?? true),
+                systemAnnouncements: Boolean(preferences.emailNotifications?.systemAnnouncements ?? true),
+                weeklyReports: Boolean(preferences.emailNotifications?.weeklyReports ?? false)
+            },
+            inAppNotifications: {
+                requestAssignments: Boolean(preferences.inAppNotifications?.requestAssignments ?? true),
+                requestUpdates: Boolean(preferences.inAppNotifications?.requestUpdates ?? true),
+                mentions: Boolean(preferences.inAppNotifications?.mentions ?? true),
+                systemAlerts: Boolean(preferences.inAppNotifications?.systemAlerts ?? true)
+            },
+            frequency: ['immediate', 'daily', 'weekly'].includes(preferences.frequency) ? preferences.frequency : 'immediate'
+        };
+
+        // Convert to JSON string for database storage
+        const preferencesJson = JSON.stringify(validatedPreferences);
+
+        // Update user notification preferences
+        const result = await prisma.$executeRawUnsafe(
+            `UPDATE GUARDIAN.USERS 
+             SET NOTIFICATION_PREFERENCES = '${preferencesJson.replace(/'/g, "''")}',
+                 UPDATE_DATE = GETDATE(),
+                 UPDATE_USER_ID = ${req.userId}
+             WHERE USER_ID = ${req.userId} AND COMPANY_ID = ${req.companyId}`
+        );
+
+        if (result === 0) {
+            return res.status(404).json({ 
+                error: 'User not found or access denied',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        console.log(`✅ [NOTIFICATION-PREFERENCES] Successfully updated notification preferences for user ${req.userId}`);
+
+        res.json({
+            success: true,
+            message: 'Notification preferences updated successfully',
+            preferences: validatedPreferences,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error(`❌ [NOTIFICATION-PREFERENCES] Error updating notification preferences:`, error);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: 'Failed to update notification preferences',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Get account information endpoint
+app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`📊 [ACCOUNT-INFO] Getting account info for user ID: ${req.userId}, company: ${req.companyId}`);
+        
+        const userResult = await prisma.$queryRawUnsafe(`
+            SELECT 
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.STATUS,
+                u.EMAIL_VALIDATED,
+                u.CREATE_DATE,
+                u.COMPANY_ID,
+                c.NAME as COMPANY_NAME,
+                ci.WORKSPACE_NAME,
+                ci.ROLE as USER_ROLE
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.COMPANY c ON u.COMPANY_ID = c.COMPANY_ID
+            LEFT JOIN GUARDIAN.COMPANY_INFO ci ON u.USER_ID = ci.USER_ID
+            WHERE u.USER_ID = ${req.userId} AND u.COMPANY_ID = ${req.companyId}
+        `);
+        
+        if (userResult && userResult.length > 0) {
+            const user = userResult[0];
+            
+            const accountInfo = {
+                email: user.EMAIL,
+                firstName: user.FIRST_NAME || '',
+                lastName: user.LAST_NAME || '',
+                fullName: `${user.FIRST_NAME || ''} ${user.LAST_NAME || ''}`.trim() || 'Unknown User',
+                companyName: user.COMPANY_NAME || 'Unknown Company',
+                role: user.USER_ROLE || 'User',
+                status: user.STATUS === 'A' ? 'Active' : user.STATUS === 'P' ? 'Pending' : 'Inactive',
+                emailValidated: user.EMAIL_VALIDATED === true || user.EMAIL_VALIDATED === 1,
+                createDate: user.CREATE_DATE ? user.CREATE_DATE.toISOString() : new Date().toISOString(),
+                userId: user.USER_ID,
+                companyId: user.COMPANY_ID
+            };
+            
+            console.log(`✅ [ACCOUNT-INFO] Account info retrieved successfully for user ${req.userId}`);
+            res.json({
+                success: true,
+                accountInfo,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.log(`❌ [ACCOUNT-INFO] User not found: ${req.userId}`);
+            res.status(404).json({
+                success: false,
+                error: 'User account not found',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ [ACCOUNT-INFO] Error getting account info:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to retrieve account information',
+            timestamp: new Date().toISOString()
         });
     }
 });

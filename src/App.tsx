@@ -26,6 +26,10 @@ import EndpointManagerPage from './pages/EndpointManagerPage';
 import ApiAccessPortal from './pages/ApiAccessPortal';
 import NoticesLandingPage from './pages/NoticesLandingPage';
 import NoticeDetailsPage from './pages/NoticeDetailsPage';
+import AccountSettings from './pages/AccountSettings';
+import UpdateProfile from './pages/UpdateProfile';
+import ChangePassword from './pages/ChangePassword';
+import NotificationPreferences from './pages/NotificationPreferences';
 
 function App() {
   return (
@@ -62,6 +66,10 @@ function App() {
             <Route path="/api-manager" element={<ProtectedRoute><EndpointManagerPage /></ProtectedRoute>} />
             <Route path="/api-access-portal" element={<ApiAccessPortal />} />
             <Route path="/api-explorer" element={<ApiAccessPortal />} />
+            <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+            <Route path="/update-profile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
+            <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+            <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
