@@ -604,7 +604,7 @@ const VerifyEmail = () => {
         {/* Workspace name auto-generated as military call sign on server */}
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <p className="text-blue-800 text-body-sm">
-            <strong>🎖️ Your organization will be assigned a unique military call sign automatically!</strong>
+            <strong>Your organization will be assigned a unique call sign automatically!, you can change anytime in your profile settings.</strong>
             <br />
             <span className="text-blue-600">Examples: GUARDIAN-42, SHIELD-87, DRAGON-23</span>
           </p>

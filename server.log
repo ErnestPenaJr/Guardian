@@ -1149,3 +1149,117 @@ Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 ✅ Authentication successful for user 1176 in company 54
 🔢 Getting notification count for user 1176
 ✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🚪 Logout request received
+📧 Email validation request for: ernestpenajr@me.com (purpose: register)
+📝 Registration request for: ernestpenajr@me.com
+🔍 Found 0 existing users with email: ernestpenajr@me.com
+✅ Generated unique military call sign: JAGUAR-33
+🎖️ Generated unique military call sign for company: JAGUAR-33
+🔧 Creating new company with call sign: JAGUAR-33
+🔧 Using company ID: 70
+🔧 Creating user with raw SQL for: ernestpenajr@me.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1201,
+  }
+]
+🔧 Creating company_info for User ID: 1201, Company ID: 70
+🎖️ Setting initial workspace name to: MIL-WRKSPC-70
+✅ Company_info created successfully with workspace name: MIL-WRKSPC-70
+🔧 Finding Admin role for user assignment
+🔧 Assigning Admin role (1) to user 1201
+✅ User created in database with ID: 1201, verification code: 787990
+📧 Sending verification email to: ernestpenajr@me.com
+✅ Verification email sent successfully: b990e022-f318-4fbe-910e-d63fc71d3f17
+🔍 Email verification attempt for: ernestpenajr@me.com
+📧 Request body: {
+  "email": "ernestpenajr@me.com",
+  "verificationCode": "787990"
+}
+🔍 Looking up most recent unverified user in database for email: ernestpenajr@me.com
+✅ Found unverified user - ID: 1201, Email: ernestpenajr@me.com
+✅ User found - ID: 1201, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Thu Sep 04 2025 22:26:44 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for ernestpenajr@me.com:
+📥 Provided code: 787990
+🔐 Hashed provided: 64afc3b0bae9ee503b4de89e8dcda3520bfd9c106d406401cb2835aab8635160
+💾 Stored hash: 64afc3b0bae9ee503b4de89e8dcda3520bfd9c106d406401cb2835aab8635160
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1201
+✅ Email verified successfully for: ernestpenajr@me.com
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
+🔍 Email verification attempt for: ernestpenajr@me.com
+📧 Request body: {
+  "email": "ernestpenajr@me.com",
+  "verificationCode": "787990"
+}
+🔍 Looking up most recent unverified user in database for email: ernestpenajr@me.com
+🔍 No unverified user found, checking for verified user with email: ernestpenajr@me.com
+✅ Email already verified for: ernestpenajr@me.com
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 0 unread notifications
