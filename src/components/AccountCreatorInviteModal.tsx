@@ -91,7 +91,7 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
             {/* Welcome Message */}
-            <div className="text-center space-y-3">
+            {/* <div className="text-center space-y-3">
               <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   🎉 Congratulations, {userFirstName}!
@@ -101,7 +101,7 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
                   As the account creator, you can now invite your team members to join your organization.
                 </p>
               </div>
-            </div>
+            </div> */}
 
             {/* Benefits Section */}
             {/* <div className="bg-gray-50 p-4 rounded-lg">
@@ -146,9 +146,9 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
               <button
                 onClick={handleSkip}
                 disabled={isLoading}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-outline-secondary px-2 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Skip for now
+                Skip
               </button>
             </div>
           </div>
