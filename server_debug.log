@@ -1,88 +1,108 @@
+🌍 Environment: development (Production: undefined)
 ✅ Email service initialized with Resend
 === GUARDIAN SIMPLE SERVER STARTING ===
-Node version: v24.3.0
+Node version: v24.6.0
 Environment: development
-Port: 3001
-Process PID: 97166
+Port: 3002
+Process PID: 44188
 Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
 🔌 Testing database connection...
 🔧 Development mode: Static files served by Vite on port 5175
-🚀 Starting Express server...
+🔧 Development mode: Static files served by Vite on port 5175
 🔧 Development mode: SPA routing handled by Vite dev server
-✅ Server running on port 3001
+🚀 Starting Express server...
+✅ Server running on port 3002
 🔧 Development mode: API server only
 🌐 Health check: /api/health
 🧪 Simple test: /api/simple-test
 🎉 Server startup complete!
 ✅ Database connected successfully
-📝 Registration request for: test2@example.com
-🔍 Found 0 existing users with email: test2@example.com
-✅ User created in database with ID: 15, verification code: 725949
-📧 Sending verification email to: test2@example.com
-✅ Verification email sent successfully: c771c897-8662-4b81-b498-958b6acf627c
-🔍 Email verification attempt for: test2@example.com
+📝 Registration request for: test-workspace-1757076369781@example.com
+🔍 Found 0 existing users with email: test-workspace-1757076369781@example.com
+🔧 Creating user with raw SQL for: test-workspace-1757076369781@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [ { USER_ID: 1205 } ]
+✅ User created in database with ID: 1205, verification code: 915484
+📧 Sending verification email to: test-workspace-1757076369781@example.com
+✅ Verification email sent successfully: 1ed2bb0b-c384-4eee-aacf-12b916adfd51
+🔍 Email verification attempt for: test-workspace-1757076369781@example.com
 📧 Request body: {
-  "email": "test2@example.com",
-  "verificationCode": "725949"
+  "email": "test-workspace-1757076369781@example.com",
+  "verificationCode": "915484"
 }
-🔍 Looking up most recent unverified user in database for email: test2@example.com
-✅ User found - ID: 15, Email Validated: false
+🔍 Looking up most recent unverified user in database for email: test-workspace-1757076369781@example.com
+✅ Found unverified user - ID: 1205, Email: test-workspace-1757076369781@example.com
+✅ User found - ID: 1205, Email Validated: false
 🔑 Has validation token: true
-⏰ Token expiry: Sat Aug 30 2025 12:53:03 GMT-0500 (Central Daylight Time)
-🔍 Comparing codes for test2@example.com:
-📥 Provided code: 725949
-🔐 Hashed provided: 612c20c23084cb1907cf3b68b2db88e9eb54efea758b1c81165fb75b97e26808
-💾 Stored hash: 612c20c23084cb1907cf3b68b2db88e9eb54efea758b1c81165fb75b97e26808
+⏰ Token expiry: Fri Sep 05 2025 08:01:09 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for test-workspace-1757076369781@example.com:
+📥 Provided code: 915484
+🔐 Hashed provided: 349669347a48a6157e086fd197ea45191c6db172b15b1f32322c6bbffddbf7f4
+💾 Stored hash: 349669347a48a6157e086fd197ea45191c6db172b15b1f32322c6bbffddbf7f4
 ✅ Codes match: true
-✅ Email verified successfully for: test2@example.com
-👤 Completing registration for: test2@example.com
+🔧 Updating user verification status for User ID: 1205
+✅ Email verified successfully for: test-workspace-1757076369781@example.com
+👤 Completing registration for: test-workspace-1757076369781@example.com
 📋 Complete registration request body: {
-  "email": "test2@example.com",
-  "password": "Test123",
-  "fullName": "Test User Two"
+  "email": "test-workspace-1757076369781@example.com",
+  "password": "TestPassword123!",
+  "fullName": "Test User",
+  "workspaceName": "MY-CUSTOM-WORKSPACE-TEST",
+  "role": "Analyst",
+  "teamSize": "2-5",
+  "companySize": "50-99"
 }
-✅ Generated unique military call sign: ECHO-97
-🎖️ Generated military call sign: ECHO-97
+🔍 DEBUG - customWorkspaceName from request: "MY-CUSTOM-WORKSPACE-TEST"
+🔍 DEBUG - customWorkspaceName type: string
+🔍 DEBUG - customWorkspaceName truthy: true
+🎖️ Using workspace name: "MY-CUSTOM-WORKSPACE-TEST" (custom)
 ✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
-🔍 Looking up user in database for complete-registration: test2@example.com
+🔍 Looking up most recent verified user in database for complete-registration: test-workspace-1757076369781@example.com
+✅ Found most recent verified user - ID: 1205, Email: test-workspace-1757076369781@example.com, Created: Fri Sep 05 2025 07:46:09 GMT-0500 (Central Daylight Time)
 ✅ Database query successful for user lookup
-🔍 Checking user existence for: test2@example.com
-✅ User found - ID: 15, Email: test2@example.com
+🔍 Checking user existence for: test-workspace-1757076369781@example.com
+✅ Most recent verified user found - ID: 1205, Email: test-workspace-1757076369781@example.com
 📧 Email validated: true
 🔐 Has password: true
+🏢 Company ID: null
+✅ Email validation confirmed (selected only verified users)
 ✅ Email validation check passed
-ℹ️ User already has password, will update profile information for: test2@example.com
+ℹ️ User already has password, will update profile information for: test-workspace-1757076369781@example.com
 ✅ Password check passed - ready to update user
 🔐 Starting password hashing process
 ✅ Password hashed successfully
-📝 Processing name: Test User Two
-✅ Name parsed - First: Test, Last: User Two
-💾 Starting database update for user ID: 15
+📝 Processing name: Test User
+✅ Name parsed - First: Test, Last: User
+💾 Starting database update for user ID: 1205
 ✅ User updated successfully in database
-📝 Updating company info for user 15
-✅ Found existing company info record with ID: 15
-📝 Updating company info with values: {
-  companyInfoId: 15,
-  workspaceName: "ECHO-97",
-  role: "NULL",
-  teamSize: "NULL",
-  companySize: "NULL",
+📝 Updating company info for user 1205 (USER_ID type: number)
+🔍 Looking up company info for user ID: 1205 (converted from 1205)
+🎖️ New workspace name to set: MY-CUSTOM-WORKSPACE-TEST
+🔍 Company info lookup result: []
+❌ No existing company info found for user 1205
+🔍 Attempting to create missing company_info record for user 1205, company null
+prisma:error 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `515`. Message: `Cannot insert the value NULL into column 'COMPANY_ID', table 'GUARDIAN-DEV.GUARDIAN.COMPANY_INFO'; column does not allow nulls. INSERT fails.`
+❌ Complete registration error: PrismaClientKnownRequestError: 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `515`. Message: `Cannot insert the value NULL into column 'COMPANY_ID', table 'GUARDIAN-DEV.GUARDIAN.COMPANY_INFO'; column does not allow nulls. INSERT fails.`
+    at xl.handleRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
+    at xl.handleAndLogRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
+    at xl.request (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async a (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:265:9821)
+    at async /opt/homebrew/var/www/projects/Guardian MVP/server.cjs:8481:13 {
+  code: 'P2010',
+  meta: {
+    code: '515',
+    message: "Cannot insert the value NULL into column 'COMPANY_ID', table 'GUARDIAN-DEV.GUARDIAN.COMPANY_INFO'; column does not allow nulls. INSERT fails."
+  },
+  clientVersion: '6.11.1'
 }
-✅ Company info updated successfully - Updated record: {
-  COMPANY_INFO_ID: 15,
-  COMPANY_ID: 1,
-  USER_ID: 15,
-  WORKSPACE_NAME: "ECHO-97",
-  ROLE: null,
-  TEAM_SIZE: null,
-  COMPANY_SIZE: null,
-  CREATED_AT: 2025-08-30T17:38:04.013Z,
-  UPDATED_AT: 2025-08-30T17:40:30.183Z,
-}
-✅ Registration completed successfully for: test2@example.com (User ID: 15)
-🔐 Login attempt for: test2@example.com
-❌ User not found: test2@example.com
-🔐 Login attempt for: test2@example.com
-❌ User not found: test2@example.com

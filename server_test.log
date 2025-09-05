@@ -1,19 +1,98 @@
+🌍 Environment: development (Production: undefined)
 ✅ Email service initialized with Resend
 === GUARDIAN SIMPLE SERVER STARTING ===
 Node version: v24.3.0
 Environment: development
 Port: 3001
-Process PID: 9028
+Process PID: 45469
 Current working directory: /opt/homebrew/var/www/projects/Guardian MVP
 📦 Creating Prisma client...
 🔑 JWT configured
 🔌 Testing database connection...
 🔧 Development mode: Static files served by Vite on port 5175
-🚀 Starting Express server...
+🔧 Development mode: Static files served by Vite on port 5175
 🔧 Development mode: SPA routing handled by Vite dev server
+🚀 Starting Express server...
 ✅ Server running on port 3001
 🔧 Development mode: API server only
 🌐 Health check: /api/health
 🧪 Simple test: /api/simple-test
 🎉 Server startup complete!
 ✅ Database connected successfully
+📝 Registration request for: test-workspace-1757076825209@example.com
+🔍 Found 0 existing users with email: test-workspace-1757076825209@example.com
+🔧 Creating user with raw SQL for: test-workspace-1757076825209@example.com
+🔧 Insert result: 2
+🔧 Retrieved user after insert: [
+  {
+    USER_ID: 1206,
+  }
+]
+✅ User created in database with ID: 1206, verification code: 520673
+📧 Sending verification email to: test-workspace-1757076825209@example.com
+✅ Verification email sent successfully: 60bf8a77-c49e-4243-85da-518765ad05d4
+🔍 Email verification attempt for: test-workspace-1757076825209@example.com
+📧 Request body: {
+  "email": "test-workspace-1757076825209@example.com",
+  "verificationCode": "520673"
+}
+🔍 Looking up most recent unverified user in database for email: test-workspace-1757076825209@example.com
+✅ Found unverified user - ID: 1206, Email: test-workspace-1757076825209@example.com
+✅ User found - ID: 1206, Email Validated: false
+🔑 Has validation token: true
+⏰ Token expiry: Fri Sep 05 2025 08:08:45 GMT-0500 (Central Daylight Time)
+🔍 Comparing codes for test-workspace-1757076825209@example.com:
+📥 Provided code: 520673
+🔐 Hashed provided: 84713af6939169c52059e79dc0eb81866206faa01da215e6268e19f008d221ce
+💾 Stored hash: 84713af6939169c52059e79dc0eb81866206faa01da215e6268e19f008d221ce
+✅ Codes match: true
+🔧 Updating user verification status for User ID: 1206
+✅ Email verified successfully for: test-workspace-1757076825209@example.com
+👤 Completing registration for: test-workspace-1757076825209@example.com
+📋 Complete registration request body: {
+  "email": "test-workspace-1757076825209@example.com",
+  "password": "TestPassword123!",
+  "fullName": "Test User",
+  "workspaceName": "MY-CUSTOM-WORKSPACE-TEST",
+  "role": "Analyst",
+  "teamSize": "2-5",
+  "companySize": "50-99"
+}
+🔍 DEBUG - customWorkspaceName from request: "MY-CUSTOM-WORKSPACE-TEST"
+🔍 DEBUG - customWorkspaceName type: string
+🔍 DEBUG - customWorkspaceName truthy: true
+🎖️ Using workspace name: "MY-CUSTOM-WORKSPACE-TEST" (custom)
+✅ Field validation - email: true, password: true, fullName: true, workspaceName: true
+🔍 Looking up most recent verified user in database for complete-registration: test-workspace-1757076825209@example.com
+✅ Found most recent verified user - ID: 1206, Email: test-workspace-1757076825209@example.com, Created: Fri Sep 05 2025 07:53:45 GMT-0500 (Central Daylight Time)
+✅ Database query successful for user lookup
+🔍 Checking user existence for: test-workspace-1757076825209@example.com
+✅ Most recent verified user found - ID: 1206, Email: test-workspace-1757076825209@example.com
+📧 Email validated: true
+🔐 Has password: true
+🏢 Company ID: null
+✅ Email validation confirmed (selected only verified users)
+✅ Email validation check passed
+ℹ️ User already has password, will update profile information for: test-workspace-1757076825209@example.com
+✅ Password check passed - ready to update user
+🔐 Starting password hashing process
+✅ Password hashed successfully
+📝 Processing name: Test User
+✅ Name parsed - First: Test, Last: User
+💾 Starting database update for user ID: 1206
+✅ User updated successfully in database
+📝 Updating company info for user 1206 (USER_ID type: number)
+🔍 Looking up company info for user ID: 1206 (converted from 1206)
+🎖️ New workspace name to set: MY-CUSTOM-WORKSPACE-TEST
+🔍 Company info lookup result: []
+❌ No existing company info found for user 1206
+🔍 User COMPANY_ID: null
+🏢 User has null COMPANY_ID, creating new company with name: MY-CUSTOM-WORKSPACE-TEST
+✅ Created new company with ID: 74
+✅ Updated user 1206 with COMPANY_ID: 74
+🔍 Creating company_info record for user 1206, company 74
+✅ Created missing company_info record with workspace name: MY-CUSTOM-WORKSPACE-TEST
+🔧 Updating company name to custom workspace name: MY-CUSTOM-WORKSPACE-TEST
+✅ Company name updated to: MY-CUSTOM-WORKSPACE-TEST
+✅ Registration completed successfully for: test-workspace-1757076825209@example.com (User ID: 1206)
+🎖️ Using actual company call sign from database: MY-CUSTOM-WORKSPACE-TEST

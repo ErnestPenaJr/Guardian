@@ -9,6 +9,21 @@ const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+// Helper function to generate military call signs
+const generateCallSign = (): string => {
+  const callSignPrefixes = [
+    'GUARDIAN', 'SHIELD', 'DRAGON', 'PHOENIX', 'EAGLE', 'FALCON', 'WARRIOR',
+    'THUNDER', 'LIGHTNING', 'STORM', 'BLADE', 'STEEL', 'IRON', 'TITAN',
+    'VIPER', 'HAWK', 'RAVEN', 'WOLF', 'BEAR', 'LION', 'KNIGHT', 'SABER',
+    'GHOST', 'SHADOW', 'RANGER', 'SCOUT', 'HUNTER', 'ARCHER', 'SNIPER'
+  ];
+  
+  const randomPrefix = callSignPrefixes[Math.floor(Math.random() * callSignPrefixes.length)];
+  const randomNumber = Math.floor(Math.random() * 90) + 10; // Generate 2-digit number (10-99)
+  
+  return `${randomPrefix}-${randomNumber}`;
+};
+
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +48,7 @@ const VerifyEmail = () => {
     fullName: '',
     password: '',
     confirmPassword: '',
+    workspace: '',
     role: '',
     teamSize: '',
     companySize: ''
@@ -160,6 +176,12 @@ const VerifyEmail = () => {
       if (response.data.success) {
         showToast.success('Email verified successfully!');
         setVerificationComplete(true);
+        
+        // Pre-populate workspace field with generated call sign when verification is complete
+        if (!formData.workspace) {
+          const generatedCallSign = generateCallSign();
+          setFormData(prev => ({ ...prev, workspace: generatedCallSign }));
+        }
       } else {
         setError(response.data.error || 'Verification failed.');
       }
@@ -232,7 +254,7 @@ const VerifyEmail = () => {
     setError('');
     try {
       // Validate form data
-      if (!formData.fullName || !formData.password || !formData.confirmPassword) {
+      if (!formData.fullName || !formData.password || !formData.confirmPassword || !formData.workspace) {
         setError('Please fill in all required fields');
         setIsLoading(false);
         return;
@@ -247,11 +269,12 @@ const VerifyEmail = () => {
         setIsLoading(false);
         return;
       }
-      // Prepare payload for backend (workspaceName auto-generated on server)
+      // Prepare payload for backend (workspaceName provided by user)
       const payload = {
         email,
         password: formData.password,
         fullName: formData.fullName, // Send as fullName
+        workspaceName: formData.workspace, // Send custom workspace name
         role: formData.role,
         teamSize: formData.teamSize,
         companySize: formData.companySize
@@ -259,42 +282,13 @@ const VerifyEmail = () => {
       // POST to backend to complete registration
       const response = await axios.post('/api/complete-registration', payload);
       if (response.data.success) {
-        // Show success message with generated call sign
+        // Show simple success toast and redirect to login
         const callSign = response.data.callSign || 'GUARDIAN-XX';
-        await Swal.fire({
-          title: '<strong>Registration Completed!</strong>',
-          html: `
-            <div style="text-align: center; padding: 10px 0;">
-              <p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
-                Your account has been successfully created!
-              </p>
-              
-              <div style="margin: 25px auto; padding: 20px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3); max-width: 280px;">
-                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; opacity: 0.9;">
-                  🎖️ ORGANIZATION CALL SIGN
-                </div>
-                <div style="font-size: 28px; font-weight: 800; letter-spacing: 3px; font-family: 'Courier New', monospace;">
-                  ${callSign}
-                </div>
-              </div>
-              
-              <p style="margin: 20px 0 0 0; font-size: 16px; color: #374151;">
-                Please sign in to get started!
-              </p>
-            </div>
-          `,
-          icon: 'success',
-          confirmButtonText: 'Sign In',
-          confirmButtonColor: '#0D9488',
-          allowOutsideClick: false,
-          width: '480px',
-          customClass: {
-            title: 'text-h4 font-display font-bold',
-            htmlContainer: 'text-body-md',
-            confirmButton: 'font-semibold',
-            popup: 'rounded-2xl'
-          }
-        });
+        showToast.success(`Registration completed! Welcome to ${callSign}. Please sign in to continue.`);
+        
+        // Clear registration data from localStorage
+        localStorage.removeItem('registrationData');
+        
         // Redirect to login page
         navigate('/login');
       } else {
@@ -325,6 +319,10 @@ const VerifyEmail = () => {
       }
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match');
+        return;
+      }
+      if (!formData.workspace) {
+        setError('Please enter your workspace name');
         return;
       }
       if (!validatePassword(formData.password)) {
@@ -601,12 +599,22 @@ const VerifyEmail = () => {
           </div>
         </div>
         
-        {/* Workspace name auto-generated as military call sign on server */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <p className="text-blue-800 text-body-sm">
-            <strong>Your organization will be assigned a unique call sign automatically!, you can change anytime in your profile settings.</strong>
-            <br />
-            <span className="text-blue-600">Examples: GUARDIAN-42, SHIELD-87, DRAGON-23</span>
+        <div>
+          <label htmlFor="workspace" className="block text-body-sm font-medium text-gray-1 mb-2">
+            Workspace
+          </label>
+          <input
+            type="text"
+            id="workspace"
+            value={formData.workspace}
+            onChange={(e) => setFormData({ ...formData, workspace: e.target.value })}
+            placeholder="Your organization/workspace name"
+            className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+          />
+          <p className="text-gray-2 text-body-sm mt-1">
+            {formData.workspace && formData.workspace.match(/^[A-Z]+-\d{2}$/) 
+              ? 'Pre-generated call sign - you can modify this or use as-is (changeable later in settings)' 
+              : 'Enter a unique name for your workspace (you can change this later in settings)'}
           </p>
         </div>
         

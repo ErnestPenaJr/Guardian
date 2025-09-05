@@ -139,10 +139,10 @@ const AccountCreatorInviteModal: React.FC<AccountCreatorInviteModalProps> = ({
         {/* Footer */}
         <div className="border-t p-6 bg-gray-50 rounded-b-xl mb-10">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 px-2">
               You can invite team members anytime in settings/User Management page 
             </p>
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 ">
               <button
                 onClick={handleSkip}
                 disabled={isLoading}
