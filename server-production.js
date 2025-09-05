@@ -1135,7 +1135,7 @@ app.post('/api/login', async (req, res) => {
 
         // Query the database using raw SQL for GUARDIAN schema with normalized email
         const users = await prisma.$queryRaw`
-            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID
+            SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID, ACCOUNT_CREATOR_INVITE_COMPLETED
             FROM GUARDIAN.USERS 
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
         `;
@@ -1232,7 +1232,8 @@ app.post('/api/login', async (req, res) => {
                 roleIds: roleIds,
                 roleNames: roleNames,
                 role: roleNames.length > 0 ? roleNames[0] : 'user',
-                isAdmin: roleNames.includes('Admin') || roleNames.includes('Administrator')
+                isAdmin: roleNames.includes('Admin') || roleNames.includes('Administrator'),
+                accountCreatorInviteCompleted: user.ACCOUNT_CREATOR_INVITE_COMPLETED || false
             }
         });
 
@@ -13099,6 +13100,36 @@ app.post('/api/users/switch-workspace', getAuthenticatedUserCompany, async (req,
         res.status(500).json({
             success: false,
             error: 'Failed to switch workspace'
+        });
+    }
+});
+
+// Account Creator Invite Modal Completion
+app.post('/api/users/complete-account-creator-invite', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`🎯 Marking account creator invite as completed for user ${req.userId}`);
+        
+        // Update user's account creator invite completed flag
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USERS 
+            SET ACCOUNT_CREATOR_INVITE_COMPLETED = 1,
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
+            WHERE USER_ID = ${req.userId}
+        `;
+        
+        console.log(`✅ Account creator invite marked as completed for user ${req.userId}`);
+        
+        res.json({
+            success: true,
+            message: 'Account creator invite completion recorded successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error completing account creator invite:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to complete account creator invite'
         });
     }
 });

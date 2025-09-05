@@ -24,6 +24,9 @@ interface UserProfile {
     WORKSPACE_NAME: string;
     DESCRIPTION?: string;
   };
+  // Account creator invite tracking
+  ACCOUNT_CREATOR_INVITE_COMPLETED?: boolean;
+  accountCreatorInviteCompleted?: boolean;
 }
 
 // Enhanced useAuth hook with profile switching support

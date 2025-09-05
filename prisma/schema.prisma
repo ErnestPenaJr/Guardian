@@ -405,6 +405,7 @@ model USERS {
   EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
   PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
   ACTIVE_WORKSPACE_ID           Int?
+  ACCOUNT_CREATOR_INVITE_COMPLETED Boolean?    @default(false, map: "DF__USERS__ACCOUNT_CREATOR_INVITE__1B28F35F")
   COMPANY_INFO                  COMPANY_INFO[]
   
   // Add relationships for REQUESTS

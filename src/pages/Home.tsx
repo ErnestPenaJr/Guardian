@@ -32,6 +32,7 @@ import requestService from '../services/requestService';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import AddRequestModal from '../components/AddRequestModal';
 import NewRequestModal from './NewRequestModal';
+import AccountCreatorInviteModal from '../components/AccountCreatorInviteModal';
 import formService from '../services/formService';
 import noticeService from '../services/noticeService';
 import WorkspaceSelector from '../components/WorkspaceSelector';
@@ -159,6 +160,66 @@ function Home() {
     return result;
   };
   
+  // Check if user is account creator and should see invite modal
+  const checkAccountCreatorInviteModal = async () => {
+    if (hasCheckedAccountCreatorInvite) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 ===== SKIPPING ACCOUNT CREATOR INVITE CHECK - ALREADY CHECKED =====');
+        console.log('🎯 hasCheckedAccountCreatorInvite:', hasCheckedAccountCreatorInvite);
+      }
+      return;
+    }
+    
+    // Only check for admins (role ID 1 or 6) 
+    if (!isAdmin()) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 User is not admin, skipping account creator invite check');
+      }
+      setHasCheckedAccountCreatorInvite(true);
+      return;
+    }
+    
+    // Check if user has already completed the invite modal
+    if (user?.accountCreatorInviteCompleted || user?.ACCOUNT_CREATOR_INVITE_COMPLETED) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 User has already completed account creator invite modal');
+      }
+      setHasCheckedAccountCreatorInvite(true);
+      return;
+    }
+    
+    // Check if this user is the account creator (first user in their company)
+    try {
+      const companyUsers = await api.get(`/api/users/company/${user?.companyId}`);
+      const isAccountCreator = companyUsers?.data && companyUsers.data.length > 0 && 
+                              companyUsers.data[0].USER_ID === user?.id;
+      
+      if (!isAccountCreator) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🎯 User is not the account creator, skipping invite modal');
+          console.log('🎯 First user in company:', companyUsers?.data?.[0]);
+          console.log('🎯 Current user ID:', user?.id);
+        }
+        setHasCheckedAccountCreatorInvite(true);
+        return;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 ===== SHOWING ACCOUNT CREATOR INVITE MODAL =====');
+        console.log('🎯 User is account creator and hasn\'t completed invite modal');
+      }
+      
+      setShowAccountCreatorInviteModal(true);
+      setHasCheckedAccountCreatorInvite(true);
+      
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🎯 Error checking account creator status:', error);
+      }
+      setHasCheckedAccountCreatorInvite(true);
+    }
+  };
+
   // Check if user has existing form templates (for first-time admin experience)
   const checkForExistingTemplates = async () => {
     if (hasCheckedForExistingTemplates) {
@@ -476,21 +537,22 @@ function Home() {
     return unsubscribe;
   }, [subscribeToRefresh]);
   
-  // Check for existing templates when user is loaded (for first-time admin experience)
+  // Check for account creator invite and templates when user is loaded (sequential flow)
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 ===== USE EFFECT FOR TEMPLATE CHECK =====');
+      console.log('🔄 ===== USE EFFECT FOR ACCOUNT CREATOR AND TEMPLATE CHECKS =====');
       console.log('🔄 User exists:', !!user);
     }
     
     if (user) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Calling checkForExistingTemplates...');
+        console.log('🔄 Calling checkAccountCreatorInviteModal first...');
       }
-      checkForExistingTemplates();
+      // First check account creator invite, then templates
+      checkAccountCreatorInviteModal();
     } else {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Not checking templates - user not loaded');
+        console.log('🔄 Not checking - user not loaded');
       }
     }
   }, [user]);
@@ -599,6 +661,23 @@ function Home() {
   
   const handleFirstTimeWorkflowClose = () => {
     setShowFirstTimeWorkflowModal(false);
+  };
+
+  // Handle account creator invite modal completion
+  const handleAccountCreatorInviteComplete = () => {
+    setShowAccountCreatorInviteModal(false);
+    // After invite modal completes, check for form templates
+    setTimeout(() => {
+      checkForExistingTemplates();
+    }, 500);
+  };
+
+  const handleAccountCreatorInviteClose = () => {
+    setShowAccountCreatorInviteModal(false);
+    // If user closes without completing, still check templates
+    setTimeout(() => {
+      checkForExistingTemplates();
+    }, 500);
   };
 
   const navItems: NavItem[] = [
@@ -719,6 +798,10 @@ function Home() {
   // First-time admin workflow creation modal (for admins with no form templates)
   const [showFirstTimeWorkflowModal, setShowFirstTimeWorkflowModal] = useState(false);
   const [hasCheckedForExistingTemplates, setHasCheckedForExistingTemplates] = useState(false);
+  
+  // Account creator invite modal (for account creators on first login)
+  const [showAccountCreatorInviteModal, setShowAccountCreatorInviteModal] = useState(false);
+  const [hasCheckedAccountCreatorInvite, setHasCheckedAccountCreatorInvite] = useState(false);
   
   // User is already declared at the top of the component
 
@@ -1849,6 +1932,15 @@ function Home() {
         />
       )}
       
+      {/* Account Creator Invite Modal */}
+      <AccountCreatorInviteModal
+        isOpen={showAccountCreatorInviteModal}
+        onClose={handleAccountCreatorInviteClose}
+        onComplete={handleAccountCreatorInviteComplete}
+        userFirstName={user?.firstName || user?.FIRST_NAME || 'Admin'}
+        companyName={user?.companyName || 'your organization'}
+      />
+
       {/* First-time Workflow Template Creation Modal */}
       <NewRequestModal
         isOpen={showFirstTimeWorkflowModal}
