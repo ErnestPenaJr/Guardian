@@ -2072,8 +2072,8 @@ app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res)
             FROM GUARDIAN.USERS u
             LEFT JOIN GUARDIAN.COMPANY c ON u.COMPANY_ID = c.COMPANY_ID
             LEFT JOIN GUARDIAN.COMPANY_INFO ci ON u.USER_ID = ci.USER_ID AND u.COMPANY_ID = ci.COMPANY_ID
-            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'A'
-            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID AND r.STATUS = 'A'
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS IN ('A', 'P')
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID AND r.STATUS IN ('A', 'P')
             WHERE u.USER_ID = ${req.userId} AND u.COMPANY_ID = ${req.companyId}
             GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.EMAIL_VALIDATED, 
                      u.STATUS, u.CREATE_DATE, u.COMPANY_ID, c.NAME, ci.WORKSPACE_NAME
@@ -2093,6 +2093,23 @@ app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res)
             companyName: account.COMPANY_NAME
         });
         
+        // Helper function to convert status codes to display names
+        const getStatusDisplay = (status) => {
+            switch (status) {
+                case 'A': return 'Active';
+                case 'P': return 'Pending';
+                case 'I': return 'Inactive';
+                case 'D': return 'Disabled';
+                case 'X': return 'Expired';
+                case 'C': return 'Cancelled';
+                case 'U': return 'Used';
+                case 'S': return 'Suspended';
+                case 'L': return 'Locked';
+                case 'V': return 'Verified';
+                default: return 'Unknown';
+            }
+        };
+        
         // Format the response
         const response = {
             userId: account.USER_ID,
@@ -2102,7 +2119,7 @@ app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res)
             fullName: `${account.FIRST_NAME || ''} ${account.LAST_NAME || ''}`.trim(),
             emailValidated: Boolean(account.EMAIL_VALIDATED),
             status: account.STATUS,
-            statusDisplay: account.STATUS === 'A' ? 'Active' : account.STATUS === 'P' ? 'Pending' : 'Inactive',
+            statusDisplay: getStatusDisplay(account.STATUS),
             companyId: account.COMPANY_ID,
             companyName: account.COMPANY_NAME || 'Unknown Company',
             workspaceName: account.WORKSPACE_NAME,
@@ -2497,71 +2514,6 @@ app.put('/api/users/notification-preferences', getAuthenticatedUserCompany, asyn
     }
 });
 
-// Get account information endpoint
-app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        console.log(`📊 [ACCOUNT-INFO] Getting account info for user ID: ${req.userId}, company: ${req.companyId}`);
-        
-        const userResult = await prisma.$queryRawUnsafe(`
-            SELECT 
-                u.USER_ID,
-                u.EMAIL,
-                u.FIRST_NAME,
-                u.LAST_NAME,
-                u.STATUS,
-                u.EMAIL_VALIDATED,
-                u.CREATE_DATE,
-                u.COMPANY_ID,
-                c.NAME as COMPANY_NAME,
-                ci.WORKSPACE_NAME,
-                ci.ROLE as USER_ROLE
-            FROM GUARDIAN.USERS u
-            LEFT JOIN GUARDIAN.COMPANY c ON u.COMPANY_ID = c.COMPANY_ID
-            LEFT JOIN GUARDIAN.COMPANY_INFO ci ON u.USER_ID = ci.USER_ID
-            WHERE u.USER_ID = ${req.userId} AND u.COMPANY_ID = ${req.companyId}
-        `);
-        
-        if (userResult && userResult.length > 0) {
-            const user = userResult[0];
-            
-            const accountInfo = {
-                email: user.EMAIL,
-                firstName: user.FIRST_NAME || '',
-                lastName: user.LAST_NAME || '',
-                fullName: `${user.FIRST_NAME || ''} ${user.LAST_NAME || ''}`.trim() || 'Unknown User',
-                companyName: user.COMPANY_NAME || 'Unknown Company',
-                role: user.USER_ROLE || 'User',
-                status: user.STATUS === 'A' ? 'Active' : user.STATUS === 'P' ? 'Pending' : 'Inactive',
-                emailValidated: user.EMAIL_VALIDATED === true || user.EMAIL_VALIDATED === 1,
-                createDate: user.CREATE_DATE ? user.CREATE_DATE.toISOString() : new Date().toISOString(),
-                userId: user.USER_ID,
-                companyId: user.COMPANY_ID
-            };
-            
-            console.log(`✅ [ACCOUNT-INFO] Account info retrieved successfully for user ${req.userId}`);
-            res.json({
-                success: true,
-                accountInfo,
-                timestamp: new Date().toISOString()
-            });
-        } else {
-            console.log(`❌ [ACCOUNT-INFO] User not found: ${req.userId}`);
-            res.status(404).json({
-                success: false,
-                error: 'User account not found',
-                timestamp: new Date().toISOString()
-            });
-        }
-        
-    } catch (error) {
-        console.error('❌ [ACCOUNT-INFO] Error getting account info:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve account information',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
 
 // Get invites endpoint
 app.get('/api/invites', getAuthenticatedUserCompany, async (req, res) => {

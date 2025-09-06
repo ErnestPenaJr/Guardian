@@ -2,20 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
+import api from '../utils/api';
 import { 
   Settings, ArrowLeft, User, Shield, Bell, 
   Monitor, Key, Building2, Mail, Phone 
 } from 'lucide-react';
 
 interface AccountInfo {
+  userId: number;
   email: string;
   firstName: string;
   lastName: string;
   fullName: string;
-  companyName: string;
-  role: string;
-  status: string;
   emailValidated: boolean;
+  status: string;
+  statusDisplay: string;
+  companyId: number;
+  companyName: string;
+  workspaceName: string;
+  roles: string;
   createDate: string;
 }
 
@@ -32,29 +37,33 @@ const AccountSettings = () => {
         setLoading(true);
         console.log('🔄 Loading fresh account info from API...');
         
-        // Import api utility
-        const { default: api } = await import('../utils/api');
-        
         const response = await api.get('/api/users/account-info');
         
-        if (response.data.success && response.data.accountInfo) {
-          console.log('✅ Account info loaded successfully:', response.data.accountInfo);
-          setAccountInfo(response.data.accountInfo);
+        console.log('🔍 API Response received:', response.data);
+        
+        // The API returns the account data directly (not wrapped)
+        if (response.data && (response.data.userId || response.data.email)) {
+          console.log('✅ Account info loaded successfully:', response.data);
+          setAccountInfo(response.data);
         } else {
-          console.error('❌ Failed to load account info:', response.data);
+          console.error('❌ Failed to load account info - unexpected format:', response.data);
           toast.error('Failed to load account information');
           
           // Fallback to useAuth data if API fails
           if (user) {
             setAccountInfo({
+              userId: user.userId || 0,
               email: user.email || '',
               firstName: user.firstName || '',
               lastName: user.lastName || '',
               fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-              companyName: user.companyName || 'Unknown Company',
-              role: user.role || 'User',
-              status: user.status === 'A' ? 'Active' : user.status === 'P' ? 'Pending' : 'Inactive',
               emailValidated: user.emailValidated || false,
+              status: user.status || 'P',
+              statusDisplay: user.status === 'A' ? 'Active' : user.status === 'P' ? 'Pending' : 'Inactive',
+              companyId: user.companyId || 0,
+              companyName: user.companyName || 'Unknown Company',
+              workspaceName: user.workspaceName || '',
+              roles: user.role || 'User',
               createDate: user.createDate || new Date().toISOString()
             });
           }
@@ -66,14 +75,18 @@ const AccountSettings = () => {
         // Fallback to useAuth data if API fails
         if (user) {
           setAccountInfo({
+            userId: user.userId || 0,
             email: user.email || '',
             firstName: user.firstName || '',
             lastName: user.lastName || '',
             fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            companyName: user.companyName || 'Unknown Company',
-            role: user.role || 'User',
-            status: user.status === 'A' ? 'Active' : user.status === 'P' ? 'Pending' : 'Inactive',
             emailValidated: user.emailValidated || false,
+            status: user.status || 'P',
+            statusDisplay: user.status === 'A' ? 'Active' : user.status === 'P' ? 'Pending' : 'Inactive',
+            companyId: user.companyId || 0,
+            companyName: user.companyName || 'Unknown Company',
+            workspaceName: user.workspaceName || '',
+            roles: user.role || 'User',
             createDate: user.createDate || new Date().toISOString()
           });
         }
@@ -189,7 +202,7 @@ const AccountSettings = () => {
                   </label>
                   <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
                     <Shield className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.role}</span>
+                    <span className="text-gray-900">{accountInfo.roles}</span>
                   </div>
                 </div>
 
@@ -199,7 +212,7 @@ const AccountSettings = () => {
                   </label>
                   <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
                     <Monitor className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.status}</span>
+                    <span className="text-gray-900">{accountInfo.statusDisplay}</span>
                   </div>
                 </div>
 
