@@ -14,12 +14,20 @@ const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({ isOpen, onC
 
   // Fetch company information when modal opens
   const fetchCompanyInfo = useCallback(async () => {
-    if (!user?.COMPANY_ID || !isOpen) return;
+    if (!isOpen) return;
+    
+    // First, try to use company name from user object if available
+    if (user?.COMPANY_NAME || user?.companyName) {
+      setCompanyName(user.COMPANY_NAME || user.companyName);
+      return;
+    }
     
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/company/${user.COMPANY_ID}`, {
+      
+      // Use the account-info endpoint which includes company name from COMPANY.NAME table
+      const response = await fetch('/api/users/account-info', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -28,23 +36,26 @@ const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({ isOpen, onC
       
       if (response.ok) {
         const data = await response.json();
-        // Try to get company name from various possible sources
-        const name = data.companyName || data.COMPANY_NAME || data.name || data.NAME || `Company ${user.COMPANY_ID}`;
+        console.log('Account info response:', data);
+        
+        // Get company name from the response (COMPANY_NAME comes from GUARDIAN.COMPANY.NAME)
+        const name = data.companyName || data.COMPANY_NAME || user?.WORKSPACE_NAME || `Company ${user?.companyId || user?.COMPANY_ID}`;
         setCompanyName(name);
       } else {
-        // Fallback if API call fails
-        setCompanyName(`Company ${user.COMPANY_ID}`);
+        console.error('Failed to fetch account info:', response.status);
+        // Fallback to workspace name or generic company name
+        setCompanyName(user?.WORKSPACE_NAME || `Company ${user?.companyId || user?.COMPANY_ID}`);
       }
     } catch (error) {
-      console.error('Error fetching company info:', error);
-      setCompanyName(`Company ${user.COMPANY_ID}`);
+      console.error('Error fetching account info:', error);
+      setCompanyName(user?.WORKSPACE_NAME || `Company ${user?.companyId || user?.COMPANY_ID}`);
     } finally {
       setLoading(false);
     }
-  }, [user?.COMPANY_ID, isOpen]);
+  }, [user?.COMPANY_NAME, user?.companyName, user?.WORKSPACE_NAME, user?.companyId, user?.COMPANY_ID, isOpen]);
 
   useEffect(() => {
-    if (isOpen && user?.COMPANY_ID) {
+    if (isOpen) {
       fetchCompanyInfo();
     }
   }, [isOpen, fetchCompanyInfo]);
@@ -89,25 +100,35 @@ const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({ isOpen, onC
   // Extract user data with fallbacks for different possible property names
   const firstName = getUserProperty(user.FIRST_NAME, user.firstName, '');
   const lastName = getUserProperty(user.LAST_NAME, user.lastName, '');
-  const fullName = getUserProperty(user.FULL_NAME, user.fullName, `${firstName} ${lastName}`.trim());
+  const fullName = getUserProperty(user.FULL_NAME, user.fullName, `${firstName} ${lastName}`.trim() || 'Name not available');
   const email = getUserProperty(user.EMAIL, user.email, '');
   const userId = getUserProperty(user.USER_ID, user.userId || user.id, '');
   const companyId = getUserProperty(user.COMPANY_ID, user.companyId, '');
 
-  // Format user role display
-  const displayRole = user.ROLE_NAMES || user.roles?.[0]?.displayName || user.roles?.[0]?.name || 'User';
+  // Format user role display - check for Super Admin (role ID 6) and Admin (role ID 1)
+  const isSuperAdmin = user.roleIds?.includes(6) || user.roles?.some((role: any) => role.id === 6);
+  const isRegularAdmin = user.roleIds?.includes(1) || user.roles?.some((role: any) => role.id === 1);
+  const isAnyAdmin = isSuperAdmin || isRegularAdmin;
   
-  // Format last login - since we don't have LAST_LOGIN in DB, show account creation or current session
+  const displayRole = isSuperAdmin 
+    ? 'Super Admin' 
+    : isRegularAdmin 
+      ? 'Admin' 
+      : user.roles?.[0]?.displayName || user.roles?.[0]?.name || 'User';
+  
+  // Format last login - show current date/time as current session
   const lastLogin = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   });
 
-  // Account status - if user object exists and has USER_ID, they're active
-  const accountStatus = (userId && userId !== 'N/A') ? 'Active' : 'Inactive';
+  // Account status - Since STATUS field is missing from auth context, use role-based logic
+  // If user has roles and is logged in, they're active
+  const accountStatus = (user.roles && user.roles.length > 0 && user.userId) ? 'Active' : 'Inactive';
   const isVerified = true; // Would be determined by actual verification status
 
   // Display company name with fallback
