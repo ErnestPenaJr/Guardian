@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  LogOut, User, Settings, KeyRound, Bell, SunMoon, FileText, Monitor,
+  LogOut, User, FileText,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
-  AlertTriangle, Clock, Building2
+  Building2, Settings, KeyRound, Bell, SunMoon
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -28,10 +28,12 @@ import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import NoticesLandingPage from './NoticesLandingPage';
 import requestService from '../services/requestService';
-import WorkflowManagementModal from '../components/WorkflowManagementModal';
-import AddRequestModal from '../components/AddRequestModal';
 import NewRequestModal from './NewRequestModal';
 import AccountCreatorInviteModal from '../components/AccountCreatorInviteModal';
+import AccountSettingsModal from '../components/AccountSettingsModal';
+import UpdateProfileModal from '../components/UpdateProfileModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
+import NotificationPreferencesModal from '../components/NotificationPreferencesModal';
 import formService from '../services/formService';
 import noticeService from '../services/noticeService';
 import WorkspaceSelector from '../components/WorkspaceSelector';
@@ -494,7 +496,11 @@ function Home() {
 
   const handleThemeChange = (value: 'light' | 'dark' | 'system') => setTheme(value);
 
-  // --- User Profile Dropdown State ---
+  // --- User Profile Modal State ---
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showUpdateProfile, setShowUpdateProfile] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showNotificationPreferences, setShowNotificationPreferences] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   
@@ -569,39 +575,7 @@ function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [profileMenuOpen]);
 
-  // --- Theme Dropdown State ---
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const [themeMenuDirection, setThemeMenuDirection] = useState<'left' | 'right'>('right');
-  const themeMenuRef = useRef<HTMLDivElement>(null);
-  const themeButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Dynamic direction for theme dropdown
-  const handleThemeMenuOpen = () => {
-    if (themeButtonRef.current) {
-      const rect = themeButtonRef.current.getBoundingClientRect();
-      const spaceRight = window.innerWidth - rect.right;
-      const dropdownWidth = 170; // px, estimate
-      if (spaceRight < dropdownWidth) {
-        setThemeMenuDirection('left');
-      } else {
-        setThemeMenuDirection('right');
-      }
-    }
-    setThemeMenuOpen(true);
-  };
-
-  useEffect(() => {
-    if (!themeMenuOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
-        setThemeMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [themeMenuOpen]);
+  // Theme menu state removed - now handled by UserProfileModal
 
   // --- User Profile Dropdown State ---
   const handleSendInvite = () => {
@@ -1310,51 +1284,66 @@ function Home() {
           {/* Dropdown Menu */}
           {profileMenuOpen && (
             <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-sm border-t-4 border-t-secondary py-2 z-50 border border-gray-100 animate-fade-in">
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/account-settings')}>
+              <button 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setShowAccountSettings(true);
+                }}
+              >
                 <Settings size={16} /> Account Settings
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/update-profile')}>
+              <button 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setShowUpdateProfile(true);
+                }}
+              >
                 <User size={16} /> Update Profile
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/change-password')}>
+              <button 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setShowChangePassword(true);
+                }}
+              >
                 <KeyRound size={16} /> Change Password
               </button>
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" onClick={() => navigate('/notification-preferences')}>
+              <button 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setShowNotificationPreferences(true);
+                }}
+              >
                 <Bell size={16} /> Notification Preferences
               </button>
-              {/* Theme Nested Dropdown */}
-              <div className="relative" ref={themeMenuRef}>
-                <button
-                  ref={themeButtonRef}
-                  className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm"
-                  onClick={() => { handleThemeMenuOpen(); }}
-                  onMouseEnter={handleThemeMenuOpen}
-                  onMouseLeave={() => setThemeMenuOpen(false)}
-                  aria-haspopup="menu"
-                  aria-expanded={themeMenuOpen}
-                  type="button"
-                >
-                  <SunMoon size={16} /> Theme
-                  <svg className="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                </button>
-                {themeMenuOpen && (
-                  <div
-                    className={`absolute ${themeMenuDirection==='right' ? 'left-full ml-1' : 'right-full mr-1'} top-0 mt-0 w-40 bg-white rounded-lg shadow-sm border-t-4 border-t-secondary border border-gray-100 py-1 z-50 animate-fade-in`}
-                    onMouseEnter={handleThemeMenuOpen}
-                    onMouseLeave={() => setThemeMenuOpen(false)}
-                    role="menu"
-                  >
-                    <button className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 ${theme==='light'?'font-bold text-primary':'text-gray-700'}`} onClick={() => {handleThemeChange('light'); setThemeMenuOpen(false);}}>
-                      <SunMoon size={16} /> Light {theme==='light' && <span className="ml-auto">✓</span>}
-                    </button>
-                    <button className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 ${theme==='dark'?'font-bold text-primary':'text-gray-700'}`} onClick={() => {handleThemeChange('dark'); setThemeMenuOpen(false);}}>
-                      <SunMoon size={16} /> Dark {theme==='dark' && <span className="ml-auto">✓</span>}
-                    </button>
-                    <button className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-100 ${theme==='system'?'font-bold text-primary':'text-gray-700'}`} onClick={() => {handleThemeChange('system'); setThemeMenuOpen(false);}}>
-                      <Monitor size={16} /> System {theme==='system' && <span className="ml-auto">✓</span>}
-                    </button>
+              <div className="relative">
+                <div className="px-4 py-2 text-gray-700 text-sm font-medium border-t pt-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <SunMoon size={16} /> Theme
                   </div>
-                )}
+                  <div className="ml-6 space-y-1">
+                    {['light', 'dark', 'system'].map((themeOption) => (
+                      <button
+                        key={themeOption}
+                        className={`w-full text-left px-2 py-1 rounded text-xs ${
+                          theme === themeOption 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        onClick={() => {
+                          handleThemeChange(themeOption as 'light' | 'dark' | 'system');
+                          localStorage.setItem('theme', themeOption);
+                        }}
+                      >
+                        {themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="border-t my-2" />
               <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-sm" onClick={handleLogout}>
@@ -1940,6 +1929,27 @@ function Home() {
         isOpen={showFirstTimeWorkflowModal}
         onClose={handleFirstTimeWorkflowClose}
         onSave={handleFirstTimeWorkflowSave}
+      />
+      
+      {/* Individual User Profile Modals */}
+      <AccountSettingsModal
+        isOpen={showAccountSettings}
+        onClose={() => setShowAccountSettings(false)}
+      />
+      
+      <UpdateProfileModal
+        isOpen={showUpdateProfile}
+        onClose={() => setShowUpdateProfile(false)}
+      />
+      
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
+      
+      <NotificationPreferencesModal
+        isOpen={showNotificationPreferences}
+        onClose={() => setShowNotificationPreferences(false)}
       />
       
       {/* Debug: Show modal state in UI */}

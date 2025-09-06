@@ -6230,3 +6230,129 @@ AggregateError [ECONNREFUSED]:
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
+6:45:43 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:45:43 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:45:57 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:45:57 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/requests/assigned/me?
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/roles/all
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/notices/my
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/users/workspaces
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:46:00 AM [vite] http proxy error: /api/roles
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+6:48:30 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:30 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/requests
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/roles/all
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/requests/assigned/me?
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/notices/my
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/users/workspaces
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+6:48:35 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:48:35 AM [vite] http proxy error: /api/roles
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:49:05 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+6:49:05 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:02:35 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:02:46 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:03:31 AM [vite] (client) hmr update /src/components/UserProfileModal.tsx, /src/index.css
+7:03:45 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:04:10 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:08:30 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:11:21 AM [vite] (client) hmr update /src/components/UserProfileModal.tsx, /src/index.css
+7:12:08 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:46:55 AM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+7:47:37 AM [vite] (client) hmr update /src/components/UpdateProfileModal.tsx, /src/index.css
+7:47:45 AM [vite] (client) hmr update /src/components/UpdateProfileModal.tsx, /src/index.css
+7:47:58 AM [vite] (client) hmr update /src/components/UserProfileModal.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:51:32 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:51:36 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:51:47 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:52:03 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:52:17 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:52:23 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:52:30 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
+7:52:38 AM [vite] (client) hmr update /src/components/AccountSettingsModal.tsx, /src/index.css
