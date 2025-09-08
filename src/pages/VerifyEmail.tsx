@@ -506,7 +506,7 @@ const VerifyEmail = () => {
 
   const renderPersonalInfoForm = () => (
     <>
-      <h1 className="text-h3 font-display font-bold text-center mb-8">Complete Your Registration</h1>
+      <h1 className="text-h5 font-display font-bold text-center mb-8">Complete Your Registration</h1>
       
       <form onSubmit={handleFormSubmit} className="space-y-6">
         <div>

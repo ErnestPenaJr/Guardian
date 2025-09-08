@@ -143,7 +143,8 @@ function Login() {
             htmlContainer: 'swal2-html-container',
             confirmButton: 'swal2-confirm'
           },
-          buttonsStyling: true,
+          buttonsStyling: false,
+          confirmButtonColor: '#032424',
           allowOutsideClick: false
         });
         return;
@@ -168,7 +169,8 @@ function Login() {
             htmlContainer: 'swal2-html-container',
             confirmButton: 'swal2-confirm'
           },
-          buttonsStyling: true,
+          buttonsStyling: false,
+          confirmButtonColor: '#032424',
           allowOutsideClick: false
         });
         return;
@@ -209,7 +211,8 @@ function Login() {
           title: 'swal2-title',
           htmlContainer: 'swal2-html-container'
         },
-        buttonsStyling: true
+        buttonsStyling: false,
+        confirmButtonColor: '#032424'
       });
       
       // Redirect to home page after successful login
@@ -256,7 +259,8 @@ function Login() {
                 htmlContainer: 'swal2-html-container',
                 confirmButton: 'swal2-confirm'
               },
-              buttonsStyling: true,
+              buttonsStyling: false,
+              confirmButtonColor: '#032424',
               returnFocus: false
             });
           }
@@ -277,7 +281,8 @@ function Login() {
                 htmlContainer: 'swal2-html-container',
                 confirmButton: 'swal2-confirm'
               },
-              buttonsStyling: true,
+              buttonsStyling: false,
+              confirmButtonColor: '#032424',
               allowOutsideClick: false,
               allowEscapeKey: false,
               returnFocus: false
@@ -308,7 +313,8 @@ function Login() {
               htmlContainer: 'swal2-html-container',
               confirmButton: 'swal2-confirm'
             },
-            buttonsStyling: true,
+            buttonsStyling: false,
+            confirmButtonColor: '#032424',
             returnFocus: false
           });
         }
@@ -329,7 +335,8 @@ function Login() {
               htmlContainer: 'swal2-html-container',
               confirmButton: 'swal2-confirm'
             },
-            buttonsStyling: true,
+            buttonsStyling: false,
+            confirmButtonColor: '#032424',
             returnFocus: false
           });
         }
@@ -373,9 +380,9 @@ function Login() {
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-8">
             <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-            <span className="text-h4 font-display font-bold text-primary">Guardian</span>
+            <span className="text-h4 font-display font-bold text-black">Guardian</span>
           </div>
-          <h1 className="text-h2 font-display font-bold mb-1">Welcome Back</h1>
+          <h1 className="text-h5 font-display font-bold mb-1">Welcome Back</h1>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">

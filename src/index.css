@@ -45,6 +45,36 @@
   padding: 0 !important;
 }
 
+/* Custom SweetAlert2 button styling */
+.swal2-confirm {
+  background-color: #032424 !important;
+  border: 1px solid #032424 !important;
+  color: white !important;
+  padding: 0.625em 1.1em !important;
+  border-radius: 0.25em !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.1s ease-in-out !important;
+}
+
+.swal2-confirm:hover {
+  background-color: #041d1d !important;
+  border-color: #041d1d !important;
+  transform: scale(1.02) !important;
+}
+
+.swal2-confirm:focus {
+  background-color: #032424 !important;
+  border-color: #032424 !important;
+  box-shadow: 0 0 0 3px rgba(3, 36, 36, 0.25) !important;
+  outline: none !important;
+}
+
+.swal2-confirm:active {
+  background-color: #021b1b !important;
+  transform: scale(0.98) !important;
+}
+
 /* Guardian Invite Acceptance Delightful Animations */
 @keyframes celebrationBounce {
   0%, 20%, 53%, 80%, 100% {
