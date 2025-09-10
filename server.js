@@ -3342,6 +3342,20 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
             });
         }
 
+        // Check if user has permission to assign requests (Admin, Manager, Processor, or Super Admin)
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID 
+            FROM GUARDIAN.USER_ROLES ur 
+            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+        `;
+        
+        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+        if (!isAdmin) {
+            return res.status(403).json({
+                error: 'Insufficient permissions for assignment operations'
+            });
+        }
+
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
             SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
@@ -5317,6 +5331,22 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
             return res.status(400).json({
                 error: 'Valid task ID is required'
             });
+        }
+
+        // Check if user has permission for task assignment operations (Admin, Manager, Processor, or Super Admin)
+        if (assignedUserId !== undefined) {
+            const userRoles = await prisma.$queryRaw`
+                SELECT ur.ROLE_ID 
+                FROM GUARDIAN.USER_ROLES ur 
+                WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
+            `;
+            
+            const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
+            if (!isAdmin) {
+                return res.status(403).json({
+                    error: 'Insufficient permissions for assignment operations'
+                });
+            }
         }
 
         // Verify task exists and belongs to user's company

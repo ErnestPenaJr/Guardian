@@ -250,8 +250,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       return false;
     }
     
-    // Role IDs that can assign requests: Admin(1), User(2), Manager(3), Super Admin(6)
-    const assignmentRoles = [1, 2, 3, 6];
+    // Role IDs that can assign requests: Admin(1), Manager(3), Processor(4), Super Admin(6)
+    const assignmentRoles = [1, 3, 4, 6];
     
     // Check if user has roles array (from login API response)
     if (currentUser.roles && Array.isArray(currentUser.roles)) {
