@@ -811,6 +811,8 @@ app.get('/api/debug/endpoints', (req, res) => {
 const getAuthenticatedUserCompany = async (req, res, next) => {
     try {
         console.log(`🔍 [AUTH] Processing request for: ${req.method} ${req.path}`);
+        console.log(`🔍 [AUTH] All headers:`, JSON.stringify(req.headers, null, 2));
+        console.log(`🔍 [AUTH] Original URL: ${req.originalUrl}, Base URL: ${req.baseUrl}`);
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             console.error(`❌ [AUTH] No valid auth header found for ${req.path}:`, authHeader ? authHeader.substring(0, 20) + '...' : 'null');
