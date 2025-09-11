@@ -791,13 +791,14 @@ app.get('/api/debug/serve-asset/:filename', (req, res) => {
 app.get('/api/debug/endpoints', (req, res) => {
     res.json({
         success: true,
-        message: 'Development server running latest code with all endpoints',
+        message: 'Production server with manager assignment permissions deployed',
         timestamp: new Date().toISOString(),
-        version: '2.0.0',
+        version: '2.1.0',
         endpoints: [
             '/api/me', '/api/users', '/api/users/company/:companyId', '/api/invites', 
             '/api/contact-groups', '/api/contact-groups/:id', '/api/contact-groups/:id/members',
-            '/api/roles', '/api/requests', '/api/requests/:id', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
+            '/api/roles', '/api/requests', '/api/requests/:id', '/api/requests/assigned/me', '/api/requests/:requestId/assign',
+            '/api/tasks', '/api/tasks/:taskId', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/custom-templates', '/api/custom-templates/:id',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
             '/api/validate-email', '/api/send-verification-email', 
