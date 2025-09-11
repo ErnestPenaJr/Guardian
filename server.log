@@ -1774,3 +1774,31 @@ Timed out fetching a new connection from the connection pool. More info: http://
   componentStack: "undefined...",
 }
 📧 Development mode - Error email NOT sent (logged only)
+📧 Error email request received: {
+  errorType: "javascript",
+  mainError: "No internet connection detected",
+  pageName: "Login",
+  url: "http://localhost:5175/login",
+  userId: undefined,
+  isProduction: false,
+  timestamp: "2025-09-11T08:02:49.257Z",
+}
+🚨 Application Error Captured: {
+  type: "JAVASCRIPT",
+  message: "No internet connection detected",
+  page: "Login",
+  function: "ErrorManager",
+  line: 0,
+  file: "/login",
+  url: "http://localhost:5175/login",
+  userId: undefined,
+  email: undefined,
+  userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0....",
+  stackTrace: "Error: No internet connection detected\n    at ErrorManager.reportError (http://localhost:5175/src/services/ErrorManager.ts:314:33)\n    at ErrorManager.handleNetworkError (http://localhost:5175/src/services/ErrorManager.ts:162:10)\n    at http://localhost:5175/src/services/ErrorManager.ts:75:12...",
+  timestamp: "2025-09-11T08:02:49.257Z",
+  apiEndpoint: undefined,
+  apiMethod: undefined,
+  apiStatusCode: undefined,
+  componentStack: "undefined...",
+}
+📧 Development mode - Error email NOT sent (logged only)
