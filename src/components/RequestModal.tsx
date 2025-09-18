@@ -912,17 +912,13 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const handleCancelRequest = async () => {
     try {
       setWorkActionLoading(true);
-      const response = await api.put(`/api/requests/${request.REQUEST_ID}`, {
-        status: 'Cancelled'
+      await api.post(`/api/requests/${request.REQUEST_ID}/cancel`, {
+        cancellationReason: 'Request cancelled by user'
       });
       
-      if (response.data && response.data.success) {
-        toast.success('Request cancelled successfully');
-        onUpdate(); // Refresh parent component
-        onHide(); // Close modal
-      } else {
-        toast.error('Failed to cancel request');
-      }
+      toast.success('Request cancelled successfully');
+      onUpdate(); // Refresh parent component
+      onHide(); // Close modal
     } catch (error: any) {
       console.error('Error cancelling request:', error);
       toast.error(error.response?.data?.error || 'Failed to cancel request');

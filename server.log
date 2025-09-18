@@ -1802,3 +1802,451 @@ Timed out fetching a new connection from the connection pool. More info: http://
   componentStack: "undefined...",
 }
 📧 Development mode - Error email NOT sent (logged only)
+🔐 Login attempt for: Ernest@shieldlytics.com
+🔍 Login database query result for Ernest@shieldlytics.com: {
+  USER_ID: 1176,
+  EMAIL: "ernest@shieldlytics.com",
+  FIRST_NAME: "Ernest",
+  LAST_NAME: "Pena Jr",
+  PASSWORD_HASH: "$2b$12$9GAr0NHemruBv2B6jz.5feGomXNHoeAXy9VyGO.QS8lxubT7RFaSW",
+  STATUS: "A",
+  COMPANY_ID: 54,
+  ACCOUNT_CREATOR_INVITE_COMPLETED: true,
+}
+✅ Login successful for: Ernest@shieldlytics.com (User ID: 1176, Company: 54)
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/roles/all
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/notices/my
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/users/workspaces
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🏢 User 1176 active workspace: None
+✅ Found 1 requests in database (query took 169ms)
+📤 Sending 1 formatted requests to frontend
+✅ Authentication successful for user 1176 in company 54
+🎭 Fetching all roles for role switcher...
+✅ Authentication successful for user 1176 in company 54
+📢 Fetching my notices for user 1176 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching workspaces for user 1176
+✅ Found 0 notices for user
+🔍 [AUTH] Processing request for: GET /api/notices/stats
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ User has 1 unread notifications
+✅ Found 0 workspaces for user 1176
+✅ Found 5 roles for role switcher
+📤 Sending 5 roles for role switcher
+✅ Authentication successful for user 1176 in company 54
+📊 Fetching notice statistics for user 1176 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+✅ Retrieved 1 assigned requests in 87ms
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Notice stats: {
+  totalNotices: 0,
+  unreadNotices: 0,
+  issuedByMe: 0,
+  activeNotices: 0,
+}
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+✅ Retrieved 1 assigned requests in 101ms
+🔍 [AUTH] Processing request for: GET /api/requests/173/form
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/173/tasks
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/173/attachments
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/173/milestones
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching tasks for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📎 Fetching attachments for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+🏗️ Fetching milestones for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching form for request 173 (Company: 54)
+🔍 Querying for request 173 in company 54
+🏢 User 1176 active workspace: None
+✅ Authentication successful for user 1176 in company 54
+ [DEBUG] Fetching users for company ID: 54
+ [DEBUG] Request user info: {
+  userId: 1176,
+  companyId: 54,
+  userRoleIds: [ 6 ],
+}
+✅ Found 0 tasks for request 173
+🔍 [AUTH] Processing request for: GET /api/requests/173/tasks
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 1 requests in database (query took 109ms)
+📤 Sending 1 formatted requests to frontend
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1056
+🔍 Querying for form 1056 (company-specific or global)
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+ [DEBUG] Total users in database: 16
+ [DEBUG] All users by company: [
+  "smcampion  (Company: null, Status: P)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Colin  (Company: 76, Status: A)", "Andrea  (Company: 81, Status: A)", "Drea Manager (Company: 81, Status: A)",
+  "Drea Processor (Company: 81, Status: A)", "RD3  (Company: 82, Status: A)", "RDV  (Company: 83, Status: A)",
+  "Dee Cee (Company: 83, Status: A)", "Support Shield (Company: 83, Status: A)", "Sean  (Company: 84, Status: A)",
+  "rd  (Company: 85, Status: A)", "Luke Skywalker (Company: 86, Status: A)", "Joel Upright (Company: 86, Status: A)",
+  "Wade Wilson (Company: 86, Status: A)", "Sean Boyce (Company: 87, Status: A)"
+]
+✅ Found 0 attachments for request 173
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching tasks for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🔍 [AUTH] Processing request for: GET /api/requests/173/attachments
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+ [DEBUG] Found 1 users for company 54
+✅ Found 4 milestones for request 173 (Page 1/1)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1056 using junction table
+✅ Authentication successful for user 1176 in company 54
+📎 Fetching attachments for request 173 (Company: 54)
+🏢 User 1176 active workspace: None
+✅ Found 5 form-specific fields for form 1056
+🔍 Checking for existing form instance for request 173
+🔍 [AUTH] Processing request for: GET /api/requests/173/milestones
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 0 tasks for request 173
+✅ Found 1 requests in database (query took 366ms)
+📤 Sending 1 formatted requests to frontend
+🔍 Fetching form instance for request 173
+📋 Found existing form instance: 1104
+✅ Authentication successful for user 1176 in company 54
+🏗️ Fetching milestones for request 173 (Company: 54)
+✅ Found 0 attachments for request 173
+📊 Found 5 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 173 with form 1056 containing 5 fields
+📤 Sending form data for request 173 to frontend
+🔍 [AUTH] Processing request for: GET /api/requests/173/form
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching form for request 173 (Company: 54)
+🔍 Querying for request 173 in company 54
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1056
+🔍 Querying for form 1056 (company-specific or global)
+✅ Found 4 milestones for request 173 (Page 1/1)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1056 using junction table
+✅ Found 5 form-specific fields for form 1056
+🔍 Checking for existing form instance for request 173
+🔍 Fetching form instance for request 173
+📋 Found existing form instance: 1104
+📊 Found 5 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 173 with form 1056 containing 5 fields
+📤 Sending form data for request 173 to frontend
+🔍 [AUTH] Processing request for: POST /api/requests/173/cancel
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+❌ Cancelling request 173 by user 1176
+📝 Adding cancellation reason for request 173
+prisma:error 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `515`. Message: `Cannot insert the value NULL into column 'USER_ID', table 'GUARDIAN-DEV.GUARDIAN.WORK_PROGRESS'; column does not allow nulls. INSERT fails.`
+⚠️ Failed to create cancellation progress entry (continuing): 141 | `)}
+142 | 
+143 | We suggest to move the contents of ${Je(a)} to ${Je(o)} to consolidate your env vars.
+144 | `;throw new Error(c)}else if(r==="warn"){let c=`Conflict for env var${s.length>1?"s":""} ${s.map(l=>be(l)).join(", ")} in ${Je(o)} and ${Je(a)}
+145 | Env vars from ${Je(a)} overwrite the ones from ${Je(o)}
+146 |       `;console.warn(`${nr("warn(prisma)")} ${c}`)}}}}function kC(t){if(HT(t)){Su(`Environment variables loaded from ${t}`);let e=bu.default.config({path:t,debug:process.env.DOTENV_CONFIG_DEBUG?!0:void 0});return{dotenvResult:xC(e),message:nn(`Environment variables loaded from ${rA.default.relative(process.cwd(),t)}`),path:t}}else Su(`Environment variables not found at ${t}`);return null}function UC(t,e){return t&&e&&rA.default.resolve(t)===rA.default.resolve(e)}function HT(t){return!!(t&&Oo.default.existsSync(t))}function Nu(t,e){return Object.prototype.hasOwnProperty.call(t,e)}function nA(t,e){let r={};for(let n of Object.keys(t))r[n]=e(t[n],n);return r}function Fu(t,e){if(t.length===0)return;let r=t[0];for(let n=1;n<t.length;n++)e(r,t[n])<0&&(r=t[n]);return r}function M(t,e){Object.defineProperty(t,"name",{value:e,configurable:!0})}var LC=new Set,Fi=(t,e,...r)=>{LC.has(t)||(LC.add(t),mu(e,...r))};var Z=class t extends Error{clientVersion;errorCode;retryable;constructor(e,r,n){super(e),this.name="PrismaClie
+
+PrismaClientKnownRequestError: 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `515`. Message: `Cannot insert the value NULL into column 'USER_ID', table 'GUARDIAN-DEV.GUARDIAN.WORK_PROGRESS'; column does not allow nulls. INSERT fails.`
+       meta: {
+  code: "515",
+  message: "Cannot insert the value NULL into column 'USER_ID', table 'GUARDIAN-DEV.GUARDIAN.WORK_PROGRESS'; column does not allow nulls. INSERT fails.",
+},
+ clientVersion: "6.11.1",
+       code: "P2010"
+
+      at new PrismaClientKnownRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:146:1352)
+      at handleRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:7461)
+      at handleAndLogRequestError (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6785)
+      at request (/opt/homebrew/var/www/projects/Guardian MVP/node_modules/@prisma/client/runtime/binary.js:256:6492)
+
+✅ System milestone created with ID: 156
+🏁 Request cancellation milestone created for request 173
+❌ Request 173 cancelled successfully
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+🏢 User 1176 active workspace: None
+✅ Found 1 requests in database (query took 108ms)
+📤 Sending 1 formatted requests to frontend
+✅ Retrieved 1 assigned requests in 80ms
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+✅ Retrieved 1 assigned requests in 82ms
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 1 unread notifications
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🏢 User 1176 active workspace: None
+✅ Retrieved 1 assigned requests in 58ms
+✅ Found 1 requests in database (query took 116ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🏢 User 1176 active workspace: None
+✅ Found 1 requests in database (query took 106ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🏢 User 1176 active workspace: None
+✅ Found 1 requests in database (query took 101ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/notices/my
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📢 Fetching my notices for user 1176 (Company: 54)
+✅ Found 0 notices for user
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/assigned/me
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching assigned requests for user ID: 1176 (Company: 54)
+🏢 User 1176 active workspace: None
+✅ Retrieved 1 assigned requests in 62ms
+✅ Found 1 requests in database (query took 104ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🏢 User 1176 active workspace: None
+✅ Found 1 requests in database (query took 135ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🏢 User 1176 active workspace: None
+✅ Found 1 requests in database (query took 124ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 1 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 1 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 1 unread notifications
+🔍 [AUTH] Processing request for: GET /api/requests/173/form
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/173/tasks
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/173/milestones
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/requests/173/attachments
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+🔍 [AUTH] Processing request for: GET /api/users
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+ [DEBUG] Fetching users for company ID: 54
+ [DEBUG] Request user info: {
+  userId: 1176,
+  companyId: 54,
+  userRoleIds: [ 6 ],
+}
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching form for request 173 (Company: 54)
+🔍 Querying for request 173 in company 54
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching tasks for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+🏗️ Fetching milestones for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📎 Fetching attachments for request 173 (Company: 54)
+ [DEBUG] Total users in database: 16
+ [DEBUG] All users by company: [
+  "smcampion  (Company: null, Status: P)", "Ernest Pena Jr (Company: 54, Status: A)",
+  "Colin  (Company: 76, Status: A)", "Andrea  (Company: 81, Status: A)", "Drea Manager (Company: 81, Status: A)",
+  "Drea Processor (Company: 81, Status: A)", "RD3  (Company: 82, Status: A)", "RDV  (Company: 83, Status: A)",
+  "Dee Cee (Company: 83, Status: A)", "Support Shield (Company: 83, Status: A)", "Sean  (Company: 84, Status: A)",
+  "rd  (Company: 85, Status: A)", "Luke Skywalker (Company: 86, Status: A)", "Joel Upright (Company: 86, Status: A)",
+  "Wade Wilson (Company: 86, Status: A)", "Sean Boyce (Company: 87, Status: A)"
+]
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1056
+🔍 Querying for form 1056 (company-specific or global)
+🏢 User 1176 active workspace: None
+ [DEBUG] Found 1 users for company 54
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1056 using junction table
+✅ Found 1 requests in database (query took 123ms)
+📤 Sending 1 formatted requests to frontend
+🔍 [AUTH] Processing request for: GET /api/requests
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 0 attachments for request 173
+🔍 [AUTH] Processing request for: GET /api/requests/173/attachments
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 5 form-specific fields for form 1056
+🔍 Checking for existing form instance for request 173
+✅ Found 5 milestones for request 173 (Page 1/1)
+🔍 [AUTH] Processing request for: GET /api/requests/173/milestones
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+📎 Fetching attachments for request 173 (Company: 54)
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching requests for company ID: 54
+🔍 Fetching form instance for request 173
+📋 Found existing form instance: 1104
+✅ Authentication successful for user 1176 in company 54
+🏗️ Fetching milestones for request 173 (Company: 54)
+🏢 User 1176 active workspace: None
+📊 Found 5 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 173 with form 1056 containing 5 fields
+📤 Sending form data for request 173 to frontend
+🔍 [AUTH] Processing request for: GET /api/requests/173/form
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 0 tasks for request 173
+🔍 [AUTH] Processing request for: GET /api/requests/173/tasks
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Found 0 attachments for request 173
+✅ Found 1 requests in database (query took 114ms)
+📤 Sending 1 formatted requests to frontend
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching form for request 173 (Company: 54)
+🔍 Querying for request 173 in company 54
+✅ Authentication successful for user 1176 in company 54
+📋 Fetching tasks for request 173 (Company: 54)
+🔍 Found 1 requests matching criteria
+✅ Found request with FORM_ID: 1056
+🔍 Querying for form 1056 (company-specific or global)
+✅ Found 5 milestones for request 173 (Page 1/1)
+🔍 Found 1 forms matching criteria
+🔍 Querying fields for form 1056 using junction table
+✅ Found 0 tasks for request 173
+✅ Found 5 form-specific fields for form 1056
+🔍 Checking for existing form instance for request 173
+🔍 Fetching form instance for request 173
+📋 Found existing form instance: 1104
+📊 Found 5 existing field values
+📈 Form status: in_progress (0/0 required fields filled)
+✅ Found request 173 with form 1056 containing 5 fields
+📤 Sending form data for request 173 to frontend
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 1 unread notifications
+🔍 [AUTH] Processing request for: GET /api/notifications/count
+🔍 Attempting to verify JWT token (length: 327, first 20 chars: eyJhbGciOiJIUzI1NiIs...)
+✅ JWT token verified successfully for user: 1176
+✅ Authentication successful for user 1176 in company 54
+🔢 Getting notification count for user 1176
+✅ User has 1 unread notifications

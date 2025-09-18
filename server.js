@@ -791,14 +791,13 @@ app.get('/api/debug/serve-asset/:filename', (req, res) => {
 app.get('/api/debug/endpoints', (req, res) => {
     res.json({
         success: true,
-        message: 'Production server with manager assignment permissions deployed',
+        message: 'Development server running latest code with all endpoints',
         timestamp: new Date().toISOString(),
-        version: '2.1.0',
+        version: '2.0.0',
         endpoints: [
             '/api/me', '/api/users', '/api/users/company/:companyId', '/api/invites', 
             '/api/contact-groups', '/api/contact-groups/:id', '/api/contact-groups/:id/members',
-            '/api/roles', '/api/requests', '/api/requests/:id', '/api/requests/assigned/me', '/api/requests/:requestId/assign',
-            '/api/tasks', '/api/tasks/:taskId', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
+            '/api/roles', '/api/requests', '/api/requests/:id', '/api/forms', '/api/forms-groups', '/api/fields', '/api/field-types',
             '/api/custom-templates', '/api/custom-templates/:id',
             '/api/login', '/api/register', '/api/verify-email', '/api/complete-registration',
             '/api/validate-email', '/api/send-verification-email', 
@@ -8534,10 +8533,13 @@ app.post('/api/complete-registration', async (req, res) => {
         const { email, password, fullName, workspaceName: customWorkspaceName, role, teamSize, companySize } = req.body;
         console.log(`👤 Completing registration for: ${email}`);
         console.log(`📋 Complete registration request body:`, JSON.stringify(req.body, null, 2));
+        console.log(`🔍 DEBUG - customWorkspaceName from request: "${customWorkspaceName}"`);
+        console.log(`🔍 DEBUG - customWorkspaceName type: ${typeof customWorkspaceName}`);
+        console.log(`🔍 DEBUG - customWorkspaceName truthy: ${!!customWorkspaceName}`);
 
         // Use custom workspace name if provided, otherwise auto-generate military call sign
         const workspaceName = customWorkspaceName || await generateMilitaryCallSign();
-        console.log(`🎖️ Using workspace name: ${workspaceName} ${customWorkspaceName ? '(custom)' : '(auto-generated)'}`);
+        console.log(`🎖️ Using workspace name: "${workspaceName}" ${customWorkspaceName ? '(custom)' : '(auto-generated)'}`);
 
         // Validate required fields (workspaceName now auto-generated)
         console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
