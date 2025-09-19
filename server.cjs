@@ -134,6 +134,277 @@ const generateMilitaryCallSign = async () => {
     return fallbackCallSign;
 };
 
+// ========== REGISTRATION CLEANUP FUNCTIONS ==========
+
+/**
+ * Comprehensive cleanup of incomplete registration data
+ * Removes stale unverified users and related data to prevent conflicts
+ * @param {string} email - Email address to clean up
+ * @param {number} timeoutMinutes - Age threshold for cleanup (default: 30 minutes)
+ * @returns {Promise<Object>} Cleanup results with counts and details
+ */
+const cleanupIncompleteRegistrations = async (email, timeoutMinutes = 30) => {
+    try {
+        console.log(`🧹 [CLEANUP] Starting comprehensive cleanup for email: ${email} (timeout: ${timeoutMinutes} minutes)`);
+        
+        const emailValidation = validateEmailServer(email);
+        if (!emailValidation.valid) {
+            throw new Error(`Invalid email format: ${email}`);
+        }
+        const normalizedEmail = emailValidation.email;
+        
+        const cleanupResults = {
+            email: normalizedEmail,
+            timeoutMinutes,
+            startTime: new Date().toISOString(),
+            totalCleaned: 0,
+            details: {
+                staleUnverifiedUsers: 0,
+                expiredTokens: 0,
+                orphanedCompanies: 0,
+                orphanedRoles: 0,
+                errors: []
+            }
+        };
+
+        // Step 1: Identify stale unverified users (older than timeout)
+        console.log(`🔍 [CLEANUP] Step 1: Identifying stale unverified users for ${normalizedEmail}...`);
+        const staleUsers = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID, 
+                u.EMAIL, 
+                u.CREATE_DATE, 
+                u.EMAIL_VALIDATED, 
+                u.EMAIL_VALIDATION_TOKEN_EXPIRY,
+                u.COMPANY_ID,
+                DATEDIFF(MINUTE, u.CREATE_DATE, GETDATE()) as AGE_MINUTES
+            FROM GUARDIAN.USERS u
+            WHERE LOWER(TRIM(u.EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+                AND u.EMAIL_VALIDATED = 0
+                AND u.CREATE_DATE < DATEADD(MINUTE, -${timeoutMinutes}, GETDATE())
+            ORDER BY u.CREATE_DATE DESC
+        `;
+
+        if (staleUsers.length === 0) {
+            console.log(`✅ [CLEANUP] No stale unverified users found for ${normalizedEmail}`);
+            cleanupResults.endTime = new Date().toISOString();
+            return cleanupResults;
+        }
+
+        console.log(`🔍 [CLEANUP] Found ${staleUsers.length} stale unverified users to clean up:`);
+        staleUsers.forEach((user, index) => {
+            console.log(`   ${index + 1}. User ID: ${user.USER_ID}, Age: ${user.AGE_MINUTES} minutes, Company ID: ${user.COMPANY_ID || 'None'}`);
+        });
+
+        // Step 2: Clean up expired verification tokens (15 minutes)
+        console.log(`🧹 [CLEANUP] Step 2: Cleaning up expired verification tokens...`);
+        try {
+            const expiredTokenCleanup = await prisma.$executeRaw`
+                UPDATE GUARDIAN.USERS 
+                SET EMAIL_VALIDATION_TOKEN = NULL, 
+                    EMAIL_VALIDATION_TOKEN_EXPIRY = NULL,
+                    UPDATE_DATE = GETDATE()
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+                    AND EMAIL_VALIDATED = 0
+                    AND EMAIL_VALIDATION_TOKEN_EXPIRY < GETDATE()
+            `;
+            cleanupResults.details.expiredTokens = expiredTokenCleanup;
+            console.log(`✅ [CLEANUP] Cleaned up ${expiredTokenCleanup} expired verification tokens`);
+        } catch (error) {
+            console.error(`❌ [CLEANUP] Error cleaning expired tokens:`, error);
+            cleanupResults.details.errors.push(`Expired tokens cleanup: ${error.message}`);
+        }
+
+        // Step 3: Remove user role assignments for stale users
+        console.log(`🧹 [CLEANUP] Step 3: Removing user role assignments...`);
+        for (const user of staleUsers) {
+            try {
+                const roleCleanup = await prisma.$executeRaw`
+                    DELETE FROM GUARDIAN.USER_ROLES 
+                    WHERE USER_ID = ${user.USER_ID}
+                `;
+                console.log(`✅ [CLEANUP] Removed ${roleCleanup} role assignments for user ${user.USER_ID}`);
+                cleanupResults.details.orphanedRoles += roleCleanup;
+            } catch (error) {
+                console.error(`❌ [CLEANUP] Error removing roles for user ${user.USER_ID}:`, error);
+                cleanupResults.details.errors.push(`Role cleanup for user ${user.USER_ID}: ${error.message}`);
+            }
+        }
+
+        // Step 4: Handle orphaned companies (companies created during incomplete registration)
+        console.log(`🧹 [CLEANUP] Step 4: Cleaning up orphaned companies...`);
+        for (const user of staleUsers) {
+            if (user.COMPANY_ID) {
+                try {
+                    // Check if this company has any other active users
+                    const activeUsersInCompany = await prisma.$queryRaw`
+                        SELECT COUNT(*) as USER_COUNT
+                        FROM GUARDIAN.USERS 
+                        WHERE COMPANY_ID = ${user.COMPANY_ID}
+                            AND (EMAIL_VALIDATED = 1 OR USER_ID != ${user.USER_ID})
+                    `;
+
+                    if (activeUsersInCompany[0].USER_COUNT === 0) {
+                        // Company has no other active users, safe to delete
+                        const companyCleanup = await prisma.$executeRaw`
+                            DELETE FROM GUARDIAN.COMPANY 
+                            WHERE COMPANY_ID = ${user.COMPANY_ID}
+                        `;
+                        console.log(`✅ [CLEANUP] Removed orphaned company ${user.COMPANY_ID} (${companyCleanup} records)`);
+                        cleanupResults.details.orphanedCompanies += companyCleanup;
+                    } else {
+                        console.log(`ℹ️ [CLEANUP] Keeping company ${user.COMPANY_ID} (has ${activeUsersInCompany[0].USER_COUNT} other active users)`);
+                    }
+                } catch (error) {
+                    console.error(`❌ [CLEANUP] Error handling company ${user.COMPANY_ID}:`, error);
+                    cleanupResults.details.errors.push(`Company cleanup for ${user.COMPANY_ID}: ${error.message}`);
+                }
+            }
+        }
+
+        // Step 5: Remove stale unverified users (final step)
+        console.log(`🧹 [CLEANUP] Step 5: Removing ${staleUsers.length} stale unverified users...`);
+        try {
+            const userCleanup = await prisma.$executeRaw`
+                DELETE FROM GUARDIAN.USERS 
+                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+                    AND EMAIL_VALIDATED = 0
+                    AND CREATE_DATE < DATEADD(MINUTE, -${timeoutMinutes}, GETDATE())
+            `;
+            cleanupResults.details.staleUnverifiedUsers = userCleanup;
+            cleanupResults.totalCleaned = userCleanup;
+            console.log(`✅ [CLEANUP] Successfully removed ${userCleanup} stale unverified users`);
+        } catch (error) {
+            console.error(`❌ [CLEANUP] Error removing stale users:`, error);
+            cleanupResults.details.errors.push(`User cleanup: ${error.message}`);
+        }
+
+        cleanupResults.endTime = new Date().toISOString();
+        const duration = Math.round((new Date(cleanupResults.endTime) - new Date(cleanupResults.startTime)) / 1000);
+        
+        console.log(`✅ [CLEANUP] Comprehensive cleanup completed for ${normalizedEmail}:`);
+        console.log(`   - Duration: ${duration} seconds`);
+        console.log(`   - Stale users removed: ${cleanupResults.details.staleUnverifiedUsers}`);
+        console.log(`   - Expired tokens cleaned: ${cleanupResults.details.expiredTokens}`);
+        console.log(`   - Orphaned companies removed: ${cleanupResults.details.orphanedCompanies}`);
+        console.log(`   - Role assignments removed: ${cleanupResults.details.orphanedRoles}`);
+        console.log(`   - Errors encountered: ${cleanupResults.details.errors.length}`);
+
+        return cleanupResults;
+
+    } catch (error) {
+        console.error(`❌ [CLEANUP] Comprehensive cleanup failed for ${email}:`, error);
+        throw new Error(`Cleanup failed: ${error.message}`);
+    }
+};
+
+/**
+ * Periodic maintenance cleanup - removes very old incomplete registrations
+ * Should be called periodically to maintain database health
+ * @param {number} daysOld - Remove incomplete registrations older than this many days
+ * @returns {Promise<Object>} Cleanup summary
+ */
+const performPeriodicCleanup = async (daysOld = 7) => {
+    try {
+        console.log(`🔄 [PERIODIC] Starting periodic cleanup of registrations older than ${daysOld} days...`);
+        
+        const cleanupSummary = {
+            startTime: new Date().toISOString(),
+            daysOld,
+            totalUsersRemoved: 0,
+            totalCompaniesRemoved: 0,
+            totalRolesRemoved: 0,
+            errors: []
+        };
+
+        // Find very old unverified users
+        const oldUnverifiedUsers = await prisma.$queryRaw`
+            SELECT 
+                u.USER_ID, 
+                u.EMAIL, 
+                u.COMPANY_ID,
+                DATEDIFF(DAY, u.CREATE_DATE, GETDATE()) as AGE_DAYS
+            FROM GUARDIAN.USERS u
+            WHERE u.EMAIL_VALIDATED = 0
+                AND u.CREATE_DATE < DATEADD(DAY, -${daysOld}, GETDATE())
+            ORDER BY u.CREATE_DATE ASC
+        `;
+
+        if (oldUnverifiedUsers.length === 0) {
+            console.log(`✅ [PERIODIC] No old unverified users found (older than ${daysOld} days)`);
+            cleanupSummary.endTime = new Date().toISOString();
+            return cleanupSummary;
+        }
+
+        console.log(`🔍 [PERIODIC] Found ${oldUnverifiedUsers.length} old unverified users to clean up`);
+
+        // Clean up in batches to avoid overwhelming the database
+        const batchSize = 10;
+        for (let i = 0; i < oldUnverifiedUsers.length; i += batchSize) {
+            const batch = oldUnverifiedUsers.slice(i, i + batchSize);
+            console.log(`🧹 [PERIODIC] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(oldUnverifiedUsers.length/batchSize)} (${batch.length} users)...`);
+
+            for (const user of batch) {
+                try {
+                    // Remove role assignments
+                    const roleCleanup = await prisma.$executeRaw`
+                        DELETE FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID}
+                    `;
+                    cleanupSummary.totalRolesRemoved += roleCleanup;
+
+                    // Handle orphaned companies
+                    if (user.COMPANY_ID) {
+                        const activeUsersInCompany = await prisma.$queryRaw`
+                            SELECT COUNT(*) as USER_COUNT
+                            FROM GUARDIAN.USERS 
+                            WHERE COMPANY_ID = ${user.COMPANY_ID} AND USER_ID != ${user.USER_ID}
+                        `;
+
+                        if (activeUsersInCompany[0].USER_COUNT === 0) {
+                            const companyCleanup = await prisma.$executeRaw`
+                                DELETE FROM GUARDIAN.COMPANY WHERE COMPANY_ID = ${user.COMPANY_ID}
+                            `;
+                            cleanupSummary.totalCompaniesRemoved += companyCleanup;
+                        }
+                    }
+
+                    // Remove user
+                    const userCleanup = await prisma.$executeRaw`
+                        DELETE FROM GUARDIAN.USERS WHERE USER_ID = ${user.USER_ID}
+                    `;
+                    cleanupSummary.totalUsersRemoved += userCleanup;
+
+                    console.log(`✅ [PERIODIC] Cleaned up user ${user.USER_ID} (${user.EMAIL}, ${user.AGE_DAYS} days old)`);
+
+                } catch (error) {
+                    console.error(`❌ [PERIODIC] Error cleaning user ${user.USER_ID}:`, error);
+                    cleanupSummary.errors.push(`User ${user.USER_ID}: ${error.message}`);
+                }
+            }
+
+            // Small delay between batches
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        cleanupSummary.endTime = new Date().toISOString();
+        const duration = Math.round((new Date(cleanupSummary.endTime) - new Date(cleanupSummary.startTime)) / 1000);
+
+        console.log(`✅ [PERIODIC] Periodic cleanup completed in ${duration} seconds:`);
+        console.log(`   - Users removed: ${cleanupSummary.totalUsersRemoved}`);
+        console.log(`   - Companies removed: ${cleanupSummary.totalCompaniesRemoved}`);
+        console.log(`   - Role assignments removed: ${cleanupSummary.totalRolesRemoved}`);
+        console.log(`   - Errors: ${cleanupSummary.errors.length}`);
+
+        return cleanupSummary;
+
+    } catch (error) {
+        console.error(`❌ [PERIODIC] Periodic cleanup failed:`, error);
+        throw new Error(`Periodic cleanup failed: ${error.message}`);
+    }
+};
+
+// ========== END REGISTRATION CLEANUP FUNCTIONS ==========
+
 // Email service using Resend
 let sendVerificationEmail, sendInviteEmail;
 
@@ -950,6 +1221,121 @@ app.get('/api/debug/status', (req, res) => {
     });
 });
 
+// ========== REGISTRATION CLEANUP ENDPOINTS ==========
+
+/**
+ * Endpoint for manual cleanup of incomplete registrations
+ * Usage: POST /api/cleanup/incomplete-registrations
+ * Body: { "email": "user@example.com", "timeoutMinutes": 30 }
+ */
+app.post('/api/cleanup/incomplete-registrations', async (req, res) => {
+    try {
+        const { email, timeoutMinutes = 30 } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required',
+                usage: 'POST /api/cleanup/incomplete-registrations with body: { "email": "user@example.com", "timeoutMinutes": 30 }'
+            });
+        }
+
+        console.log(`🧹 [API] Manual cleanup request for email: ${email} (timeout: ${timeoutMinutes} minutes)`);
+        
+        const cleanupResults = await cleanupIncompleteRegistrations(email, timeoutMinutes);
+        
+        res.json({
+            success: true,
+            message: `Cleanup completed for ${email}`,
+            results: cleanupResults
+        });
+
+    } catch (error) {
+        console.error(`❌ [API] Manual cleanup failed:`, error);
+        res.status(500).json({
+            error: 'Cleanup failed',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * Endpoint for periodic cleanup of old incomplete registrations
+ * Usage: POST /api/cleanup/periodic
+ * Body: { "daysOld": 7 }
+ */
+app.post('/api/cleanup/periodic', async (req, res) => {
+    try {
+        const { daysOld = 7 } = req.body;
+        
+        console.log(`🔄 [API] Periodic cleanup request for registrations older than ${daysOld} days`);
+        
+        const cleanupSummary = await performPeriodicCleanup(daysOld);
+        
+        res.json({
+            success: true,
+            message: `Periodic cleanup completed - removed ${cleanupSummary.totalUsersRemoved} old registrations`,
+            summary: cleanupSummary
+        });
+
+    } catch (error) {
+        console.error(`❌ [API] Periodic cleanup failed:`, error);
+        res.status(500).json({
+            error: 'Periodic cleanup failed',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * Endpoint to get cleanup statistics without performing cleanup
+ * Usage: GET /api/cleanup/stats?daysOld=7
+ */
+app.get('/api/cleanup/stats', async (req, res) => {
+    try {
+        const { daysOld = 7 } = req.query;
+        
+        console.log(`📊 [API] Cleanup statistics request for registrations older than ${daysOld} days`);
+        
+        // Get statistics without performing cleanup
+        const stats = await prisma.$queryRaw`
+            SELECT 
+                COUNT(*) as TOTAL_UNVERIFIED_USERS,
+                COUNT(CASE WHEN CREATE_DATE < DATEADD(DAY, -${daysOld}, GETDATE()) THEN 1 END) as OLD_UNVERIFIED_USERS,
+                COUNT(CASE WHEN CREATE_DATE < DATEADD(MINUTE, -30, GETDATE()) THEN 1 END) as STALE_UNVERIFIED_USERS,
+                COUNT(CASE WHEN EMAIL_VALIDATION_TOKEN_EXPIRY < GETDATE() THEN 1 END) as EXPIRED_TOKENS
+            FROM GUARDIAN.USERS 
+            WHERE EMAIL_VALIDATED = 0
+        `;
+        
+        const statistics = stats[0];
+        
+        res.json({
+            success: true,
+            message: `Cleanup statistics for registrations older than ${daysOld} days`,
+            statistics: {
+                totalUnverifiedUsers: Number(statistics.TOTAL_UNVERIFIED_USERS || 0),
+                oldUnverifiedUsers: Number(statistics.OLD_UNVERIFIED_USERS || 0),
+                staleUnverifiedUsers: Number(statistics.STALE_UNVERIFIED_USERS || 0),
+                expiredTokens: Number(statistics.EXPIRED_TOKENS || 0),
+                daysOldThreshold: Number(daysOld)
+            },
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error(`❌ [API] Cleanup statistics failed:`, error);
+        res.status(500).json({
+            error: 'Failed to get cleanup statistics',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ========== END REGISTRATION CLEANUP ENDPOINTS ==========
+
 // === NOTIFICATION ENDPOINTS ===
 
 // Get user notifications
@@ -1518,11 +1904,14 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         // Create the request with company-based data isolation using raw SQL
         const currentDate = new Date();
         
-        console.log('🔍 INSERT Parameters:', {
+        console.log('🔍 DEBUG - REQUEST CREATION PARAMETERS:', {
             finalRequestName: finalRequestName.trim(),
             finalDescription: finalDescription.trim() || null,
             finalAbbreviation,
-            finalStatus,
+            finalStatus: finalStatus,
+            STATUS_IN_BODY: STATUS,
+            status_IN_BODY: status,
+            FINAL_STATUS_BEING_INSERTED: finalStatus,
             currentDate,
             userId: req.userId,
             companyId: req.companyId,
@@ -1530,6 +1919,12 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             finalAssignedId,
             finalPriorityLevel
         });
+        
+        console.log('🔍 DEBUG - STATUS VALUE TRACE:');
+        console.log('  - STATUS from body:', STATUS);
+        console.log('  - status from body:', status);
+        console.log('  - Final computed status:', finalStatus);
+        console.log('  - Expected: Should be "P" for new requests');
         
         // Get user's active workspace for request assignment
         const userWorkspace = await prisma.$queryRaw`
@@ -1606,6 +2001,21 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         `;
         
         const newRequest = newRequestResults[0];
+        
+        console.log('🔍 DEBUG - INSERTED REQUEST STATUS CHECK:');
+        console.log('  - Request ID:', newRequest?.REQUEST_ID);
+        console.log('  - Status in database:', newRequest?.STATUS);
+        console.log('  - Expected status: P');
+        console.log('  - Status matches expected:', newRequest?.STATUS === 'P');
+        
+        if (newRequest?.STATUS !== 'P') {
+            console.log('❌ CRITICAL: Request created with wrong status!');
+            console.log('  - Database returned status:', newRequest?.STATUS);
+            console.log('  - This indicates either:');
+            console.log('    1. Database trigger/default is overriding our value');
+            console.log('    2. Some middleware/process is auto-starting requests');
+            console.log('    3. The INSERT statement is using wrong status value');
+        }
         
         if (!newRequest) {
             console.log('❌ Request not found after insert, company ID mismatch?');
@@ -7962,42 +8372,90 @@ app.post('/api/register', async (req, res) => {
 
         const normalizedEmail = emailValidation.email;
 
-        // Check if user already exists with this email
-        const existingUsers = await prisma.$queryRaw`
-            SELECT USER_ID, EMAIL_VALIDATED, COMPANY_ID FROM GUARDIAN.USERS 
-            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        // ========== ENHANCED REGISTRATION WITH COMPREHENSIVE CLEANUP ==========
+        
+        // Step 1: Check for verified users first (these should block registration)
+        console.log(`🔍 Checking for existing verified users with email: ${email}`);
+        const verifiedUsers = await prisma.$queryRaw`
+            SELECT USER_ID, EMAIL_VALIDATED, COMPANY_ID, CREATE_DATE FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+                AND EMAIL_VALIDATED = 1
             ORDER BY CREATE_DATE DESC
         `;
-
-        console.log(`🔍 Found ${existingUsers.length} existing users with email: ${email}`);
         
-        if (existingUsers.length > 0) {
-            // Check if any user is already verified
-            const verifiedUser = existingUsers.find(user => user.EMAIL_VALIDATED === true);
-            if (verifiedUser) {
-                console.log(`❌ Email already registered and verified: ${email}`);
-                return res.status(409).json({
-                    error: 'An account with this email already exists and is verified. Please sign in instead.'
-                });
-            }
-            
-            // Check if there's an unverified user from the last 30 minutes
-            const recentUnverified = await prisma.$queryRaw`
-                SELECT USER_ID, CREATE_DATE FROM GUARDIAN.USERS 
-                WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${email}))
+        if (verifiedUsers.length > 0) {
+            console.log(`❌ Email already registered and verified: ${email} (${verifiedUsers.length} verified users found)`);
+            return res.status(409).json({
+                error: 'An account with this email already exists and is verified. Please sign in instead.'
+            });
+        }
+
+        // Step 2: Check for recent unverified registrations (within 30 minutes)
+        console.log(`🔍 Checking for recent unverified registrations for: ${email}`);
+        const recentUnverified = await prisma.$queryRaw`
+            SELECT USER_ID, CREATE_DATE, 
+                   DATEDIFF(MINUTE, CREATE_DATE, GETDATE()) as AGE_MINUTES 
+            FROM GUARDIAN.USERS 
+            WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
                 AND EMAIL_VALIDATED = 0
                 AND CREATE_DATE > DATEADD(MINUTE, -30, GETDATE())
-                ORDER BY CREATE_DATE DESC
-            `;
+            ORDER BY CREATE_DATE DESC
+        `;
+        
+        if (recentUnverified.length > 0) {
+            const mostRecent = recentUnverified[0];
+            console.log(`ℹ️ Recent unverified registration exists for: ${email} (User ID: ${mostRecent.USER_ID}, Age: ${mostRecent.AGE_MINUTES} minutes)`);
             
-            if (recentUnverified.length > 0) {
-                console.log(`ℹ️ Recent unverified registration exists for: ${email}`);
-                return res.status(200).json({
-                    success: true,
-                    message: 'Verification code already sent to your email',
-                    existingRegistration: true
-                });
+            // Resend verification email for recent registration
+            try {
+                const userData = await prisma.$queryRaw`
+                    SELECT EMAIL_VALIDATION_TOKEN FROM GUARDIAN.USERS 
+                    WHERE USER_ID = ${mostRecent.USER_ID}
+                `;
+                
+                if (userData.length > 0) {
+                    // Generate new verification code and update existing user
+                    const newVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+                    const crypto = require('crypto');
+                    const hashedCode = crypto.createHash('sha256').update(newVerificationCode).digest('hex');
+                    const tokenExpiry = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+                    
+                    await prisma.$executeRaw`
+                        UPDATE GUARDIAN.USERS 
+                        SET EMAIL_VALIDATION_TOKEN = ${hashedCode},
+                            EMAIL_VALIDATION_TOKEN_EXPIRY = ${tokenExpiry},
+                            UPDATE_DATE = GETDATE()
+                        WHERE USER_ID = ${mostRecent.USER_ID}
+                    `;
+                    
+                    // Send new verification email
+                    await sendVerificationEmail(normalizedEmail, newVerificationCode);
+                    console.log(`✅ Resent verification email to: ${normalizedEmail}`);
+                }
+            } catch (error) {
+                console.error(`⚠️ Error resending verification email:`, error);
             }
+            
+            return res.status(200).json({
+                success: true,
+                message: 'A verification code has been sent to your email. Please check your inbox.',
+                existingRegistration: true
+            });
+        }
+
+        // Step 3: Perform comprehensive cleanup of stale unverified registrations
+        console.log(`🧹 Performing comprehensive cleanup for email: ${email}`);
+        try {
+            const cleanupResults = await cleanupIncompleteRegistrations(normalizedEmail, 30);
+            
+            if (cleanupResults.totalCleaned > 0) {
+                console.log(`✅ Cleanup completed - removed ${cleanupResults.totalCleaned} stale registrations for ${email}`);
+            } else {
+                console.log(`✅ No cleanup needed for ${email} - no stale registrations found`);
+            }
+        } catch (cleanupError) {
+            // Log cleanup error but don't block registration
+            console.error(`⚠️ Cleanup failed for ${email} (proceeding with registration):`, cleanupError.message);
         }
 
         // Generate 6-digit verification code

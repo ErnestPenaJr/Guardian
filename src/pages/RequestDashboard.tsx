@@ -692,7 +692,7 @@ const RequestDashboard: React.FC = () => {
             REQUEST_NAME: formData.name,
             REQUEST_DESCRIPTION: formData.description || '',
             ABBREVIATION: formData.abbreviation,
-            STATUS: 'A', // Default to Active
+            STATUS: 'P', // Default to Pending
             ASSIGNED_ID: null, // Will be set by server
             FORM_ID: formData.templateId,
             templateId: formData.templateId // Also include as templateId for server compatibility
@@ -703,7 +703,7 @@ const RequestDashboard: React.FC = () => {
             REQUEST_NAME: formData.requestData.REQUEST_NAME,
             REQUEST_DESCRIPTION: formData.requestData.REQUEST_DESCRIPTION || '',
             ABBREVIATION: formData.requestData.ABBREVIATION,
-            STATUS: formData.requestData.STATUS || 'A',
+            STATUS: formData.requestData.STATUS || 'P',
             ASSIGNED_ID: formData.requestData.ASSIGNED_ID,
             FORM_ID: formData.templateId || null,
             templateId: formData.templateId || null // Also include as templateId for server compatibility
@@ -937,7 +937,7 @@ const RequestDashboard: React.FC = () => {
       setFulfillmentActionLoading(true);
       
       // Get the status from the form values
-      const newStatus = fulfillmentFormValues['status'] || selectedRequest.STATUS || 'A';
+      const newStatus = fulfillmentFormValues['status'] || selectedRequest.STATUS || 'P';
       
       // Try to submit the form
       try {

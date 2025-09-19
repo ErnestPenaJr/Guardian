@@ -199,7 +199,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
         SUBMITTED_DATE: new Date().toISOString(),
         REQUESTOR_ID: null, // Will be set by the server based on current user
         ASSIGNED_ID: requestMetadata.assignedUserId, // User assigned to process this request
-        STATUS: 'A', // Active request
+        STATUS: 'P', // Pending request
         CREATE_DATE: new Date().toISOString(),
         UPDATE_DATE: new Date().toISOString(),
         CREATE_USER_ID: null, // Will be set by the server
