@@ -122,6 +122,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
       case 'A': return 50;
       case 'D': return 100;
       case 'R': return 0;
+      case 'X': return 0;
       default: return 0;
     }
   };
@@ -341,6 +342,8 @@ const RequestFulfillmentDashboard: React.FC = () => {
         return <Badge className="bg-green-100 text-green-800">Complete</Badge>;
       case 'R':
         return <Badge className="bg-red-100 text-red-800">Canceled</Badge>;
+      case 'X':
+        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -451,6 +454,7 @@ const RequestFulfillmentDashboard: React.FC = () => {
       case 'A': return 'In Progress';
       case 'D': return 'Complete';
       case 'R': return 'Canceled';
+      case 'X': return 'Cancelled';
       default: return status;
     }
   };

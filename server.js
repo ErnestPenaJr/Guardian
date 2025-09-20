@@ -1793,39 +1793,21 @@ app.post('/api/requests/:id/cancel', getAuthenticatedUserCompany, async (req, re
         const { cancellationReason } = req.body;
         console.log(`❌ Cancelling request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'X' (Cancelled)
+        // Update request status to 'X' (Cancelled) with proper cancellation tracking
         await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'X', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            SET STATUS = 'X', 
+                UPDATE_DATE = GETDATE(), 
+                UPDATE_USER_ID = ${req.userId},
+                CANCELLATION_REASON = ${cancellationReason || null},
+                CANCELLED_DATE = GETDATE(),
+                CANCELLED_BY = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND (ASSIGNED_ID = ${req.userId} OR REQUESTOR_ID = ${req.userId})
         `;
 
-        // Add cancellation notes if provided
-        if (cancellationReason) {
-            console.log(`📝 Adding cancellation reason for request ${requestId}`);
-            // Create a work progress entry for the cancellation reason
-            try {
-                await prisma.$executeRaw`
-                    INSERT INTO GUARDIAN.WORK_PROGRESS (
-                        REQUEST_ID, TITLE, DESCRIPTION, CREATE_USER_ID, 
-                        UPDATE_USER_ID, COMPANY_ID, CREATE_DATE, UPDATE_DATE
-                    ) VALUES (
-                        ${requestId}, 
-                        'Request Cancelled',
-                        ${cancellationReason},
-                        ${req.userId},
-                        ${req.userId},
-                        ${req.companyId},
-                        GETDATE(),
-                        GETDATE()
-                    )
-                `;
-            } catch (progressError) {
-                console.error('⚠️ Failed to create cancellation progress entry (continuing):', progressError);
-            }
-        }
+        console.log(`📝 Request ${requestId} cancelled with proper tracking in database`);
 
         // Create milestone for request cancellation
         try {
@@ -1833,6 +1815,87 @@ app.post('/api/requests/:id/cancel', getAuthenticatedUserCompany, async (req, re
             console.log(`🏁 Request cancellation milestone created for request ${requestId}`);
         } catch (milestoneError) {
             console.error('⚠️ Failed to create request cancellation milestone (continuing):', milestoneError);
+        }
+
+        // Create notifications for request cancellation
+        try {
+            // Get request details and current user info for notifications
+            const requestDetails = await prisma.$queryRaw`
+                SELECT r.REQUEST_NAME, r.REQUEST_DESCRIPTION, r.TRACKINGID, r.REQUESTOR_ID, r.ASSIGNED_ID
+                FROM GUARDIAN.REQUESTS r
+                WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+            `;
+
+            if (requestDetails.length > 0) {
+                const request = requestDetails[0];
+                
+                // Get cancelling user's name
+                const cancellingUserDetails = await prisma.$queryRaw`
+                    SELECT FIRST_NAME, LAST_NAME FROM GUARDIAN.USERS WHERE USER_ID = ${req.userId}
+                `;
+                const cancellingUserName = cancellingUserDetails.length > 0 
+                    ? `${cancellingUserDetails[0].FIRST_NAME} ${cancellingUserDetails[0].LAST_NAME}`
+                    : 'Unknown User';
+
+                const baseMessage = `Request "${request.REQUEST_NAME}" (ID: ${request.TRACKINGID}) has been cancelled by ${cancellingUserName}`;
+                const fullMessage = cancellationReason 
+                    ? `${baseMessage}. Reason: ${cancellationReason}`
+                    : baseMessage;
+
+                // Notify original requestor if different from cancelling user
+                if (request.REQUESTOR_ID && request.REQUESTOR_ID !== req.userId) {
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.NOTIFICATIONS (
+                            USER_ID, 
+                            TYPE, 
+                            TITLE, 
+                            MESSAGE, 
+                            RELATED_ID, 
+                            COMPANY_ID, 
+                            CREATED_DATE, 
+                            IS_READ
+                        ) VALUES (
+                            ${request.REQUESTOR_ID},
+                            'request_cancelled',
+                            'Request Cancelled',
+                            ${fullMessage},
+                            ${requestId},
+                            ${req.companyId},
+                            GETDATE(),
+                            0
+                        )
+                    `;
+                    console.log(`🔔 Cancellation notification created for requestor ${request.REQUESTOR_ID}`);
+                }
+
+                // Notify assigned user if different from cancelling user and requestor
+                if (request.ASSIGNED_ID && request.ASSIGNED_ID !== req.userId && request.ASSIGNED_ID !== request.REQUESTOR_ID) {
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.NOTIFICATIONS (
+                            USER_ID, 
+                            TYPE, 
+                            TITLE, 
+                            MESSAGE, 
+                            RELATED_ID, 
+                            COMPANY_ID, 
+                            CREATED_DATE, 
+                            IS_READ
+                        ) VALUES (
+                            ${request.ASSIGNED_ID},
+                            'request_cancelled',
+                            'Request Cancelled',
+                            ${fullMessage},
+                            ${requestId},
+                            ${req.companyId},
+                            GETDATE(),
+                            0
+                        )
+                    `;
+                    console.log(`🔔 Cancellation notification created for assigned user ${request.ASSIGNED_ID}`);
+                }
+            }
+        } catch (notificationError) {
+            console.error('⚠️ Failed to create cancellation notifications (continuing):', notificationError);
         }
 
         console.log(`❌ Request ${requestId} cancelled successfully`);

@@ -161,6 +161,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   // Request action confirmation modals state
   const [showStartConfirmModal, setShowStartConfirmModal] = useState<boolean>(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState<boolean>(false);
+  const [cancellationReason, setCancellationReason] = useState<string>('');
   const [showCompleteConfirmModal, setShowCompleteConfirmModal] = useState<boolean>(false);
   const [showAssignRequestModal, setShowAssignRequestModal] = useState<boolean>(false);
   const [assignRequestData, setAssignRequestData] = useState<{
@@ -349,6 +350,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       case 'P': return 'Pending';
       case 'A': return 'Active';
       case 'C': return 'Completed';
+      case 'X': return 'Cancelled';
       default: return 'Unknown';
     }
   };
@@ -359,6 +361,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       case 'P': return 'badge bg-warning text-dark';
       case 'A': return 'badge bg-primary text-white';
       case 'C': return 'badge bg-success text-white';
+      case 'X': return 'badge bg-danger text-white';
       default: return 'badge bg-secondary text-white';
     }
   };
@@ -910,13 +913,20 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   const handleCancelRequest = async () => {
+    if (!cancellationReason.trim() || cancellationReason.trim().length < 10) {
+      toast.error('Please provide a cancellation reason of at least 10 characters');
+      return;
+    }
+
     try {
       setWorkActionLoading(true);
       await api.post(`/api/requests/${request.REQUEST_ID}/cancel`, {
-        cancellationReason: 'Request cancelled by user'
+        cancellationReason: cancellationReason.trim()
       });
       
       toast.success('Request cancelled successfully');
+      setCancellationReason(''); // Reset the reason
+      setShowCancelConfirmModal(false);
       onUpdate(); // Refresh parent component
       onHide(); // Close modal
     } catch (error: any) {
@@ -2355,31 +2365,91 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         </Modal.Footer>
       </Modal>
 
-      {/* Cancel Request Confirmation Modal */}
-      <Modal show={showCancelConfirmModal} onHide={() => setShowCancelConfirmModal(false)} centered>
+      {/* Cancel Request Form Modal */}
+      <Modal 
+        show={showCancelConfirmModal} 
+        onHide={() => {
+          if (!workActionLoading) {
+            setShowCancelConfirmModal(false);
+            setCancellationReason('');
+          }
+        }} 
+        centered
+      >
         <Modal.Header closeButton>
-          <Modal.Title>Cancel Request</Modal.Title>
+          <Modal.Title className="text-danger">Cancel Request</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>Are you sure you want to cancel this request?</p>
+          <div className="mb-3">
+            <h6 className="text-muted mb-2">Request Details:</h6>
+            <div className="bg-light p-3 rounded mb-3">
+              <div><strong>ID:</strong> {request.TRACKINGID || request.REQUEST_ID}</div>
+              <div><strong>Name:</strong> {request.REQUEST_NAME}</div>
+              <div><strong>Current Status:</strong> <span className="badge bg-info">{request.STATUS}</span></div>
+            </div>
+          </div>
+          
+          <div className="mb-3">
+            <label className="form-label">
+              Cancellation Reason <span className="text-danger">*</span>
+            </label>
+            <textarea
+              className={`form-control ${
+                cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 
+                  ? 'is-invalid' 
+                  : cancellationReason.trim().length >= 10 
+                  ? 'is-valid' 
+                  : ''
+              }`}
+              rows={4}
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              placeholder="Please provide a detailed reason for cancelling this request. This information will be recorded for audit purposes."
+              maxLength={500}
+              required
+              disabled={workActionLoading}
+            />
+            <div className="d-flex justify-content-between mt-1">
+              <small className="text-muted">
+                Minimum 10 characters required
+              </small>
+              <small className={`${
+                cancellationReason.length > 450 ? 'text-warning' : 'text-muted'
+              }`}>
+                {cancellationReason.length}/500 characters
+              </small>
+            </div>
+            {cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 && (
+              <div className="invalid-feedback d-block">
+                Please provide at least 10 characters explaining the cancellation reason.
+              </div>
+            )}
+          </div>
+          
+          <div className="alert alert-warning">
+            <small>
+              <strong>Warning:</strong> Cancelling this request will permanently change its status. 
+              This action cannot be undone and will be recorded in the audit trail.
+            </small>
+          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button 
             variant="secondary" 
-            onClick={() => setShowCancelConfirmModal(false)}
+            onClick={() => {
+              setShowCancelConfirmModal(false);
+              setCancellationReason('');
+            }}
             disabled={workActionLoading}
           >
             Cancel
           </Button>
           <Button 
-            variant="primary" 
-            onClick={async () => {
-              setShowCancelConfirmModal(false);
-              await handleCancelRequest();
-            }}
-            disabled={workActionLoading}
+            variant="danger" 
+            onClick={handleCancelRequest}
+            disabled={!cancellationReason.trim() || cancellationReason.trim().length < 10 || workActionLoading}
           >
-            {workActionLoading ? 'Cancelling...' : 'Confirm'}
+            {workActionLoading ? 'Cancelling...' : 'Cancel Request'}
           </Button>
         </Modal.Footer>
       </Modal>

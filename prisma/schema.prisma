@@ -333,9 +333,15 @@ model REQUESTS {
   PRIORITY_LEVEL      String    @default("Standard") @db.NVarChar(10)
   WORKSPACE_ID        Int?
   
+  // Cancellation tracking fields
+  CANCELLATION_REASON String?   @db.NVarChar(500)
+  CANCELLED_DATE      DateTime? @db.DateTime
+  CANCELLED_BY        Int?
+  
   // Add relationships for REQUESTOR_ID and ASSIGNED_ID
   REQUESTOR           USERS?    @relation("RequestorRequests", fields: [REQUESTOR_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
   ASSIGNED_USER       USERS?    @relation("AssignedRequests", fields: [ASSIGNED_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+  CANCELLED_BY_USER   USERS?    @relation("CancelledByRequests", fields: [CANCELLED_BY], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_REQUESTS_CANCELLED_BY")
   FORM                FORMS?    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, onDelete: NoAction)
   WORKSPACE           WORKSPACES? @relation("WorkspaceRequests", fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_REQUESTS_WORKSPACE")
   WORK_PROGRESS       WORK_PROGRESS[]
@@ -412,6 +418,7 @@ model USERS {
   // Add relationships for REQUESTS
   REQUESTOR_REQUESTS            REQUESTS[]     @relation("RequestorRequests")
   ASSIGNED_REQUESTS             REQUESTS[]     @relation("AssignedRequests")
+  CANCELLED_BY_REQUESTS         REQUESTS[]     @relation("CancelledByRequests")
   
   // Add relationships for WORK_PROGRESS
   WORK_PROGRESS                 WORK_PROGRESS[] @relation("WorkProgressUser")
