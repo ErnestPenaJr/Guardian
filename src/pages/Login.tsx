@@ -490,9 +490,22 @@ function Login() {
           <div>
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-all bg-secondary hover:bg-secondary-dark"
+              className="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer bg-secondary hover:!bg-info hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:!bg-secondary disabled:hover:shadow-none"
               data-component-name="Login"
               disabled={isLoading}
+              style={{
+                background: isLoading ? undefined : '#2EBCBC'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#2F8CED';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#2EBCBC';
+                }
+              }}
             >
               {isLoading ? (
                 <>
