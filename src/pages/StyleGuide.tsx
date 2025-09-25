@@ -45,14 +45,14 @@ const StyleGuide: React.FC = () => {
                 <h3 className="text-body-md font-semibold mb-4">Brand Colors</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div>
-                    <div className="h-36 w-full bg-primary rounded-md mb-2"></div>
+                    <div className="h-36 w-full rounded-md mb-2" style={{ backgroundColor: '#032424' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Primary</p>
                       <p className="text-body-xs text-gray-3">#032424</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-36 w-full bg-secondary rounded-md mb-2"></div>
+                    <div className="h-36 w-full rounded-md mb-2" style={{ backgroundColor: '#2EBCBC' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Secondary</p>
                       <p className="text-body-xs text-gray-3">#2EBCBC</p>
@@ -65,28 +65,28 @@ const StyleGuide: React.FC = () => {
                 <h3 className="text-body-md font-semibold mb-4">State Colors</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div>
-                    <div className="h-16 w-16 bg-info rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#2F8CED' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Info</p>
                       <p className="text-body-xs text-gray-3">#2F8CED</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-16 w-16 bg-success rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#27AE60' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Success</p>
                       <p className="text-body-xs text-gray-3">#27AE60</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-16 w-16 bg-warning rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#E2B93B' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Warning</p>
                       <p className="text-body-xs text-gray-3">#E2B93B</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-16 w-16 bg-error rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#C10000' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Error</p>
                       <p className="text-body-xs text-gray-3">#C10000</p>
@@ -99,28 +99,28 @@ const StyleGuide: React.FC = () => {
                 <h3 className="text-body-md font-semibold mb-4">Black Colors</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div>
-                    <div className="h-16 w-16 bg-black-1 rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#000000' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Black 1</p>
                       <p className="text-body-xs text-gray-3">#000000</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-16 w-16 bg-black-2 rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#1F1F1F' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Black 2</p>
-                      <p className="text-body-xs text-gray-3">#1D1D1D</p>
+                      <p className="text-body-xs text-gray-3">#1F1F1F</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-16 w-16 bg-black-3 rounded-md mb-2"></div>
+                    <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: '#282828' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">Black 3</p>
                       <p className="text-body-xs text-gray-3">#282828</p>
                     </div>
                   </div>
                   <div>
-                    <div className="h-16 w-16 bg-white border border-gray-5 rounded-md mb-2"></div>
+                    <div className="h-16 w-16 bg-white border border-gray-5 rounded-md mb-2" style={{ backgroundColor: '#FFFFFF' }}></div>
                     <div className="mt-2">
                       <p className="text-body-sm font-medium">White</p>
                       <p className="text-body-xs text-gray-3">#FFFFFF</p>
@@ -133,14 +133,14 @@ const StyleGuide: React.FC = () => {
                 <h3 className="text-body-md font-semibold mb-4">Grey Colors</h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                   {[
-                    { num: 1, hex: '#333333' },
-                    { num: 2, hex: '#4F4F4F' },
+                    { num: 1, hex: '#4F4F4F' },
+                    { num: 2, hex: '#6F6F6F' },
                     { num: 3, hex: '#828282' },
                     { num: 4, hex: '#BDBDBD' },
                     { num: 5, hex: '#E0E0E0' }
                   ].map((item) => (
                     <div key={item.num}>
-                      <div className={`h-16 w-16 bg-gray-${item.num} rounded-md mb-2`}></div>
+                      <div className="h-16 w-16 rounded-md mb-2" style={{ backgroundColor: item.hex }}></div>
                       <div className="mt-2">
                         <p className="text-body-sm font-medium">Gray {item.num}</p>
                         <p className="text-body-xs text-gray-3">{item.hex}</p>
@@ -313,14 +313,30 @@ const StyleGuide: React.FC = () => {
                   <div className="space-y-6">
                     <div>
                       <p className="text-body-sm mb-2">Primary</p>
-                      <button className="bg-primary text-white font-semibold py-3 px-6 rounded-full">
+                      <button 
+                        className="bg-primary text-white font-semibold py-3 px-6 transition-colors duration-200" 
+                        style={{ 
+                          borderRadius: '6px',
+                          backgroundColor: '#032424'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#021818'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#032424'}
+                      >
                         Button Sample
                       </button>
                     </div>
                     
                     <div>
                       <p className="text-body-sm mb-2">Secondary</p>
-                      <button className="bg-secondary text-white font-semibold py-3 px-6 rounded-full">
+                      <button 
+                        className="bg-secondary text-white font-semibold py-3 px-6 transition-colors duration-200" 
+                        style={{ 
+                          borderRadius: '6px',
+                          backgroundColor: '#2EBCBC'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#24A5A5'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2EBCBC'}
+                      >
                         Button Sample
                       </button>
                     </div>
@@ -333,28 +349,60 @@ const StyleGuide: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <p className="text-body-sm mb-2">Small</p>
-                      <button className="bg-primary text-white font-semibold py-2 px-4 text-body-sm rounded-full">
+                      <button 
+                        className="bg-primary text-white font-semibold py-2 px-4 text-body-sm transition-colors duration-200" 
+                        style={{ 
+                          borderRadius: '6px',
+                          backgroundColor: '#032424'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#021818'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#032424'}
+                      >
                         Button Sample
                       </button>
                     </div>
                     
                     <div>
                       <p className="text-body-sm mb-2">Normal</p>
-                      <button className="bg-primary text-white font-semibold py-3 px-6 rounded-full">
+                      <button 
+                        className="bg-primary text-white font-semibold py-3 px-6 transition-colors duration-200" 
+                        style={{ 
+                          borderRadius: '6px',
+                          backgroundColor: '#032424'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#021818'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#032424'}
+                      >
                         Button Sample
                       </button>
                     </div>
                     
                     <div>
                       <p className="text-body-sm mb-2">Medium</p>
-                      <button className="bg-primary text-white font-semibold py-3 px-8 rounded-full">
+                      <button 
+                        className="bg-primary text-white font-semibold py-3 px-8 transition-colors duration-200" 
+                        style={{ 
+                          borderRadius: '6px',
+                          backgroundColor: '#032424'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#021818'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#032424'}
+                      >
                         Button Sample
                       </button>
                     </div>
                     
                     <div>
                       <p className="text-body-sm mb-2">Large</p>
-                      <button className="bg-primary text-white font-semibold py-4 px-10 rounded-full">
+                      <button 
+                        className="bg-primary text-white font-semibold py-4 px-10 transition-colors duration-200" 
+                        style={{ 
+                          borderRadius: '6px',
+                          backgroundColor: '#032424'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#021818'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#032424'}
+                      >
                         Button Sample
                       </button>
                     </div>
@@ -388,7 +436,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     placeholder="Placeholder" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                   />
                   <p className="text-body-xs text-gray-3 mt-1">Status</p>
                 </div>
@@ -400,7 +449,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                 </div>
@@ -410,7 +460,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                   <p className="text-body-xs text-gray-3 mt-1">Status</p>
@@ -421,7 +472,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-success focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-success focus:outline-none focus:ring-2 focus:ring-success focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                   <p className="text-body-xs text-success mt-1">Success !</p>
@@ -435,7 +487,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input text" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                 </div>
@@ -446,7 +499,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text Here" 
-                    className="w-full px-4 py-3 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                   <p className="text-body-xs text-gray-3 mt-1">Empty</p>
@@ -457,7 +511,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-warning focus:outline-none focus:ring-2 focus:ring-warning focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-warning focus:outline-none focus:ring-2 focus:ring-warning focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                   <p className="text-body-xs text-warning mt-1">Warning !</p>
@@ -472,7 +527,8 @@ const StyleGuide: React.FC = () => {
                     <input 
                       type="text" 
                       value="Input Text icon" 
-                      className="w-full px-4 py-3 pl-10 rounded-full border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 pl-10 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                      style={{ borderRadius: '6px' }}
                       readOnly
                     />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -488,7 +544,8 @@ const StyleGuide: React.FC = () => {
                   <h3 className="text-body-sm font-semibold mb-4">Text Area</h3>
                   <label className="block text-body-sm mb-1">Label Sample</label>
                   <textarea 
-                    className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     rows={5}
                     placeholder="Enter Text Here"
                   ></textarea>
@@ -501,7 +558,8 @@ const StyleGuide: React.FC = () => {
                   <input 
                     type="text" 
                     value="Input Text" 
-                    className="w-full px-4 py-3 rounded-full border border-error focus:outline-none focus:ring-2 focus:ring-error focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-error focus:outline-none focus:ring-2 focus:ring-error focus:border-transparent transition-all"
+                    style={{ borderRadius: '6px' }}
                     readOnly
                   />
                   <p className="text-body-xs text-error mt-1">Error !</p>

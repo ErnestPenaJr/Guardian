@@ -28,3 +28,80 @@ Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+7:41:04 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+7:44:19 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:44:19 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:45:07 AM [vite] http proxy error: /api/notifications/count
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:45:07 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:47:25 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+7:47:38 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:48:50 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+7:52:47 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+7:52:59 AM [vite] http proxy error: /api/login
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:52:59 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:53:05 AM [vite] http proxy error: /api/login
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:53:05 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:53:20 AM [vite] http proxy error: /api/login
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:53:20 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:54:09 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:56:31 AM [vite] http proxy error: /api/login
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+7:56:31 AM [vite] http proxy error: /api/send-error-email
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+7:59:55 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+8:01:39 AM [vite] (client) hmr update /src/pages/StyleGuide.tsx, /src/index.css
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.
+8:31:33 AM [vite] (client) hmr update /src/index.css, /src/pages/AdminDashboard.tsx, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/RequestDashboard.tsx, /src/pages/Home.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/FormTemplateEditorModal.tsx, /src/components/EnhancedFormBuilder.tsx, /src/components/AddRequestModal.tsx, /src/components/SelectFormModal.tsx
+Files in the public directory are served at the root path.
+Instead of /public/images/favicon.png, use /images/favicon.png.

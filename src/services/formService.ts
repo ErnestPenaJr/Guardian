@@ -275,7 +275,7 @@ const formService = {
         FIELD_TYPE_ID: fieldTypeId,
         IS_REQUIRED: field.required,
         OPTIONS: field.options || null,
-        SEQUENCE: index + 1, // 1-based sequence
+        SEQUENCE: field.sequence || index + 1, // Use field sequence or fallback to index
         IS_ACTIVE: true,
         IS_DELETED: false
       };
@@ -284,7 +284,7 @@ const formService = {
 
   // Convert database fields to UI form fields
   convertDbFieldsToFormFields: (dbFields: DbField[]): FormField[] => {
-    return dbFields.map(field => {
+    return dbFields.map((field, index) => {
       // Get field type name based on field type ID
       const fieldType = getFieldTypeNameById(field.FIELD_TYPE_ID);
       
@@ -292,9 +292,12 @@ const formService = {
         id: `field-${field.FIELD_ID || Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         fieldName: field.FIELD_NAME,
         fieldType,
+        fieldTypeId: field.FIELD_TYPE_ID,
         required: field.IS_REQUIRED,
         options: field.OPTIONS || '',
-        dbFieldId: field.FIELD_ID
+        sequence: field.SEQUENCE || index + 1,
+        dbFieldId: field.FIELD_ID,
+        canDelete: true
       };
     });
   },

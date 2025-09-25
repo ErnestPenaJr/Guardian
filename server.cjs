@@ -7025,9 +7025,134 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
 
         console.log(`✅ Form ${formId} basic details updated successfully`);
 
-        // TODO: Handle form fields update
-        // This would involve updating the FORM_FIELDS table or similar
-        console.log(`📝 Form fields update not yet implemented (${formFields?.length || 0} fields provided)`);
+        // Handle form fields update if provided
+        if (formFields && Array.isArray(formFields)) {
+            console.log(`📝 Updating ${formFields.length} form fields for form ${formId}`);
+            
+            // Step 1: Get existing form fields from FORMS_FIELDS junction table
+            const existingFormFields = await prisma.$queryRaw`
+                SELECT ff.FIELD_ID, ff.IS_REQUIRED, ff.SORT_ORDER, f.FIELD_NAME
+                FROM GUARDIAN.FORMS_FIELDS ff
+                INNER JOIN GUARDIAN.FIELDS f ON ff.FIELD_ID = f.FIELD_ID
+                WHERE ff.FORM_ID = ${formId}
+            `;
+            
+            console.log(`📋 Found ${existingFormFields.length} existing form fields`);
+            
+            // Step 2: Create a map of current fields by their database ID (dbFieldId)
+            const currentFieldIds = new Set();
+            const formFieldData = [];
+            
+            for (let i = 0; i < formFields.length; i++) {
+                const field = formFields[i];
+                console.log(`🔍 Processing field: ${field.fieldName} (dbFieldId: ${field.dbFieldId})`);
+                
+                let fieldId = field.dbFieldId;
+                
+                // If field doesn't have a database ID, it's a new field - create it
+                if (!fieldId) {
+                    console.log(`🆕 Creating new field: ${field.fieldName}`);
+                    
+                    // Insert into FIELDS table
+                    const insertResult = await prisma.$queryRaw`
+                        INSERT INTO GUARDIAN.FIELDS (
+                            FIELD_NAME, FIELD_TYPE_ID, ORGANIZATION_ID, IS_ACTIVE, IS_DELETED, IS_PUBLIC, IS_SENSITIVE,
+                            CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                        )
+                        OUTPUT INSERTED.FIELD_ID
+                        VALUES (
+                            ${field.fieldName}, ${field.fieldTypeId || 1}, ${req.companyId}, 1, 0, 1, 0,
+                            GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+                        )
+                    `;
+                    
+                    fieldId = insertResult[0].FIELD_ID;
+                    console.log(`✅ Created new field with ID: ${fieldId}`);
+                }
+                
+                currentFieldIds.add(fieldId);
+                formFieldData.push({
+                    fieldId,
+                    fieldName: field.fieldName,
+                    isRequired: field.required || false,
+                    sortOrder: i + 1
+                });
+            }
+            
+            // Step 3: Remove fields that are no longer in the form
+            const fieldsToRemove = existingFormFields.filter(ef => !currentFieldIds.has(ef.FIELD_ID));
+            
+            if (fieldsToRemove.length > 0) {
+                console.log(`🗑️  Removing ${fieldsToRemove.length} fields from form: ${fieldsToRemove.map(f => f.FIELD_NAME).join(', ')}`);
+                
+                for (const fieldToRemove of fieldsToRemove) {
+                    await prisma.$executeRaw`
+                        DELETE FROM GUARDIAN.FORMS_FIELDS 
+                        WHERE FORM_ID = ${formId} AND FIELD_ID = ${fieldToRemove.FIELD_ID}
+                    `;
+                }
+                
+                console.log(`✅ Removed ${fieldsToRemove.length} field associations`);
+            }
+            
+            // Step 4: Update existing fields and their associations
+            for (let i = 0; i < formFields.length; i++) {
+                const field = formFields[i];
+                const fieldData = formFieldData[i];
+                
+                // If field has a database ID, it's an existing field that may need updates
+                if (field.dbFieldId) {
+                    console.log(`🔄 Updating existing field ${field.dbFieldId}: ${field.fieldName} (type: ${field.fieldTypeId})`);
+                    
+                    // Update the field in GUARDIAN.FIELDS table with new properties including fieldTypeId
+                    await prisma.$executeRaw`
+                        UPDATE GUARDIAN.FIELDS 
+                        SET 
+                            FIELD_NAME = ${field.fieldName},
+                            FIELD_TYPE_ID = ${field.fieldTypeId || 1},
+                            UPDATE_DATE = GETDATE(),
+                            UPDATE_USER_ID = ${req.userId}
+                        WHERE FIELD_ID = ${field.dbFieldId} AND ORGANIZATION_ID = ${req.companyId}
+                    `;
+                    
+                    console.log(`✅ Updated field ${field.dbFieldId} with type ${field.fieldTypeId}`);
+                }
+                
+                // Check if this field association already exists in FORMS_FIELDS
+                const existingAssociation = await prisma.$queryRaw`
+                    SELECT FIELD_ID FROM GUARDIAN.FORMS_FIELDS 
+                    WHERE FORM_ID = ${formId} AND FIELD_ID = ${fieldData.fieldId}
+                `;
+                
+                if (existingAssociation.length > 0) {
+                    // Update existing association
+                    await prisma.$executeRaw`
+                        UPDATE GUARDIAN.FORMS_FIELDS 
+                        SET IS_REQUIRED = ${fieldData.isRequired ? 1 : 0},
+                            SORT_ORDER = ${fieldData.sortOrder},
+                            UPDATE_DATE = GETDATE(),
+                            UPDATE_USER_ID = ${req.userId}
+                        WHERE FORM_ID = ${formId} AND FIELD_ID = ${fieldData.fieldId}
+                    `;
+                } else {
+                    // Create new association
+                    await prisma.$executeRaw`
+                        INSERT INTO GUARDIAN.FORMS_FIELDS (
+                            FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
+                            CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                        )
+                        VALUES (
+                            ${formId}, ${fieldData.fieldId}, ${fieldData.isRequired ? 1 : 0}, ${fieldData.sortOrder},
+                            GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+                        )
+                    `;
+                }
+            }
+            
+            console.log(`✅ Successfully updated form fields for form ${formId}`);
+        } else {
+            console.log(`ℹ️  No form fields provided for update`);
+        }
 
         res.json({
             success: true,

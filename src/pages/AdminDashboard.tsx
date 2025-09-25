@@ -229,6 +229,15 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
             <li>General settings</li>
             <li>Email templates</li>
             <li>Notification settings</li>
+            <li 
+              className="cursor-pointer hover:text-secondary transition-colors mt-2 border-t border-gray-200 pt-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/style-guide');
+              }}
+            >
+              📖 Style Guide
+            </li>
           </ul>
         </a>
       </div>
