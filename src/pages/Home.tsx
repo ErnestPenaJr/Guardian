@@ -1125,15 +1125,11 @@ function Home() {
         setError('Invalid data format received from server');
       }
       
-      // Prepare chart data for request status visualization
+      // Prepare chart data for request status visualization - only main status types
       const statusCounts: Record<string, number> = {
-        'N': 0, // New
         'P': 0, // Pending
         'A': 0, // Active
-        'D': 0, // Complete
-        'I': 0, // In Progress
-        'H': 0, // On Hold
-        'R': 0, // Rejected
+        'D': 0, // Complete (stored as 'D' for Done in DB)
         'X': 0  // Cancelled
       };
       
@@ -1144,17 +1140,13 @@ function Home() {
         }
       });
       
-      // Map to chart data format
+      // Map to chart data format - only showing main statuses
       const chartData = [
-        { label: 'New', value: statusCounts['N'], color: '#9CA3AF' },
         { label: 'Pending', value: statusCounts['P'], color: '#FBBF24' },
         { label: 'Active', value: statusCounts['A'], color: '#3B82F6' },
         { label: 'Complete', value: statusCounts['D'], color: '#10B981' },
-        { label: 'In Progress', value: statusCounts['I'], color: '#06B6D4' },
-        { label: 'On Hold', value: statusCounts['H'], color: '#8B5CF6' },
-        { label: 'Rejected', value: statusCounts['R'], color: '#EF4444' },
         { label: 'Cancelled', value: statusCounts['X'], color: '#F97316' }
-      ];
+      ].filter(item => item.value > 0); // Only show statuses that have requests
       
       setRequestStatusData(chartData);
       
