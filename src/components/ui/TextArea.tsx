@@ -17,7 +17,7 @@ const TextArea: React.FC<TextAreaProps> = ({
   className = '',
   ...props
 }) => {
-  const baseTextAreaClasses = 'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all';
+  const baseTextAreaClasses = 'w-full px-4 py-3 border focus:outline-none focus:ring-2 transition-all';
   
   const statusClasses = {
     default: 'border-gray-5 focus:ring-secondary focus:border-transparent',
@@ -38,7 +38,7 @@ const TextArea: React.FC<TextAreaProps> = ({
   return (
     <div className="w-full">
       {label && <label className="block text-body-sm mb-1">{label}</label>}
-      <textarea className={textAreaClasses} {...props} />
+      <textarea className={textAreaClasses} style={{ borderRadius: '6px' }} {...props} />
       {status && <p className={`text-body-xs ${statusTextClasses[statusType]} mt-1`}>{status}</p>}
     </div>
   );

@@ -399,13 +399,14 @@ function Login() {
                 onChange={handleChange}
                 name="email"
                 maxLength={125}
-                className={`w-full px-4 py-3 rounded-lg border ${
+                className={`w-full px-4 py-3 border ${
                   validation.email.touched
                     ? validation.email.valid
                       ? 'border-green-500 focus:ring-green-500'
                       : 'border-red-500 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-secondary'
                 } focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-10`}
+                style={{ borderRadius: '6px' }}
                 disabled={isLoading}
               />
               {validation.email.touched && (
@@ -442,13 +443,14 @@ function Login() {
                 value={credentials.password}
                 onChange={handleChange}
                 name="password"
-                className={`w-full px-4 py-3 rounded-lg border ${
+                className={`w-full px-4 py-3 border ${
                   validation.password.touched
                     ? validation.password.valid
                       ? 'border-green-500 focus:ring-green-500'
                       : 'border-red-500 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-secondary'
                 } focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-10`}
+                style={{ borderRadius: '6px' }}
                 disabled={isLoading}
               />
               <button

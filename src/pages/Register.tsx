@@ -183,7 +183,8 @@ function Register() {
               placeholder="JohnSmith@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${emailError ? 'border-error' : 'border-gray-5'} focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              className={`w-full px-4 py-3 border ${emailError ? 'border-error' : 'border-gray-5'} focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              style={{ borderRadius: '6px' }}
               disabled={isValidatingEmail || isLoading}
             />
             {emailError && (
@@ -200,14 +201,17 @@ function Register() {
           </p>
           
           {error && (
-            <div className="mt-4 p-3 bg-red-50 text-error rounded-lg mb-6">
+            <div className="mt-4 p-3 bg-red-50 text-error mb-6" style={{ borderRadius: '6px' }}>
               {error}
             </div>
           )}
           
           <button
             type="submit"
-            className="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg hover:bg-secondary/90 transition-colors"
+            className="w-full bg-secondary text-white font-semibold py-3 px-4 transition-colors"
+            style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#24A5A5'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2EBCBC'}
             disabled={isValidatingEmail || isLoading}
           >
             {isValidatingEmail ? (

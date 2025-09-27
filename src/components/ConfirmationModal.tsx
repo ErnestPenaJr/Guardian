@@ -40,7 +40,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            style={{ backgroundColor: '#FFFFFF' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
           >
             {cancelText}
           </button>
@@ -50,7 +53,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               onConfirm();
               onClose();
             }}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            style={{ backgroundColor: '#C10000' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#A00000'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C10000'}
           >
             {confirmText}
           </button>

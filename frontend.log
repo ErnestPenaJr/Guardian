@@ -105,3 +105,39 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 8:31:33 AM [vite] (client) hmr update /src/index.css, /src/pages/AdminDashboard.tsx, /src/pages/RequestFulfillmentDashboard.tsx, /src/pages/RequestDashboard.tsx, /src/pages/Home.tsx, /src/components/WorkflowManagementModal.tsx, /src/components/FormTemplateEditorModal.tsx, /src/components/EnhancedFormBuilder.tsx, /src/components/AddRequestModal.tsx, /src/components/SelectFormModal.tsx
 Files in the public directory are served at the root path.
 Instead of /public/images/favicon.png, use /images/favicon.png.
+12:51:20 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+12:51:58 PM [vite] (client) hmr update /src/components/SimpleFormBuilder.tsx, /src/index.css
+12:52:05 PM [vite] (client) hmr update /src/components/ui/TextArea.tsx, /src/index.css
+12:52:10 PM [vite] (client) page reload src/components/ui/Checkbox.tsx
+12:52:35 PM [vite] (client) page reload src/components/ui/Card.tsx
+12:52:40 PM [vite] (client) hmr update /src/components/ui/Select.tsx, /src/index.css
+12:52:45 PM [vite] (client) hmr update /src/components/Modal.tsx, /src/index.css
+12:53:21 PM [vite] (client) hmr update /src/pages/Login.tsx, /src/index.css
+12:53:45 PM [vite] (client) hmr update /src/pages/Register.tsx, /src/index.css
+12:53:59 PM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
+12:54:02 PM [vite] (client) hmr update /src/pages/ForgotPassword.tsx, /src/index.css
+12:54:28 PM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
+12:54:47 PM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
+12:55:14 PM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
+12:55:24 PM [vite] (client) hmr update /src/pages/ForgotPassword.tsx, /src/index.css
+1:45:05 PM [vite] (client) hmr update /src/pages/ForgotPassword.tsx, /src/index.css
+2:25:58 PM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+6:53:56 AM [vite] (client) hmr update /src/pages/ForgotPassword.tsx, /src/index.css
+6:54:05 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+6:54:17 AM [vite] (client) hmr update /src/components/AddRequestModal.tsx, /src/index.css
+6:54:25 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+6:54:33 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+6:54:38 AM [vite] (client) hmr update /src/pages/AdminDashboard.tsx, /src/index.css
+6:57:44 AM [vite] (client) hmr update /src/pages/AccountSettings.tsx, /src/index.css
+6:58:16 AM [vite] (client) hmr update /src/pages/AdminFields.tsx, /src/index.css
+6:58:35 AM [vite] (client) hmr update /src/pages/ResetPassword.tsx, /src/index.css
+6:58:46 AM [vite] (client) hmr update /src/pages/Register.tsx, /src/index.css
+6:59:18 AM [vite] (client) hmr update /src/pages/VerifyEmail.tsx, /src/index.css
+6:59:30 AM [vite] (client) hmr update /src/pages/VerifyForgotPassword.tsx, /src/index.css
+6:59:35 AM [vite] (client) hmr update /src/pages/VerifyForgotPassword.tsx, /src/index.css
+7:00:29 AM [vite] (client) hmr update /src/components/ConfirmationModal.tsx, /src/index.css
+7:00:50 AM [vite] (client) hmr update /src/components/UpdateProfileModal.tsx, /src/index.css
+7:01:18 AM [vite] (client) hmr update /src/components/NotificationDropdown.tsx, /src/index.css
+7:01:27 AM [vite] (client) hmr update /src/components/NotificationDropdown.tsx, /src/index.css
+7:01:38 AM [vite] (client) hmr update /src/components/NotificationDropdown.tsx, /src/index.css
+7:01:52 AM [vite] (client) page reload src/components/request_modal.tsx

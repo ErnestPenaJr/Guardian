@@ -48,7 +48,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
 
         {/* Modal panel */}
         <div 
-          className={`inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-sm transform transition-all sm:my-8 sm:align-middle ${modalSizeClasses} w-full ${className} z-[1002] relative border border-gray-200 border-t-4 border-t-secondary`}
+          className={`inline-block align-bottom bg-white text-left overflow-hidden shadow-sm transform transition-all sm:my-8 sm:align-middle ${modalSizeClasses} w-full ${className} z-[1002] relative border border-gray-200 border-t-4 border-t-secondary`}
+          style={{ borderRadius: '6px' }}
           role="dialog" 
           aria-modal="true" 
           aria-labelledby="modal-headline"

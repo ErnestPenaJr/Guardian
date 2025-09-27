@@ -452,14 +452,15 @@ const VerifyEmail = () => {
                 onChange={(e) => handleCodeChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={index === 0 ? handlePaste : undefined}
-                className="w-full aspect-square text-center text-lg font-medium rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                className="w-full aspect-square text-center text-lg font-medium border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                style={{ borderRadius: '6px' }}
               />
             ))}
           </div>
         </div>
         
         {error && (
-          <div className="p-3 bg-red-50 text-error rounded-lg mb-6">
+          <div className="p-3 bg-red-50 text-error mb-6" style={{ borderRadius: '6px' }}>
             {error}
           </div>
         )}
@@ -467,11 +468,22 @@ const VerifyEmail = () => {
         <button
           type="submit"
           disabled={isLoading || verificationCode.length !== 6 || timeLeft === 0}
-          className={`w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg ${
+          className={`w-full bg-secondary text-white font-semibold py-3 px-4 ${
             isLoading || verificationCode.length !== 6 || timeLeft === 0
               ? 'opacity-70 cursor-not-allowed'
-              : 'hover:bg-secondary/90 transition-colors'
+              : 'transition-colors'
           }`}
+          style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+          onMouseEnter={(e) => {
+            if (!isLoading && verificationCode.length === 6 && timeLeft > 0) {
+              e.currentTarget.style.backgroundColor = '#24A5A5';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading && verificationCode.length === 6 && timeLeft > 0) {
+              e.currentTarget.style.backgroundColor = '#2EBCBC';
+            }
+          }}
         >
           {isLoading ? (
             <div className="flex items-center justify-center">
@@ -497,6 +509,7 @@ const VerifyEmail = () => {
           className={`text-secondary font-medium ${
             isResendDisabled || isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:underline'
           }`}
+          style={{ borderRadius: '6px' }}
         >
           {isResendDisabled ? `Resend code (${resendCountdown}s)` : 'Resend code'}
         </button>
@@ -519,7 +532,8 @@ const VerifyEmail = () => {
             value={formData.fullName}
             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
             placeholder="John Smith"
-            className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+            style={{ borderRadius: '6px' }}
           />
         </div>
         
@@ -534,7 +548,8 @@ const VerifyEmail = () => {
               value={formData.password}
               onChange={handlePasswordChange}
               placeholder="Create a strong password"
-              className={`w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              className={`w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              style={{ borderRadius: '6px' }}
             />
             <button
               type="button"
@@ -578,7 +593,8 @@ const VerifyEmail = () => {
                 }
               }}
               placeholder="Confirm your password"
-              className={`w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              className={`w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              style={{ borderRadius: '6px' }}
             />
             <button
               type="button"
@@ -609,7 +625,8 @@ const VerifyEmail = () => {
             value={formData.workspace}
             onChange={(e) => setFormData({ ...formData, workspace: e.target.value })}
             placeholder="Your organization/workspace name"
-            className="w-full px-4 py-3 rounded-lg border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+            style={{ borderRadius: '6px' }}
           />
           <p className="text-gray-2 text-body-sm mt-1">
             {formData.workspace && formData.workspace.match(/^[A-Z]+-\d{2}$/) 
@@ -619,7 +636,7 @@ const VerifyEmail = () => {
         </div>
         
         {error && (
-          <div className="p-3 bg-red-50 text-error rounded-lg">
+          <div className="p-3 bg-red-50 text-error" style={{ borderRadius: '6px' }}>
             {error}
           </div>
         )}
@@ -627,9 +644,20 @@ const VerifyEmail = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg ${
-            isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-secondary/90 transition-colors'
+          className={`w-full bg-secondary text-white font-semibold py-3 px-4 ${
+            isLoading ? 'opacity-70 cursor-not-allowed' : 'transition-colors'
           }`}
+          style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+          onMouseEnter={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.backgroundColor = '#24A5A5';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.backgroundColor = '#2EBCBC';
+            }
+          }}
         >
           {isLoading ? (
             <div className="flex items-center justify-center">
@@ -663,6 +691,7 @@ const VerifyEmail = () => {
                     ? 'border-secondary bg-secondary/10' 
                     : 'border-gray-5 hover:border-gray-4'
                 }`}
+                style={{ borderRadius: '6px' }}
               >
                 <input
                   type="radio"
@@ -689,6 +718,7 @@ const VerifyEmail = () => {
                     ? 'border-secondary bg-secondary/10' 
                     : 'border-gray-5 hover:border-gray-4'
                 }`}
+                style={{ borderRadius: '6px' }}
               >
                 <input
                   type="radio"
@@ -715,6 +745,7 @@ const VerifyEmail = () => {
                     ? 'border-secondary bg-secondary/10' 
                     : 'border-gray-5 hover:border-gray-4'
                 }`}
+                style={{ borderRadius: '6px' }}
               >
                 <input
                   type="radio"
@@ -731,7 +762,7 @@ const VerifyEmail = () => {
         </div>
         
         {error && (
-          <div className="p-3 bg-red-50 text-error rounded-lg">
+          <div className="p-3 bg-red-50 text-error" style={{ borderRadius: '6px' }}>
             {error}
           </div>
         )}
@@ -740,7 +771,10 @@ const VerifyEmail = () => {
           <button
             type="button"
             onClick={handlePrevStep}
-            className="w-1/3 bg-white border border-gray-5 text-gray-1 font-semibold py-3 px-4 rounded-lg hover:bg-gray-7/50 transition-colors"
+            className="w-1/3 bg-white border border-gray-5 text-gray-1 font-semibold py-3 px-4 transition-colors"
+            style={{ backgroundColor: '#FFFFFF' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
           >
             Back
           </button>
@@ -748,9 +782,20 @@ const VerifyEmail = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-2/3 bg-secondary text-white font-semibold py-3 px-4 rounded-lg ${
-              isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-secondary/90 transition-colors'
+            className={`w-2/3 bg-secondary text-white font-semibold py-3 px-4 ${
+              isLoading ? 'opacity-70 cursor-not-allowed' : 'transition-colors'
             }`}
+            style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.backgroundColor = '#24A5A5';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.backgroundColor = '#2EBCBC';
+              }
+            }}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">

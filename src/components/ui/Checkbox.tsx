@@ -17,7 +17,8 @@ const Checkbox: React.FC<CheckboxProps> = ({
     <div className={`flex items-center ${className}`}>
       <input 
         type="checkbox" 
-        className="w-5 h-5 rounded text-primary focus:ring-primary" 
+        className="w-5 h-5 text-primary focus:ring-primary" 
+        style={{ borderRadius: '6px' }}
         {...props} 
       />
       {label && <label className="ml-2 text-body-sm">{label}</label>}

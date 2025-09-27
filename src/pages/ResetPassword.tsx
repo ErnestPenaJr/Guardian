@@ -311,7 +311,10 @@ const ResetPassword = () => {
           
           <button
             type="submit"
-            className="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg hover:bg-secondary/90 transition-colors"
+            className="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            style={{ backgroundColor: '#2EBCBC' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#24A5A5'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2EBCBC'}
             disabled={isLoading || !!passwordError || formData.password !== formData.confirmPassword || !formData.password || !formData.confirmPassword}
           >
             {isLoading ? (

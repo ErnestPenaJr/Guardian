@@ -24,7 +24,7 @@ function ForgotPassword() {
           icon: 'error',
           title: 'Invalid Email',
           text: 'Please enter a valid email address.',
-          confirmButtonColor: '#0D9488'
+          confirmButtonColor: '#2EBCBC'
         });
         setIsValidatingEmail(false);
         return false;
@@ -55,7 +55,7 @@ function ForgotPassword() {
             icon: 'error',
             title: 'Invalid Email',
             text: validationResult.reason || 'Invalid email address',
-            confirmButtonColor: '#0D9488'
+            confirmButtonColor: '#2EBCBC'
           });
           setIsValidatingEmail(false);
           return false;
@@ -67,7 +67,7 @@ function ForgotPassword() {
             icon: 'error',
             title: 'Email Not Found',
             text: 'No account found with that email address.',
-            confirmButtonColor: '#0D9488'
+            confirmButtonColor: '#2EBCBC'
           });
         } else if (error.status === 403) {
           setEmailError('Email not verified');
@@ -75,7 +75,7 @@ function ForgotPassword() {
             icon: 'error',
             title: 'Email Not Verified',
             text: 'This email address has not been verified. Please check your inbox or register.',
-            confirmButtonColor: '#0D9488'
+            confirmButtonColor: '#2EBCBC'
           });
         } else if (error.status === 409) {
           setEmailError('Email already registered');
@@ -83,7 +83,7 @@ function ForgotPassword() {
             icon: 'error',
             title: 'Email Already Registered',
             text: 'This email is already registered. Please log in or reset your password.',
-            confirmButtonColor: '#0D9488'
+            confirmButtonColor: '#2EBCBC'
           });
         } else {
           setEmailError('Error validating email. Please try again.');
@@ -91,7 +91,7 @@ function ForgotPassword() {
             icon: 'error',
             title: 'Email Validation Error',
             text: 'Error validating email. Please try again.',
-            confirmButtonColor: '#0D9488'
+            confirmButtonColor: '#2EBCBC'
           });
         }
         setIsValidatingEmail(false);
@@ -178,7 +178,7 @@ function ForgotPassword() {
           icon: 'warning',
           title: 'Email Not Verified',
           text: data.error,
-          confirmButtonColor: '#0D9488',
+          confirmButtonColor: '#2EBCBC',
           footer: '<a href="/verify-email">Verify your email</a>'
         });
       } else if (data.error) {
@@ -186,14 +186,14 @@ function ForgotPassword() {
           icon: 'error',
           title: 'Password Reset Failed',
           text: data.error,
-          confirmButtonColor: '#0D9488'
+          confirmButtonColor: '#2EBCBC'
         });
       } else {
         Swal.fire({
           icon: 'error',
           title: 'Password Reset Failed',
           text: 'An error occurred during password reset request. Please try again.',
-          confirmButtonColor: '#0D9488'
+          confirmButtonColor: '#2EBCBC'
         });
       }
     } catch (error) {
@@ -240,7 +240,8 @@ function ForgotPassword() {
               placeholder="JohnSmith@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${emailError ? 'border-error' : 'border-gray-5'} focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              className={`w-full px-4 py-3 border ${emailError ? 'border-error' : 'border-gray-5'} focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
+              style={{ borderRadius: '6px' }}
               disabled={isValidatingEmail || isLoading}
             />
             {emailError && (
@@ -251,14 +252,20 @@ function ForgotPassword() {
           </div>
           
           {error && (
-            <div className="mt-4 p-3 bg-red-50 text-error rounded-lg mb-6">
+            <div className="mt-4 p-3 bg-red-50 text-error mb-6" style={{ borderRadius: '6px' }}>
               {error}
             </div>
           )}
           
           <button
             type="submit"
-            className="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg hover:bg-secondary/90 transition-colors"
+            className="w-full bg-secondary text-white font-semibold py-3 px-4 transition-colors duration-200"
+            style={{ 
+              borderRadius: '6px',
+              backgroundColor: '#2EBCBC'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#24A5A5'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2EBCBC'}
             disabled={isValidatingEmail || isLoading}
           >
             {isValidatingEmail ? (

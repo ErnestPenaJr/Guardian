@@ -131,7 +131,15 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
       <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Workflow Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center hover:bg-blue-50 transition border border-gray-200 border-t-4 border-t-secondary">
+        <div 
+          className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary" 
+          style={{ 
+            borderRadius: '6px',
+            backgroundColor: '#FFFFFF'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+        >
           <FaProjectDiagram className="h-12 w-12 text-secondary mb-4" />
           <h3 
             className="text-lg font-semibold mb-2 cursor-pointer hover:text-secondary transition-colors"
@@ -165,7 +173,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
                   e.stopPropagation();
                   setCustomTemplateModalOpen(true);
                 }}
-                style={{ color: '#6c5ce7' }}
+                style={{ color: '#2EBCBC' }}
               >
                 Custom Workflow Templates
               </li>
@@ -177,7 +185,13 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         {((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') && (
           <a
             href="#"
-            className="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center hover:bg-blue-50 transition border border-gray-200 border-t-4 border-t-secondary"
+            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary"
+            style={{ 
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             onClick={e => {
               e.preventDefault();
               onShowUserManagement && onShowUserManagement();
@@ -216,7 +230,13 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onSho
         {/* System Settings Card */}
         <a
           href="#"
-          className="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center hover:bg-blue-50 transition border border-gray-200 border-t-4 border-t-secondary"
+          className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary"
+          style={{ 
+            borderRadius: '6px',
+            backgroundColor: '#FFFFFF'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
           onClick={e => {
             e.preventDefault();
             // Navigate to system settings

@@ -800,17 +800,36 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
           <div className="d-flex justify-content-end gap-2 mt-4">
             <button 
               type="button" 
-              className="btn btn-outline-secondary"
+              className="btn btn-outline-secondary transition-colors duration-200"
               onClick={onClose}
-              style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+              style={{ 
+                borderRadius: '0.375rem', 
+                padding: '0.5rem 1.5rem',
+                borderColor: '#2EBCBC',
+                color: '#2EBCBC'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#24A5A5';
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#2EBCBC';
+              }}
             >
               Cancel
             </button>
             <button 
               type="submit" 
-              className="btn btn-primary" 
+              className="btn btn-primary transition-colors duration-200" 
               disabled={isSubmitting || formTemplates.length === 0 || !selectedTemplate}
-              style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+              style={{ 
+                borderRadius: '0.375rem', 
+                padding: '0.5rem 1.5rem',
+                backgroundColor: '#032424'
+              }}
+              onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
+              onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
             >
               Next
             </button>
@@ -900,19 +919,42 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               <div className="d-flex justify-content-end gap-2 mt-4">
                 <button 
                   type="button" 
-                  className="btn btn-success"
+                  className="btn btn-success transition-colors duration-200"
                   onClick={handleStart}
                   disabled={isSubmitting}
-                  style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+                  style={{ 
+                    borderRadius: '0.375rem', 
+                    padding: '0.5rem 1.5rem',
+                    backgroundColor: '#032424'
+                  }}
+                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
+                  onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
                 <button 
                   type="button" 
-                  className="btn btn-outline-danger"
+                  className="btn btn-outline-danger transition-colors duration-200"
                   onClick={handleCancel}
                   disabled={isSubmitting}
-                  style={{ borderRadius: '0.375rem', padding: '0.5rem 1.5rem' }}
+                  style={{ 
+                    borderRadius: '0.375rem', 
+                    padding: '0.5rem 1.5rem',
+                    borderColor: '#C10000',
+                    color: '#C10000'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = '#C10000';
+                      e.currentTarget.style.color = '#FFFFFF';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#C10000';
+                    }
+                  }}
                 >
                   {isSubmitting ? 'Cancelling...' : 'Cancel'}
                 </button>

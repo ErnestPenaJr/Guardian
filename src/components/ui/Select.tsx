@@ -18,7 +18,7 @@ const Select: React.FC<SelectProps> = ({
   children,
   ...props
 }) => {
-  const baseSelectClasses = 'w-full px-4 py-3 rounded-lg border appearance-none bg-white focus:outline-none focus:ring-2 pr-10';
+  const baseSelectClasses = 'w-full px-4 py-3 border appearance-none bg-white focus:outline-none focus:ring-2 pr-10';
   
   const statusClasses = {
     default: 'border-gray-5 focus:ring-secondary focus:border-transparent',
@@ -40,7 +40,7 @@ const Select: React.FC<SelectProps> = ({
     <div className="w-full">
       {label && <label className="block text-body-sm mb-1">{label}</label>}
       <div className="relative">
-        <select className={selectClasses} {...props}>
+        <select className={selectClasses} style={{ borderRadius: '6px' }} {...props}>
           {children}
         </select>
         <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">

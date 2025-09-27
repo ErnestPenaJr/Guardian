@@ -259,7 +259,18 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
           {/* Footer with action buttons */}
           <div className="flex items-center justify-end p-4 border-t border-gray-200 rounded-b bg-gray-50">
             <button
-              className="px-4 py-2 mr-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 mr-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              style={{ backgroundColor: '#FFFFFF' }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                }
+              }}
               type="button"
               onClick={onClose}
               disabled={loading}
@@ -267,7 +278,18 @@ const RequestModal: React.FC<RequestModalProps> = ({ show, onClose, request }) =
               Close
             </button>
             <button
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
+              className="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
+              style={{ backgroundColor: '#032424' }}
+              onMouseEnter={(e) => {
+                if (selectedUser && !loading) {
+                  e.currentTarget.style.backgroundColor = '#021818';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedUser && !loading) {
+                  e.currentTarget.style.backgroundColor = '#032424';
+                }
+              }}
               type="button"
               onClick={handleAssignUser}
               disabled={!selectedUser || loading}

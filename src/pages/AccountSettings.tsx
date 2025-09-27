@@ -240,7 +240,16 @@ const AccountSettings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <button
                 onClick={() => navigate('/update-profile')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.borderColor = '#2EBCBC';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#E0E0E0';
+                }}
               >
                 <User className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
@@ -253,7 +262,16 @@ const AccountSettings = () => {
 
               <button
                 onClick={() => navigate('/change-password')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.borderColor = '#2EBCBC';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#E0E0E0';
+                }}
               >
                 <Key className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
@@ -266,7 +284,16 @@ const AccountSettings = () => {
 
               <button
                 onClick={() => navigate('/notification-preferences')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.borderColor = '#2EBCBC';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#E0E0E0';
+                }}
               >
                 <Bell className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
@@ -279,7 +306,16 @@ const AccountSettings = () => {
 
               <button
                 onClick={() => navigate('/home')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.borderColor = '#2EBCBC';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#E0E0E0';
+                }}
               >
                 <Monitor className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
                 <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">

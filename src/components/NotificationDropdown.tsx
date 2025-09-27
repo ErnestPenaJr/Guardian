@@ -172,7 +172,10 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         onClick={handleToggleDropdown}
-        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="relative p-2 text-gray-600 hover:text-gray-900 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        style={{ backgroundColor: 'transparent' }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
         aria-label="Notifications"
       >
         <Bell className={`w-6 h-6 ${isJuggling ? 'animate-bounce' : ''}`} style={{
@@ -231,9 +234,12 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
                 {notifications.map((notification) => (
                   <div
                     key={notification.NOTIFICATION_ID}
-                    className={`p-4 hover:bg-gray-50 transition-colors ${
+                    className={`p-4 transition-colors ${
                       !notification.IS_READ ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                     }`}
+                    style={{ backgroundColor: !notification.IS_READ ? '#e3f2fd' : 'transparent' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = !notification.IS_READ ? '#e3f2fd' : 'transparent'}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1">
@@ -261,7 +267,10 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
                           {!notification.IS_READ && (
                             <button
                               onClick={() => markAsRead(notification.NOTIFICATION_ID)}
-                              className="flex-shrink-0 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                              className="flex-shrink-0 p-1 text-blue-600 hover:text-blue-800 rounded"
+                              style={{ backgroundColor: 'transparent' }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               title="Mark as read"
                             >
                               <Check className="w-4 h-4" />

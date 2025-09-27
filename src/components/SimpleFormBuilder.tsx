@@ -673,7 +673,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         return (
           <input 
             type="text" 
-            className="form-control" 
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+            style={{ borderRadius: '6px' }}
             placeholder={field.fieldName} 
             disabled 
           />
@@ -681,7 +682,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       case 'paragraph':
         return (
           <textarea 
-            className="form-control" 
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+            style={{ borderRadius: '6px' }}
             placeholder={field.fieldName} 
             rows={3} 
             disabled 
@@ -694,7 +696,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         return (
           <input 
             type="number" 
-            className="form-control" 
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+            style={{ borderRadius: '6px' }}
             placeholder={field.fieldName} 
             disabled 
           />
@@ -704,7 +707,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         return (
           <input 
             type="date" 
-            className="form-control" 
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+            style={{ borderRadius: '6px' }}
             disabled 
           />
         );
@@ -712,7 +716,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         return (
           <input 
             type="password" 
-            className="form-control" 
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+            style={{ borderRadius: '6px' }}
             placeholder="XXX-XX-XXXX" 
             disabled 
           />
@@ -721,7 +726,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         return (
           <input 
             type="text" 
-            className="form-control" 
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+            style={{ borderRadius: '6px' }}
             placeholder={field.fieldName} 
             disabled 
           />
@@ -741,7 +747,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             <label htmlFor="fieldName" className="form-label">Field Name</label>
             <input 
               type="text" 
-              className="form-control" 
+              className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+              style={{ borderRadius: '6px' }}
               id="fieldName" 
               value={editingField.fieldName} 
               onChange={(e) => setEditingField({...editingField, fieldName: e.target.value})}
@@ -751,7 +758,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
           <div className="mb-3">
             <label htmlFor="fieldType" className="form-label">Field Type</label>
             <select 
-              className="form-select" 
+              className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+              style={{ borderRadius: '6px' }}
               id="fieldType" 
               value={editingField.fieldType}
               onChange={(e) => setEditingField({...editingField, fieldType: e.target.value})}
@@ -788,7 +796,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             <label htmlFor="placeholder" className="form-label">Placeholder</label>
             <input 
               type="text" 
-              className="form-control" 
+              className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+              style={{ borderRadius: '6px' }}
               id="placeholder" 
               value={editingField.placeholder || ''}
               onChange={(e) => setEditingField({...editingField, placeholder: e.target.value})}
@@ -799,7 +808,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             <label htmlFor="helpText" className="form-label">Help Text</label>
             <input 
               type="text" 
-              className="form-control" 
+              className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+              style={{ borderRadius: '6px' }}
               id="helpText" 
               value={editingField.helpText || ''}
               onChange={(e) => setEditingField({...editingField, helpText: e.target.value})}
