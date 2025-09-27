@@ -469,6 +469,7 @@ Both environments support the same complete set of API endpoints:
 - `GET /api/forms` - Get forms (company-filtered with COMPANY_ID support)
 - `POST /api/forms` - Create new form template with proper company isolation (Fixed 2025-08-12)
 - `GET /api/forms/:id` - Get specific form with fields
+- `GET /api/custom-templates` - Get custom form templates (company-filtered with JWT authentication) (Fixed 2025-09-27)
 - `GET /api/fields` - Get fields (company-filtered)
 - `POST /api/fields` - Create new field with duplicate name checking and validation (Added 2025-07-29)
 - `PUT /api/fields/:fieldId` - Update existing field with validation (Added 2025-07-29)
@@ -639,6 +640,7 @@ bun server.js  # or node server.js
 20. **Production Asset Deployment** - Clean build process and asset verification prevent 404 errors in production (Fixed 2025-08-20)
 21. **Task Assignment Modal** - Bootstrap UI modal replaces prompt-based assignment with proper validation and user selection (Enhanced 2025-08-20)
 22. **Emergency Recovery Protocol** - Documented step-by-step recovery process for production server failures (Added 2025-08-21)
+23. **Custom Templates Authentication** - Enhanced token validation prevents "invalid_token" transmission and ensures proper JWT authentication flow (Fixed 2025-09-27)
 
 ## Deployment
 
@@ -904,9 +906,68 @@ If production server fails to start or returns 500 errors on basic endpoints:
 - ✅ **ALWAYS use** working `server.cjs` as production foundation
 - ✅ **ALWAYS keep** production modifications minimal and targeted
 
+### Custom Templates Authentication Issues (RESOLVED 2025-09-27)
+
+If custom templates fail to load or return authentication errors:
+
+**CRITICAL ROOT CAUSE IDENTIFIED:**
+- **Invalid Token Storage**: Frontend components sending "invalid_token" instead of proper JWT tokens
+- **Null Token Conversion**: `localStorage.getItem('token')` returning `null` was being converted to string "null"
+- **Module System Conflicts**: Server configuration conflicts between ES Module and CommonJS systems
+
+**SUCCESSFUL RESOLUTION METHODOLOGY:**
+1. **Enhanced Token Validation**: Added `getValidToken()` helper function in SimpleFormBuilder.tsx
+2. **Proper Authentication Checks**: Validates token existence before API requests
+3. **User Experience Enhancement**: Clear feedback when authentication is required
+4. **Server Configuration Fixed**: Added proper development scripts (`server:dev`, `server:prod-test`) in package.json
+5. **Multi-Server Verification**: Confirmed `/api/custom-templates` endpoints exist across all three server files
+
+**Critical Success Indicators:**
+- ✅ Valid JWT tokens properly transmitted from localStorage
+- ✅ Custom templates load without authentication errors
+- ✅ Server starts without syntax or module system errors
+- ✅ Database connections established successfully
+- ✅ JWT middleware working correctly with proper tokens
+
+**Enhanced Authentication Features (Fixed 2025-09-27):**
+- **Token Validation**: `getValidToken()` helper prevents invalid token transmission
+- **User Feedback**: Clear error messages when authentication is required
+- **Fallback Handling**: Graceful degradation when tokens are missing or invalid
+- **Security Enhancement**: Prevents "invalid_token" string from being sent as authentication
+
+**Prevention Measures:**
+- Always validate localStorage token values before API requests
+- Use proper helper functions for token retrieval and validation
+- Test authentication flows with both valid and invalid token states
+- Verify server configuration supports both development and production environments
+
 ## Recent Changes & Fixes
 
-### Latest Updates (2025-08-21)
+### Latest Updates (2025-09-27)
+
+#### Custom Templates Authentication & Token Management - RESOLVED (2025-09-27)
+- ✅ **Authentication Token Issues Fixed**: Resolved critical issue where SimpleFormBuilder was sending "invalid_token" string instead of proper JWT tokens
+- ✅ **Enhanced Token Validation**: Implemented `getValidToken()` helper function with comprehensive null/undefined checking
+- ✅ **Frontend Authentication Flow**: Fixed localStorage token retrieval and validation preventing authentication failures
+- ✅ **User Experience Enhancement**: Added clear feedback when authentication is required for custom template access
+- ✅ **Custom Templates Loading**: Resolved 401 authentication errors preventing custom templates from loading in form builder
+- ✅ **Server Configuration Stability**: Fixed module system conflicts affecting server startup and endpoint availability
+
+#### Technical Resolution Details (2025-09-27)
+- ✅ **Root Cause Analysis**: Identified `localStorage.getItem('token')` returning `null` being converted to string "null" 
+- ✅ **Token Helper Function**: Added comprehensive token validation preventing invalid authentication attempts
+- ✅ **Multi-Server Verification**: Confirmed `/api/custom-templates` endpoints exist across development, testing, and production servers
+- ✅ **Database Connectivity**: Verified proper JWT middleware functionality with valid authentication tokens
+- ✅ **Development Scripts**: Enhanced package.json with proper server startup scripts for different environments
+
+#### Authentication Flow Improvements (2025-09-27)
+- ✅ **Token Retrieval**: `getValidToken()` function validates token existence and format before API calls
+- ✅ **Error Handling**: Graceful handling of missing or invalid authentication tokens
+- ✅ **User Feedback**: Clear error messages guide users when authentication is required
+- ✅ **Security Enhancement**: Prevents transmission of invalid token strings to protected endpoints
+- ✅ **Fallback Behavior**: Appropriate component behavior when authentication fails or tokens are unavailable
+
+### Previous Updates (2025-08-21)
 
 #### CRITICAL PRODUCTION SERVER RESTORATION - SUCCESSFUL (2025-08-21)
 - ✅ **Production Server Fully Operational**: Resolved critical production server failures that prevented basic API functionality

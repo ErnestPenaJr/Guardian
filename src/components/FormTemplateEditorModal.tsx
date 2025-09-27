@@ -3,7 +3,7 @@ import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import { FormField } from '../types/formBuilder';
 import SimpleFormBuilder from './SimpleFormBuilder';
-import formService, { DbForm, DbField } from '../services/formService';
+import formService from '../services/formService';
 import { FaSpinner, FaSave, FaTimes } from 'react-icons/fa';
 
 interface FormTemplateEditorModalProps {
@@ -205,7 +205,7 @@ const FormTemplateEditorModal: React.FC<FormTemplateEditorModalProps> = ({
               <p className="mt-2">Loading form template...</p>
             </div>
           ) : (
-            <div className="row h-100">
+            <div className="row">
               {/* Form Details Panel */}
               <div className="col-md-4 border-end">
                 <div className="mb-3">
@@ -253,15 +253,12 @@ const FormTemplateEditorModal: React.FC<FormTemplateEditorModalProps> = ({
 
               {/* Form Builder Panel */}
               <div className="col-md-8">
-                <div className="h-100">
-                  <h5>Form Fields</h5>
-                  <div className="border rounded p-3" style={{ height: 'calc(100% - 2rem)', overflow: 'auto' }}>
-                    <SimpleFormBuilder
-                      formFields={formData.formFields}
-                      onChange={handleFieldsChange}
-                      disabled={saving}
-                    />
-                  </div>
+                <h5 className="mb-3">Form Fields</h5>
+                <div className="border rounded p-3">
+                  <SimpleFormBuilder
+                    formFields={formData.formFields}
+                    onChange={handleFieldsChange}
+                  />
                 </div>
               </div>
             </div>

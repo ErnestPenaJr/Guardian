@@ -173,6 +173,19 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const [loadingCustomTemplates, setLoadingCustomTemplates] = useState(false);
   const [showTour, setShowTour] = useState(false);
 
+  // Helper function to get and validate authentication token
+  const getValidToken = (): string | null => {
+    const token = localStorage.getItem('token');
+    
+    // Check if token exists and is valid (not null, empty, or "invalid_token")
+    if (!token || token === 'null' || token === 'undefined' || token === 'invalid_token' || token.trim() === '') {
+      console.warn('🔍 DEBUG: No valid authentication token found');
+      return null;
+    }
+    
+    return token;
+  };
+
   // Set up drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -285,9 +298,16 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       const fetchCustomTemplates = async () => {
         setLoadingCustomTemplates(true);
         try {
+          const token = getValidToken();
+          
+          if (!token) {
+            console.warn('🔍 DEBUG: No valid authentication token found for custom templates');
+            return;
+          }
+          
           const response = await fetch('/api/custom-templates', {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
@@ -296,8 +316,10 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
             const templates = await response.json();
             console.log('🔍 DEBUG: Loaded custom templates:', templates);
             setCustomTemplates(templates);
+          } else if (response.status === 401) {
+            console.warn('🔍 DEBUG: Authentication failed for custom templates - token may be expired');
           } else {
-            console.log('No custom templates found or error loading them');
+            console.log('🔍 DEBUG: No custom templates found or error loading them:', response.status);
           }
         } catch (error) {
           console.error('Error fetching custom templates:', error);
@@ -580,16 +602,28 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   // Apply a custom template to the form
   const applyCustomTemplate = async (templateId: number) => {
     try {
+      const token = getValidToken();
+      
+      if (!token) {
+        console.error('🔍 DEBUG: No valid authentication token found for applying custom template');
+        toast.error('Authentication required to apply custom template. Please log in again.');
+        return;
+      }
+      
       // Fetch the specific custom template with its fields
       const response = await fetch(`/api/custom-templates/${templateId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to load custom template');
+        if (response.status === 401) {
+          toast.error('Authentication expired. Please log in again.');
+          return;
+        }
+        throw new Error(`Failed to load custom template: ${response.status} ${response.statusText}`);
       }
       
       const templateData = await response.json();
@@ -868,7 +902,11 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
               </div>
             ) : (
               <div className="text-center p-2">
-                <small className="text-muted">No custom templates found</small>
+                {!getValidToken() ? (
+                  <small className="text-muted">Login required for custom templates</small>
+                ) : (
+                  <small className="text-muted">No custom templates found</small>
+                )}
               </div>
             )}
           </div>

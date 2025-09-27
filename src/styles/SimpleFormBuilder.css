@@ -1,8 +1,8 @@
 .form-builder-container {
   display: flex;
-  height: 520px;
-  max-height: 520px;
-  overflow: hidden;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 .form-builder-sidebar {
@@ -12,7 +12,8 @@
   padding: 15px;
   overflow-y: auto;
   color: white;
-  height: 520px;
+  height: auto;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
@@ -98,7 +99,7 @@
 .form-builder-main {
   flex: 1;
   padding: 15px;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 .fields-section,
@@ -225,7 +226,7 @@
   border: 1px solid #dee2e6;
   border-radius: 4px;
   padding: 20px;
-  min-height: 400px;
+  min-height: 0;
 }
 
 .form-preview.drag-over {
@@ -238,7 +239,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px;
+  padding: 40px 20px;
   color: #6c757d;
   text-align: center;
 }
@@ -481,12 +482,20 @@
 @media (max-width: 768px) {
   .form-builder-container {
     flex-direction: column;
+    height: 100%;
   }
   
   .form-builder-sidebar {
     width: 100%;
+    height: auto;
+    max-height: 40%;
     border-right: none;
     border-bottom: 1px solid #dee2e6;
+  }
+  
+  .form-builder-main {
+    flex: 1;
+    overflow-y: auto;
   }
   
   .field-grid {

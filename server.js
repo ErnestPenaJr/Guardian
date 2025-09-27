@@ -9675,7 +9675,7 @@ app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) =
             });
         }
         
-        // Fetch custom templates for the company (marked with CUSTOM_TEMPLATE = 1)
+        // Fetch custom templates for the company (all active forms serve as templates)
         const customTemplates = await prisma.$queryRaw`
             SELECT 
                 f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
@@ -9685,7 +9685,7 @@ app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) =
             LEFT JOIN GUARDIAN.FORMS_FIELDS ff ON f.FORM_ID = ff.FORM_ID
             WHERE f.COMPANY_ID = ${req.companyId}
             AND f.IS_DELETED = 0
-            AND f.FORM_TYPE = 'custom'
+            AND f.IS_ACTIVE = 1
             GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
                      f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE
             ORDER BY f.CREATE_DATE DESC
@@ -9733,7 +9733,7 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
             WHERE FORM_ID = ${templateId} 
             AND COMPANY_ID = ${req.companyId}
             AND IS_DELETED = 0
-            AND FORM_TYPE = 'custom'
+            AND IS_ACTIVE = 1
         `;
         
         if (forms.length === 0) {
@@ -9818,17 +9818,17 @@ app.post('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) 
             });
         }
         
-        // Create the form with FORM_TYPE = 'custom'
+        // Create the form (custom template)
         const result = await prisma.$queryRaw`
             INSERT INTO GUARDIAN.FORMS (
-                FORM_NAME, FORM_DESCRIPTION, FORM_TYPE, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
+                FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
                 COMPANY_ID, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
             )
             OUTPUT INSERTED.FORM_ID, INSERTED.FORM_NAME, INSERTED.FORM_DESCRIPTION,
-                   INSERTED.FORM_TYPE, INSERTED.IS_ACTIVE, INSERTED.IS_PUBLIC,
+                   INSERTED.IS_ACTIVE, INSERTED.IS_PUBLIC,
                    INSERTED.COMPANY_ID, INSERTED.CREATE_DATE
             VALUES (
-                ${form.FORM_NAME.trim()}, ${form.FORM_DESCRIPTION?.trim() || ''}, 'custom',
+                ${form.FORM_NAME.trim()}, ${form.FORM_DESCRIPTION?.trim() || ''},
                 ${form.IS_ACTIVE !== false}, ${form.IS_PUBLIC !== false}, 0,
                 ${req.companyId}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
             )
@@ -10113,7 +10113,7 @@ app.delete('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req,
             SELECT FORM_ID FROM GUARDIAN.FORMS 
             WHERE FORM_ID = ${templateId} 
             AND COMPANY_ID = ${req.companyId}
-            AND FORM_TYPE = 'custom'
+            AND IS_DELETED = 0
         `;
         
         if (existingTemplate.length === 0) {

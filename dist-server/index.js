@@ -25,8 +25,8 @@ import usersRoutes from './routes/users.js';
 import rolesRoutes from './routes/roles.js';
 import invitesRoutes from './routes/invites.js';
 import milestonesRoutes from './routes/milestones.js';
-// Import type definitions to fix req.user type issues
-import './types/express.js';
+import notificationsRoutes from './routes/notifications.js';
+import noticesRoutes from './routes/notices.js';
 // Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -147,6 +147,8 @@ console.log('[ROUTES] ✓ Users routes registered at /api/users');
 app.use('/api/roles', rolesRoutes); // Roles routes
 app.use('/api/invites', invitesRoutes); // Invites routes
 app.use('/api/field-lookups', fieldLookupsRoutes);
+app.use('/api/notifications', notificationsRoutes); // Notifications routes
+app.use('/api/notices', noticesRoutes); // Notices routes
 app.use('/api', milestonesRoutes); // Milestone routes (includes /api/requests/:requestId/milestones and /api/milestones)
 console.log('[ROUTES] ✓ Milestone routes registered at /api');
 console.log('[ROUTES] ✓ All API routes registered successfully');

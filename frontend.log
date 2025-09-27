@@ -141,3 +141,15 @@ Instead of /public/images/favicon.png, use /images/favicon.png.
 7:01:27 AM [vite] (client) hmr update /src/components/NotificationDropdown.tsx, /src/index.css
 7:01:38 AM [vite] (client) hmr update /src/components/NotificationDropdown.tsx, /src/index.css
 7:01:52 AM [vite] (client) page reload src/components/request_modal.tsx
+7:22:31 AM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+7:22:36 AM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+7:22:42 AM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+7:59:38 AM [vite] (client) hmr update /src/components/FormTemplateEditorModal.tsx, /src/index.css
+8:02:58 AM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+8:03:13 AM [vite] (client) hmr update /src/components/FormTemplateEditorModal.tsx, /src/index.css
+8:04:25 AM [vite] (client) hmr update /src/components/FormTemplateEditorModal.tsx, /src/index.css
+8:04:41 AM [vite] (client) hmr update /src/components/FormTemplateEditorModal.tsx, /src/index.css
+8:06:31 AM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+8:14:05 AM [vite] (client) hmr update /src/components/FormTemplateEditorModal.tsx, /src/index.css
+8:14:15 AM [vite] (client) hmr update /src/styles/SimpleFormBuilder.css
+error: script "dev" exited with code 143
