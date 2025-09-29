@@ -434,6 +434,35 @@
   transform: translateY(0) !important;
 }
 
+/* Reset form button styles */
+.reset-form-button {
+  background: transparent !important;
+  border: 2px solid #dc3545 !important;
+  color: #dc3545 !important;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+.reset-form-button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3) !important;
+  background: #dc3545 !important;
+  color: white !important;
+  border-color: #dc3545 !important;
+}
+
+.reset-form-button:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+.reset-form-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: #dee2e6 !important;
+  color: #6c757d !important;
+  box-shadow: none !important;
+}
+
 /* Tour-specific overrides to ensure proper positioning */
 .__floater__open {
   z-index: 10001 !important;
@@ -610,8 +639,15 @@
     gap: 10px;
   }
   
-  .tour-button {
+  .form-builder-header > div {
     align-self: flex-end;
+    flex-wrap: wrap;
+  }
+  
+  .tour-button,
+  .reset-form-button {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
   }
 }
 

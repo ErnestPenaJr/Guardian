@@ -160,8 +160,9 @@ router.get('/requests/:requestId/milestones', requireAuth, async (req, res) => {
       offset = '0'
     } = req.query;
 
-    const userId = req.user?.id;
-    const companyId = req.user?.COMPANY_ID;
+    const authUser = req.user as any | undefined;
+    const userId = authUser?.id;
+    const companyId = authUser?.COMPANY_ID ?? authUser?.companyId ?? null;
 
     if (!userId || !companyId) {
       return res.status(401).json({ error: 'Authentication required' });

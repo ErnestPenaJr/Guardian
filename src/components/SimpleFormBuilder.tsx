@@ -39,10 +39,12 @@ import {
   FaIdBadge,
   FaCog,
   FaQuestionCircle,
-  FaGripVertical
+  FaGripVertical,
+  FaTrash
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import FormBuilderTour from './FormBuilderTour';
+import { GuardianSweetAlert } from '../utils/sweetAlert';
 
 interface SimpleFormBuilderProps {
   formFields: FormField[];
@@ -238,6 +240,31 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   const handleTourEnd = () => {
     setShowTour(false);
     localStorage.setItem('formBuilderTourCompleted', 'true');
+  };
+  
+  // Clear all form fields with confirmation
+  const clearFormPreview = async () => {
+    if (fields.length === 0) {
+      toast.info('Form preview is already empty');
+      return;
+    }
+
+    const confirmed = await GuardianSweetAlert.showConfirmation(
+      'Clear Form Preview',
+      `Are you sure you want to remove all ${fields.length} field${fields.length === 1 ? '' : 's'} from the form preview? This action cannot be undone.`,
+      {
+        confirmText: 'Clear Form',
+        cancelText: 'Keep Fields',
+        severity: 'medium',
+        dangerousAction: false
+      }
+    );
+
+    if (confirmed) {
+      setFields([]);
+      onChange([]);
+      toast.success('Form preview cleared successfully');
+    }
   };
   
   // Helper function to check if user has role_id 6 (JAFAR)
@@ -971,6 +998,27 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
         <div className="form-builder-header">
           <h3>Form Preview</h3>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-outline-danger btn-sm reset-form-button"
+              onClick={clearFormPreview}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '20px',
+                opacity: fields.length === 0 ? 0.6 : 1
+              }}
+              title="Clear all fields from form preview"
+              disabled={fields.length === 0}
+            >
+              <FaTrash />
+              Reset Preview
+            </button>
+            
             <button
               type="button"
               className="btn btn-primary btn-sm tour-button"

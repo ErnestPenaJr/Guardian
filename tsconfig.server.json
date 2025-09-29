@@ -19,6 +19,6 @@
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
-  "include": ["server/**/*.ts"],
-  "exclude": ["server/**/*.d.ts", "server/**/*.test.ts", "server/**/*.spec.ts"]
+  "include": ["server/**/*.ts", "server/types/**/*.d.ts"],
+  "exclude": ["server/**/*.test.ts", "server/**/*.spec.ts"]
 }

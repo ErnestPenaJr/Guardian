@@ -9768,8 +9768,10 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
         
         // Get the fields
         const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED, f.OPTIONS,
-                   ff.SORT_ORDER, ft.TYPE_NAME as fieldType
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED,
+                   ff.SORT_ORDER, ft.TYPE_NAME as fieldType, f.DISPLAY_FORMAT,
+                   f.HAS_LOOKUP, f.IS_SENSITIVE, f.CAN_SELECT_MULIPLE, f.OPTIONS,
+                   f.ORGANIZATION_ID, f.IS_PUBLIC, f.IS_ACTIVE
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
             LEFT JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
@@ -11111,7 +11113,6 @@ app.get('/api/notices/templates', getAuthenticatedUserCompany, async (req, res) 
                 CREATE_DATE
             FROM GUARDIAN.FORMS 
             WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
-            AND FORM_TYPE = 'NOTICE'
             AND IS_DELETED = 0
             AND IS_ACTIVE = 1
             ORDER BY FORM_NAME

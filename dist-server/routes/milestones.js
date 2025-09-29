@@ -84,8 +84,9 @@ router.get('/requests/:requestId/milestones', requireAuth, async (req, res) => {
     try {
         const requestId = parseInt(req.params.requestId);
         const { progressTypes, milestonesOnly = 'false', visibleToRequestorOnly = 'false', systemOnly, manualOnly, limit = '50', offset = '0' } = req.query;
-        const userId = req.user?.id;
-        const companyId = req.user?.COMPANY_ID;
+        const authUser = req.user;
+        const userId = authUser?.id;
+        const companyId = authUser?.COMPANY_ID ?? authUser?.companyId ?? null;
         if (!userId || !companyId) {
             return res.status(401).json({ error: 'Authentication required' });
         }
