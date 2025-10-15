@@ -208,10 +208,8 @@ function Register() {
           
           <button
             type="submit"
-            className="w-full bg-secondary text-white font-semibold py-3 px-4 transition-colors"
-            style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#24A5A5'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2EBCBC'}
+            className="w-full bg-[#2EBCBC] hover:bg-[#24A5A5] text-white font-semibold py-3 px-4 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ borderRadius: '6px' }}
             disabled={isValidatingEmail || isLoading}
           >
             {isValidatingEmail ? (
