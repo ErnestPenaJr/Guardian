@@ -375,10 +375,10 @@ const VerifyForgotPassword = () => {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
           <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-          <span className="text-h4 font-display font-bold text-primary">Guardian</span>
+          <span className="text-h4 font-display font-bold text-black">Guardian</span>
         </div>
 
-        <h1 className="text-h3 font-display font-bold text-center mb-2">Verify Your Code</h1>
+        <h1 className="text-h5 font-display font-bold text-center mb-1">Verify Your Code</h1>
         <p className="text-center text-gray-2 mb-8">
           We've sent a 6-digit verification code to <span className="font-semibold">{email}</span>. 
           Enter the code below to continue.
@@ -432,11 +432,14 @@ const VerifyForgotPassword = () => {
           
           <button
             type="submit"
-            className="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            style={{ backgroundColor: '#2EBCBC' }}
+            className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              borderRadius: '8px',
+              backgroundColor: '#2EBCBC'
+            }}
             onMouseEnter={(e) => {
               if (verificationCode.length === 6 && !isLoading) {
-                e.currentTarget.style.backgroundColor = '#24A5A5';
+                e.currentTarget.style.backgroundColor = '#2F8CED';
               }
             }}
             onMouseLeave={(e) => {

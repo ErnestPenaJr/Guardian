@@ -411,10 +411,10 @@ const VerifyEmail = () => {
     <>
       <div className="flex items-center justify-center gap-3 mb-8">
         <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-        <span className="text-h4 font-display font-bold text-primary">Guardian</span>
+        <span className="text-h4 font-display font-bold text-black">Guardian</span>
       </div>
       
-      <h1 className="text-h3 font-display font-bold text-center mb-8">Verify Your Email</h1>
+      <h1 className="text-h5 font-display font-bold text-center mb-1">Verify Your Email</h1>
       
       <p className="text-body-md text-gray-1 mb-6 text-center">
         We've sent a 6-digit verification code to <span className="font-medium">{email}</span>
@@ -468,15 +468,14 @@ const VerifyEmail = () => {
         <button
           type="submit"
           disabled={isLoading || verificationCode.length !== 6 || timeLeft === 0}
-          className={`w-full bg-secondary text-white font-semibold py-3 px-4 ${
-            isLoading || verificationCode.length !== 6 || timeLeft === 0
-              ? 'opacity-70 cursor-not-allowed'
-              : 'transition-colors'
-          }`}
-          style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+          className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          style={{
+            borderRadius: '8px',
+            backgroundColor: '#2EBCBC'
+          }}
           onMouseEnter={(e) => {
             if (!isLoading && verificationCode.length === 6 && timeLeft > 0) {
-              e.currentTarget.style.backgroundColor = '#24A5A5';
+              e.currentTarget.style.backgroundColor = '#2F8CED';
             }
           }}
           onMouseLeave={(e) => {
@@ -519,7 +518,7 @@ const VerifyEmail = () => {
 
   const renderPersonalInfoForm = () => (
     <>
-      <h1 className="text-h5 font-display font-bold text-center mb-8">Complete Your Registration</h1>
+      <h1 className="text-h5 font-display font-bold text-center mb-1">Complete Your Registration</h1>
       
       <form onSubmit={handleFormSubmit} className="space-y-6">
         <div>
@@ -644,13 +643,14 @@ const VerifyEmail = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full bg-secondary text-white font-semibold py-3 px-4 ${
-            isLoading ? 'opacity-70 cursor-not-allowed' : 'transition-colors'
-          }`}
-          style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+          className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          style={{
+            borderRadius: '8px',
+            backgroundColor: '#2EBCBC'
+          }}
           onMouseEnter={(e) => {
             if (!isLoading) {
-              e.currentTarget.style.backgroundColor = '#24A5A5';
+              e.currentTarget.style.backgroundColor = '#2F8CED';
             }
           }}
           onMouseLeave={(e) => {
@@ -677,7 +677,7 @@ const VerifyEmail = () => {
   
   const renderRoleAndTeamForm = () => (
     <>
-      <h1 className="text-h3 font-display font-bold text-center mb-8">Create your account</h1>
+      <h1 className="text-h5 font-display font-bold text-center mb-1">Create your account</h1>
       
       <form onSubmit={handleFormSubmit} className="space-y-6">
         <div className="mb-6">
@@ -782,13 +782,14 @@ const VerifyEmail = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-2/3 bg-secondary text-white font-semibold py-3 px-4 ${
-              isLoading ? 'opacity-70 cursor-not-allowed' : 'transition-colors'
-            }`}
-            style={{ borderRadius: '6px', backgroundColor: '#2EBCBC' }}
+            className="w-2/3 py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              borderRadius: '8px',
+              backgroundColor: '#2EBCBC'
+            }}
             onMouseEnter={(e) => {
               if (!isLoading) {
-                e.currentTarget.style.backgroundColor = '#24A5A5';
+                e.currentTarget.style.backgroundColor = '#2F8CED';
               }
             }}
             onMouseLeave={(e) => {
