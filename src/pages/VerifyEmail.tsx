@@ -518,6 +518,11 @@ const VerifyEmail = () => {
 
   const renderPersonalInfoForm = () => (
     <>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+        <span className="text-h4 font-display font-bold text-black">Guardian</span>
+      </div>
+
       <h1 className="text-h5 font-display font-bold text-center mb-1">Complete Your Registration</h1>
       
       <form onSubmit={handleFormSubmit} className="space-y-6">
@@ -677,6 +682,11 @@ const VerifyEmail = () => {
   
   const renderRoleAndTeamForm = () => (
     <>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+        <span className="text-h4 font-display font-bold text-black">Guardian</span>
+      </div>
+
       <h1 className="text-h5 font-display font-bold text-center mb-1">Create your account</h1>
       
       <form onSubmit={handleFormSubmit} className="space-y-6">
