@@ -163,7 +163,7 @@ export default function InviteAccept() {
         <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md transform transition-all duration-500 hover:shadow-2xl">
           <div className="flex items-center justify-center gap-3 mb-8">
             <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-            <span className="text-h4 font-display font-bold text-primary">Guardian</span>
+            <span className="text-h4 font-display font-bold text-black">Guardian</span>
           </div>
           
           <div className="text-center">
@@ -204,7 +204,7 @@ export default function InviteAccept() {
             <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8 transform transition-transform duration-300 hover:scale-110" />
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-success rounded-full animate-pulse"></div>
           </div>
-          <span className="text-h4 font-display font-bold text-primary">Guardian</span>
+          <span className="text-h4 font-display font-bold text-black">Guardian</span>
           <HiSparkles className="w-5 h-5 text-secondary animate-pulse ml-2" />
         </div>
         
