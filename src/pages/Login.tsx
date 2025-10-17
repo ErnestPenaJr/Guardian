@@ -4,6 +4,7 @@ import api from '../utils/api';
 import Swal from 'sweetalert2';
 import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import errorCapture from '../utils/errorCapture';
+import LegalModal from '../components/LegalModal';
 
 function Login() {
   const navigate = useNavigate();
@@ -13,10 +14,14 @@ function Login() {
     email: '',
     password: ''
   });
-  
+
   // Client-side rate limiting awareness
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
+
+  // Legal modal state
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy'>('terms');
   
   // Validation states
   const [validation, setValidation] = useState<{
@@ -529,6 +534,33 @@ function Login() {
               Create New Account
             </Link>
           </div>
+
+          <p className="text-center text-body-sm mt-6">
+            By signing in you agree to the{' '}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setLegalModalType('terms');
+                setLegalModalOpen(true);
+              }}
+              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              Terms of Service
+            </button>
+            {' '}and{' '}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setLegalModalType('privacy');
+                setLegalModalOpen(true);
+              }}
+              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              Privacy Policy
+            </button>
+          </p>
         </form>
       </div>
       
@@ -538,6 +570,12 @@ function Login() {
           <img src="/images/shieldlytics.png" alt="Shieldlytics" width={300} />
         </p>
       </div>
+
+      <LegalModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        type={legalModalType}
+      />
     </div>
   );
 }

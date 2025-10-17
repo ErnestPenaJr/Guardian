@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 import Swal from 'sweetalert2';
 import axios from 'axios'; // Import axios
+import LegalModal from '../components/LegalModal';
 
 // Helper function to validate email format
 const isValidEmail = (email: string): boolean => {
@@ -56,6 +57,10 @@ const VerifyEmail = () => {
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Legal modal state
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy'>('terms');
 
   useEffect(() => {
     // Check if there's a pending registration
@@ -821,6 +826,33 @@ const VerifyEmail = () => {
             )}
           </button>
         </div>
+
+        <p className="text-center text-body-sm mt-6">
+          By proceeding you agree to the{' '}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setLegalModalType('terms');
+              setLegalModalOpen(true);
+            }}
+            className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+          >
+            Terms of Service
+          </button>
+          {' '}and{' '}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setLegalModalType('privacy');
+              setLegalModalOpen(true);
+            }}
+            className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+          >
+            Privacy Policy
+          </button>
+        </p>
       </form>
     </>
   );
@@ -842,6 +874,12 @@ const VerifyEmail = () => {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         {verificationComplete ? renderRegistrationForm() : renderVerificationForm()}
       </div>
+
+      <LegalModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        type={legalModalType}
+      />
     </div>
   );
 };

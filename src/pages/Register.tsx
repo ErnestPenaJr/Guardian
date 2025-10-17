@@ -4,6 +4,7 @@ import { showToast } from '../utils/toast';
 import sendgrid from '../utils/sendgrid';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import LegalModal from '../components/LegalModal';
 
 function Register() {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy'>('terms');
 
   // Handle email validation
   const validateEmailWithSendGrid = async (email: string) => {
@@ -201,9 +204,32 @@ function Register() {
           </div>
           
 
-          
+
           <p className="text-center text-body-sm mb-6">
-            By proceeding you agree to the <Link to="/terms" className="text-secondary">Terms of Service</Link> and <Link to="/privacy" className="text-secondary">Privacy Policy</Link>
+            By proceeding you agree to the{' '}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setLegalModalType('terms');
+                setLegalModalOpen(true);
+              }}
+              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              Terms of Service
+            </button>
+            {' '}and{' '}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setLegalModalType('privacy');
+                setLegalModalOpen(true);
+              }}
+              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              Privacy Policy
+            </button>
           </p>
           
           {error && (
@@ -262,6 +288,12 @@ function Register() {
           </p>
         </div>
       </div>
+
+      <LegalModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        type={legalModalType}
+      />
     </div>
   );
 }
