@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 import sendgrid from '../utils/sendgrid';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 function Register() {
   const navigate = useNavigate();
@@ -65,7 +66,12 @@ function Register() {
     e.preventDefault();
     
     if (!email) {
-      showToast.error('Please enter your email address');
+      Swal.fire({
+        icon: 'error',
+        title: 'Email Required',
+        text: 'Please enter your email address',
+        confirmButtonColor: '#2EBCBC'
+      });
       return;
     }
     
