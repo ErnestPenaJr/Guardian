@@ -192,12 +192,13 @@ const VerifyForgotPassword = () => {
         confirmButtonColor: '#0D9488'
       }).then(() => {
         // Pass the verification code along with email and verified flag
-        navigate('/reset-password', { 
-          state: { 
-            email, 
+        // Use codeToUse instead of verificationCode to ensure we pass the actual verified code
+        navigate('/reset-password', {
+          state: {
+            email,
             verified: true,
-            verificationCode: verificationCode 
-          } 
+            verificationCode: codeToUse
+          }
         });
       });
     } catch (error) {
