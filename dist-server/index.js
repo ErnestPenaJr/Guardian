@@ -1,3 +1,4 @@
+import 'dotenv/config';
 // Import built-in Node.js modules
 import * as crypto from 'crypto';
 import * as path from 'path';

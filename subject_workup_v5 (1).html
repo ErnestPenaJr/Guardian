@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subject Workup</title>
+
+<!-- Bootstrap 5 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<!-- Dropzone -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy:        #0f2340;
+  --navy-mid:    #1b3a6b;
+  --blue:        #1a56c4;
+  --blue-light:  #e8f0fe;
+  --blue-border: #93b4f0;
+  --green:       #157347;
+  --red:         #b02a37;
+  --label-bg:    #edf0f5;
+  --border-col:  #c8cdd8;
+  --doc-border:  #9aa5bb;
+  --white:       #ffffff;
+  --page-bg:     #d4d9e4;
+  --font:        'DM Sans', sans-serif;
+  --mono:        'DM Mono', monospace;
+}
+
+/* ── GLOBAL ─────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--page-bg);
+  font-size: 13.5px;
+  color: #1a1a1a;
+  padding-bottom: 80px;
+}
+
+/* ── TOPBAR ─────────────────────────────── */
+.sw-topbar {
+  background: var(--navy);
+  padding: 0 28px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+}
+.sw-topbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.sw-topbar .brand .badge-fiu {
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+.sw-topbar .topbar-actions { display: flex; gap: 8px; }
+.sw-topbar .btn { font-size: 12px; font-weight: 600; padding: 6px 14px; }
+
+/* ── DOCUMENT WRAPPER ───────────────────── */
+.doc-wrap {
+  max-width: 860px;
+  margin: 28px auto 0;
+  padding: 0 16px;
+}
+
+/* ── DOCUMENT CARD / PAGE ───────────────── */
+.doc-page {
+  background: var(--white);
+  border: 1px solid var(--doc-border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.22);
+  margin-bottom: 28px;
+}
+
+/* ── DOCUMENT SECTION HEADER ────────────── */
+.doc-section-header {
+  background: var(--navy);
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--navy-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── TITLE BAR ──────────────────────────── */
+.title-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  border-bottom: 2px solid #000;
+  background: #fff;
+}
+.title-bar .title-label {
+  background: var(--label-bg);
+  border-right: 2px solid #000;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+.title-bar .title-name {
+  border-right: 2px solid #000;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+}
+.title-bar .title-name input {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  outline: none;
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  color: #111;
+}
+.title-bar .title-meta {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.title-bar .title-meta strong { font-weight: 700; }
+.title-bar .title-meta input.meta-input {
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-bottom: 1.5px solid var(--border-col);
+  outline: none;
+  background: transparent;
+  padding: 1px 3px;
+  min-width: 100px;
+  color: #111;
+}
+.title-bar .title-meta input.meta-input:focus {
+  border-bottom-color: var(--blue);
+  background: #f0f6ff;
+  border-radius: 2px;
+}
+
+/* ── DATE/CASE ROW ──────────────────────── */
+.date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-bottom: 2px solid #000;
+}
+.date-cell {
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-right: 1px solid #000;
+  font-size: 12px;
+}
+.date-cell:last-child { border-right: none; }
+.date-cell label { font-weight: 700; white-space: nowrap; margin: 0; font-size: 12px; }
+.date-cell .form-control, .date-cell .form-select {
+  font-family: var(--font);
+  font-size: 12px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  padding: 2px 6px;
+  height: auto;
+  background: #f8f9fa;
+  flex: 1;
+}
+.date-cell .form-control:focus, .date-cell .form-select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(26,86,196,0.12);
+  background: #fff;
+}
+
+/* ── MAIN BODY GRID (fields + photo) ─────── */
+.body-grid {
+  display: grid;
+  grid-template-columns: 1fr 190px;
+  border-bottom: 2px solid #000;
+}
+.fields-col { border-right: 2px solid #000; }
+
+/* ── FIELD ROW ──────────────────────────── */
+.field-row {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  border-bottom: 1px solid #000;
+  min-height: 28px;
+}
+.field-row:last-child { border-bottom: none; }
+.field-row.sep { border-top: 2px solid #000; }
+.field-row.double-right {
+  grid-template-columns: 148px 1fr 110px 1fr;
+}
+
+.field-label {
+  background: var(--label-bg);
+  border-right: 1px solid #000;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+.field-label.right-label {
+  background: var(--label-bg);
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+}
+
+.field-value {
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 28px;
+}
+.field-value .form-control,
+.field-value .form-select {
+  font-family: var(--font);
+  font-size: 13px;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  border-radius: 0;
+  padding: 2px 4px;
+  background: transparent;
+  height: auto;
+  box-shadow: none;
+  flex: 1;
+  min-width: 60px;
+  color: #111;
+}
+.field-value .form-control:focus,
+.field-value .form-select:focus {
+  border-bottom-color: var(--blue);
+  background: #eef4ff;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.field-value .form-control::placeholder { color: #bbb; font-style: italic; font-size: 12px; }
+.field-value .form-select { cursor: pointer; }
+.field-value .form-control.w-auto { flex: none; }
+
+/* ── GENDER RADIOS ───────────────────────── */
+.gender-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 8px;
+}
+.gender-group .form-check {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.gender-group .form-check-input { cursor: pointer; margin: 0; }
+.gender-group .form-check-label { font-size: 12.5px; cursor: pointer; font-weight: 500; margin: 0; }
+
+/* ── HEIGHT INLINE ───────────────────────── */
+.height-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  flex: 1;
+}
+.height-row input {
+  width: 38px;
+  text-align: center;
+  font-family: var(--font);
+  font-size: 13px;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  background: transparent;
+  padding: 2px 2px;
+  outline: none;
+}
+.height-row input:focus { border-bottom-color: var(--blue); background: #eef4ff; border-radius: 2px; }
+.height-row span { font-size: 11px; color: #666; font-weight: 600; }
+
+/* ── PHOTO COLUMN ────────────────────────── */
+.photo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f4f6fa;
+  padding: 12px;
+}
+
+/* ── DROPZONE ────────────────────────────── */
+#subject-photo-dz {
+  width: 166px;
+  min-height: 200px;
+  border: 2px dashed #9aaecc !important;
+  border-radius: 6px !important;
+  background: #ecf0f8 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  padding: 10px !important;
+}
+#subject-photo-dz:hover, #subject-photo-dz.dz-drag-hover {
+  border-color: var(--blue) !important;
+  background: #dde8fb !important;
+}
+#subject-photo-dz .dz-message {
+  margin: 0 !important;
+  text-align: center;
+  font-family: var(--font);
+  font-size: 12px;
+  color: #7a8fad;
+}
+#subject-photo-dz .dz-message .dz-icon {
+  font-size: 28px;
+  color: #aabbd4;
+  display: block;
+  margin-bottom: 6px;
+}
+#subject-photo-dz .dz-preview { margin: 0 !important; }
+#subject-photo-dz .dz-preview .dz-image {
+  width: 140px !important;
+  height: 160px !important;
+  border-radius: 4px !important;
+}
+#subject-photo-dz .dz-preview .dz-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#subject-photo-dz .dz-preview .dz-details { opacity: 0 !important; }
+#subject-photo-dz .dz-preview .dz-progress { display: none !important; }
+#subject-photo-dz .dz-preview .dz-error-mark { display: none !important; }
+#subject-photo-dz .dz-preview .dz-success-mark { display: none !important; }
+
+/* ── PHYSICAL MARKS TABLE ────────────────── */
+.marks-table-header {
+  display: grid;
+  grid-template-columns: 148px 1fr 1fr 1.4fr;
+  background: var(--label-bg);
+  border-bottom: 1px solid #000;
+  border-top: 2px solid #000;
+}
+.marks-table-header > div {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-right: 1px solid #000;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #444;
+}
+.marks-table-header > div:last-child { border-right: none; }
+
+.marks-row {
+  display: grid;
+  grid-template-columns: 148px 1fr 1fr 1.4fr auto;
+  border-bottom: 1px solid #ddd;
+  min-height: 32px;
+  align-items: center;
+}
+.marks-row .marks-cell {
+  padding: 3px 5px;
+  border-right: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+}
+.marks-row .marks-cell:last-child { border-right: none; }
+.marks-row .marks-cell .form-select,
+.marks-row .marks-cell .form-control {
+  font-family: var(--font);
+  font-size: 12px;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1.5px solid transparent;
+  background: transparent;
+  height: auto;
+  padding: 2px 4px;
+  box-shadow: none;
+  width: 100%;
+  color: #111;
+}
+.marks-row .marks-cell .form-select:focus,
+.marks-row .marks-cell .form-control:focus {
+  border-bottom-color: var(--blue);
+  background: #eef4ff;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.marks-row .marks-cell .form-select { cursor: pointer; }
+
+/* ── SPECIAL NOTES ───────────────────────── */
+.special-notes-row {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+}
+.special-notes-row .field-label { border-right: 1px solid #000; align-items: flex-start; padding-top: 6px; }
+.special-notes-row textarea {
+  font-family: var(--font);
+  font-size: 13px;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  padding: 5px 8px;
+  background: transparent;
+  color: #111;
+  line-height: 1.5;
+}
+.special-notes-row textarea:focus { background: #f5f9ff; }
+
+/* ── TWO-COLUMN CONTACT SECTION ──────────── */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 2px solid #000;
+}
+.contact-pane {
+  border-right: 1px solid #000;
+}
+.contact-pane:last-child { border-right: none; }
+.contact-pane-header {
+  background: var(--label-bg);
+  border-bottom: 1px solid #000;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.contact-pane-body { padding: 6px 10px; }
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed #e0e0e0;
+}
+.contact-item:last-child { border-bottom: none; margin-bottom: 0; }
+.contact-item .form-control,
+.contact-item .form-select {
+  font-family: var(--font);
+  font-size: 12.5px;
+  border: none;
+  border-bottom: 1.5px solid #ddd;
+  border-radius: 0;
+  padding: 2px 4px;
+  background: transparent;
+  height: auto;
+  box-shadow: none;
+  flex: 1;
+  min-width: 0;
+  color: #111;
+}
+.contact-item .form-control:focus,
+.contact-item .form-select:focus {
+  border-bottom-color: var(--blue);
+  background: #eef4ff;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.contact-item .form-select { flex: none; width: 90px; cursor: pointer; }
+.contact-item .form-select.select-sm { width: 80px; }
+
+.btn-remove-item {
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 13px;
+  line-height: 1;
+  flex: none;
+  transition: color 0.12s, background 0.12s;
+}
+.btn-remove-item:hover { color: var(--red); background: #fde8e8; }
+
+.btn-add-item {
+  background: none;
+  border: none;
+  color: var(--blue);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  transition: color 0.12s;
+}
+.btn-add-item:hover { color: #0d3e9b; }
+
+/* IP sub-section within address pane */
+.ip-divider {
+  border-top: 1px solid #000;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.ip-divider-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+/* ── BOTTOM NOTES GRID ───────────────────── */
+.notes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: none;
+}
+.notes-pane {
+  border-right: 1px solid #000;
+}
+.notes-pane:last-child { border-right: none; }
+.notes-pane-header {
+  background: var(--label-bg);
+  border-bottom: 1px solid #000;
+  border-top: 2px solid #000;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.notes-pane textarea {
+  font-family: var(--font);
+  font-size: 13px;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  min-height: 100px;
+  padding: 6px 10px;
+  background: transparent;
+  color: #111;
+  line-height: 1.5;
+}
+.notes-pane textarea:focus { background: #f5f9ff; }
+
+/* ══════════ PAGE 2 ══════════════════════ */
+
+/* Continuation boxes at top of page 2 */
+.continuation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 90px;
+  border-bottom: 2px solid #000;
+}
+.continuation-pane {
+  border-right: 1px solid #000;
+}
+.continuation-pane:last-child { border-right: none; }
+.continuation-pane textarea {
+  font-family: var(--font);
+  font-size: 12.5px;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  height: 100%;
+  min-height: 90px;
+  padding: 6px 10px;
+  background: transparent;
+  color: #111;
+  line-height: 1.5;
+}
+.continuation-pane textarea:focus { background: #f8fbff; }
+
+/* Intel notes */
+.intel-header {
+  background: var(--label-bg);
+  border-bottom: 1px solid #000;
+  border-top: 2px solid #000;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.intel-body textarea {
+  font-family: var(--font);
+  font-size: 13px;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  min-height: 130px;
+  padding: 6px 10px;
+  background: transparent;
+  color: #111;
+  line-height: 1.5;
+}
+.intel-body textarea:focus { background: #f5f9ff; }
+
+/* ── MATRIX ──────────────────────────────── */
+.matrix-section {
+  border-top: 2px solid #000;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.matrix-pane { }
+.matrix-pane:first-child { border-right: 2px solid #000; }
+
+.matrix-pane-header {
+  display: grid;
+  background: #2d3e5a;
+  color: #fff;
+  border-bottom: 1px solid #000;
+}
+.matrix-pane-header.mc  { grid-template-columns: 1fr 76px 76px; }
+.matrix-pane-header.src { grid-template-columns: 1fr 76px 76px; }
+.mh-cell {
+  padding: 6px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  border-left: 1px solid #445;
+  line-height: 1.25;
+}
+.mh-cell:first-child { border-left: none; text-align: left; padding-left: 10px; }
+
+.matrix-row {
+  display: grid;
+  border-bottom: 1px solid #e0e4ec;
+  min-height: 26px;
+  transition: background 0.1s;
+}
+.matrix-row.mc-row  { grid-template-columns: 1fr 76px 76px; }
+.matrix-row.src-row { grid-template-columns: 1fr 76px 76px; }
+.matrix-row:last-child { border-bottom: none; }
+.matrix-row:hover { background: #f0f4fb; }
+
+.matrix-item {
+  padding: 5px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  line-height: 1.3;
+  color: #1a1a1a;
+}
+.matrix-item.sub {
+  padding-left: 22px;
+  font-size: 11.5px;
+  color: #333;
+}
+.matrix-item.sub::before {
+  content: '•';
+  margin-right: 7px;
+  color: #888;
+  font-size: 10px;
+}
+
+.matrix-group-label {
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #dde3ee;
+  border-bottom: 1px solid #c0cade;
+  letter-spacing: 0.02em;
+}
+
+.radio-cell {
+  border-left: 1px solid #c8cdd8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+/* Bootstrap radio override for matrix */
+.matrix-radio {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #8fa5cc;
+  border-radius: 50%;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.matrix-radio:checked {
+  background: var(--blue);
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 3px #fff;
+}
+.matrix-radio:hover:not(:checked) {
+  border-color: var(--blue);
+  background: #dde8fb;
+}
+
+/* ── PRINT ───────────────────────────────── */
+@media print {
+  .sw-topbar { display: none !important; }
+  body { background: #fff; padding: 0; }
+  .doc-page { box-shadow: none; border: 1px solid #ccc; margin-bottom: 0; page-break-after: always; }
+  .doc-page:last-child { page-break-after: auto; }
+}
+
+/* ── SCROLLBAR ───────────────────────────── */
+::-webkit-scrollbar { width: 7px; }
+::-webkit-scrollbar-track { background: #c8cdd8; }
+::-webkit-scrollbar-thumb { background: #8896b0; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ───────────────────────────────── -->
+<nav class="sw-topbar">
+  <div class="brand">
+    <span class="badge-fiu">FIU</span>
+    Subject Workup Tool
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-outline-light btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print me-1"></i>Print
+    </button>
+    <button class="btn btn-primary btn-sm" id="save-btn" onclick="saveForm()">
+      <i class="fa-solid fa-floppy-disk me-1"></i>Save
+    </button>
+  </div>
+</nav>
+
+<div class="doc-wrap">
+
+<!-- ════════════════════════════════════════ PAGE 1 ════════ -->
+<div class="doc-page" id="page1">
+
+  <!-- TITLE BAR -->
+  <div class="title-bar">
+    <div class="title-label">SUBJECT WORKUP</div>
+    <div class="title-name">
+      <input type="text" id="subject-name" placeholder="Subject Full Name" oninput="syncName()" />
+    </div>
+    <div class="title-meta">
+      <strong>ANALYST:</strong>
+      <input type="text" class="meta-input" id="analyst-input" value="Harvey Jones" style="width:130px;" />
+    </div>
+  </div>
+
+  <!-- DATE / CASE / INVESTIGATOR ROW -->
+  <div class="date-row">
+    <div class="date-cell">
+      <label>DATE:</label>
+      <input type="date" class="form-control" id="case-date" value="2026-01-01" />
+    </div>
+    <div class="date-cell">
+      <label>CASE #</label>
+      <input type="text" class="form-control" placeholder="Case number" />
+    </div>
+    <div class="date-cell">
+      <label>INVESTIGATOR:</label>
+      <input type="text" class="form-control" id="investigator-input" value="Jane Smith" />
+    </div>
+  </div>
+
+  <!-- BODY: FIELDS + PHOTO -->
+  <div class="body-grid">
+    <div class="fields-col">
+
+      <!-- Subject Name(s) -->
+      <div class="field-row">
+        <div class="field-label">SUBJECT NAME(S):</div>
+        <div class="field-value">
+          <input type="text" class="form-control" placeholder="First" style="flex:1.1;" />
+          <input type="text" class="form-control" placeholder="Middle" style="flex:0.7;" />
+          <input type="text" class="form-control" placeholder="Last" style="flex:1.1;" />
+          <input type="text" class="form-control" placeholder="Suffix" style="flex:0.4;" />
+        </div>
+      </div>
+
+      <!-- AKA -->
+      <div class="field-row">
+        <div class="field-label">AKA(S):</div>
+        <div class="field-value">
+          <input type="text" class="form-control" placeholder="Also known as…" />
+        </div>
+      </div>
+
+      <!-- DOB -->
+      <div class="field-row">
+        <div class="field-label">DOB:</div>
+        <div class="field-value">
+          <input type="text" class="form-control" placeholder="MM/DD/YYYY" style="max-width:140px;" />
+        </div>
+      </div>
+
+      <!-- SSN -->
+      <div class="field-row">
+        <div class="field-label">SSN:</div>
+        <div class="field-value">
+          <input type="text" class="form-control" placeholder="XXX-XX-XXXX" style="max-width:150px;" maxlength="11" oninput="fmtSSN(this)" />
+        </div>
+      </div>
+
+      <!-- STATE DL -->
+      <div class="field-row">
+        <div class="field-label">STATE DL:</div>
+        <div class="field-value">
+          <select class="form-select" style="flex:none;width:68px;"><?= stateOpts() ?></select>
+          <input type="text" class="form-control" placeholder="DL Number" />
+        </div>
+      </div>
+
+      <!-- Account # -->
+      <div class="field-row">
+        <div class="field-label">ACCOUNT #:</div>
+        <div class="field-value">
+          <input type="text" class="form-control" placeholder="Account number" />
+        </div>
+      </div>
+
+      <!-- FBI/SID -->
+      <div class="field-row">
+        <div class="field-label">FBI/SID #:</div>
+        <div class="field-value">
+          <input type="text" class="form-control" />
+        </div>
+      </div>
+
+      <!-- Other ID -->
+      <div class="field-row">
+        <div class="field-label">OTHER ID #'S:</div>
+        <div class="field-value">
+          <input type="text" class="form-control" />
+        </div>
+      </div>
+
+      <!-- Gender (sep) -->
+      <div class="field-row sep">
+        <div class="field-label">GENDER:</div>
+        <div class="gender-group">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" id="gm" value="M">
+            <label class="form-check-label" for="gm">Male</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" id="gf" value="F">
+            <label class="form-check-label" for="gf">Female</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" id="gu" value="U">
+            <label class="form-check-label" for="gu">Unknown</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Race -->
+      <div class="field-row">
+        <div class="field-label">RACE:</div>
+        <div class="field-value">
+          <select class="form-select">
+            <option value="">— Select —</option>
+            <option>W – White</option><option>B – Black</option><option>A – Asian</option>
+            <option>I – American Indian / Alaska Native</option><option>P – Pacific Islander</option>
+            <option>U – Unknown</option><option>O – Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Place of birth -->
+      <div class="field-row">
+        <div class="field-label">PLACE OF BIRTH:</div>
+        <div class="field-value">
+          <input type="text" class="form-control" placeholder="City, State / Country" />
+        </div>
+      </div>
+
+      <!-- Height + Weight -->
+      <div class="field-row double-right">
+        <div class="field-label">HEIGHT:</div>
+        <div class="height-row">
+          <input type="number" min="3" max="8" placeholder="5" />
+          <span>ft</span>
+          <input type="number" min="0" max="11" placeholder="10" />
+          <span>in</span>
+        </div>
+        <div class="field-label right-label">WEIGHT:</div>
+        <div class="field-value">
+          <select class="form-select">
+            <option value="">— Select —</option>
+            <option>Under 100 lbs</option><option>100–119 lbs</option><option>120–139 lbs</option>
+            <option>140–159 lbs</option><option>160–179 lbs</option><option>180–199 lbs</option>
+            <option>200–219 lbs</option><option>220–239 lbs</option><option>240–259 lbs</option>
+            <option>260–299 lbs</option><option>300+ lbs</option><option>Unknown</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Eye + Hair color -->
+      <div class="field-row double-right">
+        <div class="field-label">EYE COLOR:</div>
+        <div class="field-value">
+          <select class="form-select">
+            <option value="">— Select —</option>
+            <option>BLK – Black</option><option>BLU – Blue</option><option>BRO – Brown</option>
+            <option>GRY – Gray</option><option>GRN – Green</option><option>HAZ – Hazel</option><option>UNK – Unknown</option>
+          </select>
+        </div>
+        <div class="field-label right-label">HAIR COLOR:</div>
+        <div class="field-value">
+          <select class="form-select">
+            <option value="">— Select —</option>
+            <option>BLK – Black</option><option>BLN – Blonde</option><option>BRO – Brown</option>
+            <option>GRY – Gray</option><option>RED – Red</option><option>WHI – White</option>
+            <option>BALD</option><option>UNK – Unknown</option>
+          </select>
+        </div>
+      </div>
+
+    </div><!-- /fields-col -->
+
+    <!-- PHOTO COLUMN w/ Dropzone -->
+    <div class="photo-col">
+      <form id="subject-photo-dz" class="dropzone">
+        <div class="dz-message">
+          <span class="dz-icon"><i class="fa-solid fa-id-badge fa-2x"></i></span>
+          <strong>Add Photo</strong><br>
+          <span style="font-size:11px;color:#aaa;">Drop or click</span>
+        </div>
+      </form>
+    </div>
+
+  </div><!-- /body-grid -->
+
+  <!-- PHYSICAL MARKS -->
+  <div class="marks-table-header">
+    <div>PHYSICAL MARKS:</div>
+    <div>Type</div>
+    <div>Location</div>
+    <div>Description</div>
+  </div>
+  <div id="marks-container">
+    <!-- initial row rendered by JS -->
+  </div>
+  <div style="padding:4px 10px; border-bottom: 2px solid #000;">
+    <button class="btn-add-item" onclick="addMarkRow()">
+      <i class="fa-solid fa-circle-plus"></i> Add mark
+    </button>
+  </div>
+
+  <!-- SPECIAL NOTES -->
+  <div class="special-notes-row">
+    <div class="field-label">SPECIAL NOTES:</div>
+    <textarea rows="3" placeholder="Enter special notes about the subject…"></textarea>
+  </div>
+
+  <!-- CONTACT SECTION: Address + Phone -->
+  <div class="contact-grid">
+    <!-- LEFT: Address + IP -->
+    <div class="contact-pane">
+      <div class="contact-pane-header">
+        ADDRESS(S):
+        <button class="btn-add-item" style="margin:0;" onclick="addAddress()">
+          <i class="fa-solid fa-circle-plus"></i> Add
+        </button>
+      </div>
+      <div class="contact-pane-body">
+        <div id="addr-list"></div>
+        <div class="ip-divider">
+          <div class="ip-divider-label">IP Address(s):</div>
+          <div id="ip-list">
+            <div class="contact-item">
+              <input type="text" class="form-control" placeholder="IPv4 or IPv6" />
+              <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <button class="btn-add-item" onclick="addIP()"><i class="fa-solid fa-circle-plus"></i> Add IP</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Phone + Social -->
+    <div class="contact-pane">
+      <div class="contact-pane-header">
+        PHONE NUMBER(S):
+        <button class="btn-add-item" style="margin:0;" onclick="addPhone()">
+          <i class="fa-solid fa-circle-plus"></i> Add
+        </button>
+      </div>
+      <div class="contact-pane-body">
+        <div id="phone-list">
+          <div class="contact-item">
+            <input type="tel" class="form-control" placeholder="(555) 000-0000" />
+            <select class="form-select select-sm">
+              <option value="">Type</option>
+              <option>Mobile</option><option>Home</option><option>Work</option><option>Unknown</option>
+            </select>
+            <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-pane-header" style="border-top:1px solid #000;">
+        SOCIAL MEDIA:
+        <button class="btn-add-item" style="margin:0;" onclick="addSocial()">
+          <i class="fa-solid fa-circle-plus"></i> Add
+        </button>
+      </div>
+      <div class="contact-pane-body">
+        <div id="social-list">
+          <div class="contact-item">
+            <select class="form-select" style="flex:none;width:100px;">
+              <option value="">Platform</option>
+              <option>Facebook</option><option>Instagram</option><option>Twitter/X</option>
+              <option>LinkedIn</option><option>TikTok</option><option>YouTube</option>
+              <option>Snapchat</option><option>Telegram</option><option>Other</option>
+            </select>
+            <input type="text" class="form-control" placeholder="@handle or URL" />
+            <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /contact-grid -->
+
+  <!-- CRIMINAL HISTORY + OTHER NOTES -->
+  <div class="notes-grid">
+    <div class="notes-pane">
+      <div class="notes-pane-header">CRIMINAL HISTORY:</div>
+      <textarea rows="6" placeholder="Enter criminal history, charges, convictions…"></textarea>
+    </div>
+    <div class="notes-pane">
+      <div class="notes-pane-header">OTHER SUBJECT NOTES:</div>
+      <textarea rows="6" placeholder="Other subject notes…"></textarea>
+    </div>
+  </div>
+
+</div><!-- /page1 -->
+
+
+<!-- ════════════════════════════════════════ PAGE 2 ════════ -->
+<div class="doc-page" id="page2">
+
+  <!-- Criminal / Notes continuation -->
+  <div class="continuation-grid">
+    <div class="continuation-pane">
+      <textarea placeholder="Criminal History (continued)…"></textarea>
+    </div>
+    <div class="continuation-pane">
+      <textarea placeholder="Other Subject Notes (continued)…"></textarea>
+    </div>
+  </div>
+
+  <!-- Page 2 title bar -->
+  <div class="title-bar">
+    <div class="title-label">SUBJECT WORKUP</div>
+    <div class="title-name">
+      <span id="p2-name" style="font-size:15px;font-weight:700;color:#222;padding:0 10px;">—</span>
+    </div>
+    <div class="title-meta" style="color:#888;font-style:italic;font-size:12px;padding:6px 14px;">Page 2 of 2</div>
+  </div>
+
+  <!-- Intel Notes -->
+  <div>
+    <div class="intel-header">INVESTIGATIVE / INTELLIGENCE NOTES OF INTEREST:</div>
+    <div class="intel-body"><textarea rows="7" placeholder="Enter investigative and intelligence notes of interest…"></textarea></div>
+  </div>
+
+  <!-- WORKUP MATRIX -->
+  <div class="matrix-section">
+
+    <!-- LEFT: Minimum Collection -->
+    <div class="matrix-pane">
+      <div class="matrix-pane-header mc">
+        <div class="mh-cell">Minimum Collection</div>
+        <div class="mh-cell">Positive<br>Results</div>
+        <div class="mh-cell">Negative<br>Results</div>
+      </div>
+      <div id="mc-rows"></div>
+    </div>
+
+    <!-- RIGHT: Sources -->
+    <div class="matrix-pane">
+      <div class="matrix-pane-header src">
+        <div class="mh-cell">SOURCES</div>
+        <div class="mh-cell">Positive<br>Results</div>
+        <div class="mh-cell">Negative<br>Results</div>
+      </div>
+      <div id="src-rows"></div>
+    </div>
+
+  </div>
+</div><!-- /page2 -->
+
+</div><!-- /doc-wrap -->
+
+
+<!-- Bootstrap JS + Popper -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<!-- Dropzone -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
+
+<script>
+// ── Prevent Dropzone auto-discover ──────────────────────────────
+Dropzone.autoDiscover = false;
+
+// ── Init Dropzone ───────────────────────────────────────────────
+const photoDropzone = new Dropzone("#subject-photo-dz", {
+  url: "/upload",           // placeholder URL — swap for real endpoint
+  maxFiles: 1,
+  acceptedFiles: "image/*",
+  addRemoveLinks: true,
+  dictRemoveFile: "Remove",
+  dictDefaultMessage: "",   // We use custom HTML in dz-message
+  maxFilesize: 10,          // MB
+  thumbnailWidth: 140,
+  thumbnailHeight: 160,
+  init: function() {
+    this.on("addedfile", function(file) {
+      if (this.files.length > 1) {
+        this.removeFile(this.files[0]);
+      }
+    });
+    this.on("thumbnail", function(file, dataURL) {
+      // If no server, show locally anyway
+    });
+    // Intercept the XHR so it works offline/demo
+    this.on("sending", function(file, xhr, formData) {
+      xhr.abort();
+    });
+    this.on("error", function(file, msg) {
+      if (msg.includes("abort")) {
+        // Simulate success for demo — use the local preview
+        this.emit("success", file, {});
+      }
+    });
+  }
+});
+
+// ── Name sync ───────────────────────────────────────────────────
+function syncName() {
+  const v = document.getElementById('subject-name').value.trim();
+  document.getElementById('p2-name').textContent = v || '—';
+}
+
+// ── SSN format ──────────────────────────────────────────────────
+function fmtSSN(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v.length > 3) v = v.slice(0,3) + '-' + v.slice(3);
+  if (v.length > 6) v = v.slice(0,6) + '-' + v.slice(6);
+  el.value = v.slice(0,11);
+}
+
+// ── State options ────────────────────────────────────────────────
+const STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+function stateSelectHTML(sel='') {
+  return `<option value="">ST</option>` + STATES.map(s =>
+    `<option${s===sel?' selected':''}>${s}</option>`).join('');
+}
+
+// Fix the static STATE DL select
+document.querySelector('.field-value .form-select').innerHTML = stateSelectHTML('NY');
+
+// ── ADDRESS add ─────────────────────────────────────────────────
+let addrCount = 0;
+function buildAddressItem(n) {
+  return `
+  <div class="contact-item flex-column align-items-start gap-1 pb-2 mb-2" style="border-bottom:1px dashed #ddd;">
+    <div class="d-flex justify-content-between w-100 align-items-center">
+      <span style="font-size:10px;color:#aaa;font-family:var(--mono);">Address ${n}</span>
+      <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="text" class="form-control w-100" placeholder="Street 1" style="border:none;border-bottom:1.5px solid #ddd;border-radius:0;font-size:12.5px;padding:2px 2px;background:transparent;" />
+    <input type="text" class="form-control w-100" placeholder="Street 2 (optional)" style="border:none;border-bottom:1.5px solid #ddd;border-radius:0;font-size:12.5px;padding:2px 2px;background:transparent;" />
+    <div class="d-flex gap-2 w-100">
+      <input type="text" class="form-control" placeholder="City" style="flex:1;border:none;border-bottom:1.5px solid #ddd;border-radius:0;font-size:12.5px;padding:2px 2px;background:transparent;" />
+      <select style="flex:none;width:60px;font-family:var(--font);font-size:12px;border:none;border-bottom:1.5px solid #ddd;border-radius:0;background:transparent;padding:2px 2px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;">${stateSelectHTML()}</select>
+      <input type="text" class="form-control" placeholder="ZIP" maxlength="5" style="width:56px;flex:none;border:none;border-bottom:1.5px solid #ddd;border-radius:0;font-size:12.5px;padding:2px 4px;background:transparent;text-align:center;" />
+    </div>
+  </div>`;
+}
+
+function addAddress() {
+  addrCount++;
+  document.getElementById('addr-list').insertAdjacentHTML('beforeend', buildAddressItem(addrCount));
+}
+
+// Add first address on load
+addAddress();
+
+// ── IP add ──────────────────────────────────────────────────────
+function addIP() {
+  document.getElementById('ip-list').insertAdjacentHTML('beforeend', `
+    <div class="contact-item">
+      <input type="text" class="form-control" placeholder="IPv4 or IPv6" />
+      <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>`);
+}
+
+// ── Phone add ───────────────────────────────────────────────────
+function addPhone() {
+  document.getElementById('phone-list').insertAdjacentHTML('beforeend', `
+    <div class="contact-item">
+      <input type="tel" class="form-control" placeholder="(555) 000-0000" />
+      <select class="form-select select-sm">
+        <option value="">Type</option>
+        <option>Mobile</option><option>Home</option><option>Work</option><option>Unknown</option>
+      </select>
+      <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>`);
+}
+
+// ── Social add ──────────────────────────────────────────────────
+function addSocial() {
+  document.getElementById('social-list').insertAdjacentHTML('beforeend', `
+    <div class="contact-item">
+      <select class="form-select" style="flex:none;width:100px;">
+        <option value="">Platform</option>
+        <option>Facebook</option><option>Instagram</option><option>Twitter/X</option>
+        <option>LinkedIn</option><option>TikTok</option><option>YouTube</option>
+        <option>Snapchat</option><option>Telegram</option><option>Other</option>
+      </select>
+      <input type="text" class="form-control" placeholder="@handle or URL" />
+      <button class="btn-remove-item" onclick="this.closest('.contact-item').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>`);
+}
+
+// ── Physical marks ──────────────────────────────────────────────
+const TYPE_OPTS   = ['— Type —','Tattoo','Scar','Birthmark','Branding','Piercing','Amputation','Other'];
+const LOC_OPTS    = ['— Location —','Head','Face','Neck','Chest','Abdomen','Back','Left Arm','Right Arm','Left Forearm','Right Forearm','Left Hand','Right Hand','Left Leg','Right Leg','Ankle','Unknown'];
+
+function buildMarkSelect(opts) {
+  return `<select class="form-select">${opts.map((o,i)=>`<option${i===0?' value=""':''}>${o}</option>`).join('')}</select>`;
+}
+
+function buildMarkRow() {
+  return `
+  <div class="marks-row">
+    <div class="marks-cell" style="background:#f9fafb;"></div>
+    <div class="marks-cell">${buildMarkSelect(TYPE_OPTS)}</div>
+    <div class="marks-cell">${buildMarkSelect(LOC_OPTS)}</div>
+    <div class="marks-cell"><input type="text" class="form-control" placeholder="Description (500–1000 chars)…" /></div>
+    <div class="marks-cell" style="padding:2px 6px;">
+      <button class="btn-remove-item" onclick="this.closest('.marks-row').remove()"><i class="fa-solid fa-circle-xmark"></i></button>
+    </div>
+  </div>`;
+}
+
+function addMarkRow() {
+  document.getElementById('marks-container').insertAdjacentHTML('beforeend', buildMarkRow());
+}
+
+// Initial mark row
+addMarkRow();
+
+// ── Matrix data ──────────────────────────────────────────────────
+const MC_ITEMS = [
+  'Account Statements/Documents','FinCEN / SAR','Master OBI / TRAP Data',
+  'Address Information','Phone Number(s) / Email(s)','Phone Calls',
+  'Branch Video / Photographs','Wire / ACH Activity','Deposit Activity',
+  'Withdrawal Activity','Crypto Activity','Securities Activity',
+  'Debit Card Info / SMS Alerts','AUTHLOGS / IP Data (Face ID)',
+  'DOC V x2','Account Holder Interviewed','Social media',
+  'Additional Contact Information'
+];
+
+const SRC_DATA = [
+  { type: 'group', label: 'SUBJECT IDENTIFICATION:' },
+  { type: 'item',  label: 'Flashpoint' },
+  { type: 'item',  label: 'Photo' },
+  { type: 'item',  label: 'Vehicle(s)' },
+  { type: 'group', label: 'PROPERTY DATA:' },
+  { type: 'item',  label: 'MAP OVERLAY' },
+  { type: 'item',  label: 'STREET VIEW' },
+  { type: 'item',  label: 'CITY/TOWN TAX CARD' },
+  { type: 'group', label: 'BACKGROUND DATABASES:' },
+  { type: 'item',  label: 'CLEAR / Lexis Nexus' },
+  { type: 'group', label: 'OSINT/SOCMINT:' },
+  { type: 'item',  label: 'SOCIAL MEDIA / CTI' },
+  { type: 'item',  label: 'OSINT' },
+  { type: 'plain', label: 'Additional Data See Notes:' },
+];
+
+function radioCell(name, val) {
+  return `<div class="radio-cell"><input type="radio" class="matrix-radio" name="${name}" value="${val}"></div>`;
+}
+
+// Build MC
+const mcEl = document.getElementById('mc-rows');
+MC_ITEMS.forEach((item, i) => {
+  const n = `mc-${i}`;
+  mcEl.insertAdjacentHTML('beforeend', `
+    <div class="matrix-row mc-row">
+      <div class="matrix-item">${item}</div>
+      ${radioCell(n,'pos')}${radioCell(n,'neg')}
+    </div>`);
+});
+
+// Build Sources
+const srcEl = document.getElementById('src-rows');
+SRC_DATA.forEach((row, i) => {
+  if (row.type === 'group') {
+    srcEl.insertAdjacentHTML('beforeend', `
+      <div class="matrix-row src-row">
+        <div class="matrix-group-label" style="grid-column:1/-1;">${row.label}</div>
+      </div>`);
+  } else if (row.type === 'item') {
+    const n = `src-${i}`;
+    srcEl.insertAdjacentHTML('beforeend', `
+      <div class="matrix-row src-row">
+        <div class="matrix-item sub">${row.label}</div>
+        ${radioCell(n,'pos')}${radioCell(n,'neg')}
+      </div>`);
+  } else {
+    const n = `srcx-${i}`;
+    srcEl.insertAdjacentHTML('beforeend', `
+      <div class="matrix-row src-row">
+        <div class="matrix-item" style="font-weight:700;">${row.label}</div>
+        ${radioCell(n,'pos')}${radioCell(n,'neg')}
+      </div>`);
+  }
+});
+
+// ── Save button ──────────────────────────────────────────────────
+function saveForm() {
+  const btn = document.getElementById('save-btn');
+  btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>Saved!';
+  btn.classList.replace('btn-primary','btn-success');
+  setTimeout(() => {
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i>Save';
+    btn.classList.replace('btn-success','btn-primary');
+  }, 2200);
+}
+</script>
+</body>
+</html>
