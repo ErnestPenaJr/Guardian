@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
 import { Upload, MessageSquare, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
 import './RequestModal.css';
+import SectionedFormRenderer from './SectionedFormRenderer';
 
 interface User {
   USER_ID: number;
@@ -110,6 +111,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [formFieldValues, setFormFieldValues] = useState<FormFieldValue[]>([]);
+  const [formFields, setFormFields] = useState<any[]>([]);
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [isSavingForm, setIsSavingForm] = useState<boolean>(false);
@@ -474,27 +476,30 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         } else {
           setFormTemplate(null);
         }
-        
+
+        // Store raw field metadata for SectionedFormRenderer
+        setFormFields(formData.fields && Array.isArray(formData.fields) ? formData.fields : []);
+
         // Convert form instance values to display format - ONLY show real database data
         const fieldValues: FormFieldValue[] = [];
-        
+
         if (formData.fields && Array.isArray(formData.fields)) {
           formData.fields.forEach((field: any) => {
             // Get the actual value - try both field ID and field name as keys
             const valueByName = formData.values?.[field.FIELD_NAME];
             const valueById = formData.values?.[field.FIELD_ID];
             const value = valueByName || valueById;
-            
+
             fieldValues.push({
               fieldId: field.FIELD_ID,
               fieldName: field.FIELD_NAME,
-              fieldValue: value && value.toString().trim() !== '' 
+              fieldValue: value && value.toString().trim() !== ''
                 ? value // Real database value from FORMS_INSTANCE_VALUES
                 : '' // Empty string for unfilled fields
             });
           });
         }
-        
+
         setFormFieldValues(fieldValues);
       } else {
         setFormTemplate(null);
@@ -791,17 +796,23 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   // Handle form field value changes
   const handleFieldValueChange = (fieldName: string, newValue: string) => {
     setFormFieldValues(prevValues => {
-      const updatedValues = prevValues.map(field => 
-        field.fieldName === fieldName 
+      const updatedValues = prevValues.map(field =>
+        field.fieldName === fieldName
           ? { ...field, fieldValue: newValue }
           : field
       );
-      
+
       // Check if there are any changes from original values
       setFormHasChanges(true);
-      
+
       return updatedValues;
     });
+  };
+
+  // Adapter: SectionedFormRenderer calls onChange(fieldId, value); map back to fieldName-based handler
+  const handleFormFieldChangeById = (fieldId: string, value: string) => {
+    const field = formFieldValues.find(f => String(f.fieldId) === fieldId);
+    if (field) handleFieldValueChange(field.fieldName, value);
   };
 
   // Save form data to the server
@@ -1448,44 +1459,16 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             <div className="mt-2 text-muted small">Loading form data...</div>
           </div>
         ) : formFieldValues.length > 0 ? (
-          <div className="mb-3">
-            {formFieldValues.map((field, index) => {
-              const hasValue = field.fieldValue && field.fieldValue.toString().trim() !== '';
-              const isRequired = field.fieldName.includes('*') || field.fieldName.includes('#');
-              
-              return (
-                <div key={index} className="mb-2">
-                  <label className="form-label fw-medium text-dark mb-1" style={{ fontSize: '0.85rem' }}>
-                    {field.fieldName}
-                    {isRequired && <span className="text-danger ms-1">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={field.fieldValue || ''}
-                    placeholder={`Enter ${field.fieldName}`}
-                    onChange={(e) => handleFieldValueChange(field.fieldName, e.target.value)}
-                    style={{ 
-                      backgroundColor: 'white',
-                      color: '#212529',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                  {/* Compact status indicators */}
-                  {hasValue && (
-                    <div className="form-text text-success" style={{ fontSize: '0.7rem', marginTop: '2px' }}>
-                      ✓ Value from database
-                    </div>
-                  )}
-                  {!hasValue && (
-                    <div className="form-text text-muted" style={{ fontSize: '0.7rem', marginTop: '2px' }}>
-                      No value submitted yet
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <SectionedFormRenderer
+            formName={formTemplate?.name ?? ''}
+            fields={formFields}
+            fieldValues={formFieldValues.reduce((acc, fv) => {
+              acc[String(fv.fieldId)] = fv.fieldValue ?? '';
+              return acc;
+            }, {} as Record<string, string>)}
+            onChange={handleFormFieldChangeById}
+            readOnly={request.STATUS === 'C'}
+          />
         ) : formTemplate ? (
           <div className="alert alert-info">
             <h6 className="alert-heading">Form Template Found</h6>

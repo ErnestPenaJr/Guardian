@@ -7,6 +7,7 @@ import formService from '../services/formService';
 import requestService from '../services/requestService';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import SectionedFormRenderer from './SectionedFormRenderer';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
@@ -855,64 +856,12 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                   <p className="mt-2">Loading form fields...</p>
                 </div>
               ) : (
-                <div>
-                  {templateFields.filter(field => field.FIELD_NAME !== 'Request Status').map((field, index) => {
-                    const fieldId = String(field.FIELD_ID || index);
-                    return (
-                    <div key={fieldId} className="mb-3">
-                      <label className="form-label">
-                        {field.FIELD_NAME}
-                        <span className="text-danger ms-1">*</span>
-                      </label>
-                      {field.FIELD_TYPE_DESC === 'date' ? (
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={fieldValues[fieldId] || ''}
-                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
-                          required
-                        />
-                      ) : field.FIELD_TYPE_DESC === 'textarea' ? (
-                        <textarea
-                          className="form-control"
-                          rows={3}
-                          placeholder={`Enter ${field.FIELD_NAME}`}
-                          value={fieldValues[fieldId] || ''}
-                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
-                          required
-                        />
-                      ) : field.FIELD_TYPE_DESC === 'select' && field.OPTIONS ? (
-                        <select
-                          className="form-select"
-                          value={fieldValues[fieldId] || ''}
-                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
-                          required
-                        >
-                          <option value="">Select {field.FIELD_NAME}</option>
-                          {field.OPTIONS.split(',').map((option: string, i: number) => (
-                            <option key={i} value={option.trim()}>{option.trim()}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={getInputType(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          className="form-control"
-                          placeholder={getPlaceholder(field.FIELD_NAME, fieldId)}
-                          value={fieldValues[fieldId] || ''}
-                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
-                          pattern={getInputPattern(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          min={getMinValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          max={getMaxValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          step={getStepValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          maxLength={getMaxLength(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          title={getInputTitle(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
-                          required
-                        />
-                      )}
-                    </div>
-                    );
-                  })}
-                </div>
+                <SectionedFormRenderer
+                  formName={formTemplates.find(t => t.id === selectedTemplate)?.name ?? ''}
+                  fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
+                  fieldValues={fieldValues}
+                  onChange={(id, val) => handleFieldValueChange(id, val)}
+                />
               )}
               
               {/* Submit buttons for step 2 */}
