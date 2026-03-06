@@ -59,6 +59,28 @@ const SRC_FIELDS = [
 
 const RADIO_OPTS = ['Positive', 'Negative', 'Not Reviewed'] as const;
 
+// ── Multi-entry types & defaults ──────────────────────────────────
+interface MarkEntry    { location: string; markType: string; description: string; }
+interface AddressEntry { street1: string; street2: string; city: string; state: string; zip: string; }
+interface PhoneEntry   { number: string; phoneType: string; }
+
+const DEF_MARK:    MarkEntry    = { location: '', markType: '', description: '' };
+const DEF_ADDRESS: AddressEntry = { street1: '', street2: '', city: '', state: '', zip: '' };
+const DEF_PHONE:   PhoneEntry   = { number: '', phoneType: '' };
+
+const MARK_TYPE_OPTS  = ['Tattoo', 'Scar', 'Birthmark', 'Piercing', 'Brand', 'Other'];
+const PHONE_TYPE_OPTS = ['Mobile', 'Home', 'Work', 'Fax', 'Unknown'];
+
+function parseEntries<T>(raw: string): T[] {
+  if (!raw.trim()) return [];
+  try {
+    const p = JSON.parse(raw);
+    return Array.isArray(p) ? p as T[] : [];
+  } catch {
+    return [];
+  }
+}
+
 // ── Dropdown option lists ─────────────────────────────────────────
 const SUFFIX_OPTS = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V', 'Esq.', 'Ph.D.', 'M.D.', 'J.D.'];
 
@@ -245,6 +267,171 @@ const MatrixPane: React.FC<MatrixPaneProps> = ({
     })}
   </div>
 );
+
+// ── Multi-entry: Physical Marks ───────────────────────────────────
+interface PhysicalMarksFieldProps {
+  fieldId: string;
+  fieldValues: Record<string, string>;
+  onChange: (id: string, value: string) => void;
+  readOnly: boolean;
+}
+
+const PhysicalMarksField: React.FC<PhysicalMarksFieldProps> = ({ fieldId, fieldValues, onChange, readOnly }) => {
+  const items: MarkEntry[] = parseEntries<MarkEntry>(fieldValues[fieldId] ?? '');
+  const save = (next: MarkEntry[]) => onChange(fieldId, JSON.stringify(next));
+  const add  = () => save([...items, { ...DEF_MARK }]);
+  const remove = (i: number) => save(items.filter((_, idx) => idx !== i));
+  const update = (i: number, patch: Partial<MarkEntry>) =>
+    save(items.map((m, idx) => idx === i ? { ...m, ...patch } : m));
+
+  return (
+    <div className="sw-multi-marks">
+      {items.length > 0 && (
+        <div className="sw-marks-hdr-row">
+          <span>Location / Body Part</span>
+          <span>Type</span>
+          <span>Description</span>
+          {!readOnly && <span />}
+        </div>
+      )}
+      {items.map((m, i) => (
+        <div key={i} className="sw-marks-entry-row">
+          <input className="sw-input" value={m.location}    placeholder="e.g. Left forearm" readOnly={readOnly}
+            onChange={e => update(i, { location: e.target.value })} />
+          <select className="sw-select" value={m.markType}  disabled={readOnly}
+            onChange={e => update(i, { markType: e.target.value })}>
+            <option value="">— Type —</option>
+            {MARK_TYPE_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <input className="sw-input" value={m.description} placeholder="Describe the mark…" readOnly={readOnly}
+            onChange={e => update(i, { description: e.target.value })} />
+          {!readOnly && (
+            <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>
+          )}
+        </div>
+      ))}
+      {!readOnly && (
+        <button type="button" className="sw-multi-add" onClick={add}>+ Add Mark</button>
+      )}
+    </div>
+  );
+};
+
+// ── Multi-entry: Address ──────────────────────────────────────────
+interface MultiAddressFieldProps {
+  fieldId: string;
+  fieldValues: Record<string, string>;
+  onChange: (id: string, value: string) => void;
+  readOnly: boolean;
+}
+
+const MultiAddressField: React.FC<MultiAddressFieldProps> = ({ fieldId, fieldValues, onChange, readOnly }) => {
+  const items: AddressEntry[] = parseEntries<AddressEntry>(fieldValues[fieldId] ?? '');
+  const save = (next: AddressEntry[]) => onChange(fieldId, JSON.stringify(next));
+  const add  = () => save([...items, { ...DEF_ADDRESS }]);
+  const remove = (i: number) => save(items.filter((_, idx) => idx !== i));
+  const update = (i: number, patch: Partial<AddressEntry>) =>
+    save(items.map((a, idx) => idx === i ? { ...a, ...patch } : a));
+
+  return (
+    <div className="sw-multi-list">
+      {items.map((a, i) => (
+        <div key={i} className="sw-addr-block">
+          <div className="sw-addr-header">
+            <span className="sw-addr-num">Address {i + 1}</span>
+            {!readOnly && <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>}
+          </div>
+          <input className="sw-input sw-input--block" value={a.street1} placeholder="Street line 1" readOnly={readOnly}
+            onChange={e => update(i, { street1: e.target.value })} />
+          <input className="sw-input sw-input--block" value={a.street2} placeholder="Street line 2 (optional)" readOnly={readOnly}
+            onChange={e => update(i, { street2: e.target.value })} />
+          <div className="sw-addr-city-row">
+            <input className="sw-input" value={a.city}  placeholder="City"  readOnly={readOnly} style={{ flex: 1 }}
+              onChange={e => update(i, { city: e.target.value })} />
+            <select className="sw-select" value={a.state} disabled={readOnly} style={{ flex: '0 0 62px' }}
+              onChange={e => update(i, { state: e.target.value })}>
+              <option value="">ST</option>
+              {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input className="sw-input" value={a.zip}   placeholder="ZIP"   readOnly={readOnly} style={{ flex: '0 0 58px', textAlign: 'center' }}
+              onChange={e => update(i, { zip: e.target.value })} />
+          </div>
+        </div>
+      ))}
+      {!readOnly && (
+        <button type="button" className="sw-multi-add" onClick={add}>+ Add Address</button>
+      )}
+    </div>
+  );
+};
+
+// ── Multi-entry: Phone ────────────────────────────────────────────
+interface MultiPhoneFieldProps {
+  fieldId: string;
+  fieldValues: Record<string, string>;
+  onChange: (id: string, value: string) => void;
+  readOnly: boolean;
+}
+
+const MultiPhoneField: React.FC<MultiPhoneFieldProps> = ({ fieldId, fieldValues, onChange, readOnly }) => {
+  const items: PhoneEntry[] = parseEntries<PhoneEntry>(fieldValues[fieldId] ?? '');
+  const save = (next: PhoneEntry[]) => onChange(fieldId, JSON.stringify(next));
+  const add  = () => save([...items, { ...DEF_PHONE }]);
+  const remove = (i: number) => save(items.filter((_, idx) => idx !== i));
+  const update = (i: number, patch: Partial<PhoneEntry>) =>
+    save(items.map((p, idx) => idx === i ? { ...p, ...patch } : p));
+
+  return (
+    <div className="sw-multi-list">
+      {items.map((p, i) => (
+        <div key={i} className="sw-multi-row">
+          <input className="sw-input" type="tel" value={p.number} placeholder="(555) 000-0000" readOnly={readOnly}
+            onChange={e => update(i, { number: e.target.value })} />
+          <select className="sw-select" value={p.phoneType} disabled={readOnly} style={{ flex: '0 0 90px' }}
+            onChange={e => update(i, { phoneType: e.target.value })}>
+            <option value="">Type</option>
+            {PHONE_TYPE_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          {!readOnly && <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>}
+        </div>
+      ))}
+      {!readOnly && (
+        <button type="button" className="sw-multi-add" onClick={add}>+ Add Phone</button>
+      )}
+    </div>
+  );
+};
+
+// ── Multi-entry: IP Address ───────────────────────────────────────
+interface MultiIPFieldProps {
+  fieldId: string;
+  fieldValues: Record<string, string>;
+  onChange: (id: string, value: string) => void;
+  readOnly: boolean;
+}
+
+const MultiIPField: React.FC<MultiIPFieldProps> = ({ fieldId, fieldValues, onChange, readOnly }) => {
+  const items: string[] = parseEntries<string>(fieldValues[fieldId] ?? '');
+  const save = (next: string[]) => onChange(fieldId, JSON.stringify(next));
+  const add  = () => save([...items, '']);
+  const remove = (i: number) => save(items.filter((_, idx) => idx !== i));
+  const update = (i: number, v: string) => save(items.map((ip, idx) => idx === i ? v : ip));
+
+  return (
+    <div className="sw-multi-list">
+      {items.map((ip, i) => (
+        <div key={i} className="sw-multi-row">
+          <input className="sw-input" value={ip} placeholder="IPv4 or IPv6" readOnly={readOnly}
+            onChange={e => update(i, e.target.value)} />
+          {!readOnly && <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>}
+        </div>
+      ))}
+      {!readOnly && (
+        <button type="button" className="sw-multi-add" onClick={add}>+ Add IP</button>
+      )}
+    </div>
+  );
+};
 
 // ── Main layout component ─────────────────────────────────────────
 const FidelitySubjectFormLayout: React.FC<Props> = ({
@@ -653,13 +840,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
 
       {/* ── PHYSICAL MARKS / TATTOOS ────────────────── */}
       <div className="sw-section-hdr">Physical Marks / Tattoos / Scars:</div>
-      <div className="sw-full-textarea">
-        <DocTextarea
-          value={val('Tattoos / Marks')}
-          onChange={v => set('Tattoos / Marks', v)}
+      <div className="sw-full-textarea" style={{ padding: '6px 10px' }}>
+        <PhysicalMarksField
+          fieldId={String(getF('Tattoos / Marks')?.FIELD_ID ?? '')}
+          fieldValues={fieldValues}
+          onChange={onChange}
           readOnly={readOnly}
-          placeholder="Describe physical marks, tattoos, scars…"
-          rows={3}
         />
       </div>
 
@@ -682,22 +868,21 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         <div className="sw-contact-pane">
           <div className="sw-contact-hdr">Address(s):</div>
           <div className="sw-contact-body">
-            <DocTextarea
-              value={val('Address')}
-              onChange={v => set('Address', v)}
+            <MultiAddressField
+              fieldId={String(getF('Address')?.FIELD_ID ?? '')}
+              fieldValues={fieldValues}
+              onChange={onChange}
               readOnly={readOnly}
-              placeholder="Street, City, State, ZIP…"
-              rows={3}
             />
           </div>
           <div className="sw-ip-section">
             <div className="sw-ip-label">IP Address(s):</div>
             <div className="sw-contact-body">
-              <DocInput
-                value={val('IP Address')}
-                onChange={v => set('IP Address', v)}
+              <MultiIPField
+                fieldId={String(getF('IP Address')?.FIELD_ID ?? '')}
+                fieldValues={fieldValues}
+                onChange={onChange}
                 readOnly={readOnly}
-                placeholder="IPv4 or IPv6"
               />
             </div>
           </div>
@@ -707,12 +892,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         <div className="sw-contact-pane">
           <div className="sw-contact-hdr">Phone Number(s):</div>
           <div className="sw-contact-body">
-            <DocInput
-              value={val('Phone Number')}
-              onChange={v => set('Phone Number', v)}
+            <MultiPhoneField
+              fieldId={String(getF('Phone Number')?.FIELD_ID ?? '')}
+              fieldValues={fieldValues}
+              onChange={onChange}
               readOnly={readOnly}
-              placeholder="(555) 000-0000"
-              type="tel"
             />
           </div>
           <div className="sw-contact-hdr" style={{ borderTop: '1px solid #000' }}>
