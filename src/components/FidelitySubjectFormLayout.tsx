@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import '../styles/FidelitySubjectForm.css';
 
 interface FormField {
@@ -440,24 +440,20 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   onChange,
   readOnly = false,
 }) => {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPhotoUrl(prev => {
-      if (prev) URL.revokeObjectURL(prev);
-      return url;
-    });
+    const reader = new FileReader();
+    reader.onload = () => set('Photo', reader.result as string);
+    reader.readAsDataURL(file);
     // Reset so the same file can be re-selected if removed
     e.target.value = '';
   };
 
   const removePhoto = () => {
-    if (photoUrl) URL.revokeObjectURL(photoUrl);
-    setPhotoUrl(null);
+    set('Photo', '');
   };
 
   const fm = useMemo(() => {
@@ -781,10 +777,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={handlePhotoChange}
           />
 
-          {photoUrl ? (
+          {val('Photo') ? (
             <div className="sw-photo-preview-wrap">
               <img
-                src={photoUrl}
+                src={val('Photo')}
                 alt="Subject"
                 className="sw-photo-preview-img"
               />

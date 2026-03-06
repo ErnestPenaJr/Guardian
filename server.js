@@ -5624,33 +5624,33 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
         const taskIdResult = await prisma.$queryRaw`SELECT SCOPE_IDENTITY() as TASK_ID`;
         const taskId = taskIdResult[0]?.TASK_ID;
         console.log(`✅ Task created with ID: ${taskId}`, taskIdResult);
-        
-        // Create milestone for task creation
-        try {
-            await createTaskMilestone(
-                requestId,
-                finalTaskId || taskId,
-                'created',
-                req.userId,
-                req.companyId
-            );
-            console.log(`🏁 Task creation milestone created for task ${finalTaskId || taskId}`);
-        } catch (milestoneError) {
-            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
-        }
-        
-        // If SCOPE_IDENTITY didn't work, try to get the task ID by querying the most recent task
+
+        // Resolve finalTaskId WITH fallback BEFORE using it
         let finalTaskId = taskId;
-        if (!taskId) {
+        if (!finalTaskId) {
             console.log('⚠️ SCOPE_IDENTITY returned null, trying alternative method...');
             const recentTask = await prisma.$queryRaw`
-                SELECT TOP 1 TASK_ID 
-                FROM GUARDIAN.TASKS 
+                SELECT TOP 1 TASK_ID
+                FROM GUARDIAN.TASKS
                 WHERE REQUEST_ID = ${requestId} AND CREATE_USER_ID = ${req.userId}
                 ORDER BY CREATE_DATE DESC
             `;
             finalTaskId = recentTask[0]?.TASK_ID;
             console.log(`🔄 Alternative task ID retrieval result: ${finalTaskId}`);
+        }
+
+        // Create milestone for task creation
+        try {
+            await createTaskMilestone(
+                requestId,
+                finalTaskId,
+                'created',
+                req.userId,
+                req.companyId
+            );
+            console.log(`🏁 Task creation milestone created for task ${finalTaskId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
         }
 
         // Create notification for assigned user if different from creator
@@ -5800,7 +5800,8 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
 
         // Verify task exists and belongs to user's company
         const task = await prisma.$queryRaw`
-            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID
+            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID,
+                   t.DESCRIPTION, r.REQUEST_NAME, r.TRACKINGID
             FROM GUARDIAN.TASKS t
             INNER JOIN GUARDIAN.REQUESTS r ON t.REQUEST_ID = r.REQUEST_ID
             WHERE t.TASK_ID = ${taskId} AND r.COMPANY_ID = ${req.companyId}
@@ -5862,6 +5863,45 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                 console.error('⚠️ Failed to create task assignment milestone (continuing):', milestoneError);
             }
 
+            // Notify and email the new assignee if different from the person making the change
+            if (assignedId && assignedId !== req.userId) {
+                try {
+                    const assignedUser = await prisma.$queryRaw`
+                        SELECT FIRST_NAME, LAST_NAME, EMAIL FROM GUARDIAN.USERS
+                        WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
+                    `;
+                    if (assignedUser.length > 0) {
+                        const u = assignedUser[0];
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.NOTIFICATIONS
+                                (USER_ID, TYPE, TITLE, MESSAGE, RELATED_ID, COMPANY_ID, CREATED_DATE, IS_READ)
+                            VALUES
+                                (${assignedId}, 'task_assigned', 'Task Assigned',
+                                 ${'You have been assigned a task: ' + task[0].DESCRIPTION},
+                                 ${taskId}, ${req.companyId}, GETDATE(), 0)
+                        `;
+                        console.log(`📢 Reassignment notification sent to user ${assignedId} for task ${taskId}`);
+                        const assigningUser = await prisma.$queryRaw`
+                            SELECT FIRST_NAME, LAST_NAME FROM GUARDIAN.USERS WHERE USER_ID = ${req.userId}
+                        `;
+                        const assignedByName = assigningUser.length > 0
+                            ? `${assigningUser[0].FIRST_NAME} ${assigningUser[0].LAST_NAME}`.trim()
+                            : '';
+                        await sendTaskAssignmentEmail(
+                            u.EMAIL,
+                            `${u.FIRST_NAME} ${u.LAST_NAME}`,
+                            task[0].REQUEST_NAME,
+                            task[0].TRACKINGID,
+                            task[0].DESCRIPTION,
+                            `T-${taskId}`,
+                            assignedByName
+                        );
+                    }
+                } catch (notifErr) {
+                    console.error('⚠️ Failed to create reassignment notification:', notifErr);
+                }
+            }
+
             console.log(`✅ Task ${taskId} assigned to ${assignedId || 'null'} successfully`);
             return res.json({ success: true, message: 'Task assigned successfully', taskId });
         }
@@ -5889,6 +5929,46 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                     WHERE TASK_ID = ${taskId}
                 `;
                 console.log(`✅ Task ${taskId} status updated to: ${status}`);
+
+                // Create milestone for the status change
+                try {
+                    const statusToAction = {
+                        'In Progress': 'started',
+                        'Completed': 'completed',
+                        'Cancelled': 'cancelled'
+                    };
+                    const milestoneAction = statusToAction[status];
+                    if (milestoneAction) {
+                        await createTaskMilestone(task[0].REQUEST_ID, taskId, milestoneAction, req.userId, req.companyId);
+                        console.log(`🏁 Task status milestone '${milestoneAction}' created for task ${taskId}`);
+                    }
+                } catch (milestoneError) {
+                    console.error('⚠️ Failed to create task status milestone (continuing):', milestoneError);
+                }
+
+                // Notify the task's assignee of the status change (in-app only)
+                const statusMessages = {
+                    'In Progress': 'A task assigned to you has been started.',
+                    'Completed':   'A task assigned to you has been completed.',
+                    'Cancelled':   'A task assigned to you has been cancelled.',
+                };
+                const notifMessage = statusMessages[status];
+                if (notifMessage && task[0].ASSIGNED_USER_ID && task[0].ASSIGNED_USER_ID !== req.userId) {
+                    try {
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.NOTIFICATIONS
+                                (USER_ID, TYPE, TITLE, MESSAGE, RELATED_ID, COMPANY_ID, CREATED_DATE, IS_READ)
+                            VALUES
+                                (${task[0].ASSIGNED_USER_ID}, 'task_update',
+                                 ${'Task ' + status},
+                                 ${notifMessage + ' Task: ' + task[0].DESCRIPTION},
+                                 ${taskId}, ${req.companyId}, GETDATE(), 0)
+                        `;
+                        console.log(`📢 Status notification sent to user ${task[0].ASSIGNED_USER_ID} for task ${taskId}`);
+                    } catch (notifErr) {
+                        console.error('⚠️ Failed to create status notification:', notifErr);
+                    }
+                }
             } else {
                 console.warn('⚠️ [TASK UPDATE] Invalid status value:', status, 'Valid values:', validStatuses);
                 return res.status(400).json({
