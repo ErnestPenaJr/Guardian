@@ -51,6 +51,23 @@
   border-top: 1px solid #e3e3e3;
 }
 
+/* Full-page modal variant — used when a form has many fields (e.g. step 2 of AddRequestModal) */
+.modal-content--fullscreen {
+  max-width: none;
+  width: calc(100vw - 48px);
+  height: calc(100vh - 48px);
+  margin: 24px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+}
+
+.modal-content--fullscreen .modal-body {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .modal-content {

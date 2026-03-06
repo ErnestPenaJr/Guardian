@@ -1,5 +1,6 @@
 import React from 'react';
 import { Accordion, Badge, Form } from 'react-bootstrap';
+import FidelitySubjectFormLayout from './FidelitySubjectFormLayout';
 
 // Static section config keyed by FORM_NAME
 const FORM_SECTIONS: Record<string, Array<{ title: string; fields: string[] }>> = {
@@ -299,47 +300,77 @@ const SectionedFormRenderer: React.FC<Props> = ({
   onChange,
   readOnly = false,
 }) => {
-  const sectionConfig = FORM_SECTIONS[formName];
-
-  // Fallback: flat list rendering for forms without a section config
-  if (!sectionConfig) {
+  // Render the document-style layout for Fidelity-Subject forms
+  if (formName?.trim() === 'Fidelity-Subject' && fields.length > 0) {
     return (
-      <div>
-        {fields.map(field => {
-          const fieldId = String(field.FIELD_ID);
-          return (
-            <FieldInput
-              key={fieldId}
-              field={field}
-              value={fieldValues[fieldId] ?? ''}
-              onChange={onChange}
-              readOnly={readOnly}
-            />
-          );
-        })}
-      </div>
+      <FidelitySubjectFormLayout
+        fields={fields}
+        fieldValues={fieldValues}
+        onChange={onChange}
+        readOnly={readOnly}
+      />
     );
   }
 
-  // Build a lookup of FIELD_NAME -> field for quick access
+  const sectionConfig = FORM_SECTIONS[formName?.trim()];
+
+  // Flat-list renderer (shared by fallback and no-match-found paths)
+  const flatList = (
+    <div>
+      {fields.map((field, idx) => {
+        const fieldId = String(field.FIELD_ID ?? idx);
+        return (
+          <FieldInput
+            key={fieldId}
+            field={field}
+            value={fieldValues[fieldId] ?? ''}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        );
+      })}
+    </div>
+  );
+
+  // No section config for this form — flat list
+  if (!sectionConfig) {
+    return flatList;
+  }
+
+  // Build a case-insensitive, trimmed lookup: normalised-name -> field
   const fieldByName = new Map<string, FormField>();
   for (const f of fields) {
-    fieldByName.set(f.FIELD_NAME, f);
+    if (f.FIELD_NAME) {
+      fieldByName.set(f.FIELD_NAME.trim().toLowerCase(), f);
+    }
   }
 
   const isChecklist = (title: string) => title === 'Minimum Collection Checklist';
 
-  return (
-    <Accordion defaultActiveKey="0" className="mb-3">
-      {sectionConfig.map((section, sectionIdx) => {
-        // Resolve fields that exist in the actual fields array
-        const sectionFields = section.fields
-          .map(name => fieldByName.get(name))
-          .filter((f): f is FormField => f !== undefined);
+  // Resolve all sections and filter empty ones
+  const resolvedSections = sectionConfig.map((section, sectionIdx) => ({
+    section,
+    sectionIdx,
+    sectionFields: section.fields
+      .map(name => fieldByName.get(name.trim().toLowerCase()))
+      .filter((f): f is FormField => f !== undefined),
+  })).filter(s => s.sectionFields.length > 0);
 
+  // If none of the section field names matched the DB fields, fall back to flat list
+  if (resolvedSections.length === 0) {
+    console.warn('[SectionedFormRenderer] No section fields matched — falling back to flat list. DB field names:', fields.map(f => f.FIELD_NAME));
+    return flatList;
+  }
+
+  // Open the first section that actually has fields
+  const firstEventKey = String(resolvedSections[0]?.sectionIdx ?? 0);
+
+  return (
+    <Accordion defaultActiveKey={firstEventKey} className="mb-3">
+      {resolvedSections.map(({ section, sectionIdx, sectionFields }) => {
         if (sectionFields.length === 0) return null;
 
-        const stats = getCompletionStats(section.fields, fields, fieldValues);
+        const stats = getCompletionStats(sectionFields.map(f => f.FIELD_NAME), fields, fieldValues);
 
         return (
           <Accordion.Item eventKey={String(sectionIdx)} key={section.title}>

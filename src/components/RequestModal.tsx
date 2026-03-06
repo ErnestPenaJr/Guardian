@@ -385,24 +385,27 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     return request.REQUEST_NAME?.toLowerCase() || 'general';
   };
 
-  // Load users and form data when modal opens
+  // Load form data, tasks, attachments, results and milestones when modal opens.
+  // Intentionally excludes hasAssignPermission so user-auth changes don't re-trigger
+  // fetches and cause the form fields to flash/disappear.
   useEffect(() => {
     if (show) {
-      
-      // Reset form change tracking
       setFormHasChanges(false);
-      
-      // Only fetch users if current user can assign requests
-      if (hasAssignPermission) {
-        fetchUsers();
-      }
-      // Always try to fetch form data, tasks, attachments, results, and milestones
       fetchFormFieldValues();
       fetchTasks();
       fetchAttachments();
       fetchResults();
       fetchMilestones();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, request.REQUEST_ID]);
+
+  // Fetch users separately so auth changes don't re-trigger the form fetch above
+  useEffect(() => {
+    if (show && hasAssignPermission) {
+      fetchUsers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, request.REQUEST_ID, hasAssignPermission]);
 
   // Initialize selected user with currently assigned user
@@ -809,11 +812,24 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     });
   };
 
+  // Stable fieldValues record for SectionedFormRenderer — keyed by String(fieldId)
+  const currentFieldValues = useMemo(
+    () =>
+      formFieldValues.reduce((acc, fv) => {
+        acc[String(fv.fieldId)] = fv.fieldValue ?? '';
+        return acc;
+      }, {} as Record<string, string>),
+    [formFieldValues],
+  );
+
   // Adapter: SectionedFormRenderer calls onChange(fieldId, value); map back to fieldName-based handler
-  const handleFormFieldChangeById = (fieldId: string, value: string) => {
-    const field = formFieldValues.find(f => String(f.fieldId) === fieldId);
-    if (field) handleFieldValueChange(field.fieldName, value);
-  };
+  const handleFormFieldChangeById = useCallback(
+    (fieldId: string, value: string) => {
+      const field = formFieldValues.find(f => String(f.fieldId) === fieldId);
+      if (field) handleFieldValueChange(field.fieldName, value);
+    },
+    [formFieldValues, handleFieldValueChange],
+  );
 
   // Save form data to the server
   const handleSaveFormData = async () => {
@@ -1462,10 +1478,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           <SectionedFormRenderer
             formName={formTemplate?.name ?? ''}
             fields={formFields}
-            fieldValues={formFieldValues.reduce((acc, fv) => {
-              acc[String(fv.fieldId)] = fv.fieldValue ?? '';
-              return acc;
-            }, {} as Record<string, string>)}
+            fieldValues={currentFieldValues}
             onChange={handleFormFieldChangeById}
             readOnly={request.STATUS === 'C'}
           />

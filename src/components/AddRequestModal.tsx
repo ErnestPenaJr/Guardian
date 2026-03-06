@@ -634,7 +634,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       isOpen={isOpen}
       onRequestClose={onClose}
       contentLabel="Add Request Modal"
-      className="modal-content"
+      className={step === 2 ? 'modal-content modal-content--fullscreen' : 'modal-content'}
       overlayClassName="modal-overlay"
       id="AddRequestModal"
     >
@@ -651,7 +651,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       </div>
       
       <form onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}>
-        <div className="modal-body" style={{ maxHeight: 'none', overflow: 'visible', padding: '16px 20px' }}>
+        <div className="modal-body" style={{ maxHeight: step === 2 ? 'none' : undefined, overflow: step === 2 ? 'auto' : 'visible', padding: '16px 20px' }}>
           {step === 1 && (
             <>
           <div className="mb-4">
