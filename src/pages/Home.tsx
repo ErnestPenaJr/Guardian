@@ -1349,59 +1349,26 @@ function Home() {
       <nav 
         aria-label="Main navigation" 
         role="navigation"
-        className={`hidden sm:flex flex-col ${isNavExpanded ? 'w-64' : 'w-16'} min-w-[64px] 
-          bg-gradient-to-br from-white via-slate-50 to-secondary/5
-          shadow-2xl shadow-primary/20 border-r border-gray-4/30
-          h-[calc(100vh-4rem)] fixed top-16 left-0 z-50 
-          transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] 
-          backdrop-blur-3xl backdrop-saturate-200
-          before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/80 before:via-white/60 before:to-white/40 before:-z-10
-          after:absolute after:inset-0 after:bg-gradient-to-b after:from-transparent after:via-transparent after:to-secondary/10 after:-z-10`}
-        style={{
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 50%, rgba(46, 188, 188, 0.05) 100%)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderRight: '1px solid rgba(189, 189, 189, 0.3)',
-          boxShadow: '4px 0 32px rgba(3, 36, 36, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5) inset'
-        }}
+        className={`hidden sm:flex flex-col ${isNavExpanded ? 'w-64' : 'w-16'} min-w-[64px]
+          bg-white border-r border-gray-200
+          h-[calc(100vh-4rem)] fixed top-16 left-0 z-50
+          transition-all duration-300 ease-in-out`}
       >
-        {/* Elegant Header Section - Guardian Brand Colors */}
-        <div className="flex items-center justify-between px-4 py-6 border-b border-gray-4/40 bg-gradient-to-r from-secondary/5 to-transparent">
+        {/* Collapse toggle */}
+        <div className={`flex items-center px-3 py-3 ${isNavExpanded ? 'justify-end' : 'justify-center'}`}>
           <button
             onClick={() => setIsNavExpanded(!isNavExpanded)}
-            className="group relative flex items-center justify-center w-11 h-11 
-              bg-gradient-to-br from-white to-gray-5 border border-gray-4/60
-              rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-              hover:shadow-xl hover:shadow-secondary/20 hover:border-secondary/40
-              hover:scale-105 active:scale-95 
-              focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:ring-offset-2 focus:ring-offset-white/50
-              overflow-hidden"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-3
+              hover:text-primary hover:bg-gray-5/60 transition-colors duration-200
+              focus:outline-none focus:ring-2 focus:ring-secondary/40"
             aria-label={isNavExpanded ? "Collapse sidebar" : "Expand sidebar"}
-            style={{
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset'
-            }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/8 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative z-10 transition-transform duration-300 group-hover:rotate-180">
-              {isNavExpanded ? (
-                <ChevronLeft className="w-5 h-5 text-gray-2 group-hover:text-primary transition-all duration-300" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-gray-2 group-hover:text-primary transition-all duration-300" />
-              )}
-            </div>
+            {isNavExpanded ? (
+              <ChevronLeft className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
           </button>
-          
-          {isNavExpanded && (
-            <div className="flex items-center space-x-3 animate-in slide-in-from-right-4 duration-500 ease-out">
-              <div className="relative">
-                <div className="w-2 h-2 bg-gradient-to-r from-secondary to-primary rounded-full animate-pulse"></div>
-                <div className="absolute inset-0 w-2 h-2 bg-gradient-to-r from-secondary/70 to-primary/70 rounded-full animate-ping opacity-75"></div>
-              </div>
-              <span className="text-gray-1 font-semibold tracking-wider text-sm bg-gradient-to-r from-primary to-gray-1 bg-clip-text text-transparent">
-                NAVIGATION
-              </span>
-            </div>
-          )}
         </div>
 
         {/* World-Class Navigation Items */}
@@ -1427,18 +1394,13 @@ function Home() {
                   prevButton?.focus();
                 }
               }}
-              className={`group relative flex items-center w-full h-14
-                ${isNavExpanded ? 'px-4 pr-6' : 'justify-center px-0'} 
-                rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-                focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:ring-offset-2 focus:ring-offset-white/50
-                overflow-hidden
-                ${item.active 
-                  ? `bg-gradient-to-r from-secondary/15 via-secondary/8 to-primary/10 
-                     text-primary border border-secondary/30 shadow-xl shadow-secondary/15
-                     font-semibold backdrop-blur-xl scale-[1.02]` 
-                  : `text-gray-2 hover:text-primary hover:bg-gradient-to-r hover:from-secondary/8 hover:to-primary/5
-                     hover:shadow-lg hover:shadow-secondary/10 hover:scale-[1.01] hover:border hover:border-secondary/25
-                     focus:text-primary focus:bg-gradient-to-r focus:from-secondary/12 focus:to-primary/8`
+              className={`group relative flex items-center w-full h-11
+                ${isNavExpanded ? 'px-3' : 'justify-center px-0'}
+                rounded-lg transition-colors duration-150
+                focus:outline-none focus:ring-2 focus:ring-secondary/40
+                ${item.active
+                  ? 'bg-secondary/10 text-primary font-semibold'
+                  : 'text-gray-2 hover:text-primary hover:bg-gray-100'
                 }`}
               aria-label={item.label}
               aria-current={item.active ? 'page' : undefined}
@@ -1446,92 +1408,44 @@ function Home() {
               role="menuitem"
               data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
               data-tooltip-content={isNavExpanded ? undefined : item.label}
-              style={{
-                ...(item.label === 'Invites' || item.label === 'Assignments' ? { display: 'none' } : {}),
-                ...(item.active ? {
-                  background: 'linear-gradient(135deg, rgba(46, 188, 188, 0.12) 0%, rgba(3, 36, 36, 0.08) 100%)',
-                  boxShadow: '0 8px 32px rgba(46, 188, 188, 0.15), 0 0 0 1px rgba(46, 188, 188, 0.2) inset'
-                } : {})
-              }}
+              style={(item.label === 'Invites' || item.label === 'Assignments') ? { display: 'none' } : undefined}
             >
-              {/* Elegant active indicator - Guardian Brand Colors */}
               {item.active && (
-                <>
-                  {isNavExpanded ? (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-secondary to-primary rounded-r-full shadow-lg shadow-secondary/40 animate-in slide-in-from-left-1 duration-300"></div>
-                  ) : (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-gradient-to-b from-secondary to-primary rounded-r-full shadow-lg shadow-secondary/40 animate-in slide-in-from-left-1 duration-300"></div>
-                  )}
-                </>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-secondary rounded-r-full"></div>
               )}
               
-              {/* Icon container with enhanced styling - Guardian Brand Colors */}
-              <div className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-500
-                ${item.active 
-                  ? 'bg-gradient-to-br from-secondary/15 to-primary/12 shadow-lg shadow-secondary/15 scale-110' 
-                  : 'group-hover:bg-gradient-to-br group-hover:from-secondary/12 group-hover:to-primary/8 group-hover:scale-105'
-                }`}
-                style={item.active ? {
-                  background: 'linear-gradient(135deg, rgba(46, 188, 188, 0.15) 0%, rgba(3, 36, 36, 0.10) 100%)',
-                  boxShadow: '0 4px 16px rgba(46, 188, 188, 0.20)'
-                } : undefined}
-              >
-                <div className="transition-all duration-300 group-hover:scale-110" aria-hidden="true">
-                  {item.icon}
-                </div>
-                
-                {/* Subtle glow effect - Guardian Brand Colors */}
-                <div className={`absolute inset-0 rounded-xl transition-opacity duration-300 
-                  ${item.active ? 'opacity-20' : 'opacity-0 group-hover:opacity-10'}
-                  bg-gradient-to-br from-secondary to-primary blur-sm -z-10`}></div>
+              <div className="flex items-center justify-center w-8 h-8" aria-hidden="true">
+                {item.icon}
               </div>
               
               {isNavExpanded && (
-                <span className="ml-4 text-sm font-medium tracking-wide animate-in slide-in-from-right-2 duration-500 ease-out">
+                <span className="ml-3 text-sm">
                   {item.label}
                 </span>
               )}
               
-              {/* Premium badge system with enhanced animations */}
               {item.badge && (
-                <div className={`absolute ${isNavExpanded ? 'top-1 right-1' : 'top-0 right-0'} 
-                  bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold
-                  rounded-full min-w-[22px] h-6 px-2
-                  flex items-center justify-center
-                  shadow-lg shadow-red-500/30 border-2 border-white/80
-                  animate-in zoom-in-50 duration-300 ease-out
-                  hover:scale-110 transition-transform duration-200`}
-                  style={{
-                    background: 'linear-gradient(135deg, #ef4444 0%, #ec4899 100%)',
-                    boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.9)'
-                  }}
+                <div className={`absolute ${isNavExpanded ? 'top-1.5 right-2' : 'top-0.5 right-0.5'}
+                  bg-red-500 text-white text-xs font-semibold
+                  rounded-full min-w-[18px] h-[18px] px-1
+                  flex items-center justify-center`}
                 >
-                  <span className="drop-shadow-sm animate-pulse">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                  
-                  {/* Subtle pulse ring */}
-                  <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20"></div>
+                  {item.badge > 99 ? '99+' : item.badge}
                 </div>
               )}
               
-              {/* Hover effect overlay - Guardian Brand Colors */}
-              <div className="absolute inset-0 bg-gradient-to-r from-secondary/8 to-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </button>
           ))}
         </div>
 
-        {/* Premium Logout Section - Guardian Brand Colors */}
-        <div className="px-3 py-6 border-t border-gray-4/40 bg-gradient-to-r from-gray-5/20 to-transparent">
+        {/* Logout */}
+        <div className="px-3 py-4 border-t border-gray-200">
           <button
-            className={`group relative flex items-center w-full h-14
-              ${isNavExpanded ? 'px-4' : 'justify-center px-0'} 
-              rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-              text-gray-3 hover:text-error hover:bg-gradient-to-r hover:from-error/8 hover:to-error/5
-              hover:shadow-lg hover:shadow-error/15 hover:scale-[1.01] hover:border hover:border-error/25
-              focus:outline-none focus:ring-2 focus:ring-error/30 focus:ring-offset-2 focus:ring-offset-white/50 
-              focus:text-error focus:bg-gradient-to-r focus:from-error/12 focus:to-error/8
-              overflow-hidden`}
+            className={`group flex items-center w-full h-11
+              ${isNavExpanded ? 'px-3' : 'justify-center px-0'}
+              rounded-lg transition-colors duration-150
+              text-gray-3 hover:text-error hover:bg-red-50
+              focus:outline-none focus:ring-2 focus:ring-error/30`}
             onClick={handleLogout}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -1544,36 +1458,19 @@ function Home() {
             data-tooltip-id={isNavExpanded ? undefined : "sidebar-tooltip"}
             data-tooltip-content={isNavExpanded ? undefined : "Logout"}
           >
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 
-              group-hover:bg-gradient-to-br group-hover:from-red-500/10 group-hover:to-pink-500/5 group-hover:scale-105">
-              <LogOut className="w-5 h-5 transition-all duration-300 group-hover:scale-110" />
-              
-              {/* Subtle glow effect */}
-              <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 group-hover:opacity-10
-                bg-gradient-to-br from-red-400 to-pink-400 blur-sm -z-10"></div>
+            <div className="flex items-center justify-center w-8 h-8">
+              <LogOut className="w-4 h-4" />
             </div>
-            
             {isNavExpanded && (
-              <span className="ml-4 text-sm font-medium tracking-wide animate-in slide-in-from-right-2 duration-500 ease-out">
-                Logout
-              </span>
+              <span className="ml-3 text-sm">Logout</span>
             )}
-            
-            {/* Hover effect overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
           </button>
         </div>
         
-        <Tooltip 
-          id="sidebar-tooltip" 
-          place="right" 
-          className="!bg-slate-800/95 !text-white !border !border-slate-700/50 !shadow-2xl !backdrop-blur-xl !rounded-xl !px-3 !py-2 !text-sm !font-medium"
-          style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
-          }}
-          arrowColor="rgba(15, 23, 42, 0.95)"
+        <Tooltip
+          id="sidebar-tooltip"
+          place="right"
+          className="!bg-gray-900 !text-white !rounded-md !px-2.5 !py-1.5 !text-xs !font-medium !shadow-md"
         />
       </nav>
       {/* Main Content: Switchable Dashboard */}
