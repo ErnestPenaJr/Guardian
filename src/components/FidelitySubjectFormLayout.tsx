@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import '../styles/FidelitySubjectForm.css';
 
 interface FormField {
@@ -59,6 +59,53 @@ const SRC_FIELDS = [
 
 const RADIO_OPTS = ['Positive', 'Negative', 'Not Reviewed'] as const;
 
+// ── Dropdown option lists ─────────────────────────────────────────
+const SUFFIX_OPTS = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V', 'Esq.', 'Ph.D.', 'M.D.', 'J.D.'];
+
+const RACE_OPTS = [
+  'W – White',
+  'B – Black or African American',
+  'A – Asian',
+  'I – American Indian / Alaska Native',
+  'P – Pacific Islander',
+  'H – Hispanic or Latino',
+  'M – Multiracial',
+  'U – Unknown',
+  'O – Other',
+];
+
+const WEIGHT_OPTS = [
+  'Under 100 lbs', '100–119 lbs', '120–139 lbs', '140–159 lbs',
+  '160–179 lbs', '180–199 lbs', '200–219 lbs', '220–239 lbs',
+  '240–259 lbs', '260–299 lbs', '300+ lbs', 'Unknown',
+];
+
+const EYE_COLOR_OPTS = [
+  'BLK – Black', 'BLU – Blue', 'BRO – Brown', 'GRY – Gray',
+  'GRN – Green', 'HAZ – Hazel', 'MAR – Maroon', 'MUL – Multicolored',
+  'PNK – Pink', 'UNK – Unknown',
+];
+
+const HAIR_COLOR_OPTS = [
+  'BLK – Black', 'BLN – Blonde / Strawberry', 'BRO – Brown',
+  'GRY – Gray', 'RED – Red / Auburn', 'SDY – Sandy',
+  'WHI – White', 'BALD', 'UNK – Unknown',
+];
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+];
+
+const SOCIAL_PLATFORM_OPTS = [
+  'Facebook', 'Instagram', 'Twitter / X', 'LinkedIn', 'TikTok',
+  'YouTube', 'Snapchat', 'Telegram', 'WhatsApp', 'Pinterest',
+  'Reddit', 'Discord', 'Other',
+];
+
 // ── Tiny reusable input ───────────────────────────────────────────
 interface DocInputProps {
   value: string;
@@ -86,6 +133,38 @@ const DocInput: React.FC<DocInputProps> = ({
     readOnly={readOnly}
     style={style}
   />
+);
+
+// ── Tiny reusable select ──────────────────────────────────────────
+interface DocSelectProps {
+  value: string;
+  onChange: (v: string) => void;
+  readOnly: boolean;
+  options: string[];
+  placeholder?: string;
+  style?: React.CSSProperties;
+}
+
+const DocSelect: React.FC<DocSelectProps> = ({
+  value,
+  onChange,
+  readOnly,
+  options,
+  placeholder = '— Select —',
+  style,
+}) => (
+  <select
+    className="sw-select"
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    disabled={readOnly}
+    style={style}
+  >
+    <option value="">{placeholder}</option>
+    {options.map(opt => (
+      <option key={opt} value={opt}>{opt}</option>
+    ))}
+  </select>
 );
 
 // ── Tiny reusable textarea ────────────────────────────────────────
@@ -174,6 +253,26 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   onChange,
   readOnly = false,
 }) => {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setPhotoUrl(prev => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+    // Reset so the same file can be re-selected if removed
+    e.target.value = '';
+  };
+
+  const removePhoto = () => {
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    setPhotoUrl(null);
+  };
+
   const fm = useMemo(() => {
     const m = new Map<string, FormField>();
     for (const f of fields) {
@@ -267,12 +366,13 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 placeholder="Last"
                 style={{ flex: '1.1' }}
               />
-              <DocInput
+              <DocSelect
                 value={val('Suffix')}
                 onChange={v => set('Suffix', v)}
                 readOnly={readOnly}
+                options={SUFFIX_OPTS}
                 placeholder="Sfx"
-                style={{ flex: '0.35' }}
+                style={{ flex: '0 0 72px' }}
               />
             </div>
           </div>
@@ -298,8 +398,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 value={val('Date of Birth')}
                 onChange={v => set('Date of Birth', v)}
                 readOnly={readOnly}
-                type="date"
-                style={{ maxWidth: '160px' }}
+                placeholder="MM/DD/YYYY"
               />
             </div>
           </div>
@@ -322,12 +421,13 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-field-row">
             <div className="sw-field-label">State DL:</div>
             <div className="sw-field-value">
-              <DocInput
+              <DocSelect
                 value={val('DL Issuing State')}
                 onChange={v => set('DL Issuing State', v)}
                 readOnly={readOnly}
+                options={US_STATES}
                 placeholder="ST"
-                style={{ maxWidth: '52px' }}
+                style={{ flex: '0 0 70px' }}
               />
               <DocInput
                 value={val("State Driver's License")}
@@ -401,11 +501,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-field-row">
             <div className="sw-field-label">Race:</div>
             <div className="sw-field-value">
-              <DocInput
+              <DocSelect
                 value={val('Race')}
                 onChange={v => set('Race', v)}
                 readOnly={readOnly}
-                placeholder="Race"
+                options={RACE_OPTS}
               />
             </div>
           </div>
@@ -451,11 +551,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             </div>
             <div className="sw-field-label sw-right-label">Weight:</div>
             <div className="sw-field-value">
-              <DocInput
+              <DocSelect
                 value={val('Weight')}
                 onChange={v => set('Weight', v)}
                 readOnly={readOnly}
-                placeholder="160 lbs"
+                options={WEIGHT_OPTS}
               />
             </div>
           </div>
@@ -464,44 +564,89 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-field-row sw-double-right">
             <div className="sw-field-label">Eye Color:</div>
             <div className="sw-field-value">
-              <DocInput
+              <DocSelect
                 value={val('Eye Color')}
                 onChange={v => set('Eye Color', v)}
                 readOnly={readOnly}
-                placeholder="Eye color"
+                options={EYE_COLOR_OPTS}
               />
             </div>
             <div className="sw-field-label sw-right-label">Hair Color:</div>
             <div className="sw-field-value">
-              <DocInput
+              <DocSelect
                 value={val('Hair Color')}
                 onChange={v => set('Hair Color', v)}
                 readOnly={readOnly}
-                placeholder="Hair color"
+                options={HAIR_COLOR_OPTS}
               />
             </div>
           </div>
 
         </div>{/* /sw-fields-col */}
 
-        {/* PHOTO PLACEHOLDER */}
+        {/* PHOTO UPLOAD */}
         <div className="sw-photo-col">
-          <div className="sw-photo-placeholder">
-            <svg
-              width="44"
-              height="44"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#aabbd4"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handlePhotoChange}
+          />
+
+          {photoUrl ? (
+            <div className="sw-photo-preview-wrap">
+              <img
+                src={photoUrl}
+                alt="Subject"
+                className="sw-photo-preview-img"
+              />
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="sw-photo-remove"
+                  onClick={removePhoto}
+                  title="Remove photo"
+                >
+                  ✕
+                </button>
+              )}
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="sw-photo-change"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Change photo"
+                >
+                  Change
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              className={`sw-photo-placeholder${readOnly ? '' : ' sw-photo-placeholder--clickable'}`}
+              onClick={() => !readOnly && fileInputRef.current?.click()}
+              title={readOnly ? '' : 'Click to upload subject photo'}
             >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <span>Subject Photo</span>
-          </div>
+              <svg
+                width="44"
+                height="44"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#aabbd4"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span>Subject Photo</span>
+              {!readOnly && (
+                <span className="sw-photo-hint">Click to upload</span>
+              )}
+            </div>
+          )}
         </div>
 
       </div>{/* /sw-body-grid */}
@@ -574,12 +719,13 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             Social Media:
           </div>
           <div className="sw-contact-body sw-social-row">
-            <DocInput
+            <DocSelect
               value={val('Social Media Platform')}
               onChange={v => set('Social Media Platform', v)}
               readOnly={readOnly}
+              options={SOCIAL_PLATFORM_OPTS}
               placeholder="Platform"
-              style={{ flex: '0 0 90px' }}
+              style={{ flex: '0 0 120px' }}
             />
             <DocInput
               value={val('Social Media Handle')}

@@ -33,7 +33,27 @@
 .sw-input:hover:not([readonly]) { border-bottom-color: #b0b8c8; }
 .sw-input:focus { border-bottom-color: #1a56c4; background: #eef4ff; border-radius: 2px; }
 .sw-input[readonly] { cursor: default; color: #222; }
-.sw-input[type="date"] { cursor: pointer; }
+
+/* ── SHARED SELECT ────────────────────────── */
+.sw-select {
+  font-family: inherit;
+  font-size: 13px;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 4px;
+  outline: none;
+  flex: 1;
+  min-width: 0;
+  color: #111;
+  cursor: pointer;
+  transition: border-bottom-color 0.15s, background 0.15s;
+  -webkit-appearance: auto;
+}
+.sw-select:hover:not(:disabled) { border-bottom-color: #b0b8c8; }
+.sw-select:focus { border-bottom-color: #1a56c4; background: #eef4ff; border-radius: 2px; outline: none; }
+.sw-select:disabled { cursor: default; color: #222; opacity: 1; }
 
 /* ── SHARED TEXTAREA ──────────────────────── */
 .sw-textarea {
@@ -210,6 +230,72 @@
   font-size: 12px;
   font-weight: 500;
 }
+
+/* ── PHOTO UPLOAD ─────────────────────────── */
+.sw-photo-placeholder--clickable {
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.sw-photo-placeholder--clickable:hover {
+  border-color: #1a56c4;
+  background: #dde8fb;
+}
+.sw-photo-hint {
+  font-size: 11px;
+  color: #9aaecc;
+  margin-top: 2px;
+}
+
+.sw-photo-preview-wrap {
+  position: relative;
+  width: 160px;
+  height: 200px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #9aaecc;
+}
+.sw-photo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sw-photo-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.sw-photo-remove:hover { background: rgba(176,42,55,0.85); }
+
+.sw-photo-change {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.sw-photo-change:hover { background: rgba(26,86,196,0.75); }
 
 /* ── SECTION HEADERS ──────────────────────── */
 .sw-section-hdr {
