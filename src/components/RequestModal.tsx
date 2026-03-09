@@ -814,6 +814,16 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     });
   };
 
+  // Dynamic modal sizing based on form field count.
+  // Any form with fields gets xl + expanded so the body can scroll through all fields.
+  const modalSize = useMemo((): 'lg' | 'xl' => {
+    return formFields.length > 0 ? 'xl' : 'lg';
+  }, [formFields.length]);
+
+  const modalDialogClass = useMemo(() => {
+    return formFields.length >= 10 ? 'request-modal-expanded' : undefined;
+  }, [formFields.length]);
+
   // Stable fieldValues record for SectionedFormRenderer — keyed by String(fieldId)
   const currentFieldValues = useMemo(
     () =>
@@ -1357,7 +1367,14 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered className="request-modal-improved">
+    <Modal
+      show={show}
+      onHide={onHide}
+      size={modalSize}
+      centered
+      className="request-modal-improved"
+      dialogClassName={modalDialogClass}
+    >
       <Modal.Header closeButton className="border-0 pb-2">
         <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>
           Request Details: {request.TRACKINGID || `REQ-${request.REQUEST_ID}`}
@@ -1457,7 +1474,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         </div>
 
         {/* Tab Content */}
-        <div className="tab-content" style={{ minHeight: '400px' }}>
+        <div className="tab-content">
           
           {/* Details Tab */}
           {activeMainTab === 'details' && (

@@ -644,3 +644,31 @@
     max-width: 100% !important;
   }
 }
+
+/* ── EXPANDED MODAL — forms with 10+ fields (e.g. Fidelity-Subject ~80 fields) ── */
+/* Must come last so it wins over the 90vh constraint above.                       */
+/* dialogClassName="request-modal-expanded" lands on .modal-dialog.                */
+.modal-dialog.request-modal-expanded {
+  max-width: calc(100vw - 64px) !important;
+  margin: 32px auto !important;
+}
+
+.modal-dialog.request-modal-expanded .modal-content {
+  max-height: calc(100vh - 64px) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Header and footer keep their natural height; body fills the rest */
+.modal-dialog.request-modal-expanded .modal-header,
+.modal-dialog.request-modal-expanded .modal-footer {
+  flex: 0 0 auto !important;
+}
+
+.modal-dialog.request-modal-expanded .modal-body {
+  flex: 1 1 auto !important;
+  max-height: none !important;     /* Let flex control the height, not a fixed max */
+  min-height: 0 !important;        /* Required: allow flex child to shrink */
+  overflow-y: auto !important;
+}

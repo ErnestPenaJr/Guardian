@@ -2599,6 +2599,11 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
             userRoleIds: req.userRoleIds
         });
 
+        if (req.companyId === null || req.companyId === undefined) {
+            console.warn(`⚠️ [DEBUG] No company ID found for user ${req.userId}, returning empty list`);
+            return res.json([]);
+        }
+
         // First, let's see ALL users in the database to understand the data
         const allUsers = await prisma.$queryRaw`
             SELECT 
@@ -4851,7 +4856,7 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
 
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 
@@ -6162,7 +6167,7 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
 
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 

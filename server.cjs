@@ -2623,6 +2623,11 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
             userRoleIds: req.userRoleIds
         });
 
+        if (req.companyId === null || req.companyId === undefined) {
+            console.warn(`⚠️ [DEBUG] No company ID found for user ${req.userId}, returning empty list`);
+            return res.json([]);
+        }
+
         // First, let's see ALL users in the database to understand the data
         const allUsers = await prisma.$queryRaw`
             SELECT 
@@ -4875,7 +4880,7 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
 
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 
@@ -6186,7 +6191,7 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
 
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 
@@ -7096,10 +7101,11 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
 
         // Update form basic details
         await prisma.$queryRaw`
-            UPDATE GUARDIAN.FORMS 
-            SET FORM_NAME = ${name.trim()}, 
+            UPDATE GUARDIAN.FORMS
+            SET FORM_NAME = ${name.trim()},
                 FORM_DESCRIPTION = ${description?.trim() || ''},
-                UPDATE_DATE = GETDATE()
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
             WHERE FORM_ID = ${formId}
         `;
 
@@ -7270,14 +7276,15 @@ app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get the form fields
+        // Get the form fields using the FORMS_FIELDS junction table
         const fields = await prisma.$queryRaw`
-            SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
-                   ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
-            FROM GUARDIAN.FORM_FIELDS ff
-            INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
-            ORDER BY ff.SEQUENCE, ff.FIELD_ID
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, ff.IS_REQUIRED, f.OPTIONS, ff.SORT_ORDER as SEQUENCE,
+                   f.IS_ACTIVE, ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${formId} AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
         `;
 
         console.log(`✅ Found form ${formId} with ${fields.length} fields`);

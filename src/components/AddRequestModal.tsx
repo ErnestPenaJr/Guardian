@@ -211,8 +211,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   
   // Check if form is complete (all required fields filled)
   const isFormComplete = () => {
-    // For now, consider all fields as required since IS_REQUIRED property is not in the database response
-    const requiredFields = templateFields.filter(field => field.FIELD_NAME !== 'Request Status');
+    const requiredFields = templateFields.filter(field =>
+      field.FIELD_NAME !== 'Request Status' && field.IS_REQUIRED === true
+    );
     
     const missingFields = requiredFields.filter(field => {
       const fieldId = String(field.FIELD_ID || '');

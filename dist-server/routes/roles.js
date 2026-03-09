@@ -12,6 +12,50 @@ const roleInputSchema = z.object({
     description: z.string().optional(),
     permissions: z.array(z.number()).default([]),
 });
+
+// Get all roles (non-admin)
+router.get('/all', async (req, res) => {
+    try {
+        console.log('[ROLES] Fetching all roles (non-admin endpoint)');
+        const roles = await prisma.rOLES.findMany({
+            where: {
+                STATUS: 'A'
+            },
+            select: {
+                ROLE_ID: true,
+                NAME: true,
+                DISPLAY_NAME: true,
+                DESCRIPTION: true,
+                STATUS: true,
+                CREATE_DATE: true
+            },
+            orderBy: {
+                NAME: 'asc'
+            }
+        });
+        const formattedRoles = roles.map(role => ({
+            id: role.ROLE_ID,
+            name: role.NAME,
+            displayName: role.DISPLAY_NAME,
+            description: role.DESCRIPTION,
+            status: role.STATUS,
+            createdAt: role.CREATE_DATE
+        }));
+        res.json({
+            success: true,
+            data: formattedRoles
+        });
+    }
+    catch (error) {
+        console.error('Error fetching roles:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch roles',
+            error: errorMessage
+        });
+    }
+});
 // Get all roles
 router.get('/', isAdmin, async (req, res) => {
     try {
@@ -60,7 +104,11 @@ router.get('/', isAdmin, async (req, res) => {
 // Get a specific role by ID
 router.get('/:id', async (req, res) => {
     try {
-        const roleId = parseInt(req.params.id);
+        const roleId = parseInt(req.params.id, 10);
+
+        if (Number.isNaN(roleId)) {
+            return res.status(400).json({ message: 'Invalid role id' });
+        }
         // Check if this is a predefined role
         const predefinedRole = PREDEFINED_ROLES.find(r => r.id === roleId);
         if (predefinedRole) {
