@@ -651,7 +651,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       </div>
       
       <form onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}>
-        <div className="modal-body" style={{ maxHeight: step === 2 ? 'none' : undefined, overflow: step === 2 ? 'auto' : 'visible', padding: '16px 20px' }}>
+        <div className="modal-body" style={{ maxHeight: step === 2 ? 'none' : undefined, padding: '16px 20px' }}>
           {step === 1 && (
             <>
           <div className="mb-4">
@@ -659,8 +659,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             <div
               className="d-flex flex-column gap-2 template-selection-container"
               style={{
-                height: '300px',
-                maxHeight: '300px',
+                height: '220px',
+                maxHeight: '220px',
                 overflowY: 'auto',
                 padding: '12px',
                 marginBottom: '15px',
@@ -797,44 +797,6 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
           </div>
 
           
-          {/* Submit button for step 1 */}
-          <div className="d-flex justify-content-end gap-2 mt-4">
-            <button 
-              type="button" 
-              className="btn btn-outline-secondary transition-colors duration-200"
-              onClick={onClose}
-              style={{ 
-                borderRadius: '0.375rem', 
-                padding: '0.5rem 1.5rem',
-                borderColor: '#2EBCBC',
-                color: '#2EBCBC'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#24A5A5';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#2EBCBC';
-              }}
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary transition-colors duration-200" 
-              disabled={isSubmitting || formTemplates.length === 0 || !selectedTemplate}
-              style={{ 
-                borderRadius: '0.375rem', 
-                padding: '0.5rem 1.5rem',
-                backgroundColor: '#032424'
-              }}
-              onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
-              onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
-            >
-              Next
-            </button>
-          </div>
             </>
           )}
           
@@ -911,6 +873,32 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             </div>
           )}
         </div>
+
+        {/* Footer lives outside modal-body so it's always inside the white box */}
+        {step === 1 && (
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={onClose}
+              style={{ borderColor: '#2EBCBC', color: '#2EBCBC' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#2EBCBC'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#2EBCBC'; }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSubmitting || formTemplates.length === 0 || !selectedTemplate}
+              style={{ backgroundColor: '#032424', borderColor: '#032424' }}
+              onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
+              onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </form>
     </Modal>
   );

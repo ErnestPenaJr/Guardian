@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { useDropzone } from 'react-dropzone';
 import api from '../utils/api';
@@ -111,6 +111,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [formFieldValues, setFormFieldValues] = useState<FormFieldValue[]>([]);
+  const formFieldValuesRef = useRef(formFieldValues);
+  useEffect(() => { formFieldValuesRef.current = formFieldValues; }, [formFieldValues]);
   const [formFields, setFormFields] = useState<any[]>([]);
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
@@ -837,31 +839,37 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       setIsSavingForm(true);
       
       // Prepare form data in the format the server expects
-      const fieldValues = formFieldValues.reduce((acc, field) => {
+      // Use the ref to guarantee we read the latest state (avoids stale closure with concurrent updates)
+      const fieldValues = formFieldValuesRef.current.reduce((acc, field) => {
         if (field.fieldValue && field.fieldValue.toString().trim() !== '') {
           acc[field.fieldId.toString()] = field.fieldValue;
         }
         return acc;
       }, {} as Record<string, string>);
-      
+
       const submissionData = {
         fieldValues,
         isComplete: false, // Mark as draft/auto-save
         isDraft: true
       };
-      
+
       // Submit form data to the correct endpoint
       const response = await api.post(`/api/requests/${request.REQUEST_ID}/form/submit`, submissionData);
-      
+
       if (response.status === 200 || response.status === 201) {
         setFormHasChanges(false);
         // Refresh the form data
         await fetchFormFieldValues();
+        // Ensure any side effects during the fetch don't re-set the flag
+        setFormHasChanges(false);
+        toast.success('Form data saved successfully');
       } else {
         console.error('Failed to save form data:', response.status);
+        toast.error('Failed to save form data. Please try again.');
       }
     } catch (error) {
       console.error('Error saving form data:', error);
+      toast.error('Error saving form data. Please try again.');
     } finally {
       setIsSavingForm(false);
     }

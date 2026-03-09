@@ -63,10 +63,12 @@ const RADIO_OPTS = ['Positive', 'Negative', 'Not Reviewed'] as const;
 interface MarkEntry    { location: string; markType: string; description: string; }
 interface AddressEntry { street1: string; street2: string; city: string; state: string; zip: string; }
 interface PhoneEntry   { number: string; phoneType: string; }
+interface SocialEntry  { platform: string; handle: string; url: string; }
 
 const DEF_MARK:    MarkEntry    = { location: '', markType: '', description: '' };
 const DEF_ADDRESS: AddressEntry = { street1: '', street2: '', city: '', state: '', zip: '' };
 const DEF_PHONE:   PhoneEntry   = { number: '', phoneType: '' };
+const DEF_SOCIAL:  SocialEntry  = { platform: '', handle: '', url: '' };
 
 const MARK_TYPE_OPTS  = ['Tattoo', 'Scar', 'Birthmark', 'Piercing', 'Brand', 'Other'];
 const PHONE_TYPE_OPTS = ['Mobile', 'Home', 'Work', 'Fax', 'Unknown'];
@@ -126,6 +128,15 @@ const SOCIAL_PLATFORM_OPTS = [
   'Facebook', 'Instagram', 'Twitter / X', 'LinkedIn', 'TikTok',
   'YouTube', 'Snapchat', 'Telegram', 'WhatsApp', 'Pinterest',
   'Reddit', 'Discord', 'Other',
+];
+
+const COUNTRY_OPTS = [
+  'United States', 'Canada', 'Mexico', 'United Kingdom', 'Germany', 'France',
+  'Italy', 'Spain', 'Australia', 'China', 'Japan', 'India', 'Brazil', 'Russia',
+  'South Korea', 'Netherlands', 'Sweden', 'Switzerland', 'Poland', 'Portugal',
+  'Nigeria', 'South Africa', 'Colombia', 'Venezuela', 'Cuba', 'Dominican Republic',
+  'El Salvador', 'Guatemala', 'Honduras', 'Jamaica', 'Haiti', 'Philippines',
+  'Vietnam', 'Thailand', 'Indonesia', 'Pakistan', 'Bangladesh', 'Other',
 ];
 
 // ── Tiny reusable input ───────────────────────────────────────────
@@ -210,6 +221,10 @@ const DocTextarea: React.FC<DocTextareaProps> = ({
     value={value}
     placeholder={readOnly ? '' : placeholder}
     onChange={e => onChange(e.target.value)}
+    onPaste={e => {
+      const el = e.currentTarget;
+      requestAnimationFrame(() => onChange(el.value));
+    }}
     readOnly={readOnly}
     rows={rows}
   />
@@ -306,12 +321,12 @@ const PhysicalMarksField: React.FC<PhysicalMarksFieldProps> = ({ fieldId, fieldV
           <input className="sw-input" value={m.description} placeholder="Describe the mark…" readOnly={readOnly}
             onChange={e => update(i, { description: e.target.value })} />
           {!readOnly && (
-            <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>
+            <button type="button" className="sw-multi-remove" tabIndex={-1} onClick={() => remove(i)} title="Remove">✕</button>
           )}
         </div>
       ))}
       {!readOnly && (
-        <button type="button" className="sw-multi-add" onClick={add}>+ Add Mark</button>
+        <button type="button" className="sw-multi-add" tabIndex={0} onClick={add}>+ Add Mark</button>
       )}
     </div>
   );
@@ -339,7 +354,7 @@ const MultiAddressField: React.FC<MultiAddressFieldProps> = ({ fieldId, fieldVal
         <div key={i} className="sw-addr-block">
           <div className="sw-addr-header">
             <span className="sw-addr-num">Address {i + 1}</span>
-            {!readOnly && <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>}
+            {!readOnly && <button type="button" className="sw-multi-remove" tabIndex={-1} onClick={() => remove(i)} title="Remove">✕</button>}
           </div>
           <input className="sw-input sw-input--block" value={a.street1} placeholder="Street line 1" readOnly={readOnly}
             onChange={e => update(i, { street1: e.target.value })} />
@@ -359,7 +374,7 @@ const MultiAddressField: React.FC<MultiAddressFieldProps> = ({ fieldId, fieldVal
         </div>
       ))}
       {!readOnly && (
-        <button type="button" className="sw-multi-add" onClick={add}>+ Add Address</button>
+        <button type="button" className="sw-multi-add" tabIndex={0} onClick={add}>+ Add Address</button>
       )}
     </div>
   );
@@ -392,11 +407,11 @@ const MultiPhoneField: React.FC<MultiPhoneFieldProps> = ({ fieldId, fieldValues,
             <option value="">Type</option>
             {PHONE_TYPE_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
-          {!readOnly && <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>}
+          {!readOnly && <button type="button" className="sw-multi-remove" tabIndex={-1} onClick={() => remove(i)} title="Remove">✕</button>}
         </div>
       ))}
       {!readOnly && (
-        <button type="button" className="sw-multi-add" onClick={add}>+ Add Phone</button>
+        <button type="button" className="sw-multi-add" tabIndex={0} onClick={add}>+ Add Phone</button>
       )}
     </div>
   );
@@ -423,15 +438,135 @@ const MultiIPField: React.FC<MultiIPFieldProps> = ({ fieldId, fieldValues, onCha
         <div key={i} className="sw-multi-row">
           <input className="sw-input" value={ip} placeholder="IPv4 or IPv6" readOnly={readOnly}
             onChange={e => update(i, e.target.value)} />
-          {!readOnly && <button type="button" className="sw-multi-remove" onClick={() => remove(i)} title="Remove">✕</button>}
+          {!readOnly && <button type="button" className="sw-multi-remove" tabIndex={-1} onClick={() => remove(i)} title="Remove">✕</button>}
         </div>
       ))}
       {!readOnly && (
-        <button type="button" className="sw-multi-add" onClick={add}>+ Add IP</button>
+        <button type="button" className="sw-multi-add" tabIndex={0} onClick={add}>+ Add IP</button>
       )}
     </div>
   );
 };
+
+// ── Multi-entry: Social Media ─────────────────────────────────────
+interface MultiSocialFieldProps {
+  fieldId: string;
+  fieldValues: Record<string, string>;
+  onChange: (id: string, value: string) => void;
+  readOnly: boolean;
+}
+
+const MultiSocialField: React.FC<MultiSocialFieldProps> = ({ fieldId, fieldValues, onChange, readOnly }) => {
+  const items: SocialEntry[] = parseEntries<SocialEntry>(fieldValues[fieldId] ?? '');
+  const save = (next: SocialEntry[]) => onChange(fieldId, JSON.stringify(next));
+  const add    = () => save([...items, { ...DEF_SOCIAL }]);
+  const remove = (i: number) => save(items.filter((_, idx) => idx !== i));
+  const update = (i: number, patch: Partial<SocialEntry>) =>
+    save(items.map((s, idx) => idx === i ? { ...s, ...patch } : s));
+
+  return (
+    <div className="sw-multi-list">
+      {items.map((s, i) => (
+        <div key={i} className="sw-multi-row">
+          <select className="sw-select" value={s.platform} disabled={readOnly} style={{ flex: '0 0 120px' }}
+            onChange={e => update(i, { platform: e.target.value })}>
+            <option value="">Platform</option>
+            {SOCIAL_PLATFORM_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <input className="sw-input" value={s.handle} placeholder="@handle" readOnly={readOnly}
+            onChange={e => update(i, { handle: e.target.value })} />
+          <input className="sw-input" value={s.url} placeholder="URL" type="url" readOnly={readOnly}
+            onChange={e => update(i, { url: e.target.value })} />
+          {!readOnly && <button type="button" className="sw-multi-remove" tabIndex={-1} onClick={() => remove(i)} title="Remove">✕</button>}
+        </div>
+      ))}
+      {!readOnly && (
+        <button type="button" className="sw-multi-add" tabIndex={0} onClick={add}>+ Add Social</button>
+      )}
+    </div>
+  );
+};
+
+// ── DOB masked input (MM/DD/YYYY) ─────────────────────────────────
+const DOBInput: React.FC<{ value: string; onChange: (v: string) => void; readOnly: boolean }> =
+  ({ value, onChange, readOnly }) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      let raw = e.target.value.replace(/\D/g, '');
+      if (raw.length > 2) raw = raw.slice(0, 2) + '/' + raw.slice(2);
+      if (raw.length > 5) raw = raw.slice(0, 5) + '/' + raw.slice(5);
+      onChange(raw.slice(0, 10));
+    };
+    return (
+      <input
+        className="sw-input"
+        type="text"
+        value={value}
+        onChange={handleChange}
+        readOnly={readOnly}
+        placeholder={readOnly ? '' : 'MM/DD/YYYY'}
+        maxLength={10}
+        inputMode="numeric"
+      />
+    );
+  };
+
+// ── SSN restricted input (9 digits) ──────────────────────────────
+const SSNInput: React.FC<{ value: string; onChange: (v: string) => void; readOnly: boolean }> =
+  ({ value, onChange, readOnly }) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onChange(e.target.value.replace(/\D/g, '').slice(0, 9));
+    return (
+      <input
+        className="sw-input"
+        type="text"
+        value={value}
+        onChange={handleChange}
+        readOnly={readOnly}
+        placeholder={readOnly ? '' : 'XXX-XX-XXXX'}
+        maxLength={9}
+        inputMode="numeric"
+        style={{ maxWidth: '150px' }}
+      />
+    );
+  };
+
+// ── Height ft / in compound field ────────────────────────────────
+const HeightField: React.FC<{ value: string; onChange: (v: string) => void; readOnly: boolean }> =
+  ({ value, onChange, readOnly }) => {
+    const m = value.match(/^(\d+)\s*ft\s*(\d+)\s*in/i);
+    const ft = m ? m[1] : '';
+    const ins = m ? m[2] : '';
+    const emit = (newFt: string, newIn: string) =>
+      onChange(newFt || newIn ? `${newFt || '0'} ft ${newIn || '0'} in` : '');
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <input
+          className="sw-input"
+          type="number"
+          min={1}
+          max={8}
+          value={ft}
+          onChange={e => emit(e.target.value, ins)}
+          readOnly={readOnly}
+          placeholder="ft"
+          style={{ width: '52px' }}
+        />
+        <span className="sw-unit">ft</span>
+        <input
+          className="sw-input"
+          type="number"
+          min={0}
+          max={11}
+          value={ins}
+          onChange={e => emit(ft, e.target.value)}
+          readOnly={readOnly}
+          placeholder="in"
+          style={{ width: '52px' }}
+        />
+        <span className="sw-unit">in</span>
+      </div>
+    );
+  };
 
 // ── Main layout component ─────────────────────────────────────────
 const FidelitySubjectFormLayout: React.FC<Props> = ({
@@ -516,7 +651,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         </div>
         <div className="sw-date-cell">
           <span className="sw-date-label">Investigator:</span>
-          <DocInput value="" onChange={() => {}} readOnly placeholder="—" />
+          <DocInput
+            value={val('Investigator')}
+            onChange={v => set('Investigator', v)}
+            readOnly={readOnly}
+            placeholder="Investigator"
+          />
         </div>
       </div>
 
@@ -577,11 +717,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-field-row">
             <div className="sw-field-label">DOB:</div>
             <div className="sw-field-value">
-              <DocInput
+              <DOBInput
                 value={val('Date of Birth')}
                 onChange={v => set('Date of Birth', v)}
                 readOnly={readOnly}
-                placeholder="MM/DD/YYYY"
               />
             </div>
           </div>
@@ -590,12 +729,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-field-row">
             <div className="sw-field-label">SSN:</div>
             <div className="sw-field-value">
-              <DocInput
+              <SSNInput
                 value={val('Social Security Number')}
                 onChange={v => set('Social Security Number', v)}
                 readOnly={readOnly}
-                placeholder="XXX-XX-XXXX"
-                style={{ maxWidth: '150px' }}
               />
             </div>
           </div>
@@ -704,17 +841,19 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 placeholder="City"
                 style={{ flex: '1.2' }}
               />
-              <DocInput
+              <DocSelect
                 value={val('Place of Birth (State)')}
                 onChange={v => set('Place of Birth (State)', v)}
                 readOnly={readOnly}
+                options={US_STATES}
                 placeholder="State"
                 style={{ flex: '0.6' }}
               />
-              <DocInput
+              <DocSelect
                 value={val('Place of Birth (Country)')}
                 onChange={v => set('Place of Birth (Country)', v)}
                 readOnly={readOnly}
+                options={COUNTRY_OPTS}
                 placeholder="Country"
                 style={{ flex: '0.8' }}
               />
@@ -725,11 +864,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-field-row sw-double-right">
             <div className="sw-field-label">Height:</div>
             <div className="sw-field-value">
-              <DocInput
+              <HeightField
                 value={val('Height')}
                 onChange={v => set('Height', v)}
                 readOnly={readOnly}
-                placeholder="e.g. 5ft 10in"
               />
             </div>
             <div className="sw-field-label sw-right-label">Weight:</div>
@@ -898,27 +1036,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-contact-hdr" style={{ borderTop: '1px solid #000' }}>
             Social Media:
           </div>
-          <div className="sw-contact-body sw-social-row">
-            <DocSelect
-              value={val('Social Media Platform')}
-              onChange={v => set('Social Media Platform', v)}
+          <div className="sw-contact-body">
+            <MultiSocialField
+              fieldId={String(getF('Social Media Platform')?.FIELD_ID ?? '')}
+              fieldValues={fieldValues}
+              onChange={onChange}
               readOnly={readOnly}
-              options={SOCIAL_PLATFORM_OPTS}
-              placeholder="Platform"
-              style={{ flex: '0 0 120px' }}
-            />
-            <DocInput
-              value={val('Social Media Handle')}
-              onChange={v => set('Social Media Handle', v)}
-              readOnly={readOnly}
-              placeholder="@handle"
-            />
-            <DocInput
-              value={val('Social Media URL')}
-              onChange={v => set('Social Media URL', v)}
-              readOnly={readOnly}
-              placeholder="URL"
-              type="url"
             />
           </div>
         </div>
@@ -948,9 +1071,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           />
         </div>
       </div>{/* /sw-notes-grid */}
-
-      {/* ── PAGE 2 SEPARATOR ────────────────────────── */}
-      <div className="sw-page-break">— Page 2 —</div>
 
       {/* ── INVESTIGATIVE / INTEL NOTES ─────────────── */}
       <div className="sw-intel-hdr">
