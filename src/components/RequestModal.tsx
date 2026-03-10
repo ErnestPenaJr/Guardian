@@ -1366,7 +1366,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       onHide={onHide}
       centered
       className="request-modal-improved"
-      dialogClassName="rmi-dialog-expanded"
+      dialogClassName={needsExpandedLayout ? "rmi-dialog-expanded" : "rmi-dialog-standard"}
       contentClassName={needsExpandedLayout ? "rmi-content-expanded" : "rmi-content-standard"}
     >
       <Modal.Header closeButton className="border-0 pb-2">

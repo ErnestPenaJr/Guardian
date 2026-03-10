@@ -658,7 +658,18 @@
   padding: 32px !important;
 }
 
-.rmi-dialog-expanded .modal-content {
+.rmi-dialog-standard {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 32px !important;
+}
+
+.rmi-dialog-expanded .modal-content,
+.rmi-dialog-standard .modal-content {
   transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
               height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: max-width, height;
