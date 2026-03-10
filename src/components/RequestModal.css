@@ -29,8 +29,6 @@
   border-radius: 0.5rem;
   border: 1px solid #dee2e6;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  max-height: 90vh;
-  overflow: hidden;
 }
 
 .request-modal-improved .modal-header {
@@ -48,8 +46,6 @@
 .request-modal-improved .modal-body {
   padding: 0.75rem 1rem;
   background-color: #fff;
-  max-height: calc(90vh - 140px);
-  overflow-y: auto;
 }
 
 /* Form Labels and Text */
@@ -645,30 +641,39 @@
   }
 }
 
-/* ── EXPANDED MODAL — forms with 10+ fields (e.g. Fidelity-Subject ~80 fields) ── */
-/* Must come last so it wins over the 90vh constraint above.                       */
-/* dialogClassName="request-modal-expanded" lands on .modal-dialog.                */
-.modal-dialog.request-modal-expanded {
+/* ── REQUEST MODAL EXPANSION ──────────────────────────────────────────────────────
+   Targets the OUTER .modal element (className="request-modal-improved" is always
+   present on every render, so no async race condition can prevent this from applying.
+   Specificity: 0-2-0 on the dialog rules, 0-3-0 on content/body — wins over
+   Bootstrap's 0-1-0 .modal-dialog and 0-1-0 .modal-content rules.
+──────────────────────────────────────────────────────────────────────────────── */
+
+/* Widen the dialog to near-fullscreen */
+.modal.request-modal-improved .modal-dialog {
   max-width: calc(100vw - 64px) !important;
   margin: 32px auto !important;
+  width: calc(100vw - 64px) !important;
 }
 
-.modal-dialog.request-modal-expanded .modal-content {
+/* Constrain modal content height and set up flex column so body fills remaining space */
+.modal.request-modal-improved .modal-content {
+  height: calc(100vh - 64px) !important;
   max-height: calc(100vh - 64px) !important;
-  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  overflow: hidden !important;
 }
 
-/* Header and footer keep their natural height; body fills the rest */
-.modal-dialog.request-modal-expanded .modal-header,
-.modal-dialog.request-modal-expanded .modal-footer {
+/* Header and footer are fixed height */
+.modal.request-modal-improved .modal-header,
+.modal.request-modal-improved .modal-footer {
   flex: 0 0 auto !important;
 }
 
-.modal-dialog.request-modal-expanded .modal-body {
+/* Body grows to fill the remaining space and scrolls vertically */
+.modal.request-modal-improved .modal-body {
   flex: 1 1 auto !important;
-  max-height: none !important;     /* Let flex control the height, not a fixed max */
-  min-height: 0 !important;        /* Required: allow flex child to shrink */
+  min-height: 0 !important;
+  max-height: none !important;
   overflow-y: auto !important;
 }

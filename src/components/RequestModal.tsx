@@ -814,15 +814,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     });
   };
 
-  // Dynamic modal sizing based on form field count.
-  // Any form with fields gets xl + expanded so the body can scroll through all fields.
-  const modalSize = useMemo((): 'lg' | 'xl' => {
-    return formFields.length > 0 ? 'xl' : 'lg';
-  }, [formFields.length]);
-
-  const modalDialogClass = useMemo(() => {
-    return formFields.length >= 10 ? 'request-modal-expanded' : undefined;
-  }, [formFields.length]);
+  // Modal is always rendered xl — CSS on .modal.request-modal-improved handles the
+  // actual expanded width/height so no async race condition can shrink it.
+  const modalSize = 'xl' as const;
 
   // Stable fieldValues record for SectionedFormRenderer — keyed by String(fieldId)
   const currentFieldValues = useMemo(
@@ -1373,7 +1367,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       size={modalSize}
       centered
       className="request-modal-improved"
-      dialogClassName={modalDialogClass}
     >
       <Modal.Header closeButton className="border-0 pb-2">
         <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>
