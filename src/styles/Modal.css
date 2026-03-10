@@ -63,6 +63,11 @@
   overflow: hidden; /* Prevent form fields from escaping the modal box */
 }
 
+/* Pin the header so it never shrinks in a flex-column fullscreen modal */
+.modal-content--fullscreen .modal-header {
+  flex: 0 0 auto;
+}
+
 /* The <form> element wrapping the body must participate in the flex column
    so it stretches to fill the remaining height after the header. */
 .modal-content--fullscreen > form {

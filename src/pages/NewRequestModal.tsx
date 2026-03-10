@@ -442,16 +442,21 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
       isOpen={isOpen}
       onRequestClose={handleClose}
       contentLabel="Create Form"
-      className="modal-content"
+      className={step === 2 ? 'modal-content modal-content--fullscreen' : 'modal-content'}
       overlayClassName="modal-overlay"
       style={{
-        content: {
-          width: step === 2 ? '800px' : '800px', // Wider for form builder step
+        content: step === 2 ? {
+          borderRadius: '8px',
+          padding: '0',
+          border: '1px solid #ccc',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+        } : {
+          width: '800px',
           maxWidth: '95%',
           margin: '0',
           borderRadius: '8px',
-          padding: step === 2 ? '15px' : '20px', // Less padding for form builder to maximize space
-          maxHeight: '95vh', // Slightly taller for form builder
+          padding: '20px',
+          maxHeight: '95vh',
           overflow: 'auto',
           position: 'absolute',
           top: '50%',
@@ -601,7 +606,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     
     {/* Step 3: Form Builder or Form Fill */}
     {step === 2 && (
-      <div>
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '15px' }}>
         {isTemplateForm ? (
           <div className="form-fill-container">
             <h4 className="form-preview-title mb-4">Form Preview</h4>

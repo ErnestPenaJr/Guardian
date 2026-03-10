@@ -638,6 +638,24 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       className={step === 2 ? 'modal-content modal-content--fullscreen' : 'modal-content'}
       overlayClassName="modal-overlay"
       id="AddRequestModal"
+      style={step === 2 ? {
+        content: {
+          position: 'fixed',
+          top: '24px',
+          left: '24px',
+          right: '24px',
+          bottom: '24px',
+          width: 'calc(100vw - 48px)',
+          height: 'calc(100vh - 48px)',
+          maxWidth: 'none',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column' as const,
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }
+      } : {}}
     >
       <div className="modal-header" style={{ paddingTop: '20px', paddingLeft: '20px', paddingRight: '20px' }}>
         <h2 className="modal-title">
@@ -651,8 +669,20 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         ></button>
       </div>
       
-      <form onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}>
-        <div className="modal-body" style={{ maxHeight: step === 2 ? 'none' : undefined, padding: '16px 20px' }}>
+      <form 
+        onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}
+        style={step === 2 ? { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, overflow: 'hidden' } : undefined}
+      >
+        <div 
+          className="modal-body" 
+          style={step === 2 ? { 
+            maxHeight: 'none', 
+            padding: '16px 20px',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflowY: 'auto'
+          } : { padding: '16px 20px' }}
+        >
           {step === 1 && (
             <>
           <div className="mb-4">

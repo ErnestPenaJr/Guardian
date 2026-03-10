@@ -814,10 +814,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     });
   };
 
-  // Modal is always rendered xl — CSS on .modal.request-modal-improved handles the
-  // actual expanded width/height so no async race condition can shrink it.
-  const modalSize = 'xl' as const;
-
   // Stable fieldValues record for SectionedFormRenderer — keyed by String(fieldId)
   const currentFieldValues = useMemo(
     () =>
@@ -1350,8 +1346,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Unknown';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'numeric',
@@ -1360,13 +1356,18 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     });
   };
 
+  // Determine if the modal should use the expanded full-screen layout
+  // It only expands when on the Details tab AND there are actually form fields to show
+  const needsExpandedLayout = activeMainTab === 'details' && formFields.length > 0;
+
   return (
     <Modal
       show={show}
       onHide={onHide}
-      size={modalSize}
       centered
       className="request-modal-improved"
+      dialogClassName="rmi-dialog-expanded"
+      contentClassName={needsExpandedLayout ? "rmi-content-expanded" : "rmi-content-standard"}
     >
       <Modal.Header closeButton className="border-0 pb-2">
         <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>

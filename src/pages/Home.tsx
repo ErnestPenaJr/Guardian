@@ -171,11 +171,17 @@ function Home() {
       return;
     }
     
-    // Only check for admins (role ID 1 or 6) 
+    // Only check for admins (role ID 1 or 6)
     if (!isAdmin()) {
       if (process.env.NODE_ENV === 'development') {
         console.log('🎯 User is not admin, skipping account creator invite check');
       }
+      setHasCheckedAccountCreatorInvite(true);
+      return;
+    }
+
+    // Guard: companyId must be defined before making API calls
+    if (!user?.companyId && !user?.COMPANY_ID) {
       setHasCheckedAccountCreatorInvite(true);
       return;
     }
@@ -239,11 +245,18 @@ function Home() {
       setHasCheckedForExistingTemplates(true);
       return;
     }
-    
+
+    // Guard: companyId must be defined before making API calls
+    const companyId = user?.companyId || user?.COMPANY_ID;
+    if (!companyId) {
+      setHasCheckedForExistingTemplates(true);
+      return;
+    }
+
     // Check if this user is the account creator (first user in their company)
     // This logic assumes the account creator would typically be the first user ID in their company
     try {
-      const companyUsers = await api.get(`/api/users/company/${user?.companyId}`);
+      const companyUsers = await api.get(`/api/users/company/${companyId}`);
       const isAccountCreator = companyUsers?.data && companyUsers.data.length > 0 && 
                               companyUsers.data[0].USER_ID === user?.id;
       

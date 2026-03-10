@@ -641,37 +641,61 @@
   }
 }
 
-/* ── REQUEST MODAL EXPANSION ──────────────────────────────────────────────────────
-   Targets the OUTER .modal element (className="request-modal-improved" is always
-   present on every render, so no async race condition can prevent this from applying.
-   Specificity: 0-2-0 on the dialog rules, 0-3-0 on content/body — wins over
-   Bootstrap's 0-1-0 .modal-dialog and 0-1-0 .modal-content rules.
-──────────────────────────────────────────────────────────────────────────────── */
+/* ── EXPANDED MODAL (form-bearing requests) ──────────────────────────────────────────────
+   .rmi-dialog-expanded  → applied via dialogClassName prop → targets .modal-dialog directly
+   .rmi-content-expanded → applied via contentClassName prop → targets .modal-content directly
+   Single-class selectors win over all Bootstrap defaults regardless of load order.
+──────────────────────────────────────────────────────────────────────────────────────── */
 
-/* Widen the dialog to near-fullscreen */
-.modal.request-modal-improved .modal-dialog {
-  max-width: calc(100vw - 64px) !important;
-  margin: 32px auto !important;
-  width: calc(100vw - 64px) !important;
+.rmi-dialog-expanded {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 32px !important;
 }
 
-/* Constrain modal content height and set up flex column so body fills remaining space */
-.modal.request-modal-improved .modal-content {
-  height: calc(100vh - 64px) !important;
-  max-height: calc(100vh - 64px) !important;
+.rmi-dialog-expanded .modal-content {
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: max-width, height;
+}
+
+/* Base expanded state */
+.rmi-content-expanded {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 1600px !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  border-radius: 8px !important;
 }
 
-/* Header and footer are fixed height */
-.modal.request-modal-improved .modal-header,
-.modal.request-modal-improved .modal-footer {
+/* Standard constrained state when not viewing full forms */
+.rmi-content-standard {
+  width: 100% !important;
+  height: auto !important;
+  max-height: calc(100vh - 64px) !important;
+  max-width: 800px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  border-radius: 8px !important;
+}
+
+.rmi-content-expanded .modal-header,
+.rmi-content-expanded .modal-footer,
+.rmi-content-standard .modal-header,
+.rmi-content-standard .modal-footer {
   flex: 0 0 auto !important;
 }
 
-/* Body grows to fill the remaining space and scrolls vertically */
-.modal.request-modal-improved .modal-body {
+.rmi-content-expanded .modal-body,
+.rmi-content-standard .modal-body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   max-height: none !important;

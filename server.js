@@ -4854,10 +4854,10 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
             });
         }
 
-        // Verify request belongs to user's company
+        // Verify request belongs to user's company (OR COMPANY_ID IS NULL for legacy records)
         const requestExists = await prisma.$queryRaw`
             SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
         if (!requestExists.length) {
@@ -4867,7 +4867,8 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
         }
 
         // Build WHERE conditions
-        let whereConditions = `wp.REQUEST_ID = ${requestId} AND wp.COMPANY_ID = ${req.companyId}`;
+        const companyIdNum = Number(req.companyId);
+        let whereConditions = `wp.REQUEST_ID = ${requestId} AND wp.COMPANY_ID = ${companyIdNum}`;
         
         if (type && type !== 'all') {
             whereConditions += ` AND wp.PROGRESS_TYPE = '${type}'`;
@@ -4929,18 +4930,23 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
             OFFSET ${offset} ROWS FETCH NEXT ${limitNum} ROWS ONLY
         `;
         
-        const milestones = await prisma.$queryRawUnsafe(milestonesQuery);
+        let milestones = [];
+        let totalCount = 0;
+        try {
+            milestones = await prisma.$queryRawUnsafe(milestonesQuery);
 
-        // Get total count for pagination
-        const countQuery = `
-            SELECT COUNT(*) as total_count
-            FROM GUARDIAN.WORK_PROGRESS wp
-            WHERE ${whereConditions}
-        `;
-        
-        const countResult = await prisma.$queryRawUnsafe(countQuery);
-        
-        const totalCount = parseInt(countResult[0].total_count);
+            // Get total count for pagination
+            const countQuery = `
+                SELECT COUNT(*) as total_count
+                FROM GUARDIAN.WORK_PROGRESS wp
+                WHERE ${whereConditions}
+            `;
+            const countResult = await prisma.$queryRawUnsafe(countQuery);
+            totalCount = parseInt(countResult[0]?.total_count || 0);
+        } catch (queryError) {
+            console.warn(`⚠️ Milestones query failed for request ${requestId}:`, queryError.message);
+            // Return empty results rather than 500 if WORK_PROGRESS table is unavailable
+        }
         const totalPages = Math.ceil(totalCount / limitNum);
 
         console.log(`✅ Found ${milestones.length} milestones for request ${requestId} (Page ${pageNum}/${totalPages})`);
@@ -5481,11 +5487,11 @@ app.get('/api/requests/:requestId/tasks', getAuthenticatedUserCompany, async (re
             });
         }
 
-        // Verify request belongs to user's company
+        // Verify request belongs to user's company (OR COMPANY_ID IS NULL for legacy records)
         const request = await prisma.$queryRaw`
             SELECT REQUEST_ID, REQUESTOR_ID, ASSIGNED_ID, STATUS
             FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
         if (!request.length) {
@@ -6165,10 +6171,10 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
             });
         }
 
-        // Verify request belongs to user's company
+        // Verify request belongs to user's company (OR COMPANY_ID IS NULL for legacy records)
         const requestExists = await prisma.$queryRaw`
             SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
         if (!requestExists.length) {
@@ -6926,12 +6932,16 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
         let forms;
         
-        // All users can only access their company's forms - no exceptions for data isolation
+        // Users can access their company's forms AND global forms (both IDs null)
         forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
+            AND (
+                ORGANIZATION_ID = ${req.companyId}
+                OR COMPANY_ID = ${req.companyId}
+                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL)
+            )
             AND IS_DELETED = 0
         `;
 
@@ -13986,6 +13996,16 @@ app.get('/api/users/workspaces', getAuthenticatedUserCompany, async (req, res) =
         });
         
     } catch (error) {
+        // Gracefully handle case where WORKSPACES table doesn't exist yet
+        const isTableMissing = error.message && (
+            error.message.includes('Invalid object name') ||
+            error.message.includes('does not exist') ||
+            error.message.includes('WORKSPACES')
+        );
+        if (isTableMissing) {
+            console.warn('⚠️ WORKSPACES table not found — returning empty list');
+            return res.json({ success: true, workspaces: [] });
+        }
         console.error('❌ Error fetching user workspaces:', error);
         res.status(500).json({
             success: false,
