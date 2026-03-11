@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Modal from 'react-modal';
 import '../styles/Modal.css';
 import { toast } from 'react-toastify';
@@ -630,9 +631,66 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     return undefined;
   };
   
+  const selectedTemplateName = formTemplates.find(t => t.id === selectedTemplate)?.name ?? '';
+  const isFidelitySubjectTemplate = selectedTemplateName.trim() === 'Fidelity-Subject';
+  const showFullPage = step === 2 && isFidelitySubjectTemplate;
+
   return (
+    <>
+    {/* ── FIDELITY-SUBJECT FULL-PAGE PORTAL (new request) ─────────────────── */}
+    {showFullPage && createPortal(
+      <div className="rfp-overlay">
+        <div className="rfp-header">
+          <button className="rfp-close-btn" onClick={() => setStep(1)}>
+            ← Back
+          </button>
+          <div className="rfp-title">
+            <span>New Request —</span>
+            <span className="rfp-tracking">{requestName}</span>
+          </div>
+          <div className="rfp-actions">
+            <button
+              type="button"
+              className="btn btn-outline-danger btn-sm"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+              style={{ borderColor: '#C10000', color: '#C10000' }}
+            >
+              {isSubmitting ? 'Cancelling...' : 'Cancel'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm px-3"
+              onClick={handleStart}
+              disabled={isSubmitting}
+              style={{ backgroundColor: '#032424', color: '#fff', borderColor: '#032424' }}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
+          </div>
+        </div>
+        <div className="rfp-body">
+          {loadingFields ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <div className="mt-2 text-muted small">Loading form fields...</div>
+            </div>
+          ) : (
+            <SectionedFormRenderer
+              formName={selectedTemplateName}
+              fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
+              fieldValues={fieldValues}
+              onChange={(id, val) => handleFieldValueChange(id, val)}
+            />
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
     <Modal
-      isOpen={isOpen}
+      isOpen={isOpen && !showFullPage}
       onRequestClose={onClose}
       contentLabel="Add Request Modal"
       className={step === 2 ? 'modal-content modal-content--fullscreen' : 'modal-content'}
@@ -932,6 +990,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         )}
       </form>
     </Modal>
+    </>
   );
 };
 
