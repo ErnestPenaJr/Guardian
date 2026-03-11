@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/FidelitySubjectForm.css';
 
 interface FormField {
@@ -576,6 +576,42 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   readOnly = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadInvestigatorOptions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setInvestigatorOptions([]);
+          return;
+        }
+
+        const response = await fetch('/api/users/assignable', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          setInvestigatorOptions([]);
+          return;
+        }
+
+        const data = await response.json();
+        const options = (Array.isArray(data) ? data : [])
+          .map((u: any) => String(u?.label || u?.FULL_NAME || '').trim())
+          .filter(Boolean);
+
+        const uniqueOptions = Array.from(new Set(options));
+        setInvestigatorOptions(uniqueOptions);
+      } catch (_err) {
+        setInvestigatorOptions([]);
+      }
+    };
+
+    loadInvestigatorOptions();
+  }, []);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -651,11 +687,18 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         </div>
         <div className="sw-date-cell">
           <span className="sw-date-label">Investigator:</span>
-          <DocInput
+          <DocSelect
             value={val('Investigator')}
             onChange={v => set('Investigator', v)}
             readOnly={readOnly}
-            placeholder="Investigator"
+            options={(() => {
+              const currentValue = val('Investigator').trim();
+              if (currentValue && !investigatorOptions.includes(currentValue)) {
+                return [currentValue, ...investigatorOptions];
+              }
+              return investigatorOptions;
+            })()}
+            placeholder="— Select —"
           />
         </div>
       </div>
