@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { useDropzone } from 'react-dropzone';
 import api from '../utils/api';
@@ -1360,9 +1361,64 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   // It only expands when on the Details tab AND there are actually form fields to show
   const needsExpandedLayout = activeMainTab === 'details' && formFields.length > 0;
 
+  // Fidelity-Subject opens as a dedicated full-page view instead of inside the modal
+  const isFidelitySubject = formTemplate?.name?.trim() === 'Fidelity-Subject';
+
   return (
+    <>
+    {/* ── FIDELITY-SUBJECT FULL-PAGE PORTAL ───────────────────────────────── */}
+    {isFidelitySubject && show && createPortal(
+      <div className="rfp-overlay">
+        <div className="rfp-header">
+          <button className="rfp-close-btn" onClick={onHide}>
+            <X size={16} />
+            Close
+          </button>
+          <div className="rfp-title">
+            <span>Subject Workup —</span>
+            <span className="rfp-tracking">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</span>
+            <span className={getStatusBadgeClass(request.STATUS)} style={{ fontSize: '0.75rem' }}>
+              {getStatusText(request.STATUS)}
+            </span>
+          </div>
+          <div className="rfp-actions">
+            {formHasChanges && (
+              <span className="text-warning small">⚠ Unsaved changes</span>
+            )}
+            <Button
+              variant="success"
+              size="sm"
+              onClick={handleSaveFormData}
+              disabled={isSavingForm || !formHasChanges}
+              className="px-3"
+            >
+              {isSavingForm ? 'Saving…' : 'Save Form Data'}
+            </Button>
+          </div>
+        </div>
+        <div className="rfp-body">
+          {formLoading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading…</span>
+              </div>
+              <div className="mt-2 text-muted small">Loading form data…</div>
+            </div>
+          ) : (
+            <SectionedFormRenderer
+              formName={formTemplate?.name ?? ''}
+              fields={formFields}
+              fieldValues={currentFieldValues}
+              onChange={handleFormFieldChangeById}
+              readOnly={request.STATUS === 'C'}
+            />
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
     <Modal
-      show={show}
+      show={show && !isFidelitySubject}
       onHide={onHide}
       centered
       className="request-modal-improved"
@@ -2560,6 +2616,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       </Modal>
 
     </Modal>
+    </>
   );
 };
 
