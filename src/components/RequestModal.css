@@ -644,54 +644,42 @@
 /* ── EXPANDED MODAL (form-bearing requests) ──────────────────────────────────────────────
    .rmi-dialog-expanded  → applied via dialogClassName prop → targets .modal-dialog directly
    .rmi-content-expanded → applied via contentClassName prop → targets .modal-content directly
-   Single-class selectors win over all Bootstrap defaults regardless of load order.
 ──────────────────────────────────────────────────────────────────────────────────────── */
 
+/* Expanded: full-width flex wrapper so the content can be centered and sized explicitly */
 .rmi-dialog-expanded {
   max-width: 100% !important;
   width: 100% !important;
-  height: 100% !important;
+  min-height: 100% !important;
   margin: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
   padding: 32px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
 }
 
+/* Standard: let Bootstrap handle centering, just cap the width */
 .rmi-dialog-standard {
-  max-width: 100% !important;
-  width: 100% !important;
-  margin: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 32px !important;
+  max-width: 800px !important;
 }
 
-.rmi-dialog-expanded .modal-content,
-.rmi-dialog-standard .modal-content {
-  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: max-width, height;
-}
-
-/* Base expanded state */
+/* Expanded content: fills available space with explicit viewport-based height */
 .rmi-content-expanded {
   width: 100% !important;
-  height: 100% !important;
-  max-width: 1600px !important;
+  max-width: 1400px !important;
+  height: calc(100vh - 64px) !important;
+  max-height: calc(100vh - 64px) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   border-radius: 8px !important;
 }
 
-/* Standard constrained state when not viewing full forms */
+/* Standard content: auto height, capped to not overflow screen */
 .rmi-content-standard {
   width: 100% !important;
   height: auto !important;
   max-height: calc(100vh - 64px) !important;
-  max-width: 800px !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
