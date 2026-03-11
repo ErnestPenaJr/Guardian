@@ -6956,7 +6956,7 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
         let forms;
         
-        // Users can access their company's forms AND global forms (both IDs null)
+        // Users can access their company's forms, global forms (both IDs null), or any public form
         forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS
@@ -6965,6 +6965,7 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
                 ORGANIZATION_ID = ${req.companyId}
                 OR COMPANY_ID = ${req.companyId}
                 OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL)
+                OR IS_PUBLIC = 1
             )
             AND IS_DELETED = 0
         `;
