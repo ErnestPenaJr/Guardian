@@ -711,13 +711,12 @@
   flex: 1 1 auto;
   overflow-y: auto;
   padding: 24px;
-  display: flex;
-  justify-content: center;
 }
 
 .rfp-body > * {
   width: 100%;
   max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* ── EXPANDED MODAL (form-bearing requests) ──────────────────────────────────────────────
