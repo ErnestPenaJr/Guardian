@@ -663,11 +663,10 @@
   max-width: 800px !important;
 }
 
-/* Expanded content: fills available space with explicit viewport-based height */
-.rmi-content-expanded {
+/* Shared base properties for both content variants */
+.rmi-content-expanded,
+.rmi-content-standard {
   width: 100% !important;
-  max-width: 1400px !important;
-  height: calc(100vh - 64px) !important;
   max-height: calc(100vh - 64px) !important;
   display: flex !important;
   flex-direction: column !important;
@@ -675,15 +674,15 @@
   border-radius: 8px !important;
 }
 
+/* Expanded content: fills available space with explicit viewport-based height */
+.rmi-content-expanded {
+  max-width: 1400px !important;
+  height: calc(100vh - 64px) !important;
+}
+
 /* Standard content: auto height, capped to not overflow screen */
 .rmi-content-standard {
-  width: 100% !important;
   height: auto !important;
-  max-height: calc(100vh - 64px) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  border-radius: 8px !important;
 }
 
 .rmi-content-expanded .modal-header,

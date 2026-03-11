@@ -181,11 +181,12 @@ function Home() {
     }
 
     // Guard: companyId must be defined before making API calls
-    if (!user?.companyId && !user?.COMPANY_ID) {
+    const companyId = user?.companyId || user?.COMPANY_ID;
+    if (!companyId) {
       setHasCheckedAccountCreatorInvite(true);
       return;
     }
-    
+
     // Check if user has already completed the invite modal
     if (user?.accountCreatorInviteCompleted || user?.ACCOUNT_CREATOR_INVITE_COMPLETED) {
       if (process.env.NODE_ENV === 'development') {
@@ -194,10 +195,10 @@ function Home() {
       setHasCheckedAccountCreatorInvite(true);
       return;
     }
-    
+
     // Check if this user is the account creator (first user in their company)
     try {
-      const companyUsers = await api.get(`/api/users/company/${user?.companyId}`);
+      const companyUsers = await api.get(`/api/users/company/${companyId}`);
       const isAccountCreator = companyUsers?.data && companyUsers.data.length > 0 && 
                               companyUsers.data[0].USER_ID === user?.id;
       
