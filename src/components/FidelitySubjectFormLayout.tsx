@@ -12,6 +12,12 @@ interface FormField {
   [key: string]: unknown;
 }
 
+interface Attachment {
+  attachmentId: number;
+  fileName: string;
+  createDate?: string;
+}
+
 interface Props {
   fields: FormField[];
   /** Values keyed by String(FIELD_ID) */
@@ -20,6 +26,8 @@ interface Props {
   readOnly?: boolean;
   /** Set of field names that failed validation — adds red highlight to those fields */
   validationErrors?: Set<string>;
+  /** Request ID — enables attachments section and print */
+  requestId?: number;
 }
 
 // Minimum Collection Checklist fields (left matrix pane)
@@ -577,12 +585,17 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   onChange,
   readOnly = false,
   validationErrors,
+  requestId,
 }) => {
   // Returns extra className when a field name has a validation error
   const errClass = (fieldName: string) =>
     validationErrors?.has(fieldName) ? ' sw-field--error' : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
+  const [formAttachments, setFormAttachments] = useState<Attachment[]>([]);
+  const [attachLoading, setAttachLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const loadInvestigatorOptions = async () => {
@@ -618,6 +631,83 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
 
     loadInvestigatorOptions();
   }, []);
+
+  useEffect(() => {
+    if (!requestId) return;
+    const fetchAttachments = async () => {
+      setAttachLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/requests/${requestId}/attachments`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setFormAttachments(data.attachments || []);
+      } catch {
+        /* silently ignore — section will show empty */
+      } finally {
+        setAttachLoading(false);
+      }
+    };
+    fetchAttachments();
+  }, [requestId]);
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !requestId) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`/api/requests/${requestId}/attachments`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.success && data.attachment) {
+        setFormAttachments(prev => [...prev, data.attachment]);
+      }
+    } catch (err) {
+      console.error('Attachment upload failed', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAttachmentDownload = async (attachmentId: number, fileName: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/attachments/${attachmentId}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Attachment download failed', err);
+    }
+  };
+
+  const handleAttachmentDelete = async (attachmentId: number) => {
+    if (!confirm('Delete this attachment?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`/api/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFormAttachments(prev => prev.filter(a => a.attachmentId !== attachmentId));
+    } catch (err) {
+      console.error('Attachment delete failed', err);
+    }
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -691,6 +781,14 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <span className="sw-meta-label">CASE #:</span>
           <span className="sw-meta-value">{val('Case #') || '—'}</span>
         </div>
+        <button
+          type="button"
+          className="sw-print-btn no-print"
+          onClick={() => window.print()}
+          title="Print or save as PDF"
+        >
+          🖨 Print / PDF
+        </button>
       </div>
 
       {/* ── DATE / CASE # / ANALYST / INVESTIGATOR ───────────── */}
@@ -1082,7 +1180,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
 
         {/* Left: Address + IP */}
         <div className={`sw-contact-pane${errClass('Address')}`}>
-          <div className="sw-contact-hdr">Address(s): <span className="sw-required-star">*</span></div>
+          <div className="sw-contact-hdr">Address(s): <span className="sw-required-star">*</span><span className="sw-req-label"> Required</span></div>
           <div className="sw-contact-body">
             <MultiAddressField
               fieldId={String(getF('Address')?.FIELD_ID ?? '')}
@@ -1106,7 +1204,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
 
         {/* Right: Phone + Social */}
         <div className={`sw-contact-pane${errClass('Phone Number')}`}>
-          <div className="sw-contact-hdr">Phone Number(s): <span className="sw-required-star">*</span></div>
+          <div className="sw-contact-hdr">Phone Number(s): <span className="sw-required-star">*</span><span className="sw-req-label"> Required</span></div>
           <div className="sw-contact-body">
             <MultiPhoneField
               fieldId={String(getF('Phone Number')?.FIELD_ID ?? '')}
@@ -1205,6 +1303,66 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           rows={4}
         />
       </div>
+
+      {/* ── OTHER ATTACHMENTS ────────────────────────── */}
+      {requestId && (
+        <div className="sw-attachments-section no-print">
+          <div className="sw-intel-hdr sw-attachments-hdr">
+            Other Attachments
+            {!readOnly && (
+              <>
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={handleAttachmentUpload}
+                />
+                <button
+                  type="button"
+                  className="sw-attach-upload-btn"
+                  onClick={() => attachInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading…' : '+ Upload File'}
+                </button>
+              </>
+            )}
+          </div>
+          <div className="sw-attachments-body">
+            {attachLoading ? (
+              <div className="sw-attach-empty">Loading…</div>
+            ) : formAttachments.length === 0 ? (
+              <div className="sw-attach-empty">No attachments uploaded yet.</div>
+            ) : (
+              <ul className="sw-attach-list">
+                {formAttachments.map(a => (
+                  <li key={a.attachmentId} className="sw-attach-item">
+                    <span className="sw-attach-name">{a.fileName}</span>
+                    <div className="sw-attach-actions">
+                      <button
+                        type="button"
+                        className="sw-attach-btn"
+                        onClick={() => handleAttachmentDownload(a.attachmentId, a.fileName)}
+                      >
+                        ↓ Download
+                      </button>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          className="sw-attach-btn sw-attach-btn--del"
+                          onClick={() => handleAttachmentDelete(a.attachmentId)}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

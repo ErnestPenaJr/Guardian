@@ -84,7 +84,8 @@
   background: #0f2340;
   color: #fff;
   display: grid;
-  grid-template-columns: 175px 1fr 200px;
+  grid-template-columns: 175px 1fr 200px auto;
+  align-items: center;
   border-bottom: 2px solid #000;
 }
 .sw-title-label {
@@ -583,6 +584,16 @@
   margin-left: 2px;
 }
 
+/* Inline "Required" label next to asterisk in contact headers */
+.sw-req-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #C10000;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-left: 3px;
+}
+
 /* Row-level error highlight (field rows + contact panes) */
 .sw-field--error,
 .sw-contact-pane.sw-field--error {
@@ -590,4 +601,108 @@
   border-left: 3px solid #C10000;
   padding-left: 6px;
   border-radius: 2px;
+}
+
+/* ── PRINT / PDF BUTTON ────────────────────────── */
+.sw-print-btn {
+  padding: 4px 12px;
+  margin: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  justify-self: end;
+}
+.sw-print-btn:hover { background: rgba(255,255,255,0.25); }
+
+/* ── ATTACHMENTS SECTION ───────────────────────── */
+.sw-attachments-section {
+  border-top: 2px solid #000;
+  margin-top: 0;
+}
+.sw-attachments-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sw-attach-upload-btn {
+  margin-left: auto;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #1a56c4;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.sw-attach-upload-btn:disabled { opacity: 0.6; cursor: default; }
+.sw-attach-upload-btn:hover:not(:disabled) { background: #1440a0; }
+.sw-attachments-body {
+  padding: 8px 12px;
+}
+.sw-attach-empty {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+.sw-attach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sw-attach-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+.sw-attach-item:last-child { border-bottom: none; }
+.sw-attach-name {
+  flex: 1;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sw-attach-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.sw-attach-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f0f4ff;
+  color: #1a56c4;
+  border: 1px solid #b0c4ef;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.sw-attach-btn:hover { background: #dce8ff; }
+.sw-attach-btn--del {
+  background: #fff0f0;
+  color: #C10000;
+  border-color: #f0b0b0;
+}
+.sw-attach-btn--del:hover { background: #ffe0e0; }
+
+/* ── PRINT STYLES ──────────────────────────────── */
+@media print {
+  /* Hide everything outside the form document */
+  body > *:not(.rfp-panel) { display: none !important; }
+  .rfp-panel .rfp-header,
+  .rfp-panel .rfp-actions,
+  .rfp-panel .rfp-tabs { display: none !important; }
+  .rfp-panel { position: static !important; overflow: visible !important; }
+  .rfp-body { overflow: visible !important; height: auto !important; }
+  .sw-doc { box-shadow: none !important; }
+  /* Hide non-print elements */
+  .no-print { display: none !important; }
+  @page { margin: 0.5in; }
 }

@@ -1662,7 +1662,7 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
             FROM GUARDIAN.REQUESTS r
             LEFT JOIN GUARDIAN.USERS ru ON r.REQUESTOR_ID = ru.USER_ID
             LEFT JOIN GUARDIAN.USERS au ON r.ASSIGNED_ID = au.USER_ID
-            WHERE r.ASSIGNED_ID = ${req.userId} 
+            WHERE (r.ASSIGNED_ID = ${req.userId} OR r.ANALYST_ID = ${req.userId} OR r.INVESTIGATOR_ID = ${req.userId})
                 AND r.COMPANY_ID = ${req.companyId}
             ORDER BY r.CREATE_DATE DESC
         `;
@@ -6753,6 +6753,56 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
                 `;
                 savedCount++;
             }
+        }
+
+        // Sync Analyst / Investigator USER_IDs onto the REQUESTS record (Fidelity-Subject only)
+        try {
+            const formNameRows = await prisma.$queryRaw`
+                SELECT FORM_NAME FROM GUARDIAN.FORMS WHERE FORM_ID = ${request.FORM_ID} AND IS_DELETED = 0
+            `;
+            if (formNameRows.length > 0 && formNameRows[0].FORM_NAME === 'Fidelity-Subject') {
+                const fieldRows = await prisma.$queryRaw`
+                    SELECT FIELD_ID, FIELD_NAME FROM GUARDIAN.FIELDS
+                    WHERE FIELD_NAME IN ('Analyst', 'Investigator') AND IS_DELETED = 0
+                `;
+                const resolveUserId = async (fullName) => {
+                    if (!fullName || !fullName.trim()) return null;
+                    const parts = fullName.trim().split(' ');
+                    const firstName = parts[0];
+                    const lastName = parts.slice(1).join(' ');
+                    if (!firstName || !lastName) return null;
+                    const users = await prisma.$queryRaw`
+                        SELECT USER_ID FROM GUARDIAN.USERS
+                        WHERE FIRST_NAME = ${firstName} AND LAST_NAME = ${lastName}
+                          AND COMPANY_ID = ${req.companyId} AND STATUS = 'A'
+                    `;
+                    return users.length > 0 ? users[0].USER_ID : null;
+                };
+                const analystRow = fieldRows.find(f => f.FIELD_NAME === 'Analyst');
+                const investigatorRow = fieldRows.find(f => f.FIELD_NAME === 'Investigator');
+                if (analystRow) {
+                    const analystName = fieldValues[String(analystRow.FIELD_ID)];
+                    const analystId = await resolveUserId(analystName);
+                    if (analystId !== null) {
+                        await prisma.$executeRaw`UPDATE GUARDIAN.REQUESTS SET ANALYST_ID = ${analystId} WHERE REQUEST_ID = ${requestId}`;
+                        console.log(`🔗 Set ANALYST_ID=${analystId} on request ${requestId}`);
+                        await createSystemMilestone(requestId, 'system', 'Analyst Assigned',
+                            `Analyst set to ${analystName}`, req.userId, req.companyId);
+                    }
+                }
+                if (investigatorRow) {
+                    const investigatorName = fieldValues[String(investigatorRow.FIELD_ID)];
+                    const investigatorId = await resolveUserId(investigatorName);
+                    if (investigatorId !== null) {
+                        await prisma.$executeRaw`UPDATE GUARDIAN.REQUESTS SET INVESTIGATOR_ID = ${investigatorId} WHERE REQUEST_ID = ${requestId}`;
+                        console.log(`🔗 Set INVESTIGATOR_ID=${investigatorId} on request ${requestId}`);
+                        await createSystemMilestone(requestId, 'system', 'Investigator Assigned',
+                            `Investigator set to ${investigatorName}`, req.userId, req.companyId);
+                    }
+                }
+            }
+        } catch (syncError) {
+            console.warn('⚠️ Could not sync analyst/investigator IDs (continuing):', syncError.message);
         }
 
         // Determine the final status

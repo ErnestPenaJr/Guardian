@@ -1443,6 +1443,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               fieldValues={currentFieldValues}
               onChange={handleFormFieldChangeById}
               readOnly={request.STATUS === 'C'}
+              requestId={request.REQUEST_ID}
             />
           )}
         </div>
@@ -1588,6 +1589,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             fieldValues={currentFieldValues}
             onChange={handleFormFieldChangeById}
             readOnly={request.STATUS === 'C'}
+            requestId={request.REQUEST_ID}
           />
         ) : formTemplate ? (
           <div className="alert alert-info">
