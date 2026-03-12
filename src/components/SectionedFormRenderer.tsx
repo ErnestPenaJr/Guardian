@@ -20,6 +20,8 @@ interface Props {
   fieldValues: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
   readOnly?: boolean;
+  /** Set of field names that failed validation — used to highlight required fields */
+  validationErrors?: Set<string>;
 }
 
 const SectionedFormRenderer: React.FC<Props> = ({
@@ -28,6 +30,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
   fieldValues,
   onChange,
   readOnly = false,
+  validationErrors,
 }) => {
   // Fidelity-Subject gets its custom document-style layout
   if (formName?.trim() === 'Fidelity-Subject' && fields.length > 0) {
@@ -37,6 +40,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
         fieldValues={fieldValues}
         onChange={onChange}
         readOnly={readOnly}
+        validationErrors={validationErrors}
       />
     );
   }

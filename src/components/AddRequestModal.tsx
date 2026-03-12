@@ -41,6 +41,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   const [fieldValues, setFieldValues] = useState<{[key: string]: string}>({});
   const [loadingFields, setLoadingFields] = useState(false);
   const [priorityLevel, setPriorityLevel] = useState('Standard');
+  const [fidelityValidationErrors, setFidelityValidationErrors] = useState<Set<string>>(new Set());
   
   // Get icon for user-created templates (using a generic workflow icon)
   const getIconForTemplate = (templateName: string) => {
@@ -210,6 +211,47 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     }));
   };
   
+  // Fidelity-Subject: validate the hard-required fields before submission
+  const validateFidelityRequiredFields = (): string[] => {
+    const errors: string[] = [];
+
+    const getVal = (name: string): string => {
+      const field = templateFields.find(
+        f => f.FIELD_NAME?.trim().toLowerCase() === name.trim().toLowerCase()
+      );
+      if (!field) return '';
+      return fieldValues[String(field.FIELD_ID)] ?? '';
+    };
+
+    // Subject Name — at minimum First Name is required
+    if (!getVal('First Name').trim()) errors.push('Subject First Name');
+    if (!getVal('Last Name').trim())  errors.push('Subject Last Name');
+
+    // DOB
+    if (!getVal('Date of Birth').trim()) errors.push('Date of Birth (DOB)');
+
+    // SSN
+    if (!getVal('Social Security Number').trim()) errors.push('Social Security Number (SSN)');
+
+    // Address — first entry must have street1
+    const addrRaw = getVal('Address');
+    let addrEntries: any[] = [];
+    try { addrEntries = addrRaw.trim() ? JSON.parse(addrRaw) : []; } catch { /* ignore */ }
+    if (addrEntries.length === 0 || !addrEntries[0]?.street1?.trim()) {
+      errors.push('Address — at least one address with a Street line is required');
+    }
+
+    // Phone Number — first entry must have a number
+    const phoneRaw = getVal('Phone Number');
+    let phoneEntries: any[] = [];
+    try { phoneEntries = phoneRaw.trim() ? JSON.parse(phoneRaw) : []; } catch { /* ignore */ }
+    if (phoneEntries.length === 0 || !phoneEntries[0]?.number?.trim()) {
+      errors.push('Phone Number — at least one phone number is required');
+    }
+
+    return errors;
+  };
+
   // Check if form is complete (all required fields filled)
   const isFormComplete = () => {
     const requiredFields = templateFields.filter(field =>
@@ -243,6 +285,36 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
 
   // Handle start button (saves form data with conditional status based on form data)
   const handleStart = async () => {
+    // Fidelity-Subject: enforce hard-required fields first
+    if (isFidelitySubjectTemplate) {
+      const missingFields = validateFidelityRequiredFields();
+      if (missingFields.length > 0) {
+        // Track which field names failed so the form can highlight them
+        setFidelityValidationErrors(new Set(missingFields.map(m => {
+          if (m.startsWith('Subject First')) return 'First Name';
+          if (m.startsWith('Subject Last'))  return 'Last Name';
+          if (m.startsWith('Date of Birth')) return 'Date of Birth';
+          if (m.startsWith('Social Security')) return 'Social Security Number';
+          if (m.startsWith('Address'))       return 'Address';
+          if (m.startsWith('Phone'))         return 'Phone Number';
+          return m;
+        })));
+        await MySwal.fire({
+          icon: 'warning',
+          title: 'Required Fields Missing',
+          html: `
+            <p style="margin-bottom:10px">Please fill in the following required fields before submitting:</p>
+            <ul style="text-align:left;margin:0;padding-left:20px">
+              ${missingFields.map(f => `<li style="margin-bottom:4px">${f}</li>`).join('')}
+            </ul>`,
+          confirmButtonText: 'Go Back & Fill In',
+          confirmButtonColor: '#032424',
+        });
+        return;
+      }
+      setFidelityValidationErrors(new Set());
+    }
+
     // Check if form is complete first
     if (!isFormComplete()) {
       const shouldContinue = await showIncompleteFormWarning();
@@ -683,6 +755,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
               fieldValues={fieldValues}
               onChange={(id, val) => handleFieldValueChange(id, val)}
+              validationErrors={fidelityValidationErrors}
             />
           )}
         </div>
