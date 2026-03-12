@@ -2838,6 +2838,51 @@ app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req
     }
 });
 
+// Get assignable users for the requester's company (used by Investigator dropdown etc.)
+app.get('/api/users/assignable', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+
+        console.log(`[USERS] Fetching assignable users for company ID: ${companyId}`);
+
+        const users = await prisma.$queryRaw`
+            SELECT
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.COMPANY_ID
+            FROM GUARDIAN.USERS u
+            WHERE u.COMPANY_ID = ${companyId}
+            AND u.STATUS = 'A'
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            EMAIL: user.EMAIL,
+            COMPANY_ID: user.COMPANY_ID,
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            subtitle: user.EMAIL
+        }));
+
+        console.log(`[USERS] Found ${formattedUsers.length} assignable users`);
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('[USERS] Error fetching assignable users:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch assignable users' });
+    }
+});
+
 // Get user notification preferences
 app.get('/api/users/notification-preferences', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -6698,11 +6743,14 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         let savedCount = 0;
         for (const [fieldId, value] of Object.entries(fieldValues)) {
             if (value !== null && value !== undefined && value !== '') {
+                const safeValue = String(value).length > 4000
+                    ? (console.warn(`⚠️ Field ${fieldId} value truncated from ${String(value).length} to 4000 chars`), String(value).slice(0, 4000))
+                    : String(value);
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
                         FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${formInstanceId}, ${parseInt(fieldId)}, ${String(value)}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${formInstanceId}, ${parseInt(fieldId)}, ${safeValue}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 savedCount++;
