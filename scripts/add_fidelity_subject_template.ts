@@ -187,6 +187,9 @@ async function addFidelitySubjectTemplate() {
       // --- HEADER ASSIGNMENT ---
       f('Analyst',                        DD, 64, { hasLookup: true }),
       f('Investigator',                   DD, 65, { hasLookup: true }),
+
+      // --- PHOTO ---
+      f('Subject Photo Image',            T,  66),
     ];
 
     // ── Insert form with forced ID via IDENTITY_INSERT ──────────────

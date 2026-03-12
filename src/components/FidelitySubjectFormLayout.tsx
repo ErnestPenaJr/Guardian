@@ -622,15 +622,32 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => set('Photo', reader.result as string);
-    reader.readAsDataURL(file);
-    // Reset so the same file can be re-selected if removed
     e.target.value = '';
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX = 480;
+      let { width, height } = img;
+      if (width > height) {
+        if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+      } else {
+        if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, width, height);
+      set('Subject Photo Image', canvas.toDataURL('image/jpeg', 0.72));
+    };
+    img.onerror = () => URL.revokeObjectURL(objectUrl);
+    img.src = objectUrl;
   };
 
   const removePhoto = () => {
-    set('Photo', '');
+    set('Subject Photo Image', '');
   };
 
   const fm = useMemo(() => {
@@ -980,10 +997,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={handlePhotoChange}
           />
 
-          {val('Photo') ? (
+          {val('Subject Photo Image') ? (
             <div className="sw-photo-preview-wrap">
               <img
-                src={val('Photo')}
+                src={val('Subject Photo Image')}
                 alt="Subject"
                 className="sw-photo-preview-img"
               />

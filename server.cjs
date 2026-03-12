@@ -6773,9 +6773,7 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         let savedCount = 0;
         for (const [fieldId, value] of Object.entries(fieldValues)) {
             if (value !== null && value !== undefined && value !== '') {
-                const safeValue = String(value).length > 4000
-                    ? (console.warn(`⚠️ Field ${fieldId} value truncated from ${String(value).length} to 4000 chars`), String(value).slice(0, 4000))
-                    : String(value);
+                const safeValue = String(value);
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
                         FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
