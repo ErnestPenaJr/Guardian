@@ -838,10 +838,42 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const handleSaveFormData = async () => {
     try {
       setIsSavingForm(true);
-      
+
       // Prepare form data in the format the server expects
       // Use the ref to guarantee we read the latest state (avoids stale closure with concurrent updates)
-      const fieldValues = formFieldValuesRef.current.reduce((acc, field) => {
+      const rawFields = formFieldValuesRef.current;
+
+      // Route base64 image values through the attachments endpoint to avoid
+      // column size limits and keep form values table lean
+      for (const field of rawFields) {
+        const val = field.fieldValue?.toString() ?? '';
+        if (val.startsWith('data:image/')) {
+          try {
+            const [header, base64Data] = val.split(',');
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+            const byteChars = atob(base64Data);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) {
+              byteArr[i] = byteChars.charCodeAt(i);
+            }
+            const blob = new Blob([byteArr], { type: mime });
+            const ext = mime.split('/')[1] || 'jpg';
+            const formData = new FormData();
+            formData.append('file', blob, `photo_field_${field.fieldId}.${ext}`);
+            await api.post(`/api/requests/${request.REQUEST_ID}/attachments`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            // Replace the large base64 value with a sentinel so the field shows as saved
+            field.fieldValue = '[photo:attached]';
+          } catch (photoErr) {
+            console.error(`Failed to upload photo for field ${field.fieldId}:`, photoErr);
+            // Leave the original value so data isn't silently lost
+          }
+        }
+      }
+
+      const fieldValues = rawFields.reduce((acc, field) => {
         if (field.fieldValue && field.fieldValue.toString().trim() !== '') {
           acc[field.fieldId.toString()] = field.fieldValue;
         }
