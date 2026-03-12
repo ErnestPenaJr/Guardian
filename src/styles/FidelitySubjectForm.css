@@ -121,7 +121,7 @@
 /* ── DATE / CASE / INVESTIGATOR ROW ───────── */
 .sw-date-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-bottom: 2px solid #000;
   background: #edf0f5;
 }
@@ -575,3 +575,19 @@
   accent-color: #1a56c4;
 }
 .sw-matrix-radio-cell input[type="radio"]:disabled { cursor: default; }
+
+/* ── REQUIRED FIELD INDICATORS ────────────────── */
+.sw-required-star {
+  color: #C10000;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* Row-level error highlight (field rows + contact panes) */
+.sw-field--error,
+.sw-contact-pane.sw-field--error {
+  background: #fff5f5;
+  border-left: 3px solid #C10000;
+  padding-left: 6px;
+  border-radius: 2px;
+}
