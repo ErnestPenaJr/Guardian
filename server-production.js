@@ -6927,11 +6927,16 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         let forms;
         
         // All users can only access their company's forms - no exceptions for data isolation
+        // Global forms (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL) are accessible to all companies
         forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS 
             WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            AND (
+                ORGANIZATION_ID = ${req.companyId}
+                OR COMPANY_ID = ${req.companyId}
+                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL)
+            )
             AND IS_DELETED = 0
         `;
 
