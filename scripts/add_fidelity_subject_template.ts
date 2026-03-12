@@ -11,14 +11,24 @@ async function addFidelitySubjectTemplate() {
     console.log('Starting to add Fidelity-Subject form template...');
     console.log(`Target FORM_ID: ${TARGET_FORM_ID}`);
 
-    // ── Guard: skip if form already exists ──────────────────────────
+    // ── Guard: skip only if the form already has fields linked ──────
     const existing = await prisma.$queryRaw<any[]>`
       SELECT FORM_ID FROM GUARDIAN.FORMS
       WHERE FORM_ID = ${TARGET_FORM_ID}
     `;
-    if (Array.isArray(existing) && existing.length > 0) {
-      console.log(`Form ID ${TARGET_FORM_ID} (Fidelity-Subject) already exists — skipping.`);
-      return;
+    const formAlreadyExists = Array.isArray(existing) && existing.length > 0;
+
+    if (formAlreadyExists) {
+      // Check whether fields have already been seeded for this form
+      const existingFields = await prisma.$queryRaw<any[]>`
+        SELECT COUNT(*) AS cnt FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID = ${TARGET_FORM_ID}
+      `;
+      const fieldCount = Number(existingFields?.[0]?.cnt ?? 0);
+      if (fieldCount > 0) {
+        console.log(`Form ID ${TARGET_FORM_ID} (Fidelity-Subject) already exists with ${fieldCount} fields — skipping.`);
+        return;
+      }
+      console.log(`Form ID ${TARGET_FORM_ID} exists but has 0 fields — seeding fields now...`);
     }
 
     // Get existing field types
@@ -176,28 +186,32 @@ async function addFidelitySubjectTemplate() {
     ];
 
     // ── Insert form with forced ID via IDENTITY_INSERT ──────────────
-    // This preserves the ID that existing REQUEST records already reference.
-    console.log(`Inserting form with IDENTITY_INSERT (FORM_ID=${TARGET_FORM_ID})...`);
-    try {
-      await prisma.$executeRaw`SET IDENTITY_INSERT GUARDIAN.FORMS ON`;
-      await prisma.$executeRaw`
-        INSERT INTO GUARDIAN.FORMS (
-          FORM_ID, FORM_NAME, FORM_DESCRIPTION, ORGANIZATION_ID, COMPANY_ID,
-          IS_PUBLIC, IS_ACTIVE, IS_DELETED, CREATE_USER_ID, UPDATE_USER_ID,
-          CREATE_DATE, UPDATE_DATE
-        )
-        VALUES (
-          ${TARGET_FORM_ID},
-          'Fidelity-Subject',
-          'Comprehensive subject workup template for authorized investigators and analysts (PII/SPII controlled)',
-          ${null}, ${null},
-          ${true}, ${true}, ${false},
-          ${userId}, ${userId},
-          GETDATE(), GETDATE()
-        )
-      `;
-    } finally {
-      await prisma.$executeRaw`SET IDENTITY_INSERT GUARDIAN.FORMS OFF`;
+    // Skip if the form record already exists (e.g. production — only fields are missing).
+    if (!formAlreadyExists) {
+      console.log(`Inserting form with IDENTITY_INSERT (FORM_ID=${TARGET_FORM_ID})...`);
+      try {
+        await prisma.$executeRaw`SET IDENTITY_INSERT GUARDIAN.FORMS ON`;
+        await prisma.$executeRaw`
+          INSERT INTO GUARDIAN.FORMS (
+            FORM_ID, FORM_NAME, FORM_DESCRIPTION, ORGANIZATION_ID, COMPANY_ID,
+            IS_PUBLIC, IS_ACTIVE, IS_DELETED, CREATE_USER_ID, UPDATE_USER_ID,
+            CREATE_DATE, UPDATE_DATE
+          )
+          VALUES (
+            ${TARGET_FORM_ID},
+            'Fidelity-Subject',
+            'Comprehensive subject workup template for authorized investigators and analysts (PII/SPII controlled)',
+            ${null}, ${null},
+            ${true}, ${true}, ${false},
+            ${userId}, ${userId},
+            GETDATE(), GETDATE()
+          )
+        `;
+      } finally {
+        await prisma.$executeRaw`SET IDENTITY_INSERT GUARDIAN.FORMS OFF`;
+      }
+    } else {
+      console.log(`Form record already exists — skipping INSERT, seeding fields only.`);
     }
 
     const formId = TARGET_FORM_ID;
