@@ -18,6 +18,8 @@ interface Props {
   fieldValues: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
   readOnly?: boolean;
+  /** Set of field names that failed validation — adds red highlight to those fields */
+  validationErrors?: Set<string>;
 }
 
 // Minimum Collection Checklist fields (left matrix pane)
@@ -574,7 +576,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   fieldValues,
   onChange,
   readOnly = false,
+  validationErrors,
 }) => {
+  // Returns extra className when a field name has a validation error
+  const errClass = (fieldName: string) =>
+    validationErrors?.has(fieldName) ? ' sw-field--error' : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
 
@@ -670,7 +676,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* ── DATE / CASE # / INVESTIGATOR ───────────── */}
+      {/* ── DATE / CASE # / ANALYST / INVESTIGATOR ───────────── */}
       <div className="sw-date-row">
         <div className="sw-date-cell">
           <span className="sw-date-label">Date:</span>
@@ -683,6 +689,22 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={v => set('Case #', v)}
             readOnly={readOnly}
             placeholder="Case number"
+          />
+        </div>
+        <div className="sw-date-cell">
+          <span className="sw-date-label">Analyst:</span>
+          <DocSelect
+            value={val('Analyst')}
+            onChange={v => set('Analyst', v)}
+            readOnly={readOnly}
+            options={(() => {
+              const currentValue = val('Analyst').trim();
+              if (currentValue && !investigatorOptions.includes(currentValue)) {
+                return [currentValue, ...investigatorOptions];
+              }
+              return investigatorOptions;
+            })()}
+            placeholder="— Select —"
           />
         </div>
         <div className="sw-date-cell">
@@ -708,14 +730,14 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         <div className="sw-fields-col">
 
           {/* Subject Name */}
-          <div className="sw-field-row">
-            <div className="sw-field-label">Subject Name(s):</div>
+          <div className={`sw-field-row${errClass('First Name')}${errClass('Last Name')}`}>
+            <div className="sw-field-label">Subject Name(s): <span className="sw-required-star">*</span></div>
             <div className="sw-field-value">
               <DocInput
                 value={val('First Name')}
                 onChange={v => set('First Name', v)}
                 readOnly={readOnly}
-                placeholder="First"
+                placeholder="First *"
                 style={{ flex: '1.1' }}
               />
               <DocInput
@@ -729,7 +751,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 value={val('Last Name')}
                 onChange={v => set('Last Name', v)}
                 readOnly={readOnly}
-                placeholder="Last"
+                placeholder="Last *"
                 style={{ flex: '1.1' }}
               />
               <DocSelect
@@ -757,8 +779,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           </div>
 
           {/* DOB */}
-          <div className="sw-field-row">
-            <div className="sw-field-label">DOB:</div>
+          <div className={`sw-field-row${errClass('Date of Birth')}`}>
+            <div className="sw-field-label">DOB: <span className="sw-required-star">*</span></div>
             <div className="sw-field-value">
               <DOBInput
                 value={val('Date of Birth')}
@@ -769,8 +791,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           </div>
 
           {/* SSN */}
-          <div className="sw-field-row">
-            <div className="sw-field-label">SSN:</div>
+          <div className={`sw-field-row${errClass('Social Security Number')}`}>
+            <div className="sw-field-label">SSN: <span className="sw-required-star">*</span></div>
             <div className="sw-field-value">
               <SSNInput
                 value={val('Social Security Number')}
@@ -1042,8 +1064,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       <div className="sw-contact-grid">
 
         {/* Left: Address + IP */}
-        <div className="sw-contact-pane">
-          <div className="sw-contact-hdr">Address(s):</div>
+        <div className={`sw-contact-pane${errClass('Address')}`}>
+          <div className="sw-contact-hdr">Address(s): <span className="sw-required-star">*</span></div>
           <div className="sw-contact-body">
             <MultiAddressField
               fieldId={String(getF('Address')?.FIELD_ID ?? '')}
@@ -1066,8 +1088,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         </div>
 
         {/* Right: Phone + Social */}
-        <div className="sw-contact-pane">
-          <div className="sw-contact-hdr">Phone Number(s):</div>
+        <div className={`sw-contact-pane${errClass('Phone Number')}`}>
+          <div className="sw-contact-hdr">Phone Number(s): <span className="sw-required-star">*</span></div>
           <div className="sw-contact-body">
             <MultiPhoneField
               fieldId={String(getF('Phone Number')?.FIELD_ID ?? '')}

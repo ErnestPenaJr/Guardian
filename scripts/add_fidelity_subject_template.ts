@@ -183,6 +183,10 @@ async function addFidelitySubjectTemplate() {
 
       // --- ADDITIONAL DATA ---
       f('Additional Data Notes',          TA, 63),
+
+      // --- HEADER ASSIGNMENT ---
+      f('Analyst',                        DD, 64, { hasLookup: true }),
+      f('Investigator',                   DD, 65, { hasLookup: true }),
     ];
 
     // ── Insert form with forced ID via IDENTITY_INSERT ──────────────
