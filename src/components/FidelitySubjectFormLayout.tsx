@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../styles/FidelitySubjectForm.css';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface FormField {
   FIELD_ID: number;
@@ -592,10 +594,50 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     validationErrors?.has(fieldName) ? ' sw-field--error' : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachInputRef = useRef<HTMLInputElement>(null);
+  const docRef = useRef<HTMLDivElement>(null);
   const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
   const [formAttachments, setFormAttachments] = useState<Attachment[]>([]);
   const [attachLoading, setAttachLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const exportPDF = async () => {
+    const el = docRef.current;
+    if (!el) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 36; // 0.5 in
+      const printW = pageW - margin * 2;
+      const imgH = (canvas.height * printW) / canvas.width;
+
+      let y = 0;
+      while (y < imgH) {
+        if (y > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', margin, margin - y, printW, imgH);
+        y += pageH - margin * 2;
+      }
+
+      const subjectName = el.querySelector<HTMLElement>('.sw-title-name')?.innerText?.trim() || 'Subject-Workup';
+      pdf.save(`${subjectName.replace(/\s+/g, '_')}_Workup.pdf`);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     const loadInvestigatorOptions = async () => {
@@ -771,7 +813,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   });
 
   return (
-    <div className="sw-doc">
+    <div className="sw-doc" ref={docRef}>
 
       {/* ── TITLE BAR ──────────────────────────────── */}
       <div className="sw-title-bar">
@@ -784,10 +826,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         <button
           type="button"
           className="sw-print-btn no-print"
-          onClick={() => window.print()}
-          title="Print or save as PDF"
+          onClick={exportPDF}
+          disabled={exporting}
+          title="Export as PDF"
         >
-          🖨 Print / PDF
+          {exporting ? '⏳ Exporting…' : '⬇ Export PDF'}
         </button>
       </div>
 

@@ -12,7 +12,6 @@ const roleInputSchema = z.object({
     description: z.string().optional(),
     permissions: z.array(z.number()).default([]),
 });
-
 // Get all roles (non-admin)
 router.get('/all', async (req, res) => {
     try {
@@ -105,7 +104,6 @@ router.get('/', isAdmin, async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const roleId = parseInt(req.params.id, 10);
-
         if (Number.isNaN(roleId)) {
             return res.status(400).json({ message: 'Invalid role id' });
         }

@@ -833,11 +833,11 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         }
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        console.log('✅ JWT token verified successfully for user:', decoded.userId);
+        console.log('✅ JWT token verified successfully for user:', decoded.id);
         
         // Validate that userId exists and is valid in the token
-        if (!decoded.userId || decoded.userId === undefined || decoded.userId === null) {
-            console.error('❌ JWT token contains invalid or missing userId:', decoded.userId);
+        if (!decoded.id || decoded.id === undefined || decoded.id === null) {
+            console.error('❌ JWT token contains invalid or missing userId:', decoded.id);
             return res.status(401).json({ error: 'Invalid token: missing user identification' });
         }
         
@@ -847,13 +847,13 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
                    STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
             FROM GUARDIAN.USERS u
             LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
-            WHERE u.USER_ID = ${decoded.userId}
+            WHERE u.USER_ID = ${decoded.id}
             GROUP BY u.USER_ID, u.COMPANY_ID, u.EMAIL
         `;
         const user = users.length > 0 ? users[0] : null;
 
         if (!user) {
-            console.error('❌ User not found in database for userId:', decoded.userId);
+            console.error('❌ User not found in database for userId:', decoded.id);
             return res.status(401).json({ error: 'User not found' });
         }
 

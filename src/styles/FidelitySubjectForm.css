@@ -694,15 +694,49 @@
 
 /* ── PRINT STYLES ──────────────────────────────── */
 @media print {
-  /* Hide everything outside the form document */
-  body > *:not(.rfp-panel) { display: none !important; }
-  .rfp-panel .rfp-header,
-  .rfp-panel .rfp-actions,
-  .rfp-panel .rfp-tabs { display: none !important; }
-  .rfp-panel { position: static !important; overflow: visible !important; }
-  .rfp-body { overflow: visible !important; height: auto !important; }
+  /* Let html/body scroll freely so the full document renders */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide everything except the form overlay */
+  body > *:not(.rfp-overlay) { display: none !important; }
+
+  /* Tear down the fixed/flex shell completely */
+  .rfp-overlay {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    background: #fff !important;
+    z-index: auto !important;
+  }
+
+  /* Hide navigation chrome */
+  .rfp-header { display: none !important; }
+
+  /* Let the form body expand to full height */
+  .rfp-body {
+    display: block !important;
+    flex: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 12px !important;
+  }
+
+  /* Remove centering max-width cap so it fills the page */
+  .rfp-body > * {
+    max-width: 100% !important;
+  }
+
   .sw-doc { box-shadow: none !important; }
+
   /* Hide non-print elements */
   .no-print { display: none !important; }
+
   @page { margin: 0.5in; }
 }
