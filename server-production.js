@@ -6301,10 +6301,14 @@ app.get('/api/attachments/:id/download', getAuthenticatedUserCompany, async (req
         const attachment = attachments[0];
         console.log(`📁 Serving file: ${attachment.FILE_NAME}`);
 
-        // Set appropriate headers for file download
-        res.setHeader('Content-Disposition', `attachment; filename="${attachment.FILE_NAME}"`);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        
+        // Detect MIME type from extension so browsers can render images inline
+        const ext = (attachment.FILE_NAME || '').split('.').pop()?.toLowerCase() || '';
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', pdf: 'application/pdf' };
+        const contentType = mimeMap[ext] || 'application/octet-stream';
+
+        res.setHeader('Content-Disposition', `inline; filename="${attachment.FILE_NAME}"`);
+        res.setHeader('Content-Type', contentType);
+
         // Send the file buffer
         res.send(attachment.ATTACHMENT);
 
@@ -6607,6 +6611,35 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
             error: 'Failed to fetch request form',
             message: error.message
         });
+    }
+});
+
+// Clear a single field value — used to remove stale references (e.g. deleted photo attachment)
+app.delete('/api/requests/:requestId/field-value/:fieldId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        const fieldId   = parseInt(req.params.fieldId);
+        if (isNaN(requestId) || isNaN(fieldId)) {
+            return res.status(400).json({ error: 'Invalid requestId or fieldId' });
+        }
+        const instances = await prisma.$queryRaw`
+            SELECT fi.FORM_INSTANCE_ID
+            FROM GUARDIAN.FORMS_INSTANCE fi
+            INNER JOIN GUARDIAN.REQUESTS r ON fi.REQUEST_ID = r.REQUEST_ID
+            WHERE fi.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+        if (!instances.length) {
+            return res.status(404).json({ error: 'Form instance not found' });
+        }
+        const formInstanceId = instances[0].FORM_INSTANCE_ID;
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
+            WHERE FORM_INSTANCE_ID = ${formInstanceId} AND FIELD_ID = ${fieldId}
+        `;
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Error clearing field value:', error);
+        res.status(500).json({ error: 'Failed to clear field value' });
     }
 });
 

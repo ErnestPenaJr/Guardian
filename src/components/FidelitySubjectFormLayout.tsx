@@ -580,6 +580,123 @@ const HeightField: React.FC<{ value: string; onChange: (v: string) => void; read
     );
   };
 
+// Short prefix stored in the DB VALUE column to reference a binary attachment
+const PHOTO_REF_PREFIX = 'photo_ref:';
+
+// ── Drag-and-drop zone for Other Attachments ─────────────────────
+interface DropZoneProps {
+  attachInputRef: React.RefObject<HTMLInputElement>;
+  uploading: boolean;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+const DropZone: React.FC<DropZoneProps> = ({ attachInputRef, uploading, onUpload }) => {
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (uploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !attachInputRef.current) return;
+    // Synthesise a change event so the existing upload handler can be reused
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    attachInputRef.current.files = dt.files;
+    attachInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  return (
+    <div
+      className={`sw-dropzone${dragOver ? ' sw-dropzone--over' : ''}${uploading ? ' sw-dropzone--uploading' : ''}`}
+      onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+      onClick={() => !uploading && attachInputRef.current?.click()}
+    >
+      <input
+        ref={attachInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={onUpload}
+      />
+      {uploading ? (
+        <>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span>Uploading…</span>
+        </>
+      ) : (
+        <>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span><strong>Drop a file here</strong> or <span className="sw-dropzone-link">click to browse</span></span>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── Other-Attachments list (photo attachment filtered out) ────────
+interface AttachmentListProps {
+  attachLoading: boolean;
+  formAttachments: Attachment[];
+  photoRefValue: string;
+  readOnly: boolean;
+  onDownload: (id: number, name: string) => void;
+  onDelete: (id: number) => void;
+}
+const AttachmentList: React.FC<AttachmentListProps> = ({
+  attachLoading,
+  formAttachments,
+  photoRefValue,
+  readOnly,
+  onDownload,
+  onDelete,
+}) => {
+  if (attachLoading) return <div className="sw-attach-empty">Loading…</div>;
+
+  const photoAttachId = photoRefValue.startsWith(PHOTO_REF_PREFIX)
+    ? parseInt(photoRefValue.slice(PHOTO_REF_PREFIX.length))
+    : null;
+  const others = formAttachments.filter(a => a.attachmentId !== photoAttachId);
+
+  if (others.length === 0) {
+    return <div className="sw-attach-empty">No attachments uploaded yet.</div>;
+  }
+
+  return (
+    <ul className="sw-attach-list">
+      {others.map(a => (
+        <li key={a.attachmentId} className="sw-attach-item">
+          <span className="sw-attach-name">{a.fileName}</span>
+          <div className="sw-attach-actions">
+            <button
+              type="button"
+              className="sw-attach-btn"
+              onClick={() => onDownload(a.attachmentId, a.fileName)}
+            >
+              ↓ Download
+            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                className="sw-attach-btn sw-attach-btn--del"
+                onClick={() => onDelete(a.attachmentId)}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 // ── Main layout component ─────────────────────────────────────────
 const FidelitySubjectFormLayout: React.FC<Props> = ({
   fields,
@@ -600,6 +717,9 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const [attachLoading, setAttachLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Displayable URL for the subject photo (blob: or data:image — never raw DB value)
+  const [photoDisplayUrl, setPhotoDisplayUrl] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const exportPDF = async () => {
     const el = docRef.current;
@@ -751,34 +871,98 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const MAX = 480;
-      let { width, height } = img;
-      if (width > height) {
-        if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
-      } else {
-        if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+
+    if (requestId) {
+      // Upload as a proper binary attachment — avoids the NVARCHAR(4000) DB limit
+      setPhotoUploading(true);
+      try {
+        // Delete old photo attachment if one exists
+        const oldRef = val('Subject Photo Image');
+        if (oldRef.startsWith(PHOTO_REF_PREFIX)) {
+          const oldId = parseInt(oldRef.slice(PHOTO_REF_PREFIX.length));
+          if (!isNaN(oldId)) {
+            const token = localStorage.getItem('token');
+            await fetch(`/api/attachments/${oldId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => { /* ignore delete errors */ });
+            setFormAttachments(prev => prev.filter(a => a.attachmentId !== oldId));
+          }
+        }
+
+        const token = localStorage.getItem('token');
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`/api/requests/${requestId}/attachments`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        const data = await res.json();
+        if (data.success && data.attachmentId) {
+          set('Subject Photo Image', `${PHOTO_REF_PREFIX}${data.attachmentId}`);
+          // Show immediately via a local blob URL (the useEffect will update it on reload)
+          const blobUrl = URL.createObjectURL(file);
+          setPhotoDisplayUrl(prev => {
+            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+            return blobUrl;
+          });
+        }
+      } catch (err) {
+        console.error('Photo upload failed', err);
+      } finally {
+        setPhotoUploading(false);
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0, width, height);
-      set('Subject Photo Image', canvas.toDataURL('image/jpeg', 0.72));
-    };
-    img.onerror = () => URL.revokeObjectURL(objectUrl);
-    img.src = objectUrl;
+    } else {
+      // No requestId yet — compress to a tiny thumbnail that fits in NVARCHAR(4000)
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        // 80px max at 0.4 quality keeps base64 well under 4000 chars
+        const MAX = 80;
+        let { width, height } = img;
+        if (width > height) {
+          if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+        } else {
+          if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.4);
+        set('Subject Photo Image', base64);
+        setPhotoDisplayUrl(base64);
+      };
+      img.onerror = () => URL.revokeObjectURL(objectUrl);
+      img.src = objectUrl;
+    }
   };
 
-  const removePhoto = () => {
+  const removePhoto = async () => {
+    const currentVal = val('Subject Photo Image');
+    if (currentVal.startsWith(PHOTO_REF_PREFIX)) {
+      const attachmentId = parseInt(currentVal.slice(PHOTO_REF_PREFIX.length));
+      if (!isNaN(attachmentId)) {
+        const token = localStorage.getItem('token');
+        await fetch(`/api/attachments/${attachmentId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => { /* ignore */ });
+        setFormAttachments(prev => prev.filter(a => a.attachmentId !== attachmentId));
+      }
+    }
+    setPhotoDisplayUrl(prev => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return null;
+    });
     set('Subject Photo Image', '');
   };
 
@@ -791,6 +975,87 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   }, [fields]);
 
   const getF = (name: string) => fm.get(name.trim().toLowerCase());
+
+  // Derive only the photo field's raw DB value so we can watch it cheaply
+  const photoField = fm.get('subject photo image');
+  const photoFieldValue = photoField ? (fieldValues[String(photoField.FIELD_ID)] ?? '') : '';
+
+  // Keep a stable ref to onChange so the fetch callback can clear stale references
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+  // Track attachment IDs that have already failed so we never retry them in the
+  // same session — prevents the React StrictMode double-invoke loop and any
+  // re-render loops from re-triggering failed fetches.
+  const failedPhotoIds = useRef(new Set<number>());
+
+  // Load / refresh the displayable photo URL whenever the stored field value changes
+  useEffect(() => {
+    if (!photoFieldValue) {
+      setPhotoDisplayUrl(prev => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+    if (photoFieldValue.startsWith('data:image')) {
+      setPhotoDisplayUrl(photoFieldValue);
+      return;
+    }
+    if (photoFieldValue.startsWith(PHOTO_REF_PREFIX)) {
+      const attachmentId = parseInt(photoFieldValue.slice(PHOTO_REF_PREFIX.length));
+      if (isNaN(attachmentId)) return;
+
+      // Skip if we've already confirmed this attachment doesn't exist
+      if (failedPhotoIds.current.has(attachmentId)) return;
+
+      const token = localStorage.getItem('token');
+      fetch(`/api/attachments/${attachmentId}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const arrayBuffer = await res.arrayBuffer();
+          const contentType = res.headers.get('Content-Type') || '';
+          const mimeType = contentType.startsWith('image/') ? contentType : 'image/jpeg';
+          return new Blob([arrayBuffer], { type: mimeType });
+        })
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          setPhotoDisplayUrl(prev => {
+            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+            return url;
+          });
+        })
+        .catch(err => {
+          if (err.message.includes('404') && photoField) {
+            // Mark so we don't retry this ID again this session
+            failedPhotoIds.current.add(attachmentId);
+            // Clear the in-memory reference so placeholder shows
+            onChangeRef.current(String(photoField.FIELD_ID), '');
+            // Best-effort: remove the stale row from the DB so it's gone next open too
+            if (requestId) {
+              const tok = localStorage.getItem('token');
+              fetch(`/api/requests/${requestId}/field-value/${photoField.FIELD_ID}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${tok}` },
+              }).catch(() => { /* silent — server may need restart */ });
+            }
+          }
+          // No console.error — the 404 warn above is enough; other errors are transient
+        });
+    }
+  }, [photoFieldValue]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      setPhotoDisplayUrl(prev => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, []);
 
   const val = (name: string): string => {
     const f = getF(name);
@@ -1138,10 +1403,27 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={handlePhotoChange}
           />
 
-          {val('Subject Photo Image') ? (
+          {photoUploading ? (
+            <div className="sw-photo-placeholder">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#aabbd4"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ animation: 'spin 1s linear infinite' }}
+              >
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Uploading…</span>
+            </div>
+          ) : photoDisplayUrl ? (
             <div className="sw-photo-preview-wrap">
               <img
-                src={val('Subject Photo Image')}
+                src={photoDisplayUrl}
                 alt="Subject"
                 className="sw-photo-preview-img"
               />
@@ -1187,7 +1469,9 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
               </svg>
               <span>Subject Photo</span>
               {!readOnly && (
-                <span className="sw-photo-hint">Click to upload</span>
+                <span className="sw-photo-hint">
+                  {requestId ? 'Click to upload' : 'Save request first, then upload photo'}
+                </span>
               )}
             </div>
           )}
@@ -1352,57 +1636,23 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         <div className="sw-attachments-section no-print">
           <div className="sw-intel-hdr sw-attachments-hdr">
             Other Attachments
-            {!readOnly && (
-              <>
-                <input
-                  ref={attachInputRef}
-                  type="file"
-                  style={{ display: 'none' }}
-                  onChange={handleAttachmentUpload}
-                />
-                <button
-                  type="button"
-                  className="sw-attach-upload-btn"
-                  onClick={() => attachInputRef.current?.click()}
-                  disabled={uploading}
-                >
-                  {uploading ? 'Uploading…' : '+ Upload File'}
-                </button>
-              </>
-            )}
           </div>
+          {!readOnly && (
+            <DropZone
+              attachInputRef={attachInputRef}
+              uploading={uploading}
+              onUpload={handleAttachmentUpload}
+            />
+          )}
           <div className="sw-attachments-body">
-            {attachLoading ? (
-              <div className="sw-attach-empty">Loading…</div>
-            ) : formAttachments.length === 0 ? (
-              <div className="sw-attach-empty">No attachments uploaded yet.</div>
-            ) : (
-              <ul className="sw-attach-list">
-                {formAttachments.map(a => (
-                  <li key={a.attachmentId} className="sw-attach-item">
-                    <span className="sw-attach-name">{a.fileName}</span>
-                    <div className="sw-attach-actions">
-                      <button
-                        type="button"
-                        className="sw-attach-btn"
-                        onClick={() => handleAttachmentDownload(a.attachmentId, a.fileName)}
-                      >
-                        ↓ Download
-                      </button>
-                      {!readOnly && (
-                        <button
-                          type="button"
-                          className="sw-attach-btn sw-attach-btn--del"
-                          onClick={() => handleAttachmentDelete(a.attachmentId)}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <AttachmentList
+              attachLoading={attachLoading}
+              formAttachments={formAttachments}
+              photoRefValue={photoFieldValue}
+              readOnly={readOnly}
+              onDownload={handleAttachmentDownload}
+              onDelete={handleAttachmentDelete}
+            />
           </div>
         </div>
       )}
