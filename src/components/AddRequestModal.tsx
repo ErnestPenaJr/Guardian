@@ -315,8 +315,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       setFidelityValidationErrors(new Set());
     }
 
-    // Check if form is complete first
-    if (!isFormComplete()) {
+    // Check if form is complete first (skip for Fidelity-Subject — it has its own required fields validation above)
+    if (!isFidelitySubjectTemplate && !isFormComplete()) {
       const shouldContinue = await showIncompleteFormWarning();
       if (!shouldContinue) {
         return; // User chose to go back
