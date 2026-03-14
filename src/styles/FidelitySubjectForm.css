@@ -305,6 +305,21 @@
 }
 .sw-photo-change:hover { background: rgba(26,86,196,0.75); }
 
+.sw-photo-uploading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
 /* ── MULTI-ENTRY SHARED ───────────────────── */
 .sw-multi-list {
   display: flex;
@@ -631,11 +646,14 @@
 }
 
 /* ── DROPZONE ──────────────────────────────────── */
+.sw-dropzone-card {
+  margin: 8px 12px;
+}
 .sw-dropzone {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 8px 12px;
+  margin: 0 0 6px 0;
   padding: 14px 18px;
   border: 2px dashed #9aaecc;
   border-radius: 6px;
@@ -655,6 +673,16 @@
 .sw-dropzone--uploading {
   cursor: default;
   opacity: 0.7;
+}
+.sw-dropzone--accept {
+  border-color: #22a35a;
+  background: #edfaf3;
+  color: #22a35a;
+}
+.sw-dropzone--reject {
+  border-color: #c10000;
+  background: #fff5f5;
+  color: #c10000;
 }
 .sw-dropzone-link {
   color: #1a56c4;
@@ -681,10 +709,36 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #e8e8e8;
 }
 .sw-attach-item:last-child { border-bottom: none; }
+
+/* Thumbnail / icon cell */
+.sw-attach-thumb {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f0f4fa;
+  border: 1px solid #dce4f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw-attach-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sw-attach-thumb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .sw-attach-name {
   flex: 1;
   font-size: 12px;

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 import '../styles/FidelitySubjectForm.css';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -583,117 +584,208 @@ const HeightField: React.FC<{ value: string; onChange: (v: string) => void; read
 // Short prefix stored in the DB VALUE column to reference a binary attachment
 const PHOTO_REF_PREFIX = 'photo_ref:';
 
-// ── Drag-and-drop zone for Other Attachments ─────────────────────
-interface DropZoneProps {
-  attachInputRef: React.RefObject<HTMLInputElement>;
-  uploading: boolean;
-  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+// ── Attachment preview helpers ────────────────────────────────────
+type FileKind = 'image' | 'pdf' | 'word' | 'excel' | 'other';
+
+function getFileKind(fileName: string): FileKind {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc','docx'].includes(ext)) return 'word';
+  if (['xls','xlsx','csv'].includes(ext)) return 'excel';
+  return 'other';
 }
-const DropZone: React.FC<DropZoneProps> = ({ attachInputRef, uploading, onUpload }) => {
-  const [dragOver, setDragOver] = useState(false);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (uploading) return;
-    const file = e.dataTransfer.files?.[0];
-    if (!file || !attachInputRef.current) return;
-    // Synthesise a change event so the existing upload handler can be reused
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    attachInputRef.current.files = dt.files;
-    attachInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-  };
-
-  return (
-    <div
-      className={`sw-dropzone${dragOver ? ' sw-dropzone--over' : ''}${uploading ? ' sw-dropzone--uploading' : ''}`}
-      onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={handleDrop}
-      onClick={() => !uploading && attachInputRef.current?.click()}
-    >
-      <input
-        ref={attachInputRef}
-        type="file"
-        style={{ display: 'none' }}
-        onChange={onUpload}
-      />
-      {uploading ? (
-        <>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
-          <span>Uploading…</span>
-        </>
-      ) : (
-        <>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <span><strong>Drop a file here</strong> or <span className="sw-dropzone-link">click to browse</span></span>
-        </>
-      )}
-    </div>
+function FileTypeIcon({ kind }: { kind: FileKind }) {
+  if (kind === 'pdf') return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#c10000' }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      <line x1="9" y1="13" x2="9" y2="17"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="15" y1="14" x2="15" y2="17"/>
+    </svg>
   );
-};
+  if (kind === 'word') return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#1a56c4' }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10 9 9 9 8 9"/>
+    </svg>
+  );
+  if (kind === 'excel') return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#22a35a' }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/>
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#7a8fad' }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    </svg>
+  );
+}
 
-// ── Other-Attachments list (photo attachment filtered out) ────────
-interface AttachmentListProps {
+// ── Unified drop zone + file list for Other Attachments ──────────
+interface AttachmentsDropZoneProps {
+  uploading: boolean;
   attachLoading: boolean;
   formAttachments: Attachment[];
   photoRefValue: string;
   readOnly: boolean;
+  onFile: (file: File) => void;
   onDownload: (id: number, name: string) => void;
   onDelete: (id: number) => void;
 }
-const AttachmentList: React.FC<AttachmentListProps> = ({
+const AttachmentsDropZone: React.FC<AttachmentsDropZoneProps> = ({
+  uploading,
   attachLoading,
   formAttachments,
   photoRefValue,
   readOnly,
+  onFile,
   onDownload,
   onDelete,
 }) => {
-  if (attachLoading) return <div className="sw-attach-empty">Loading…</div>;
+  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
+    disabled: uploading || readOnly,
+    multiple: true,
+    onDrop: (accepted) => { accepted.forEach(f => onFile(f)); },
+  });
+
+  // Blob URLs for image previews, keyed by attachmentId
+  const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
 
   const photoAttachId = photoRefValue.startsWith(PHOTO_REF_PREFIX)
     ? parseInt(photoRefValue.slice(PHOTO_REF_PREFIX.length))
     : null;
   const others = formAttachments.filter(a => a.attachmentId !== photoAttachId);
 
-  if (others.length === 0) {
-    return <div className="sw-attach-empty">No attachments uploaded yet.</div>;
-  }
+  // Lazily fetch blob URLs for image attachments
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const toFetch = others.filter(
+      a => getFileKind(a.fileName) === 'image' && !previewUrls[a.attachmentId]
+    );
+    if (toFetch.length === 0) return;
+
+    let cancelled = false;
+    const fetched: Record<number, string> = {};
+
+    Promise.all(
+      toFetch.map(async (a) => {
+        try {
+          const res = await fetch(`/api/attachments/${a.attachmentId}/download`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) return;
+          const blob = await res.blob();
+          fetched[a.attachmentId] = URL.createObjectURL(blob);
+        } catch { /* skip */ }
+      })
+    ).then(() => {
+      if (!cancelled && Object.keys(fetched).length > 0) {
+        setPreviewUrls(prev => ({ ...prev, ...fetched }));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      // Revoke any newly created URLs on cleanup
+      Object.values(fetched).forEach(u => URL.revokeObjectURL(u));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [others.map(a => a.attachmentId).join(',')]);
+
+  // Revoke all blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(previewUrls).forEach(u => URL.revokeObjectURL(u));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  let dzClass = 'sw-dropzone';
+  if (isDragAccept) dzClass += ' sw-dropzone--accept';
+  else if (isDragReject) dzClass += ' sw-dropzone--reject';
+  else if (isDragActive) dzClass += ' sw-dropzone--over';
+  if (uploading) dzClass += ' sw-dropzone--uploading';
 
   return (
-    <ul className="sw-attach-list">
-      {others.map(a => (
-        <li key={a.attachmentId} className="sw-attach-item">
-          <span className="sw-attach-name">{a.fileName}</span>
-          <div className="sw-attach-actions">
-            <button
-              type="button"
-              className="sw-attach-btn"
-              onClick={() => onDownload(a.attachmentId, a.fileName)}
-            >
-              ↓ Download
-            </button>
-            {!readOnly && (
-              <button
-                type="button"
-                className="sw-attach-btn sw-attach-btn--del"
-                onClick={() => onDelete(a.attachmentId)}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="sw-dropzone-card">
+      {!readOnly && (
+        <div {...getRootProps()} className={dzClass}>
+          <input {...getInputProps()} />
+          {uploading ? (
+            <>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              <span>Uploading…</span>
+            </>
+          ) : isDragReject ? (
+            <>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <span>File type not supported</span>
+            </>
+          ) : (
+            <>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span><strong>Drop files here</strong> or <span className="sw-dropzone-link">click to browse</span></span>
+            </>
+          )}
+        </div>
+      )}
+
+      {attachLoading ? (
+        <div className="sw-attach-empty">Loading…</div>
+      ) : others.length === 0 ? (
+        !readOnly && <div className="sw-attach-empty">No attachments yet.</div>
+      ) : (
+        <ul className="sw-attach-list">
+          {others.map(a => {
+            const kind = getFileKind(a.fileName);
+            const imgUrl = previewUrls[a.attachmentId];
+            return (
+              <li key={a.attachmentId} className="sw-attach-item">
+                <div className="sw-attach-thumb">
+                  {kind === 'image' && imgUrl ? (
+                    <img src={imgUrl} alt={a.fileName} className="sw-attach-thumb-img" />
+                  ) : (
+                    <div className="sw-attach-thumb-icon">
+                      <FileTypeIcon kind={kind} />
+                    </div>
+                  )}
+                </div>
+                <span className="sw-attach-name">{a.fileName}</span>
+                <div className="sw-attach-actions">
+                  <button
+                    type="button"
+                    className="sw-attach-btn"
+                    onClick={() => onDownload(a.attachmentId, a.fileName)}
+                  >
+                    ↓ Download
+                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="sw-attach-btn sw-attach-btn--del"
+                      onClick={() => onDelete(a.attachmentId)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 };
 
@@ -710,7 +802,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const errClass = (fieldName: string) =>
     validationErrors?.has(fieldName) ? ' sw-field--error' : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const attachInputRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
   const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
   const [formAttachments, setFormAttachments] = useState<Attachment[]>([]);
@@ -781,12 +872,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
 
         const data = await response.json();
         const options = (Array.isArray(data) ? data : [])
-          .map((u: any) => String(u?.label || u?.FULL_NAME || '').trim())
+          .map((u: { label?: string; FULL_NAME?: string }) => String(u?.label || u?.FULL_NAME || '').trim())
           .filter(Boolean);
 
         const uniqueOptions = Array.from(new Set(options));
         setInvestigatorOptions(uniqueOptions);
-      } catch (_err) {
+      } catch {
         setInvestigatorOptions([]);
       }
     };
@@ -814,10 +905,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     fetchAttachments();
   }, [requestId]);
 
-  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleAttachmentUpload = async (file: File) => {
     if (!file || !requestId) return;
-    e.target.value = '';
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
@@ -829,8 +918,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         body: fd,
       });
       const data = await res.json();
-      if (data.success && data.attachment) {
-        setFormAttachments(prev => [...prev, data.attachment]);
+      if (data.success && data.attachmentId) {
+        setFormAttachments(prev => [...prev, { attachmentId: data.attachmentId, fileName: data.fileName }]);
       }
     } catch (err) {
       console.error('Attachment upload failed', err);
@@ -876,8 +965,23 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     if (!file) return;
     e.target.value = '';
 
+    // Read file as data URL — no blob lifecycle issues, works immediately as img src
+    const previewDataUrl = await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve(ev.target?.result as string ?? null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+
+    if (!previewDataUrl) return; // file read failed
+
+    // Show preview immediately (data URL is a plain string — cannot be revoked)
+    setPhotoDisplayUrl(prev => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return previewDataUrl;
+    });
+
     if (requestId) {
-      // Upload as a proper binary attachment — avoids the NVARCHAR(4000) DB limit
       setPhotoUploading(true);
       try {
         // Delete old photo attachment if one exists
@@ -905,12 +1009,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         const data = await res.json();
         if (data.success && data.attachmentId) {
           set('Subject Photo Image', `${PHOTO_REF_PREFIX}${data.attachmentId}`);
-          // Show immediately via a local blob URL (the useEffect will update it on reload)
-          const blobUrl = URL.createObjectURL(file);
-          setPhotoDisplayUrl(prev => {
-            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-            return blobUrl;
-          });
+          // previewDataUrl remains the display — photoDisplayUrlRef prevents the
+          // useEffect from overwriting it with a redundant server fetch.
         }
       } catch (err) {
         console.error('Photo upload failed', err);
@@ -918,12 +1018,9 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         setPhotoUploading(false);
       }
     } else {
-      // No requestId yet — compress to a tiny thumbnail that fits in NVARCHAR(4000)
-      const objectUrl = URL.createObjectURL(file);
+      // No requestId — compress preview to a small thumbnail before storing as field value
       const img = new Image();
       img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        // 80px max at 0.4 quality keeps base64 well under 4000 chars
         const MAX = 80;
         let { width, height } = img;
         if (width > height) {
@@ -937,12 +1034,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.drawImage(img, 0, 0, width, height);
-        const base64 = canvas.toDataURL('image/jpeg', 0.4);
-        set('Subject Photo Image', base64);
-        setPhotoDisplayUrl(base64);
+        const compressed = canvas.toDataURL('image/jpeg', 0.4);
+        set('Subject Photo Image', compressed);
+        setPhotoDisplayUrl(compressed);
       };
-      img.onerror = () => URL.revokeObjectURL(objectUrl);
-      img.src = objectUrl;
+      img.onerror = () => setPhotoDisplayUrl(null);
+      img.src = previewDataUrl;
     }
   };
 
@@ -988,12 +1085,17 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   // same session — prevents the React StrictMode double-invoke loop and any
   // re-render loops from re-triggering failed fetches.
   const failedPhotoIds = useRef(new Set<number>());
+  // Always-current mirror of photoDisplayUrl — updated during render (not in an effect)
+  // so that the photo loading effect below always sees the up-to-date value.
+  const photoDisplayUrlRef = useRef<string | null>(null);
+  photoDisplayUrlRef.current = photoDisplayUrl;
 
   // Load / refresh the displayable photo URL whenever the stored field value changes
   useEffect(() => {
     if (!photoFieldValue) {
+      // Only clear if we don't have a locally-set blob (e.g. during no-requestId upload)
       setPhotoDisplayUrl(prev => {
-        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        if (prev?.startsWith('blob:')) return prev;
         return null;
       });
       return;
@@ -1006,6 +1108,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       const attachmentId = parseInt(photoFieldValue.slice(PHOTO_REF_PREFIX.length));
       if (isNaN(attachmentId)) return;
 
+      // If we already have any preview (just uploaded — data URL or blob), skip the
+      // server fetch so we don't overwrite/revoke the locally-set preview.
+      if (photoDisplayUrlRef.current) return;
+
       // Skip if we've already confirmed this attachment doesn't exist
       if (failedPhotoIds.current.has(attachmentId)) return;
 
@@ -1013,49 +1119,35 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       fetch(`/api/attachments/${attachmentId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(async res => {
+        .then(res => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const arrayBuffer = await res.arrayBuffer();
-          const contentType = res.headers.get('Content-Type') || '';
-          const mimeType = contentType.startsWith('image/') ? contentType : 'image/jpeg';
-          return new Blob([arrayBuffer], { type: mimeType });
+          return res.blob();
         })
-        .then(blob => {
-          const url = URL.createObjectURL(blob);
-          setPhotoDisplayUrl(prev => {
-            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-            return url;
-          });
+        .then(blob => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }))
+        .then(dataUrl => {
+          setPhotoDisplayUrl(dataUrl);
         })
         .catch(err => {
           if (err.message.includes('404') && photoField) {
-            // Mark so we don't retry this ID again this session
             failedPhotoIds.current.add(attachmentId);
-            // Clear the in-memory reference so placeholder shows
             onChangeRef.current(String(photoField.FIELD_ID), '');
-            // Best-effort: remove the stale row from the DB so it's gone next open too
             if (requestId) {
               const tok = localStorage.getItem('token');
               fetch(`/api/requests/${requestId}/field-value/${photoField.FIELD_ID}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${tok}` },
-              }).catch(() => { /* silent — server may need restart */ });
+              }).catch(() => {});
             }
           }
-          // No console.error — the 404 warn above is enough; other errors are transient
         });
     }
   }, [photoFieldValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cleanup blob URL on unmount
-  useEffect(() => {
-    return () => {
-      setPhotoDisplayUrl(prev => {
-        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-        return null;
-      });
-    };
-  }, []);
 
   const val = (name: string): string => {
     const f = getF(name);
@@ -1403,7 +1495,43 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={handlePhotoChange}
           />
 
-          {photoUploading ? (
+          {photoDisplayUrl ? (
+            <div className="sw-photo-preview-wrap">
+              <img
+                src={photoDisplayUrl}
+                alt="Subject"
+                className="sw-photo-preview-img"
+              />
+              {photoUploading && (
+                <div className="sw-photo-uploading-overlay">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <span>Saving…</span>
+                </div>
+              )}
+              {!readOnly && !photoUploading && (
+                <button
+                  type="button"
+                  className="sw-photo-remove"
+                  onClick={removePhoto}
+                  title="Remove photo"
+                >
+                  ✕
+                </button>
+              )}
+              {!readOnly && !photoUploading && (
+                <button
+                  type="button"
+                  className="sw-photo-change"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Change photo"
+                >
+                  Change
+                </button>
+              )}
+            </div>
+          ) : photoUploading ? (
             <div className="sw-photo-placeholder">
               <svg
                 width="32"
@@ -1419,34 +1547,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
               <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Uploading…</span>
-            </div>
-          ) : photoDisplayUrl ? (
-            <div className="sw-photo-preview-wrap">
-              <img
-                src={photoDisplayUrl}
-                alt="Subject"
-                className="sw-photo-preview-img"
-              />
-              {!readOnly && (
-                <button
-                  type="button"
-                  className="sw-photo-remove"
-                  onClick={removePhoto}
-                  title="Remove photo"
-                >
-                  ✕
-                </button>
-              )}
-              {!readOnly && (
-                <button
-                  type="button"
-                  className="sw-photo-change"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Change photo"
-                >
-                  Change
-                </button>
-              )}
             </div>
           ) : (
             <div
@@ -1637,23 +1737,16 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           <div className="sw-intel-hdr sw-attachments-hdr">
             Other Attachments
           </div>
-          {!readOnly && (
-            <DropZone
-              attachInputRef={attachInputRef}
-              uploading={uploading}
-              onUpload={handleAttachmentUpload}
-            />
-          )}
-          <div className="sw-attachments-body">
-            <AttachmentList
-              attachLoading={attachLoading}
-              formAttachments={formAttachments}
-              photoRefValue={photoFieldValue}
-              readOnly={readOnly}
-              onDownload={handleAttachmentDownload}
-              onDelete={handleAttachmentDelete}
-            />
-          </div>
+          <AttachmentsDropZone
+            uploading={uploading}
+            attachLoading={attachLoading}
+            formAttachments={formAttachments}
+            photoRefValue={photoFieldValue}
+            readOnly={readOnly}
+            onFile={handleAttachmentUpload}
+            onDownload={handleAttachmentDownload}
+            onDelete={handleAttachmentDelete}
+          />
         </div>
       )}
 
