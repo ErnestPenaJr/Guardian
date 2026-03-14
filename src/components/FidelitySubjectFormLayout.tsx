@@ -933,6 +933,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoRenderReady, setPhotoRenderReady] = useState(false);
 
   const exportPDF = async () => {
     const el = docRef.current;
@@ -1207,6 +1208,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   // Load / refresh the displayable photo URL whenever the stored field value changes
   useEffect(() => {
     if (requestId && !photoFieldValue) {
+      setPhotoRenderReady(false);
       setPhotoLoading(false);
       setPhotoDisplayUrl(prev => {
         if (photoUploading) return prev;
@@ -1219,6 +1221,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     }
 
     if (!photoFieldValue) {
+      setPhotoRenderReady(false);
       setPhotoLoading(false);
       setPhotoDisplayUrl(prev => {
         if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
@@ -1229,6 +1232,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       return;
     }
     if (photoFieldValue.startsWith('data:image')) {
+      setPhotoRenderReady(false);
       setPhotoLoading(false);
       setPhotoDisplayUrl(photoFieldValue);
       setPhotoModalUrl(photoFieldValue);
@@ -1240,7 +1244,13 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       if (failedPhotoIds.current.has(attachmentId)) return;
 
       const token = localStorage.getItem('token');
+      setPhotoRenderReady(false);
       setPhotoLoading(true);
+      setPhotoDisplayUrl(prev => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setPhotoModalUrl(null);
       fetch(`/api/attachments/${attachmentId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -1291,6 +1301,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         });
     }
   }, [photoFieldValue, formAttachments, photoUploading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!photoDisplayUrl) {
+      setPhotoRenderReady(false);
+    }
+  }, [photoDisplayUrl]);
 
   useEffect(() => {
     if (!photoModalOpen) return;
@@ -1662,13 +1678,22 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
           {photoDisplayUrl ? (
             <div className="sw-photo-preview-wrap">
               <img
+                key={photoDisplayUrl}
                 src={photoDisplayUrl}
                 alt="Subject"
                 className="sw-photo-preview-img"
                 onClick={openPhotoModal}
+                onLoad={() => {
+                  setPhotoRenderReady(true);
+                  setPhotoLoading(false);
+                }}
+                onError={() => {
+                  setPhotoRenderReady(false);
+                  setPhotoLoading(false);
+                }}
                 title="Click to enlarge"
               />
-              {(photoUploading || photoLoading) && (
+              {(photoUploading || photoLoading || !photoRenderReady) && (
                 <div className="sw-photo-uploading-overlay">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -1676,7 +1701,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                   <span>{photoUploading ? 'Saving…' : 'Loading…'}</span>
                 </div>
               )}
-              {!readOnly && !photoUploading && !photoLoading && (
+              {!readOnly && !photoUploading && !photoLoading && photoRenderReady && (
                 <button
                   type="button"
                   className="sw-photo-remove"
@@ -1686,7 +1711,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                   ✕
                 </button>
               )}
-              {!readOnly && !photoUploading && !photoLoading && (
+              {!readOnly && !photoUploading && !photoLoading && photoRenderReady && (
                 <button
                   type="button"
                   className="sw-photo-change"
