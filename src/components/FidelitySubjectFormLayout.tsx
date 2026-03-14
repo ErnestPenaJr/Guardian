@@ -583,6 +583,125 @@ const HeightField: React.FC<{ value: string; onChange: (v: string) => void; read
 
 // Short prefix stored in the DB VALUE column to reference a binary attachment
 const PHOTO_REF_PREFIX = 'photo_ref:';
+const SUBJECT_PHOTO_FILE_PREFIX = '__subject_photo__::';
+const RENDERABLE_PHOTO_MIME_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  svg: 'image/svg+xml',
+};
+
+function getRenderablePhotoMimeType(fileName?: string, declaredType?: string | null): string | null {
+  if (declaredType && Object.values(RENDERABLE_PHOTO_MIME_BY_EXT).includes(declaredType)) {
+    return declaredType;
+  }
+
+  const ext = fileName?.split('.').pop()?.toLowerCase();
+  return ext ? RENDERABLE_PHOTO_MIME_BY_EXT[ext] ?? null : null;
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target?.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function waitForImageReady(src: string): Promise<void> {
+  const img = new Image();
+  img.decoding = 'async';
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error('IMAGE_DECODE_FAILED'));
+    img.src = src;
+  });
+
+  if (typeof img.decode === 'function') {
+    try {
+      await img.decode();
+    } catch {
+      // onload already confirmed the image is usable
+    }
+  }
+}
+
+function normalizeAttachmentBytes(buffer: ArrayBuffer): Uint8Array {
+  const directBytes = new Uint8Array(buffer);
+  if (directBytes.length === 0) return directBytes;
+
+  // Some attachment responses arrive as JSON text like {"0":137,"1":80,...}
+  if (directBytes[0] === 0x7b) {
+    try {
+      const text = new TextDecoder().decode(directBytes);
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      const entries = Object.entries(parsed)
+        .filter(([key, value]) => /^\d+$/.test(key) && typeof value === 'number')
+        .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+      if (entries.length > 0) {
+        return Uint8Array.from(entries.map(([, value]) => Number(value)));
+      }
+    } catch {
+      return directBytes;
+    }
+  }
+
+  return directBytes;
+}
+
+function buildSizedPhotoDataUrl(img: HTMLImageElement): string | null {
+  const MAX_DB_CHARS = 3950;
+  const attempts = [
+    { size: 320, quality: 0.92, format: 'image/webp' },
+    { size: 288, quality: 0.9, format: 'image/webp' },
+    { size: 256, quality: 0.88, format: 'image/webp' },
+    { size: 224, quality: 0.86, format: 'image/webp' },
+    { size: 208, quality: 0.84, format: 'image/webp' },
+    { size: 192, quality: 0.82, format: 'image/webp' },
+    { size: 176, quality: 0.8, format: 'image/webp' },
+    { size: 160, quality: 0.78, format: 'image/webp' },
+    { size: 144, quality: 0.74, format: 'image/webp' },
+    { size: 128, quality: 0.7, format: 'image/webp' },
+    { size: 112, quality: 0.66, format: 'image/webp' },
+    { size: 160, quality: 0.72, format: 'image/jpeg' },
+    { size: 128, quality: 0.64, format: 'image/jpeg' },
+  ];
+
+  for (const attempt of attempts) {
+    let { width, height } = img;
+    if (width > height) {
+      if (width > attempt.size) {
+        height = Math.round((height * attempt.size) / width);
+        width = attempt.size;
+      }
+    } else if (height > attempt.size) {
+      width = Math.round((width * attempt.size) / height);
+      height = attempt.size;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(width, 1);
+    canvas.height = Math.max(height, 1);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL(attempt.format, attempt.quality);
+    if (dataUrl.length <= MAX_DB_CHARS) {
+      return dataUrl;
+    }
+  }
+
+  return null;
+}
 
 // ── Attachment preview helpers ────────────────────────────────────
 type FileKind = 'image' | 'pdf' | 'word' | 'excel' | 'other';
@@ -810,7 +929,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const [exporting, setExporting] = useState(false);
   // Displayable URL for the subject photo (blob: or data:image — never raw DB value)
   const [photoDisplayUrl, setPhotoDisplayUrl] = useState<string | null>(null);
+  const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
 
   const exportPDF = async () => {
     const el = docRef.current;
@@ -965,6 +1087,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     if (!file) return;
     e.target.value = '';
 
+    if (!getRenderablePhotoMimeType(file.name, file.type)) {
+      window.alert('Subject photo preview supports JPG, PNG, GIF, WEBP, BMP, and SVG files. Convert HEIC/HEIF photos before uploading.');
+      return;
+    }
+
     // Read file as data URL — no blob lifecycle issues, works immediately as img src
     const previewDataUrl = await new Promise<string | null>((resolve) => {
       const reader = new FileReader();
@@ -980,66 +1107,56 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
       return previewDataUrl;
     });
+    setPhotoModalUrl(previewDataUrl);
 
-    if (requestId) {
-      setPhotoUploading(true);
-      try {
-        // Delete old photo attachment if one exists
-        const oldRef = val('Subject Photo Image');
-        if (oldRef.startsWith(PHOTO_REF_PREFIX)) {
-          const oldId = parseInt(oldRef.slice(PHOTO_REF_PREFIX.length));
-          if (!isNaN(oldId)) {
-            const token = localStorage.getItem('token');
-            await fetch(`/api/attachments/${oldId}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            }).catch(() => { /* ignore delete errors */ });
-            setFormAttachments(prev => prev.filter(a => a.attachmentId !== oldId));
-          }
-        }
-
-        const token = localStorage.getItem('token');
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch(`/api/requests/${requestId}/attachments`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
-        const data = await res.json();
-        if (data.success && data.attachmentId) {
-          set('Subject Photo Image', `${PHOTO_REF_PREFIX}${data.attachmentId}`);
-          // previewDataUrl remains the display — photoDisplayUrlRef prevents the
-          // useEffect from overwriting it with a redundant server fetch.
-        }
-      } catch (err) {
-        console.error('Photo upload failed', err);
-      } finally {
+    setPhotoUploading(true);
+    try {
+      if (!requestId) {
+        window.alert('Save the request before adding a subject photo.');
+        setPhotoDisplayUrl(null);
+        setPhotoModalUrl(null);
         setPhotoUploading(false);
+        return;
       }
-    } else {
-      // No requestId — compress preview to a small thumbnail before storing as field value
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 80;
-        let { width, height } = img;
-        if (width > height) {
-          if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
-        } else {
-          if (height > MAX) { width = Math.round(width * MAX / height); height = MAX; }
+
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file, `${SUBJECT_PHOTO_FILE_PREFIX}${file.name}`);
+
+      const res = await fetch(`/api/requests/${requestId}/attachments`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const attachmentId = data?.attachmentId;
+      if (!attachmentId) {
+        throw new Error('Missing attachment ID');
+      }
+
+      const currentVal = val('Subject Photo Image');
+      if (currentVal.startsWith(PHOTO_REF_PREFIX)) {
+        const previousAttachmentId = parseInt(currentVal.slice(PHOTO_REF_PREFIX.length), 10);
+        if (!Number.isNaN(previousAttachmentId)) {
+          await fetch(`/api/attachments/${previousAttachmentId}`, {
+            method: 'DELETE',
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          }).catch(() => {});
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', 0.4);
-        set('Subject Photo Image', compressed);
-        setPhotoDisplayUrl(compressed);
-      };
-      img.onerror = () => setPhotoDisplayUrl(null);
-      img.src = previewDataUrl;
+      }
+
+      set('Subject Photo Image', `${PHOTO_REF_PREFIX}${attachmentId}`);
+    } catch (err) {
+      console.error('Subject photo upload failed', err);
+      setPhotoDisplayUrl(null);
+      setPhotoModalUrl(null);
+    } finally {
+      setPhotoUploading(false);
     }
   };
 
@@ -1060,6 +1177,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
       return null;
     });
+    setPhotoModalUrl(null);
+    setPhotoModalOpen(false);
     set('Subject Photo Image', '');
   };
 
@@ -1085,54 +1204,78 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   // same session — prevents the React StrictMode double-invoke loop and any
   // re-render loops from re-triggering failed fetches.
   const failedPhotoIds = useRef(new Set<number>());
-  // Always-current mirror of photoDisplayUrl — updated during render (not in an effect)
-  // so that the photo loading effect below always sees the up-to-date value.
-  const photoDisplayUrlRef = useRef<string | null>(null);
-  photoDisplayUrlRef.current = photoDisplayUrl;
-
   // Load / refresh the displayable photo URL whenever the stored field value changes
   useEffect(() => {
-    if (!photoFieldValue) {
-      // Only clear if we don't have a locally-set blob (e.g. during no-requestId upload)
+    if (requestId && !photoFieldValue) {
+      setPhotoLoading(false);
       setPhotoDisplayUrl(prev => {
-        if (prev?.startsWith('blob:')) return prev;
+        if (photoUploading) return prev;
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
         return null;
       });
+      setPhotoModalUrl(null);
+      setPhotoModalOpen(false);
+      return;
+    }
+
+    if (!photoFieldValue) {
+      setPhotoLoading(false);
+      setPhotoDisplayUrl(prev => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setPhotoModalUrl(null);
+      setPhotoModalOpen(false);
       return;
     }
     if (photoFieldValue.startsWith('data:image')) {
+      setPhotoLoading(false);
       setPhotoDisplayUrl(photoFieldValue);
+      setPhotoModalUrl(photoFieldValue);
       return;
     }
     if (photoFieldValue.startsWith(PHOTO_REF_PREFIX)) {
       const attachmentId = parseInt(photoFieldValue.slice(PHOTO_REF_PREFIX.length));
       if (isNaN(attachmentId)) return;
-
-      // If we already have any preview (just uploaded — data URL or blob), skip the
-      // server fetch so we don't overwrite/revoke the locally-set preview.
-      if (photoDisplayUrlRef.current) return;
-
-      // Skip if we've already confirmed this attachment doesn't exist
       if (failedPhotoIds.current.has(attachmentId)) return;
 
       const token = localStorage.getItem('token');
+      setPhotoLoading(true);
       fetch(`/api/attachments/${attachmentId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(res => {
+        .then(async res => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.blob();
+          const attachmentName = formAttachments.find(a => a.attachmentId === attachmentId)?.fileName;
+          const renderableMimeType = getRenderablePhotoMimeType(
+            attachmentName,
+            res.headers.get('Content-Type'),
+          );
+          if (!renderableMimeType) {
+            throw new Error('UNSUPPORTED_IMAGE_FORMAT');
+          }
+
+          const buffer = await res.arrayBuffer();
+          const normalizedBytes = normalizeAttachmentBytes(buffer);
+          const blob = new Blob([normalizedBytes], { type: renderableMimeType });
+          return blobToDataUrl(blob);
         })
-        .then(blob => new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        }))
-        .then(dataUrl => {
-          setPhotoDisplayUrl(dataUrl);
+        .then(async dataUrl => {
+          await waitForImageReady(dataUrl);
+          setPhotoDisplayUrl(prev => {
+            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+            return dataUrl;
+          });
+          setPhotoModalUrl(dataUrl);
+          setPhotoLoading(false);
         })
         .catch(err => {
+          if (err.message === 'UNSUPPORTED_IMAGE_FORMAT') {
+            setPhotoDisplayUrl(null);
+            setPhotoModalUrl(null);
+            setPhotoLoading(false);
+            return;
+          }
           if (err.message.includes('404') && photoField) {
             failedPhotoIds.current.add(attachmentId);
             onChangeRef.current(String(photoField.FIELD_ID), '');
@@ -1144,9 +1287,30 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
               }).catch(() => {});
             }
           }
+          setPhotoLoading(false);
         });
     }
-  }, [photoFieldValue]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [photoFieldValue, formAttachments, photoUploading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!photoModalOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setPhotoModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [photoModalOpen]);
+
+  const openPhotoModal = () => {
+    const modalUrl = photoDisplayUrl ?? photoModalUrl;
+    if (!modalUrl) return;
+    setPhotoModalUrl(modalUrl);
+    setPhotoModalOpen(true);
+  };
 
 
   const val = (name: string): string => {
@@ -1501,16 +1665,18 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 src={photoDisplayUrl}
                 alt="Subject"
                 className="sw-photo-preview-img"
+                onClick={openPhotoModal}
+                title="Click to enlarge"
               />
-              {photoUploading && (
+              {(photoUploading || photoLoading) && (
                 <div className="sw-photo-uploading-overlay">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                   </svg>
-                  <span>Saving…</span>
+                  <span>{photoUploading ? 'Saving…' : 'Loading…'}</span>
                 </div>
               )}
-              {!readOnly && !photoUploading && (
+              {!readOnly && !photoUploading && !photoLoading && (
                 <button
                   type="button"
                   className="sw-photo-remove"
@@ -1520,7 +1686,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                   ✕
                 </button>
               )}
-              {!readOnly && !photoUploading && (
+              {!readOnly && !photoUploading && !photoLoading && (
                 <button
                   type="button"
                   className="sw-photo-change"
@@ -1531,7 +1697,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 </button>
               )}
             </div>
-          ) : photoUploading ? (
+          ) : (photoUploading || photoLoading) ? (
             <div className="sw-photo-placeholder">
               <svg
                 width="32"
@@ -1546,7 +1712,9 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
               >
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
-              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Uploading…</span>
+              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                {photoUploading ? 'Uploading…' : 'Loading…'}
+              </span>
             </div>
           ) : (
             <div
@@ -1578,6 +1746,36 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         </div>
 
       </div>{/* /sw-body-grid */}
+
+      {photoModalOpen && photoModalUrl && (
+        <div
+          className="sw-photo-modal-backdrop"
+          onClick={() => setPhotoModalOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="sw-photo-modal"
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Subject photo preview"
+          >
+            <button
+              type="button"
+              className="sw-photo-modal-close"
+              onClick={() => setPhotoModalOpen(false)}
+              aria-label="Close subject photo preview"
+            >
+              ✕
+            </button>
+            <img
+              src={photoModalUrl}
+              alt="Subject full preview"
+              className="sw-photo-modal-img"
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── PHYSICAL MARKS / TATTOOS ────────────────── */}
       <div className="sw-section-hdr">Physical Marks / Tattoos / Scars:</div>

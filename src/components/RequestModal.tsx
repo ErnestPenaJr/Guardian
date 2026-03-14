@@ -844,9 +844,20 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       const rawFields = formFieldValuesRef.current;
 
       // Route base64 image values through the attachments endpoint to avoid
-      // column size limits (NVARCHAR(4000)) and keep form values table lean
+      // column size limits (NVARCHAR(4000)) and keep form values table lean.
+      // Subject photo stays inline so it remains in the dedicated photo box
+      // and never gets duplicated into Other Attachments.
       for (const field of rawFields) {
         const val = field.fieldValue?.toString() ?? '';
+        const normalizedFieldName = field.fieldName?.trim().toLowerCase() ?? '';
+        const isSubjectPhotoField =
+          normalizedFieldName === 'subject photo image' ||
+          normalizedFieldName === 'subject photo';
+
+        if (isSubjectPhotoField) {
+          continue;
+        }
+
         if (val.startsWith('data:image/')) {
           try {
             const [header, base64Data] = val.split(',');

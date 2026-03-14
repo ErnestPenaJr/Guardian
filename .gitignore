@@ -28,3 +28,11 @@ yarn-error.log*
 # deployment artifacts
 manual-deploy.zip
 simple-deploy/
+
+# codex
+AGENTS.md
+/.codex
+
+# claude
+CLAUDE.md
+/.claude
