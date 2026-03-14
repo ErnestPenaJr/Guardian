@@ -19,6 +19,7 @@ interface Props {
   /** Values keyed by String(FIELD_ID) */
   fieldValues: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
+  onAutoSave?: () => Promise<void>;
   readOnly?: boolean;
   /** Set of field names that failed validation — used to highlight required fields */
   validationErrors?: Set<string>;
@@ -31,6 +32,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
   fields,
   fieldValues,
   onChange,
+  onAutoSave,
   readOnly = false,
   validationErrors,
   requestId,
@@ -42,6 +44,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
         fields={fields}
         fieldValues={fieldValues}
         onChange={onChange}
+        onAutoSave={onAutoSave}
         readOnly={readOnly}
         validationErrors={validationErrors}
         requestId={requestId}

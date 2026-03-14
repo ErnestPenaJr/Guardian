@@ -9,6 +9,8 @@ import requestService from '../services/requestService';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import SectionedFormRenderer from './SectionedFormRenderer';
+import api from '../utils/api';
+import { requestStateManager } from '../hooks/useRequestState';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
@@ -42,6 +44,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   const [loadingFields, setLoadingFields] = useState(false);
   const [priorityLevel, setPriorityLevel] = useState('Standard');
   const [fidelityValidationErrors, setFidelityValidationErrors] = useState<Set<string>>(new Set());
+  const [draftRequestId, setDraftRequestId] = useState<number | null>(null);
   
   // Get icon for user-created templates (using a generic workflow icon)
   const getIconForTemplate = (templateName: string) => {
@@ -117,6 +120,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       setTemplateFields([]);
       setFieldValues({});
       setPriorityLevel('Standard');
+      setDraftRequestId(null);
     }
   }, [isOpen]);
   
@@ -209,6 +213,57 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       ...prev,
       [fieldId]: value
     }));
+  };
+
+  const getSelectedFormId = () => {
+    const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
+    return parseInt(selectedTemplateObj?.id || '0');
+  };
+
+  const getPersistableFieldValues = () => {
+    return Object.entries(fieldValues).reduce((acc, [fieldId, value]) => {
+      if (fieldId !== 'request_status' && value !== null && value !== undefined && value.toString().trim() !== '') {
+        acc[fieldId] = value;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+  };
+
+  const saveDraftRequestAndForm = async () => {
+    const formId = getSelectedFormId();
+    if (!formId || isNaN(formId)) {
+      throw new Error('Invalid workflow selected');
+    }
+
+    let requestId = draftRequestId;
+
+    if (!requestId) {
+      const requestPayload = {
+        REQUEST_NAME: requestName,
+        REQUEST_DESCRIPTION: description || '',
+        ABBREVIATION: abbreviation,
+        STATUS: 'P',
+        ASSIGNED_ID: null,
+        FORM_ID: formId,
+        templateId: formId,
+      };
+
+      const requestResponse = await api.post('/api/requests', requestPayload);
+      if (!requestResponse.data?.success || !requestResponse.data?.data?.REQUEST_ID) {
+        throw new Error(requestResponse.data?.message || 'Failed to create draft request');
+      }
+
+      requestId = requestResponse.data.data.REQUEST_ID;
+      setDraftRequestId(requestId);
+    }
+
+    await formService.submitForm(requestId, getPersistableFieldValues(), {
+      isComplete: false,
+      isDraft: true,
+    });
+
+    requestStateManager.triggerRefresh();
+    return requestId;
   };
   
   // Fidelity-Subject: validate the hard-required fields before submission
@@ -395,10 +450,33 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     // Perform the actual submission with the specific status
     try {
       setIsSubmitting(true);
+
+      if (draftRequestId) {
+        const finalRequestId = await saveDraftRequestAndForm();
+
+        if (status === 'Completed') {
+          await formService.completeForm(finalRequestId, getPersistableFieldValues());
+        } else if (status === 'Cancelled') {
+          await requestService.cancelRequest(finalRequestId, {});
+        }
+
+        requestStateManager.triggerRefresh();
+        resetForm();
+        onClose();
+
+        MySwal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: `Request ${status.toLowerCase()} successfully!`,
+          confirmButtonText: 'OK',
+          timer: 3000,
+          timerProgressBar: true
+        });
+        return;
+      }
       
       // Get the selected workflow's form ID
-      const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
-      const formId = parseInt(selectedTemplateObj?.id || '0');
+      const formId = getSelectedFormId();
       
       if (!formId || isNaN(formId)) {
         toast.error('Invalid workflow selected');
@@ -547,6 +625,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setTemplateFields([]);
     setFieldValues({});
     setPriorityLevel('Standard');
+    setDraftRequestId(null);
+    setFidelityValidationErrors(new Set());
   };
 
   // Helper functions for input field formatting and validation
@@ -755,7 +835,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
               fieldValues={fieldValues}
               onChange={(id, val) => handleFieldValueChange(id, val)}
+              onAutoSave={saveDraftRequestAndForm}
               validationErrors={fidelityValidationErrors}
+              requestId={draftRequestId ?? undefined}
             />
           )}
         </div>

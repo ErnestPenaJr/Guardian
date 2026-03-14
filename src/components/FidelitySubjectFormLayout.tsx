@@ -26,6 +26,7 @@ interface Props {
   /** Values keyed by String(FIELD_ID) */
   fieldValues: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
+  onAutoSave?: () => Promise<void>;
   readOnly?: boolean;
   /** Set of field names that failed validation — adds red highlight to those fields */
   validationErrors?: Set<string>;
@@ -94,6 +95,18 @@ function parseEntries<T>(raw: string): T[] {
   } catch {
     return [];
   }
+}
+
+function hasCompletedAddress(raw: string): boolean {
+  return parseEntries<AddressEntry>(raw).some(entry =>
+    [entry.street1, entry.street2, entry.city, entry.state, entry.zip].some(value => Boolean(value.trim()))
+  );
+}
+
+function hasCompletedPhone(raw: string): boolean {
+  return parseEntries<PhoneEntry>(raw).some(entry =>
+    Boolean(entry.number.trim()) || Boolean(entry.phoneType.trim())
+  );
 }
 
 // ── Dropdown option lists ─────────────────────────────────────────
@@ -913,6 +926,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   fields,
   fieldValues,
   onChange,
+  onAutoSave,
   readOnly = false,
   validationErrors,
   requestId,
@@ -922,6 +936,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     validationErrors?.has(fieldName) ? ' sw-field--error' : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
+  const requestIdRef = useRef<number | undefined>(requestId);
   const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
   const [formAttachments, setFormAttachments] = useState<Attachment[]>([]);
   const [attachLoading, setAttachLoading] = useState(false);
@@ -934,6 +949,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoRenderReady, setPhotoRenderReady] = useState(false);
+  const [subjectPhotoPreparing, setSubjectPhotoPreparing] = useState(false);
+  const [subjectPhotoPreparingLabel, setSubjectPhotoPreparingLabel] = useState('Saving form…');
 
   const exportPDF = async () => {
     const el = docRef.current;
@@ -972,6 +989,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       setExporting(false);
     }
   };
+
+  useEffect(() => {
+    requestIdRef.current = requestId;
+  }, [requestId]);
 
   useEffect(() => {
     const loadInvestigatorOptions = async () => {
@@ -1088,6 +1109,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     if (!file) return;
     e.target.value = '';
 
+    if (!canStartSubjectPhotoFlow || !requestIdRef.current) {
+      return;
+    }
+
     if (!getRenderablePhotoMimeType(file.name, file.type)) {
       window.alert('Subject photo preview supports JPG, PNG, GIF, WEBP, BMP, and SVG files. Convert HEIC/HEIF photos before uploading.');
       return;
@@ -1118,6 +1143,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         setPhotoModalUrl(null);
         setPhotoUploading(false);
         return;
+      }
+
+      if (onAutoSave) {
+        await onAutoSave();
       }
 
       const token = localStorage.getItem('token');
@@ -1152,6 +1181,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       }
 
       set('Subject Photo Image', `${PHOTO_REF_PREFIX}${attachmentId}`);
+      if (onAutoSave) {
+        await new Promise(resolve => window.setTimeout(resolve, 0));
+        await onAutoSave();
+      }
     } catch (err) {
       console.error('Subject photo upload failed', err);
       setPhotoDisplayUrl(null);
@@ -1328,10 +1361,79 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     setPhotoModalOpen(true);
   };
 
-
   const val = (name: string): string => {
     const f = getF(name);
     return f ? (fieldValues[String(f.FIELD_ID)] ?? '') : '';
+  };
+
+  const subjectPhotoMissingRequirements = useMemo(() => {
+    const missing: string[] = [];
+    if (!val('First Name').trim()) missing.push('First Name');
+    if (!val('Last Name').trim()) missing.push('Last Name');
+    if (!val('Date of Birth').trim()) missing.push('DOB');
+    if (!val('Social Security Number').trim()) missing.push('SSN');
+    if (!hasCompletedAddress(val('Address'))) missing.push('Address');
+    if (!hasCompletedPhone(val('Phone Number'))) missing.push('Phone Number');
+    return missing;
+  }, [fieldValues, fields]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const canStartSubjectPhotoFlow = subjectPhotoMissingRequirements.length === 0;
+
+  const focusNextSubjectPhotoRequirement = () => {
+    const nextMissing = subjectPhotoMissingRequirements[0];
+    if (!nextMissing) return;
+
+    const selectorByRequirement: Record<string, string> = {
+      'First Name': 'input[placeholder="First *"]',
+      'Last Name': 'input[placeholder="Last *"]',
+      'DOB': 'input[placeholder="MM/DD/YYYY"]',
+      'SSN': 'input[placeholder="XXX-XX-XXXX"]',
+      'Address': '.sw-contact-pane .sw-contact-hdr',
+      'Phone Number': '.sw-contact-pane:last-child .sw-contact-hdr',
+    };
+
+    const target = document.querySelector(selectorByRequirement[nextMissing]) as HTMLElement | null;
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) {
+      window.setTimeout(() => target.focus(), 250);
+    }
+  };
+
+  const beginSubjectPhotoSelection = async () => {
+    if (readOnly) return;
+
+    if (!canStartSubjectPhotoFlow) {
+      focusNextSubjectPhotoRequirement();
+      return;
+    }
+
+    if (subjectPhotoPreparing) return;
+
+    if (!onAutoSave) {
+      if (requestIdRef.current) {
+        fileInputRef.current?.click();
+      }
+      return;
+    }
+
+    setSubjectPhotoPreparing(true);
+    setSubjectPhotoPreparingLabel('Saving form…');
+    try {
+      await onAutoSave();
+      setSubjectPhotoPreparingLabel('Opening photo picker…');
+
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        await new Promise(resolve => window.setTimeout(resolve, 150));
+        if (requestIdRef.current) {
+          fileInputRef.current?.click();
+          return;
+        }
+      }
+    } finally {
+      setSubjectPhotoPreparing(false);
+    }
   };
 
   const set = (name: string, v: string) => {
@@ -1693,15 +1795,15 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 }}
                 title="Click to enlarge"
               />
-              {(photoUploading || photoLoading || !photoRenderReady) && (
+              {(photoUploading || photoLoading || subjectPhotoPreparing || !photoRenderReady) && (
                 <div className="sw-photo-uploading-overlay">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                   </svg>
-                  <span>{photoUploading ? 'Saving…' : 'Loading…'}</span>
+                  <span>{photoUploading ? 'Saving photo…' : subjectPhotoPreparing ? subjectPhotoPreparingLabel : 'Loading…'}</span>
                 </div>
               )}
-              {!readOnly && !photoUploading && !photoLoading && photoRenderReady && (
+              {!readOnly && !photoUploading && !photoLoading && !subjectPhotoPreparing && photoRenderReady && (
                 <button
                   type="button"
                   className="sw-photo-remove"
@@ -1711,18 +1813,22 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                   ✕
                 </button>
               )}
-              {!readOnly && !photoUploading && !photoLoading && photoRenderReady && (
+              {!readOnly && !photoUploading && !photoLoading && !subjectPhotoPreparing && photoRenderReady && (
                 <button
                   type="button"
                   className="sw-photo-change"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Change photo"
+                  onClick={beginSubjectPhotoSelection}
+                  title={
+                    canStartSubjectPhotoFlow
+                      ? 'Save and change photo'
+                      : `Complete required fields first: ${subjectPhotoMissingRequirements.join(', ')}`
+                  }
                 >
                   Change
                 </button>
               )}
             </div>
-          ) : (photoUploading || photoLoading) ? (
+          ) : (photoUploading || photoLoading || subjectPhotoPreparing) ? (
             <div className="sw-photo-placeholder">
               <svg
                 width="32"
@@ -1738,14 +1844,20 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
               <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                {photoUploading ? 'Uploading…' : 'Loading…'}
+                {photoUploading ? 'Uploading…' : subjectPhotoPreparing ? subjectPhotoPreparingLabel : 'Loading…'}
               </span>
             </div>
           ) : (
             <div
               className={`sw-photo-placeholder${readOnly ? '' : ' sw-photo-placeholder--clickable'}`}
-              onClick={() => !readOnly && fileInputRef.current?.click()}
-              title={readOnly ? '' : 'Click to upload subject photo'}
+              onClick={beginSubjectPhotoSelection}
+              title={
+                readOnly
+                  ? ''
+                  : canStartSubjectPhotoFlow
+                    ? 'Click to save and upload subject photo'
+                    : `Complete required fields first: ${subjectPhotoMissingRequirements.join(', ')}`
+              }
             >
               <svg
                 width="44"
@@ -1763,7 +1875,9 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
               <span>Subject Photo</span>
               {!readOnly && (
                 <span className="sw-photo-hint">
-                  {requestId ? 'Click to upload' : 'Save request first, then upload photo'}
+                  {canStartSubjectPhotoFlow
+                    ? 'Click to save and upload'
+                    : `Complete required fields first: ${subjectPhotoMissingRequirements.join(', ')}`}
                 </span>
               )}
             </div>

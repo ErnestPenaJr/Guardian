@@ -119,6 +119,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [isSavingForm, setIsSavingForm] = useState<boolean>(false);
   const [formHasChanges, setFormHasChanges] = useState<boolean>(false);
+  const [hasPersistedFormData, setHasPersistedFormData] = useState<boolean>(false);
   
   // Work management state
   const [workActionLoading, setWorkActionLoading] = useState<boolean>(false);
@@ -507,15 +508,18 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         }
 
         setFormFieldValues(fieldValues);
+        setHasPersistedFormData(fieldValues.some(field => field.fieldValue?.toString().trim() !== ''));
       } else {
         setFormTemplate(null);
         setFormFieldValues([]);
+        setHasPersistedFormData(false);
       }
     } catch (err) {
       console.error('Failed to load form field values:', err);
       // NO fallback data - only show real database data
       setFormTemplate(null);
       setFormFieldValues([]);
+      setHasPersistedFormData(false);
     } finally {
       setFormLoading(false);
     }
@@ -835,9 +839,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   );
 
   // Save form data to the server
-  const handleSaveFormData = async () => {
+  const handleSaveFormData = async (options?: { silent?: boolean }) => {
     try {
       setIsSavingForm(true);
+      const silent = options?.silent === true;
 
       // Prepare form data in the format the server expects
       // Use the ref to guarantee we read the latest state (avoids stale closure with concurrent updates)
@@ -908,14 +913,21 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         await fetchFormFieldValues();
         // Ensure any side effects during the fetch don't re-set the flag
         setFormHasChanges(false);
-        toast.success('Form data saved successfully');
+        setHasPersistedFormData(true);
+        if (!silent) {
+          toast.success('Form data saved successfully');
+        }
       } else {
         console.error('Failed to save form data:', response.status);
-        toast.error('Failed to save form data. Please try again.');
+        if (!silent) {
+          toast.error('Failed to save form data. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error saving form data:', error);
-      toast.error('Error saving form data. Please try again.');
+      if (!options?.silent) {
+        toast.error('Error saving form data. Please try again.');
+      }
     } finally {
       setIsSavingForm(false);
     }
@@ -1437,7 +1449,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               disabled={isSavingForm || !formHasChanges}
               className="px-3"
             >
-              {isSavingForm ? 'Saving…' : 'Save Form Data'}
+              {isSavingForm ? 'Saving…' : hasPersistedFormData ? 'Update' : 'Save'}
             </Button>
           </div>
         </div>
@@ -1455,6 +1467,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               fields={formFields}
               fieldValues={currentFieldValues}
               onChange={handleFormFieldChangeById}
+              onAutoSave={() => handleSaveFormData({ silent: true })}
               readOnly={request.STATUS === 'C'}
               requestId={request.REQUEST_ID}
             />
@@ -1601,6 +1614,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             fields={formFields}
             fieldValues={currentFieldValues}
             onChange={handleFormFieldChangeById}
+            onAutoSave={() => handleSaveFormData({ silent: true })}
             readOnly={request.STATUS === 'C'}
             requestId={request.REQUEST_ID}
           />
@@ -1638,7 +1652,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                 className="px-3"
                 style={{ fontSize: '0.85rem' }}
               >
-                {isSavingForm ? 'Saving...' : 'Save Form Data'}
+                {isSavingForm ? 'Saving...' : hasPersistedFormData ? 'Update' : 'Save'}
               </Button>
             </div>
             {formHasChanges && (
