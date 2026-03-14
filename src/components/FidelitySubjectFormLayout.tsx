@@ -1168,6 +1168,13 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       if (!attachmentId) {
         throw new Error('Missing attachment ID');
       }
+      const uploadedFileName = String(data?.fileName || `${SUBJECT_PHOTO_FILE_PREFIX}${file.name}`);
+
+      setFormAttachments(prev => {
+        const next = prev.filter(a => a.attachmentId !== attachmentId);
+        next.push({ attachmentId, fileName: uploadedFileName });
+        return next;
+      });
 
       const currentVal = val('Subject Photo Image');
       if (currentVal.startsWith(PHOTO_REF_PREFIX)) {
@@ -1279,11 +1286,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       const token = localStorage.getItem('token');
       setPhotoRenderReady(false);
       setPhotoLoading(true);
-      setPhotoDisplayUrl(prev => {
-        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setPhotoModalUrl(null);
       fetch(`/api/attachments/${attachmentId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -1310,6 +1312,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             return dataUrl;
           });
           setPhotoModalUrl(dataUrl);
+          setPhotoRenderReady(true);
           setPhotoLoading(false);
         })
         .catch(err => {
