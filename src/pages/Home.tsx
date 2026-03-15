@@ -1948,21 +1948,6 @@ function Home() {
         onClose={() => setShowNotificationPreferences(false)}
       />
       
-      {/* Debug: Show modal state in UI */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: 'red',
-          color: 'white',
-          padding: '10px',
-          zIndex: 9999,
-          fontSize: '12px'
-        }}>
-          Modal State: {showFirstTimeWorkflowModal ? 'OPEN' : 'CLOSED'}
-        </div>
-      )}
       {/* Mobile Bottom Nav */}
       <MobileNavBar
         selected={mobileNav}

@@ -644,6 +644,101 @@ async function waitForImageReady(src: string): Promise<void> {
   }
 }
 
+function replaceControlWithExportText(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
+  const tag = control.tagName.toLowerCase();
+  const isTextarea = tag === 'textarea';
+  const exportNode = document.createElement(isTextarea ? 'div' : 'span');
+  exportNode.className = 'sw-export-text';
+
+  let value = '';
+  if (control instanceof HTMLInputElement) {
+    if (control.type === 'radio') {
+      if (!control.checked) {
+        control.style.visibility = 'hidden';
+        return;
+      }
+      const label = control.closest('label');
+      value = label?.textContent?.trim() || control.value || '';
+      exportNode.classList.add('sw-export-text--inline');
+      const marker = document.createElement('span');
+      marker.className = 'sw-export-radio-marker';
+      marker.textContent = '◉';
+      exportNode.appendChild(marker);
+      const text = document.createElement('span');
+      text.textContent = value;
+      exportNode.appendChild(text);
+      control.parentElement?.replaceWith(exportNode);
+      return;
+    }
+
+    if (control.type === 'checkbox') {
+      value = control.checked ? 'Yes' : 'No';
+    } else {
+      value = control.value || control.placeholder || '';
+    }
+  } else if (control instanceof HTMLSelectElement) {
+    value = control.selectedOptions[0]?.textContent?.trim() || control.value || '';
+  } else {
+    value = control.value || control.placeholder || '';
+  }
+
+  exportNode.textContent = value || ' ';
+
+  const computed = window.getComputedStyle(control);
+  const renderedHeight = Math.max(
+    control.getBoundingClientRect().height,
+    isTextarea ? control.scrollHeight : 0,
+  );
+  exportNode.style.display = isTextarea ? 'block' : 'inline-flex';
+  exportNode.style.width = computed.width;
+  exportNode.style.minHeight = `${Math.max(renderedHeight, 20)}px`;
+  if (isTextarea) {
+    exportNode.style.height = `${Math.max(renderedHeight, 20)}px`;
+  }
+  exportNode.style.padding = computed.padding;
+  exportNode.style.margin = computed.margin;
+  exportNode.style.border = 'none';
+  exportNode.style.background = 'transparent';
+  exportNode.style.color = computed.color;
+  exportNode.style.font = computed.font;
+  exportNode.style.fontSize = computed.fontSize;
+  exportNode.style.fontWeight = computed.fontWeight;
+  exportNode.style.lineHeight = computed.lineHeight;
+  exportNode.style.letterSpacing = computed.letterSpacing;
+  exportNode.style.whiteSpace = isTextarea ? 'pre-wrap' : 'normal';
+  exportNode.style.wordBreak = 'break-word';
+  exportNode.style.alignItems = 'center';
+  exportNode.style.boxSizing = 'border-box';
+
+  control.replaceWith(exportNode);
+}
+
+function buildCanvasSlice(sourceCanvas: HTMLCanvasElement, startY: number, endY: number): HTMLCanvasElement {
+  const sliceCanvas = document.createElement('canvas');
+  const sliceHeight = Math.max(1, endY - startY);
+  sliceCanvas.width = sourceCanvas.width;
+  sliceCanvas.height = sliceHeight;
+
+  const ctx = sliceCanvas.getContext('2d');
+  if (!ctx) {
+    return sliceCanvas;
+  }
+
+  ctx.drawImage(
+    sourceCanvas,
+    0,
+    startY,
+    sourceCanvas.width,
+    sliceHeight,
+    0,
+    0,
+    sourceCanvas.width,
+    sliceHeight
+  );
+
+  return sliceCanvas;
+}
+
 function normalizeAttachmentBytes(buffer: ArrayBuffer): Uint8Array {
   const directBytes = new Uint8Array(buffer);
   if (directBytes.length === 0) return directBytes;
@@ -959,13 +1054,47 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     const el = docRef.current;
     if (!el) return;
     setExporting(true);
+    let exportHost: HTMLDivElement | null = null;
     try {
-      const canvas = await html2canvas(el, {
+      exportHost = document.createElement('div');
+      exportHost.style.position = 'fixed';
+      exportHost.style.left = '-20000px';
+      exportHost.style.top = '0';
+      exportHost.style.width = `${el.scrollWidth}px`;
+      exportHost.style.padding = '0';
+      exportHost.style.margin = '0';
+      exportHost.style.background = '#ffffff';
+      exportHost.style.zIndex = '-1';
+
+      const exportClone = el.cloneNode(true) as HTMLDivElement;
+      exportClone.classList.add('sw-exporting');
+      exportClone.style.width = `${el.scrollWidth}px`;
+      exportClone.style.maxWidth = 'none';
+
+      exportHost.appendChild(exportClone);
+      document.body.appendChild(exportHost);
+
+      exportClone
+        .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')
+        .forEach(control => replaceControlWithExportText(control));
+
+      const forcedPageBreakHeader = Array.from(exportClone.querySelectorAll<HTMLElement>('.sw-intel-hdr'))
+        .find(node => node.textContent?.trim().toLowerCase() === 'investigative / intelligence notes of interest:');
+      const forcedBreakTarget = forcedPageBreakHeader?.nextElementSibling as HTMLElement | null;
+      const forcedBreakOffset = forcedBreakTarget
+        ? forcedBreakTarget.offsetTop + forcedBreakTarget.offsetHeight
+        : null;
+
+      const canvas = await html2canvas(exportClone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
+        width: exportClone.scrollWidth,
+        height: exportClone.scrollHeight,
+        windowWidth: exportClone.scrollWidth,
+        windowHeight: exportClone.scrollHeight,
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.92);
@@ -975,13 +1104,36 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       const pageH = pdf.internal.pageSize.getHeight();
       const margin = 36; // 0.5 in
       const printW = pageW - margin * 2;
-      const imgH = (canvas.height * printW) / canvas.width;
+      const printablePageHeight = pageH - margin * 2;
+      const canvasPageHeight = Math.floor((printablePageHeight * canvas.width) / printW);
+      const cloneToCanvasRatio = canvas.height / exportClone.scrollHeight;
+      let forcedBreakY = forcedBreakOffset ? Math.floor(forcedBreakOffset * cloneToCanvasRatio) : null;
 
-      let y = 0;
-      while (y < imgH) {
-        if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', margin, margin - y, printW, imgH);
-        y += pageH - margin * 2;
+      let currentY = 0;
+      let pageIndex = 0;
+      while (currentY < canvas.height) {
+        let nextY = Math.min(currentY + canvasPageHeight, canvas.height);
+
+        if (
+          forcedBreakY !== null &&
+          forcedBreakY > currentY &&
+          forcedBreakY < nextY
+        ) {
+          nextY = forcedBreakY;
+          forcedBreakY = null;
+        }
+
+        const pageCanvas = buildCanvasSlice(canvas, currentY, nextY);
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
+        const pageImgHeight = (pageCanvas.height * printW) / pageCanvas.width;
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(pageImgData, 'JPEG', margin, margin, printW, pageImgHeight);
+
+        currentY = nextY;
+        pageIndex += 1;
       }
 
       const subjectName = el.querySelector<HTMLElement>('.sw-title-name')?.innerText?.trim() || 'Subject-Workup';
@@ -989,6 +1141,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
+      exportHost?.remove();
       setExporting(false);
     }
   };

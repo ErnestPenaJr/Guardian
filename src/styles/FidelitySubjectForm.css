@@ -869,6 +869,77 @@
   @page { margin: 0.5in; }
 }
 
+.sw-exporting {
+  overflow: visible !important;
+}
+
+.sw-exporting .sw-doc,
+.sw-exporting .sw-body-grid,
+.sw-exporting .sw-fields-col,
+.sw-exporting .sw-contact-grid,
+.sw-exporting .sw-notes-grid,
+.sw-exporting .sw-matrix,
+.sw-exporting .sw-photo-col,
+.sw-exporting .sw-field-row,
+.sw-exporting .sw-special-notes-row,
+.sw-exporting .sw-contact-pane,
+.sw-exporting .sw-intel-body,
+.sw-exporting .sw-full-textarea {
+  overflow: visible !important;
+}
+
+.sw-exporting .sw-input,
+.sw-exporting .sw-select,
+.sw-exporting .sw-textarea {
+  line-height: 1.35 !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  min-height: 20px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.sw-exporting .sw-textarea {
+  height: auto !important;
+}
+
+.sw-exporting .sw-notes-pane .sw-export-text {
+  min-height: 126px !important;
+}
+
+.sw-exporting .sw-intel-body .sw-export-text {
+  min-height: 146px !important;
+}
+
+.sw-export-text {
+  color: #111;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.sw-export-text--inline {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.sw-export-radio-marker {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.sw-exporting .sw-field-value,
+.sw-exporting .sw-date-cell,
+.sw-exporting .sw-contact-body,
+.sw-exporting .sw-multi-row,
+.sw-exporting .sw-addr-city-row,
+.sw-exporting .sw-gender-group {
+  align-items: center !important;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
