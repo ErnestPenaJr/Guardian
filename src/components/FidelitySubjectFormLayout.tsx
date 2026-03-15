@@ -787,7 +787,10 @@ const AttachmentsDropZone: React.FC<AttachmentsDropZoneProps> = ({
   const photoAttachId = photoRefValue.startsWith(PHOTO_REF_PREFIX)
     ? parseInt(photoRefValue.slice(PHOTO_REF_PREFIX.length))
     : null;
-  const others = formAttachments.filter(a => a.attachmentId !== photoAttachId);
+  const others = formAttachments.filter(a =>
+    a.attachmentId !== photoAttachId &&
+    !a.fileName.startsWith(SUBJECT_PHOTO_FILE_PREFIX)
+  );
 
   // Lazily fetch blob URLs for image attachments
   useEffect(() => {
@@ -1249,15 +1252,103 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   useEffect(() => {
     if (requestId && !photoFieldValue) {
       setPhotoRenderReady(false);
-      setPhotoLoading(false);
-      setPhotoDisplayUrl(prev => {
-        if (photoUploading) return prev;
-        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setPhotoModalUrl(null);
-      setPhotoModalOpen(false);
-      return;
+      setPhotoLoading(true);
+
+      let cancelled = false;
+      const token = localStorage.getItem('token');
+
+      fetch(`/api/requests/${requestId}/subject-photo`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+        .then(async res => {
+          if (res.status === 404) {
+            return null;
+          }
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          const attachmentId = Number(data?.attachmentId);
+          const fileName = String(data?.fileName || '');
+
+          if (!attachmentId || Number.isNaN(attachmentId)) {
+            return null;
+          }
+
+          setFormAttachments(prev => {
+            if (prev.some(a => a.attachmentId === attachmentId)) {
+              return prev;
+            }
+            return [...prev, { attachmentId, fileName }];
+          });
+
+          if (photoField) {
+            onChangeRef.current(String(photoField.FIELD_ID), `${PHOTO_REF_PREFIX}${attachmentId}`);
+          }
+
+          const downloadRes = await fetch(`/api/attachments/${attachmentId}/download`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          });
+
+          if (!downloadRes.ok) {
+            throw new Error(`HTTP ${downloadRes.status}`);
+          }
+
+          const renderableMimeType = getRenderablePhotoMimeType(
+            fileName,
+            downloadRes.headers.get('Content-Type'),
+          );
+          if (!renderableMimeType) {
+            throw new Error('UNSUPPORTED_IMAGE_FORMAT');
+          }
+
+          const buffer = await downloadRes.arrayBuffer();
+          const normalizedBytes = normalizeAttachmentBytes(buffer);
+          const blob = new Blob([normalizedBytes], { type: renderableMimeType });
+          return blobToDataUrl(blob);
+        })
+        .then(async dataUrl => {
+          if (cancelled) return;
+          if (!dataUrl) {
+            setPhotoLoading(false);
+            setPhotoDisplayUrl(prev => {
+              if (photoUploading) return prev;
+              if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+              return null;
+            });
+            setPhotoModalUrl(null);
+            setPhotoModalOpen(false);
+            return;
+          }
+
+          await waitForImageReady(dataUrl);
+          if (cancelled) return;
+
+          setPhotoDisplayUrl(prev => {
+            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+            return dataUrl;
+          });
+          setPhotoModalUrl(dataUrl);
+          setPhotoRenderReady(true);
+          setPhotoLoading(false);
+        })
+        .catch(err => {
+          if (cancelled) return;
+          console.error('Subject photo fallback load failed', err);
+          setPhotoLoading(false);
+          setPhotoDisplayUrl(prev => {
+            if (photoUploading) return prev;
+            if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+            return null;
+          });
+          setPhotoModalUrl(null);
+          setPhotoModalOpen(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (!photoFieldValue) {
@@ -1798,7 +1889,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
                 }}
                 title="Click to enlarge"
               />
-              {(photoUploading || photoLoading || subjectPhotoPreparing || !photoRenderReady) && (
+              {(photoUploading || subjectPhotoPreparing || !photoRenderReady) && (
                 <div className="sw-photo-uploading-overlay">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
