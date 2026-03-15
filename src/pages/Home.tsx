@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LogOut, User, FileText,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
-  Building2, Settings, KeyRound, Bell, SunMoon
+  Building2, Settings, KeyRound, Bell, SunMoon, Landmark, Globe
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -706,6 +706,18 @@ function Home() {
         active: selectedSection === 'workspaces',
       }
     ] : []),
+    {
+      icon: <Landmark className="w-6 h-6" />,
+      label: 'AIM-Financial',
+      onClick: () => window.open('https://aim-financial.netlify.app/', '_blank'),
+      active: false,
+    },
+    {
+      icon: <Globe className="w-6 h-6" />,
+      label: 'AIM-Wildlife',
+      onClick: () => window.open('https://aim-wildlife.netlify.app/', '_blank'),
+      active: false,
+    },
     // Admin and Super Admin navigation items (role_id = 1 or 6)
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
       {
@@ -720,7 +732,7 @@ function Home() {
         onClick: handleSendInvite,
         active: false,
       }
-    ] : [])
+    ] : []),
   ];
 
   // Center action handler (could open a modal or perform an action)
