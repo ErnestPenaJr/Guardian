@@ -2315,25 +2315,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         />
       </div>
 
-      {/* ── OTHER ATTACHMENTS ────────────────────────── */}
-      {requestId && (
-        <div className="sw-attachments-section no-print">
-          <div className="sw-intel-hdr sw-attachments-hdr">
-            Other Attachments
-          </div>
-          <AttachmentsDropZone
-            uploading={uploading}
-            attachLoading={attachLoading}
-            formAttachments={formAttachments}
-            photoRefValue={photoFieldValue}
-            readOnly={readOnly}
-            onFile={handleAttachmentUpload}
-            onDownload={handleAttachmentDownload}
-            onDelete={handleAttachmentDelete}
-          />
-        </div>
-      )}
-
     </div>
   );
 };

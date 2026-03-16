@@ -1424,6 +1424,693 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
 
   // Fidelity-Subject opens as a dedicated full-page view instead of inside the modal
   const isFidelitySubject = isFidelitySubjectFormName(formTemplate?.name);
+  const tabButtonClass = (tab: typeof activeMainTab) =>
+    `btn btn-sm border-0 px-3 py-2${tab === 'details' ? '' : ' ms-2'} ${
+      activeMainTab === tab ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
+    }`;
+
+  const renderTabNavigation = (isFullscreen = false) => (
+    <div className={isFullscreen ? 'rfp-tabs' : 'border-top pt-3 mb-4'}>
+      <div className={isFullscreen ? 'rfp-tabs-nav' : 'd-flex mb-0 border-bottom'}>
+        <button
+          className={tabButtonClass('details')}
+          onClick={() => setActiveMainTab('details')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'details' ? '600' : '400' }}
+        >
+          Details
+        </button>
+        <button
+          className={tabButtonClass('tasks')}
+          onClick={() => setActiveMainTab('tasks')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'tasks' ? '600' : '400' }}
+        >
+          Tasks
+        </button>
+        <button
+          className={tabButtonClass('results')}
+          onClick={() => setActiveMainTab('results')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'results' ? '600' : '400' }}
+        >
+          Results
+        </button>
+        <button
+          className={tabButtonClass('attachments')}
+          onClick={() => setActiveMainTab('attachments')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'attachments' ? '600' : '400' }}
+        >
+          Attachments
+        </button>
+        <button
+          className={tabButtonClass('milestones')}
+          onClick={() => setActiveMainTab('milestones')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'milestones' ? '600' : '400' }}
+        >
+          Milestones
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderDetailsTab = (isFullscreen = false) => (
+    <div className="tab-pane active">
+      {formTemplate && !isFullscreen && (
+        <div className="border-top pt-3 mb-3">
+          <div className="text-primary fw-semibold mb-1" style={{ fontSize: '1rem' }}>
+            {formTemplate.name}
+          </div>
+          <div className="text-muted mb-2" style={{ fontSize: '0.85rem' }}>
+            {formTemplate.description}
+          </div>
+        </div>
+      )}
+
+      {formLoading ? (
+        <div className="text-center py-3">
+          <div className="spinner-border spinner-border-sm text-primary" role="status">
+            <span className="visually-hidden">Loading form data...</span>
+          </div>
+          <div className="mt-2 text-muted small">Loading form data...</div>
+        </div>
+      ) : formFieldValues.length > 0 ? (
+        <SectionedFormRenderer
+          formName={formTemplate?.name ?? ''}
+          fields={formFields}
+          fieldValues={currentFieldValues}
+          onChange={handleFormFieldChangeById}
+          onAutoSave={() => handleSaveFormData({ silent: true })}
+          readOnly={request.STATUS === 'C'}
+          requestId={request.REQUEST_ID}
+        />
+      ) : formTemplate ? (
+        <div className="alert alert-info">
+          <h6 className="alert-heading">Form Template Found</h6>
+          <p className="mb-0">Template: <strong>{formTemplate.name}</strong></p>
+          <p className="mb-0">Description: {formTemplate.description}</p>
+          <hr className="my-2" />
+          <small className="text-muted">No form fields found for this template. The form may not have been configured with fields yet.</small>
+        </div>
+      ) : (
+        <div className="alert alert-warning">
+          <h6 className="alert-heading">No Form Data Available</h6>
+          <p className="mb-1">This request does not have an associated form template.</p>
+          <hr className="my-2" />
+          <small className="text-muted">
+            Request ID: {request.REQUEST_ID}<br />
+            Form ID: {request.FORM_ID || 'None'}<br />
+            Check the browser console for detailed API response information.
+          </small>
+        </div>
+      )}
+
+      {formFieldValues.length > 0 && !isFullscreen && (
+        <div className="border-top pt-3 mt-3">
+          <div className="d-flex gap-2 justify-content-between align-items-center mb-3">
+            <div className="text-dark fw-semibold" style={{ fontSize: '0.9rem' }}>Form Data</div>
+            <Button
+              variant="success"
+              onClick={handleSaveFormData}
+              disabled={isSavingForm || !formHasChanges}
+              size="sm"
+              className="px-3"
+              style={{ fontSize: '0.85rem' }}
+            >
+              {isSavingForm ? 'Saving...' : hasPersistedFormData ? 'Update' : 'Save'}
+            </Button>
+          </div>
+          {formHasChanges && (
+            <div className="alert alert-warning py-2 mb-3" style={{ fontSize: '0.8rem' }}>
+              <small>⚠️ You have unsaved changes to the form data.</small>
+            </div>
+          )}
+        </div>
+      )}
+
+
+
+
+      {isRequestorUser && !isAssignedToCurrentUser && (
+        <div className="border-top pt-3 mt-3">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="text-dark fw-semibold" style={{ fontSize: '1rem' }}>
+              📝 Respond to Processor
+            </div>
+            <span className="badge bg-info" style={{ fontSize: '0.75rem' }}>
+              Your Request
+            </span>
+          </div>
+
+          <div className="bg-light rounded p-3">
+            <div className="mb-3">
+              <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                Response to Processor
+              </label>
+              <textarea
+                className="form-control"
+                rows={4}
+                placeholder="Provide additional information, answer questions, or clarify details..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                style={{ fontSize: '0.85rem' }}
+              />
+              <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                Your response will be sent to the assigned processor and may help speed up your request.
+              </div>
+            </div>
+
+            {feedbackFiles.length > 0 && (
+              <div className="mb-3">
+                <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
+                  Selected Files ({feedbackFiles.length})
+                </div>
+                {feedbackFiles.map((file, index) => (
+                  <div key={index} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-2">
+                    <div style={{ fontSize: '0.8rem' }}>
+                      <div className="fw-medium">{file.name}</div>
+                      <div className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                    </div>
+                    <button
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => removeFeedbackFile(index)}
+                      style={{ fontSize: '0.75rem' }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="d-flex justify-content-end">
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  const originalType = feedbackType;
+                  setFeedbackType('update');
+                  await handleSubmitFeedback();
+                  setFeedbackType(originalType);
+                }}
+                disabled={workActionLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
+                size="sm"
+                className="d-flex align-items-center"
+                style={{ fontSize: '0.85rem' }}
+              >
+                <Send size={14} className="me-1" />
+                {workActionLoading ? 'Sending...' : 'Send Response'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isFullscreen && (
+        <div className="border-top pt-4 mt-4">
+          <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
+
+          <div className="d-flex gap-2 flex-wrap mb-3">
+            {hasAssignPermission && (
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowAssignRequestModal(true)}
+                disabled={loading}
+                style={{ minWidth: '80px' }}
+              >
+                Assign
+              </Button>
+            )}
+
+            {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
+              <Button
+                variant="success"
+                onClick={() => setShowStartConfirmModal(true)}
+                disabled={workActionLoading}
+                style={{ minWidth: '80px' }}
+              >
+                Start
+              </Button>
+            ) : null}
+
+            {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (!resultsNotes.trim()) {
+                    toast.error('Please add results in the Results tab before completing the request');
+                    setActiveMainTab('results');
+                    return;
+                  }
+                  setShowCompleteConfirmModal(true);
+                }}
+                disabled={workActionLoading}
+                style={{ minWidth: '80px' }}
+              >
+                Complete
+              </Button>
+            ) : null}
+
+            {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
+              <Button
+                variant="danger"
+                onClick={() => setShowCancelConfirmModal(true)}
+                disabled={workActionLoading}
+                style={{ minWidth: '80px' }}
+              >
+                Cancel
+              </Button>
+            ) : null}
+          </div>
+
+
+          <div className="d-flex justify-content-end">
+            <Button
+              variant="outline-secondary"
+              onClick={onHide}
+              size="sm"
+              className="px-3"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTabContent = (isFullscreen = false) => (
+    <div className={`tab-content${isFullscreen ? ' rfp-tab-content' : ''}`}>
+      {activeMainTab === 'details' && renderDetailsTab(isFullscreen)}
+      {activeMainTab === 'tasks' && (
+        <div className="tab-pane active">
+          <div className="mb-3">
+            <div className="mb-3">
+              <div className="d-flex align-items-center mb-2">
+                <h6 className="mb-0 me-2">Task Management</h6>
+                {selectedTasks.size > 0 && (
+                  <span className="badge bg-primary">{selectedTasks.size} selected</span>
+                )}
+              </div>
+              <div className="d-flex gap-2 flex-wrap">
+                <Button size="sm" variant="outline-primary" onClick={() => setShowAddTaskModal(true)} disabled={taskActionLoading}>
+                  Add Task
+                </Button>
+                <Button size="sm" variant="outline-secondary" onClick={() => setShowAssignTaskModal(true)} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Assign Tasks
+                </Button>
+                <Button size="sm" variant="outline-success" onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'In Progress')} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Start Tasks
+                </Button>
+                <Button size="sm" variant="outline-success" onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Completed')} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Complete Tasks
+                </Button>
+                <Button size="sm" variant="outline-danger" onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Cancelled')} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Cancel Tasks
+                </Button>
+              </div>
+            </div>
+
+            {tasksLoading ? (
+              <div className="text-center py-4">
+                <div className="spinner-border spinner-border-sm text-primary" role="status">
+                  <span className="visually-hidden">Loading tasks...</span>
+                </div>
+                <div className="mt-2 text-muted small">Loading tasks...</div>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-sm table-hover">
+                  <thead className="bg-light">
+                    <tr>
+                      <th style={{ width: '50px' }}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={tasks.length > 0 && selectedTasks.size === tasks.length}
+                          onChange={(e) => handleSelectAllTasks(e.target.checked)}
+                        />
+                      </th>
+                      <th>Task ID</th>
+                      <th>Status</th>
+                      <th>Assigned To</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center text-muted py-4">
+                          <div>No tasks found for this request</div>
+                          <small>Click "Add" to create the first task</small>
+                        </td>
+                      </tr>
+                    ) : (
+                      tasks.map((task: Task) => (
+                        <tr key={task.TASK_ID}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              checked={selectedTasks.has(task.TASK_ID)}
+                              onChange={(e) => handleTaskSelect(task.TASK_ID, e.target.checked)}
+                            />
+                          </td>
+                          <td><code>T-{task.TASK_ID}</code></td>
+                          <td>
+                            <span className={getTaskStatusBadgeClass(task.STATUS)}>
+                              {getTaskStatusText(task.STATUS)}
+                            </span>
+                          </td>
+                          <td>
+                            {task.assignedUser
+                              ? task.assignedUser.FULL_NAME || `${task.assignedUser.FIRST_NAME} ${task.assignedUser.LAST_NAME}`
+                              : 'Unassigned'}
+                          </td>
+                          <td>
+                            <span title={task.DESCRIPTION} className="text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
+                              {task.DESCRIPTION}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {activeMainTab === 'attachments' && (
+        <div className="tab-pane active">
+          <div className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="mb-0 fw-semibold">Document Management</h6>
+              <div className="d-flex gap-2">
+                <span className="badge bg-secondary">
+                  {attachmentsLoading ? 'Loading...' : `${attachments.length} document${attachments.length !== 1 ? 's' : ''}`}
+                </span>
+                <Button size="sm" variant="primary" className="d-flex align-items-center" onClick={handleUploadFiles} disabled={uploadingFiles || selectedFiles.length === 0}>
+                  <Upload size={14} className="me-1" />
+                  {uploadingFiles ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : 'Documents'}`}
+                </Button>
+              </div>
+            </div>
+
+            <div className="card mb-4">
+              <div className="card-header bg-light">
+                <h6 className="mb-0 fw-medium">Upload Support Documents</h6>
+              </div>
+              <div className="card-body">
+                <div className="mb-3">
+                  <div {...getRootProps()} className={getDropzoneStyle()}>
+                    <input {...getInputProps()} />
+                    <div className="py-3">
+                      {uploadingFiles ? (
+                        <>
+                          <div className="spinner-border spinner-border-sm mb-2" role="status">
+                            <span className="visually-hidden">Uploading...</span>
+                          </div>
+                          <div className="fw-medium">Uploading files...</div>
+                          <div className="small text-muted">Please wait while files are being uploaded</div>
+                        </>
+                      ) : isDragActive ? (
+                        isDragAccept ? (
+                          <>
+                            <Upload size={32} className="mb-2 text-success" />
+                            <div className="fw-medium text-success">Drop files here to upload</div>
+                            <div className="small text-success">Release to add files to upload queue</div>
+                          </>
+                        ) : (
+                          <>
+                            <X size={32} className="mb-2 text-danger" />
+                            <div className="fw-medium text-danger">Some files are not supported</div>
+                            <div className="small text-danger">Only images, PDF, DOC/DOCX, XLS/XLSX, and TXT files are allowed</div>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <Upload size={32} className="mb-2" />
+                          <div className="fw-medium">Drag & drop files here, or click to browse</div>
+                          <div className="small text-muted mt-1">
+                            Supported formats: Images, PDF, Word documents, Excel files, Text files (Max 10MB each)
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedFiles.length > 0 && (
+                  <div className="mb-3">
+                    <h6 className="fw-medium mb-2">Selected Files ({selectedFiles.length})</h6>
+                    <div className="row g-2">
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="col-md-6">
+                          <div className="border rounded p-2 d-flex justify-content-between align-items-center bg-light">
+                            <div className="d-flex align-items-start flex-grow-1 min-w-0">
+                              <FileText size={16} className="text-primary me-2 flex-shrink-0 mt-1" />
+                              <div className="flex-grow-1 min-w-0">
+                                <div className="fw-medium text-truncate" title={file.name} style={{ fontSize: '0.85rem' }}>
+                                  {file.name}
+                                </div>
+                                <div className="text-muted small">
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type || 'Unknown type'}
+                                </div>
+                                {uploadProgress[file.name] !== undefined && (
+                                  <>
+                                    <div className="progress mt-1" style={{ height: '6px' }}>
+                                      <div className="progress-bar progress-bar-striped progress-bar-animated" style={{ width: `${uploadProgress[file.name]}%` }}></div>
+                                    </div>
+                                    <div className="small text-muted mt-1">{uploadProgress[file.name]}% uploaded</div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button variant="outline-danger" size="sm" className="ms-2 d-flex align-items-center" onClick={() => removeSelectedFile(index)} disabled={uploadingFiles} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} title="Remove file">
+                              <X size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {uploadingFiles && (
+                      <div className="alert alert-info mt-2 py-2" style={{ fontSize: '0.85rem' }}>
+                        <div className="d-flex align-items-center">
+                          <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+                          Uploading files... Please do not close this window.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="alert alert-info py-2" style={{ fontSize: '0.85rem' }}>
+                  <strong>Upload Guidelines:</strong>
+                  <ul className="mb-0 mt-1 ps-3">
+                    <li>Maximum file size: 10MB per file</li>
+                    <li>Supported formats: PDF, DOC/DOCX, XLS/XLSX, TXT, Images (JPG/PNG)</li>
+                    <li>Files will be associated with this specific request</li>
+                    <li>All uploaded documents will be visible to request participants</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <h6 className="mb-0 fw-medium">Request Documents</h6>
+                <Button size="sm" variant="outline-secondary" className="d-flex align-items-center">
+                  <Download size={14} className="me-1" />
+                  Download All
+                </Button>
+              </div>
+              <div className="card-body">
+                {attachmentsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-primary" role="status">
+                      <span className="visually-hidden">Loading attachments...</span>
+                    </div>
+                    <div className="mt-2 text-muted small">Loading documents...</div>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  <div className="row g-3">
+                    {attachments.map((attachment: Attachment) => (
+                      <div key={attachment.attachmentId} className="col-md-6 col-lg-4">
+                        <div className="border rounded p-3 h-100 d-flex flex-column">
+                          <div className="d-flex align-items-start mb-2">
+                            <FileText size={20} className="text-primary me-2 flex-shrink-0 mt-1" />
+                            <div className="flex-grow-1 min-w-0">
+                              <h6 className="mb-1 fw-medium text-truncate" title={attachment.fileName}>{attachment.fileName}</h6>
+                              <div className="text-muted small">
+                                <div>By: {attachment.uploadedBy.firstName} {attachment.uploadedBy.lastName}</div>
+                                <div>Date: {formatDate(attachment.createDate)}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto d-flex gap-2">
+                            <Button variant="outline-primary" size="sm" onClick={() => handleDownloadAttachment(attachment.attachmentId, attachment.fileName)} className="d-flex align-items-center flex-grow-1">
+                              <Download size={12} className="me-1" />
+                              Download
+                            </Button>
+                            {canWorkOnRequest && (
+                              <Button variant="outline-danger" size="sm" onClick={() => handleDeleteAttachment(attachment.attachmentId, attachment.fileName)} title="Delete document">
+                                ×
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-5">
+                    <Upload size={48} className="text-muted mb-3" />
+                    <h6 className="text-muted mb-2">No Documents Yet</h6>
+                    <p className="text-muted small mb-3">
+                      No documents have been uploaded for this request. Use the upload section above to add supporting files.
+                    </p>
+                    <div {...getRootProps()} className="cursor-pointer">
+                      <input {...getInputProps()} />
+                      <Button variant="outline-primary" size="sm" className="d-flex align-items-center mx-auto" as="div" style={{ cursor: 'pointer' }}>
+                        <Upload size={14} className="me-1" />
+                        Upload First Document
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeMainTab === 'results' && (
+        <div className="tab-pane active">
+          <div className="mb-4">
+            <div className="card mb-4">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <h6 className="mb-0 fw-semibold">Notes and Results</h6>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-muted small">{resultsNotes.length}/4000</span>
+                  {resultsHasChanges && (
+                    <span className="badge bg-warning text-dark d-inline-flex align-items-center px-2 py-1">
+                      <Save size={12} className="me-1 align-middle" />
+                      <span className="align-middle">Unsaved Changes</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="card-body">
+                <Form.Group className="mb-3">
+                  <Form.Control
+                    as="textarea"
+                    rows={8}
+                    maxLength={4000}
+                    placeholder="Document the results of this request, findings, outcomes, or any relevant information..."
+                    value={resultsNotes}
+                    onChange={(e) => handleResultsNotesChange(e.target.value)}
+                    className="form-control"
+                    style={{ minHeight: '200px', fontSize: '0.9rem', lineHeight: '1.5' }}
+                  />
+                  <Form.Text className="text-muted">
+                    This information will be visible to the requestor and stored as part of the request record.
+                  </Form.Text>
+                </Form.Group>
+
+                <div className="d-flex gap-2 justify-content-end">
+                  <Button variant="outline-primary" size="sm" onClick={handleSaveResults} disabled={savingResults || !resultsHasChanges} className="d-flex align-items-center">
+                    <Save size={14} className="me-1" />
+                    {savingResults ? 'Saving...' : 'Save Results'}
+                  </Button>
+
+                  {canWorkOnRequest && isAssignedToCurrentUser && request.STATUS !== 'C' && (
+                    <Button variant="success" size="sm" onClick={handleCompleteRequestWithResults} disabled={savingResults || !resultsNotes.trim()} className="d-flex align-items-center">
+                      <CheckCircle size={14} className="me-1" />
+                      {savingResults ? 'Completing...' : 'Complete Request'}
+                    </Button>
+                  )}
+                </div>
+
+                {!resultsNotes.trim() && (
+                  <div className="alert alert-info mt-3 py-2" style={{ fontSize: '0.85rem' }}>
+                    <strong>Tip:</strong> Add detailed results and findings here. This helps maintain a complete record of the request outcome.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {request.STATUS === 'C' && (
+              <div className="card mt-3 border-success">
+                <div className="card-header bg-success bg-opacity-10 border-success">
+                  <h6 className="mb-0 fw-semibold text-success">
+                    <CheckCircle size={16} className="me-1" />
+                    Request Completed
+                  </h6>
+                </div>
+                <div className="card-body">
+                  <div className="row">
+                    <div className="col-sm-6">
+                      <small className="text-muted">Request ID:</small>
+                      <div className="fw-medium">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
+                    </div>
+                    <div className="col-sm-6">
+                      <small className="text-muted">Completed by:</small>
+                      <div className="fw-medium">{request.assignedName || 'Unknown'}</div>
+                    </div>
+                    <div className="col-sm-6 mt-2">
+                      <small className="text-muted">Completion Date:</small>
+                      <div className="fw-medium">{formatDate(request.UPDATE_DATE)}</div>
+                    </div>
+                    <div className="col-sm-6 mt-2">
+                      <small className="text-muted">Total Documents:</small>
+                      <div className="fw-medium">{attachments.length}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {activeMainTab === 'milestones' && (
+        <div className="tab-pane active">
+          <h6 className="mb-3">Milestones</h6>
+          {milestonesLoading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <div className="mt-2 text-muted small">Loading milestones...</div>
+            </div>
+          ) : milestones.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-muted">No milestones found for this request.</p>
+            </div>
+          ) : (
+            <table className="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Date/Time</th>
+                  <th>By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {milestones
+                  .sort((a, b) => new Date(b.createDate).getTime() - new Date(a.createDate).getTime())
+                  .map((milestone) => (
+                    <tr key={milestone.workProgressId}>
+                      <td>{getEventName(milestone)}</td>
+                      <td>{formatDateTime(milestone.createDate)}</td>
+                      <td>{`${milestone.user.firstName} ${milestone.user.lastName}`.trim()}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -1457,25 +2144,11 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
             </Button>
           </div>
         </div>
+        {renderTabNavigation(true)}
         <div className="rfp-body">
-          {formLoading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading…</span>
-              </div>
-              <div className="mt-2 text-muted small">Loading form data…</div>
-            </div>
-          ) : (
-            <SectionedFormRenderer
-              formName={formTemplate?.name ?? ''}
-              fields={formFields}
-              fieldValues={currentFieldValues}
-              onChange={handleFormFieldChangeById}
-              onAutoSave={() => handleSaveFormData({ silent: true })}
-              readOnly={request.STATUS === 'C'}
-              requestId={request.REQUEST_ID}
-            />
-          )}
+          <div className="rfp-body-shell">
+            {renderTabContent(true)}
+          </div>
         </div>
       </div>,
       document.body
@@ -1535,824 +2208,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="border-top pt-3 mb-4">
-          <div className="d-flex mb-0 border-bottom">
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ${
-                activeMainTab === 'details' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('details')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'details' ? '600' : '400' }}
-            >
-              Details
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'tasks' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('tasks')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'tasks' ? '600' : '400' }}
-            >
-              Tasks
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'results' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('results')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'results' ? '600' : '400' }}
-            >
-              Results
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'attachments' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('attachments')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'attachments' ? '600' : '400' }}
-            >
-              Attachments
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'milestones' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('milestones')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'milestones' ? '600' : '400' }}
-            >
-              Milestones
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="tab-content">
-          
-          {/* Details Tab */}
-          {activeMainTab === 'details' && (
-            <div className="tab-pane active">
-              {/* Form Template Section - Compact */}
-        {formTemplate && (
-          <div className="border-top pt-3 mb-3">
-            <div className="text-primary fw-semibold mb-1" style={{ fontSize: '1rem' }}>
-              {formTemplate.name}
-            </div>
-            <div className="text-muted mb-2" style={{ fontSize: '0.85rem' }}>
-              {formTemplate.description}
-            </div>
-          </div>
-        )}
-
-        {/* Form Field Values - Compact Layout */}
-        {formLoading ? (
-          <div className="text-center py-3">
-            <div className="spinner-border spinner-border-sm text-primary" role="status">
-              <span className="visually-hidden">Loading form data...</span>
-            </div>
-            <div className="mt-2 text-muted small">Loading form data...</div>
-          </div>
-        ) : formFieldValues.length > 0 ? (
-          <SectionedFormRenderer
-            formName={formTemplate?.name ?? ''}
-            fields={formFields}
-            fieldValues={currentFieldValues}
-            onChange={handleFormFieldChangeById}
-            onAutoSave={() => handleSaveFormData({ silent: true })}
-            readOnly={request.STATUS === 'C'}
-            requestId={request.REQUEST_ID}
-          />
-        ) : formTemplate ? (
-          <div className="alert alert-info">
-            <h6 className="alert-heading">Form Template Found</h6>
-            <p className="mb-0">Template: <strong>{formTemplate.name}</strong></p>
-            <p className="mb-0">Description: {formTemplate.description}</p>
-            <hr className="my-2" />
-            <small className="text-muted">No form fields found for this template. The form may not have been configured with fields yet.</small>
-          </div>
-        ) : (
-          <div className="alert alert-warning">
-            <h6 className="alert-heading">No Form Data Available</h6>
-            <p className="mb-1">This request does not have an associated form template.</p>
-            <hr className="my-2" />
-            <small className="text-muted">
-              Request ID: {request.REQUEST_ID}<br />
-              Form ID: {request.FORM_ID || 'None'}<br />
-              Check the browser console for detailed API response information.
-            </small>
-          </div>
-        )}
-
-        {/* Form Data Save Section */}
-        {formFieldValues.length > 0 && (
-          <div className="border-top pt-3 mt-3">
-            <div className="d-flex gap-2 justify-content-between align-items-center mb-3">
-              <div className="text-dark fw-semibold" style={{ fontSize: '0.9rem' }}>Form Data</div>
-              <Button 
-                variant="success" 
-                onClick={handleSaveFormData}
-                disabled={isSavingForm || !formHasChanges}
-                size="sm"
-                className="px-3"
-                style={{ fontSize: '0.85rem' }}
-              >
-                {isSavingForm ? 'Saving...' : hasPersistedFormData ? 'Update' : 'Save'}
-              </Button>
-            </div>
-            {formHasChanges && (
-              <div className="alert alert-warning py-2 mb-3" style={{ fontSize: '0.8rem' }}>
-                <small>⚠️ You have unsaved changes to the form data.</small>
-              </div>
-            )}
-          </div>
-        )}
-
-
-
-
-        {/* Requestor Response Section - Only show if user is the requestor */}
-        {isRequestorUser && !isAssignedToCurrentUser && (
-          <div className="border-top pt-3 mt-3">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="text-dark fw-semibold" style={{ fontSize: '1rem' }}>
-                📝 Respond to Processor
-              </div>
-              <span className="badge bg-info" style={{ fontSize: '0.75rem' }}>
-                Your Request
-              </span>
-            </div>
-            
-            <div className="bg-light rounded p-3">
-              <div className="mb-3">
-                <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
-                  Response to Processor
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={4}
-                  placeholder="Provide additional information, answer questions, or clarify details..."
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  style={{ fontSize: '0.85rem' }}
-                />
-                <div className="form-text" style={{ fontSize: '0.75rem' }}>
-                  Your response will be sent to the assigned processor and may help speed up your request.
-                </div>
-              </div>
-              
-              {/* File upload for requestors */}
-              <div className="mb-3">
-                <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
-                  Additional Documents
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="form-control"
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  style={{ fontSize: '0.85rem' }}
-                />
-                <div className="form-text" style={{ fontSize: '0.75rem' }}>
-                  Upload additional documents that may help with your request
-                </div>
-              </div>
-              
-              {/* Show selected files */}
-              {feedbackFiles.length > 0 && (
-                <div className="mb-3">
-                  <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
-                    Selected Files ({feedbackFiles.length})
-                  </div>
-                  {feedbackFiles.map((file, index) => (
-                    <div key={index} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-2">
-                      <div style={{ fontSize: '0.8rem' }}>
-                        <div className="fw-medium">{file.name}</div>
-                        <div className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                      </div>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => removeFeedbackFile(index)}
-                        style={{ fontSize: '0.75rem' }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <div className="d-flex justify-content-end">
-                <Button
-                  variant="primary"
-                  onClick={async () => {
-                    // Use same feedback mechanism but with requestor context
-                    const originalType = feedbackType;
-                    setFeedbackType('update'); // Set as update from requestor
-                    await handleSubmitFeedback();
-                    setFeedbackType(originalType);
-                  }}
-                  disabled={workActionLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
-                  size="sm"
-                  className="d-flex align-items-center"
-                  style={{ fontSize: '0.85rem' }}
-                >
-                  <Send size={14} className="me-1" />
-                  {workActionLoading ? 'Sending...' : 'Send Response'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-              {/* Action Buttons Row */}
-              <div className="border-top pt-4 mt-4">
-                <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
-                
-                <div className="d-flex gap-2 flex-wrap mb-3">
-                  {/* 1. Assign Button - Always show for users with permission */}
-                  {hasAssignPermission && (
-                    <Button 
-                      variant="outline-primary"
-                      onClick={() => setShowAssignRequestModal(true)}
-                      disabled={loading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Assign
-                    </Button>
-                  )}
-
-                  {/* 2. Start Button - Show for pending requests when user has permission, Super Admin sees all */}
-                  {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
-                    <Button 
-                      variant="success"
-                      onClick={() => setShowStartConfirmModal(true)}
-                      disabled={workActionLoading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Start
-                    </Button>
-                  ) : null}
-                  
-                  {/* 3. Complete Button - Show for assigned user, Processor, Manager, Admin when status is In Progress, Super Admin sees all */}
-                  {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
-                    <Button 
-                      variant="primary"
-                      onClick={() => {
-                        if (!resultsNotes.trim()) {
-                          toast.error('Please add results in the Results tab before completing the request');
-                          setActiveMainTab('results');
-                          return;
-                        }
-                        setShowCompleteConfirmModal(true);
-                      }}
-                      disabled={workActionLoading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Complete
-                    </Button>
-                  ) : null}
-                  
-                  {/* 4. Cancel Button - Show for Processor, Manager, Admin when status is Pending or In Progress, Super Admin sees all */}
-                  {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
-                    <Button 
-                      variant="danger"
-                      onClick={() => setShowCancelConfirmModal(true)}
-                      disabled={workActionLoading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Cancel
-                    </Button>
-                  ) : null}
-                </div>
-
-
-                <div className="d-flex justify-content-end">
-                  <Button 
-                    variant="outline-secondary" 
-                    onClick={onHide} 
-                    size="sm"
-                    className="px-3"
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tasks Tab */}
-          {activeMainTab === 'tasks' && (
-            <div className="tab-pane active">
-              <div className="mb-3">
-                <div className="mb-3">
-                  <div className="d-flex align-items-center mb-2">
-                    <h6 className="mb-0 me-2">Task Management</h6>
-                    {selectedTasks.size > 0 && (
-                      <span className="badge bg-primary">{selectedTasks.size} selected</span>
-                    )}
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap">
-                    <Button 
-                      size="sm" 
-                      variant="outline-primary"
-                      onClick={() => setShowAddTaskModal(true)}
-                      disabled={taskActionLoading}
-                    >
-                      Add Task
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-secondary"
-                      onClick={() => setShowAssignTaskModal(true)}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Assign Tasks
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-success"
-                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'In Progress')}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Start Tasks
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-success"
-                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Completed')}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Complete Tasks
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-danger"
-                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Cancelled')}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Cancel Tasks
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Task Table */}
-                {tasksLoading ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border spinner-border-sm text-primary" role="status">
-                      <span className="visually-hidden">Loading tasks...</span>
-                    </div>
-                    <div className="mt-2 text-muted small">Loading tasks...</div>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-sm table-hover">
-                      <thead className="bg-light">
-                        <tr>
-                          <th style={{ width: '50px' }}>
-                            <input 
-                              type="checkbox" 
-                              className="form-check-input"
-                              checked={tasks.length > 0 && selectedTasks.size === tasks.length}
-                              onChange={(e) => handleSelectAllTasks(e.target.checked)}
-                            />
-                          </th>
-                          <th>Task ID</th>
-                          <th>Status</th>
-                          <th>Assigned To</th>
-                          <th>Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tasks.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="text-center text-muted py-4">
-                              <div>No tasks found for this request</div>
-                              <small>Click "Add" to create the first task</small>
-                            </td>
-                          </tr>
-                        ) : (
-                          tasks.map((task: Task) => (
-                            <tr key={task.TASK_ID}>
-                              <td>
-                                <input 
-                                  type="checkbox" 
-                                  className="form-check-input"
-                                  checked={selectedTasks.has(task.TASK_ID)}
-                                  onChange={(e) => handleTaskSelect(task.TASK_ID, e.target.checked)}
-                                />
-                              </td>
-                              <td>
-                                <code>T-{task.TASK_ID}</code>
-                              </td>
-                              <td>
-                                <span className={getTaskStatusBadgeClass(task.STATUS)}>
-                                  {getTaskStatusText(task.STATUS)}
-                                </span>
-                              </td>
-                              <td>
-                                {task.assignedUser ? 
-                                  task.assignedUser.FULL_NAME || 
-                                  `${task.assignedUser.FIRST_NAME} ${task.assignedUser.LAST_NAME}` 
-                                  : 'Unassigned'}
-                              </td>
-                              <td>
-                                <span title={task.DESCRIPTION} className="text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
-                                  {task.DESCRIPTION}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Attachments Tab */}
-          {activeMainTab === 'attachments' && (
-            <div className="tab-pane active">
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-semibold">Document Management</h6>
-                  <div className="d-flex gap-2">
-                    <span className="badge bg-secondary">
-                      {attachmentsLoading ? 'Loading...' : `${attachments.length} document${attachments.length !== 1 ? 's' : ''}`}
-                    </span>
-                    <Button 
-                      size="sm" 
-                      variant="primary" 
-                      className="d-flex align-items-center"
-                      onClick={handleUploadFiles}
-                      disabled={uploadingFiles || selectedFiles.length === 0}
-                    >
-                      <Upload size={14} className="me-1" />
-                      {uploadingFiles ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : 'Documents'}`}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* File Upload Section */}
-                <div className="card mb-4">
-                  <div className="card-header bg-light">
-                    <h6 className="mb-0 fw-medium">Upload Support Documents</h6>
-                  </div>
-                  <div className="card-body">
-                    {/* React Dropzone Upload Area */}
-                    <div className="mb-3">
-                      <div {...getRootProps()} className={getDropzoneStyle()}>
-                        <input {...getInputProps()} />
-                        <div className="py-3">
-                          {uploadingFiles ? (
-                            <>
-                              <div className="spinner-border spinner-border-sm mb-2" role="status">
-                                <span className="visually-hidden">Uploading...</span>
-                              </div>
-                              <div className="fw-medium">Uploading files...</div>
-                              <div className="small text-muted">Please wait while files are being uploaded</div>
-                            </>
-                          ) : isDragActive ? (
-                            isDragAccept ? (
-                              <>
-                                <Upload size={32} className="mb-2 text-success" />
-                                <div className="fw-medium text-success">Drop files here to upload</div>
-                                <div className="small text-success">Release to add files to upload queue</div>
-                              </>
-                            ) : (
-                              <>
-                                <X size={32} className="mb-2 text-danger" />
-                                <div className="fw-medium text-danger">Some files are not supported</div>
-                                <div className="small text-danger">Only images, PDF, DOC/DOCX, XLS/XLSX, and TXT files are allowed</div>
-                              </>
-                            )
-                          ) : (
-                            <>
-                              <Upload size={32} className="mb-2" />
-                              <div className="fw-medium">Drag & drop files here, or click to browse</div>
-                              <div className="small text-muted mt-1">
-                                Supported formats: Images, PDF, Word documents, Excel files, Text files (Max 10MB each)
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Selected Files Preview */}
-                    {selectedFiles.length > 0 && (
-                      <div className="mb-3">
-                        <h6 className="fw-medium mb-2">Selected Files ({selectedFiles.length})</h6>
-                        <div className="row g-2">
-                          {selectedFiles.map((file, index) => (
-                            <div key={index} className="col-md-6">
-                              <div className="border rounded p-2 d-flex justify-content-between align-items-center bg-light">
-                                <div className="d-flex align-items-start flex-grow-1 min-w-0">
-                                  <FileText size={16} className="text-primary me-2 flex-shrink-0 mt-1" />
-                                  <div className="flex-grow-1 min-w-0">
-                                    <div className="fw-medium text-truncate" title={file.name} style={{ fontSize: '0.85rem' }}>
-                                      {file.name}
-                                    </div>
-                                    <div className="text-muted small">
-                                      {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type || 'Unknown type'}
-                                    </div>
-                                    {uploadProgress[file.name] !== undefined && (
-                                      <>
-                                        <div className="progress mt-1" style={{ height: '6px' }}>
-                                          <div 
-                                            className="progress-bar progress-bar-striped progress-bar-animated" 
-                                            style={{ width: `${uploadProgress[file.name]}%` }}
-                                          ></div>
-                                        </div>
-                                        <div className="small text-muted mt-1">
-                                          {uploadProgress[file.name]}% uploaded
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                                <Button
-                                  variant="outline-danger"
-                                  size="sm"
-                                  className="ms-2 d-flex align-items-center"
-                                  onClick={() => removeSelectedFile(index)}
-                                  disabled={uploadingFiles}
-                                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                                  title="Remove file"
-                                >
-                                  <X size={12} />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {uploadingFiles && (
-                          <div className="alert alert-info mt-2 py-2" style={{ fontSize: '0.85rem' }}>
-                            <div className="d-flex align-items-center">
-                              <div className="spinner-border spinner-border-sm me-2" role="status"></div>
-                              Uploading files... Please do not close this window.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div className="alert alert-info py-2" style={{ fontSize: '0.85rem' }}>
-                      <strong>Upload Guidelines:</strong>
-                      <ul className="mb-0 mt-1 ps-3">
-                        <li>Maximum file size: 10MB per file</li>
-                        <li>Supported formats: PDF, DOC/DOCX, XLS/XLSX, TXT, Images (JPG/PNG)</li>
-                        <li>Files will be associated with this specific request</li>
-                        <li>All uploaded documents will be visible to request participants</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Existing Attachments */}
-                <div className="card">
-                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-medium">Request Documents</h6>
-                    <Button size="sm" variant="outline-secondary" className="d-flex align-items-center">
-                      <Download size={14} className="me-1" />
-                      Download All
-                    </Button>
-                  </div>
-                  <div className="card-body">
-                    {attachmentsLoading ? (
-                      <div className="text-center py-4">
-                        <div className="spinner-border spinner-border-sm text-primary" role="status">
-                          <span className="visually-hidden">Loading attachments...</span>
-                        </div>
-                        <div className="mt-2 text-muted small">Loading documents...</div>
-                      </div>
-                    ) : attachments.length > 0 ? (
-                      <div className="row g-3">
-                        {attachments.map((attachment: Attachment) => (
-                          <div key={attachment.attachmentId} className="col-md-6 col-lg-4">
-                            <div className="border rounded p-3 h-100 d-flex flex-column">
-                              <div className="d-flex align-items-start mb-2">
-                                <FileText size={20} className="text-primary me-2 flex-shrink-0 mt-1" />
-                                <div className="flex-grow-1 min-w-0">
-                                  <h6 className="mb-1 fw-medium text-truncate" title={attachment.fileName}>
-                                    {attachment.fileName}
-                                  </h6>
-                                  <div className="text-muted small">
-                                    <div>By: {attachment.uploadedBy.firstName} {attachment.uploadedBy.lastName}</div>
-                                    <div>Date: {formatDate(attachment.createDate)}</div>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="mt-auto d-flex gap-2">
-                                <Button
-                                  variant="outline-primary"
-                                  size="sm"
-                                  onClick={() => handleDownloadAttachment(attachment.attachmentId, attachment.fileName)}
-                                  className="d-flex align-items-center flex-grow-1"
-                                >
-                                  <Download size={12} className="me-1" />
-                                  Download
-                                </Button>
-                                {canWorkOnRequest && (
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() => handleDeleteAttachment(attachment.attachmentId, attachment.fileName)}
-                                    title="Delete document"
-                                  >
-                                    ×
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-5">
-                        <Upload size={48} className="text-muted mb-3" />
-                        <h6 className="text-muted mb-2">No Documents Yet</h6>
-                        <p className="text-muted small mb-3">
-                          No documents have been uploaded for this request. Use the upload section above to add supporting files.
-                        </p>
-                        <div {...getRootProps()} className="cursor-pointer">
-                          <input {...getInputProps()} />
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm" 
-                            className="d-flex align-items-center mx-auto"
-                            as="div"
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <Upload size={14} className="me-1" />
-                            Upload First Document
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Results Tab */}
-          {activeMainTab === 'results' && (
-            <div className="tab-pane active">
-              <div className="mb-4">
-                
-                {/* Notes and Results Section */}
-                <div className="card mb-4">
-                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-semibold">Notes and Results</h6>
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="text-muted small">
-                        {resultsNotes.length}/4000
-                      </span>
-                      {resultsHasChanges && (
-                        <span className="badge bg-warning text-dark d-inline-flex align-items-center px-2 py-1">
-                          <Save size={12} className="me-1 align-middle" />
-                          <span className="align-middle">Unsaved Changes</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="card-body">
-                    <Form.Group className="mb-3">
-                      <Form.Control
-                        as="textarea"
-                        rows={8}
-                        maxLength={4000}
-                        placeholder="Document the results of this request, findings, outcomes, or any relevant information..."
-                        value={resultsNotes}
-                        onChange={(e) => handleResultsNotesChange(e.target.value)}
-                        className="form-control"
-                        style={{ 
-                          minHeight: '200px',
-                          fontSize: '0.9rem',
-                          lineHeight: '1.5'
-                        }}
-                      />
-                      <Form.Text className="text-muted">
-                        This information will be visible to the requestor and stored as part of the request record.
-                      </Form.Text>
-                    </Form.Group>
-
-                    {/* Action Buttons */}
-                    <div className="d-flex gap-2 justify-content-end">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={handleSaveResults}
-                        disabled={savingResults || !resultsHasChanges}
-                        className="d-flex align-items-center"
-                      >
-                        <Save size={14} className="me-1" />
-                        {savingResults ? 'Saving...' : 'Save Results'}
-                      </Button>
-                      
-                      {canWorkOnRequest && isAssignedToCurrentUser && request.STATUS !== 'C' && (
-                        <Button
-                          variant="success"
-                          size="sm"
-                          onClick={handleCompleteRequestWithResults}
-                          disabled={savingResults || !resultsNotes.trim()}
-                          className="d-flex align-items-center"
-                        >
-                          <CheckCircle size={14} className="me-1" />
-                          {savingResults ? 'Completing...' : 'Complete Request'}
-                        </Button>
-                      )}
-                    </div>
-
-                    {!resultsNotes.trim() && (
-                      <div className="alert alert-info mt-3 py-2" style={{ fontSize: '0.85rem' }}>
-                        <strong>Tip:</strong> Add detailed results and findings here. This helps maintain a complete record of the request outcome.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-
-                {/* Request Summary (Optional) */}
-                {request.STATUS === 'C' && (
-                  <div className="card mt-3 border-success">
-                    <div className="card-header bg-success bg-opacity-10 border-success">
-                      <h6 className="mb-0 fw-semibold text-success">
-                        <CheckCircle size={16} className="me-1" />
-                        Request Completed
-                      </h6>
-                    </div>
-                    <div className="card-body">
-                      <div className="row">
-                        <div className="col-sm-6">
-                          <small className="text-muted">Request ID:</small>
-                          <div className="fw-medium">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
-                        </div>
-                        <div className="col-sm-6">
-                          <small className="text-muted">Completed by:</small>
-                          <div className="fw-medium">{request.assignedName || 'Unknown'}</div>
-                        </div>
-                        <div className="col-sm-6 mt-2">
-                          <small className="text-muted">Completion Date:</small>
-                          <div className="fw-medium">{formatDate(request.UPDATE_DATE)}</div>
-                        </div>
-                        <div className="col-sm-6 mt-2">
-                          <small className="text-muted">Total Documents:</small>
-                          <div className="fw-medium">{attachments.length}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Milestones Tab */}
-          {activeMainTab === 'milestones' && (
-            <div className="tab-pane active">
-              <h6 className="mb-3">Milestones</h6>
-              {milestonesLoading ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border spinner-border-sm text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  <div className="mt-2 text-muted small">Loading milestones...</div>
-                </div>
-              ) : milestones.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-muted">No milestones found for this request.</p>
-                </div>
-              ) : (
-                <table className="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th>Event</th>
-                      <th>Date/Time</th>
-                      <th>By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {milestones
-                      .sort((a, b) => new Date(b.createDate).getTime() - new Date(a.createDate).getTime())
-                      .map((milestone) => (
-                      <tr key={milestone.workProgressId}>
-                        <td>{getEventName(milestone)}</td>
-                        <td>{formatDateTime(milestone.createDate)}</td>
-                        <td>{`${milestone.user.firstName} ${milestone.user.lastName}`.trim()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-        </div>
+        {renderTabNavigation()}
+        {renderTabContent()}
       </Modal.Body>
 
       {/* Add Task Modal */}

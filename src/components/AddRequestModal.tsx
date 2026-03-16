@@ -819,7 +819,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               disabled={isSubmitting}
               style={{ backgroundColor: '#032424', color: '#fff', borderColor: '#032424' }}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
+              {isSubmitting ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
