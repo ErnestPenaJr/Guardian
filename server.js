@@ -6228,6 +6228,64 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
     }
 });
 
+// Get subject photo metadata for a request
+app.get('/api/requests/:id/subject-photo', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.id, 10);
+        const subjectPhotoPrefix = '__subject_photo__::';
+
+        if (!requestId || isNaN(requestId)) {
+            return res.status(400).json({
+                error: 'Valid request ID is required'
+            });
+        }
+
+        const requestExists = await prisma.$queryRaw`
+            SELECT REQUEST_ID
+            FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+        `;
+
+        if (!requestExists.length) {
+            return res.status(404).json({
+                error: 'Request not found or access denied'
+            });
+        }
+
+        const attachments = await prisma.$queryRaw`
+            SELECT TOP 1
+                ATTACHMENT_ID,
+                FILE_NAME,
+                CREATE_DATE
+            FROM GUARDIAN.ATTACHMENTS
+            WHERE REQUEST_ID = ${requestId}
+              AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+              AND FILE_NAME LIKE ${`${subjectPhotoPrefix}%`}
+            ORDER BY CREATE_DATE DESC, ATTACHMENT_ID DESC
+        `;
+
+        if (!attachments.length) {
+            return res.status(204).send();
+        }
+
+        const attachment = attachments[0];
+
+        res.json({
+            success: true,
+            attachmentId: attachment.ATTACHMENT_ID,
+            fileName: attachment.FILE_NAME,
+            createDate: attachment.CREATE_DATE
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching subject photo metadata:', error);
+        res.status(500).json({
+            error: 'Failed to fetch subject photo metadata',
+            message: error.message
+        });
+    }
+});
+
 // Download specific attachment
 app.get('/api/attachments/:id/download', getAuthenticatedUserCompany, async (req, res) => {
     try {

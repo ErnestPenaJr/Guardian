@@ -1414,7 +1414,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
         .then(async res => {
-          if (res.status === 404) {
+          if (res.status === 204 || res.status === 404) {
             return null;
           }
           if (!res.ok) {
@@ -1658,12 +1658,12 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
 
     if (subjectPhotoPreparing) return;
 
-    if (!onAutoSave) {
-      if (requestIdRef.current) {
-        fileInputRef.current?.click();
-      }
+    if (requestIdRef.current) {
+      fileInputRef.current?.click();
       return;
     }
+
+    if (!onAutoSave) return;
 
     setSubjectPhotoPreparing(true);
     setSubjectPhotoPreparingLabel('Saving form…');

@@ -910,10 +910,13 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
 
       if (response.status === 200 || response.status === 201) {
         setFormHasChanges(false);
-        // Refresh the form data
-        await fetchFormFieldValues();
-        // Ensure any side effects during the fetch don't re-set the flag
-        setFormHasChanges(false);
+        if (!silent) {
+          // For explicit saves, refresh from the server so the UI reflects any
+          // backend normalization. Silent saves keep local state to avoid a full
+          // Fidelity form redraw after actions like subject photo upload.
+          await fetchFormFieldValues();
+          setFormHasChanges(false);
+        }
         setHasPersistedFormData(true);
         if (!silent) {
           toast.success('Form data saved successfully');

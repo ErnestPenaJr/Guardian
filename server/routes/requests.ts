@@ -2180,7 +2180,7 @@ router.get('/:id/subject-photo', requireAuth, async (req: Request, res: Response
 
     const attachment = await getActiveSubjectPhotoAttachmentForRequest(requestRows[0]);
     if (!attachment) {
-      return res.status(404).json({ error: 'Subject photo not found' });
+      return res.status(204).send();
     }
 
     res.json({
