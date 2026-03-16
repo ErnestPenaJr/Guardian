@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LogOut, User, FileText,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
-  Building2, Settings, KeyRound, Bell, SunMoon, Landmark, Globe
+  Building2, Settings, KeyRound, Bell, SunMoon, Landmark, Globe, Network
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -68,6 +68,7 @@ interface NavItem {
   onClick: () => void;
   active: boolean;
   badge?: number;
+  disabled?: boolean;
 }
 
 // Define Request interface
@@ -720,6 +721,13 @@ function Home() {
     },
     // Admin and Super Admin navigation items (role_id = 1 or 6)
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
+      {
+        icon: <Network className="w-6 h-6" />,
+        label: 'API Vendor',
+        onClick: () => {},
+        active: false,
+        disabled: true,
+      },
       {
         icon: <Sliders className="w-6 h-6" />,
         label: 'Settings',
@@ -1402,7 +1410,8 @@ function Home() {
           {navItems.map((item, index) => (
             <button
               key={index}
-              onClick={item.onClick}
+              onClick={item.disabled ? undefined : item.onClick}
+              disabled={item.disabled}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
@@ -1424,9 +1433,11 @@ function Home() {
                 ${isNavExpanded ? 'px-3' : 'justify-center px-0'}
                 rounded-lg transition-colors duration-150
                 focus:outline-none focus:ring-2 focus:ring-secondary/40
-                ${item.active
-                  ? 'bg-secondary/10 text-primary font-semibold'
-                  : 'text-gray-2 hover:text-primary hover:bg-gray-100'
+                ${item.disabled
+                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                  : item.active
+                    ? 'bg-secondary/10 text-primary font-semibold'
+                    : 'text-gray-2 hover:text-primary hover:bg-gray-100'
                 }`}
               aria-label={item.label}
               aria-current={item.active ? 'page' : undefined}
