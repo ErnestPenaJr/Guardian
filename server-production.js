@@ -6989,18 +6989,25 @@ app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) =>
             // 5. Delete notifications related to this specific request
             const deletedNotifications = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.NOTIFICATIONS
-                WHERE MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
+                WHERE RELATED_ID = ${requestId} OR MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
             `;
             console.log(`✅ Deleted ${deletedNotifications} related notifications`);
 
-            // 6. Delete attachments related to this request
+            // 6. Delete work progress entries related to this request
+            const deletedProgress = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.WORK_PROGRESS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedProgress} work progress entries`);
+
+            // 7. Delete attachments related to this request
             const deletedAttachments = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.ATTACHMENTS
                 WHERE REQUEST_ID = ${requestId}
             `;
             console.log(`✅ Deleted ${deletedAttachments} related attachments`);
 
-            // 7. Finally, delete the request itself
+            // 8. Finally, delete the request itself
             const deletedRequests = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.REQUESTS
                 WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}

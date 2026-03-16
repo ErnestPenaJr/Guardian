@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Modal from 'react-modal';
 import '../styles/Modal.css';
+import './RequestModal.css';
 import { toast } from 'react-toastify';
 import { FaUser, FaSpinner, FaClipboardList } from 'react-icons/fa';
 import formService from '../services/formService';
@@ -11,6 +12,7 @@ import withReactContent from 'sweetalert2-react-content';
 import SectionedFormRenderer from './SectionedFormRenderer';
 import api from '../utils/api';
 import { requestStateManager } from '../hooks/useRequestState';
+import { isFidelitySubjectFormName } from '../utils/formIdentity';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
@@ -784,7 +786,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   };
   
   const selectedTemplateName = formTemplates.find(t => t.id === selectedTemplate)?.name ?? '';
-  const isFidelitySubjectTemplate = selectedTemplateName.trim() === 'Fidelity-Subject';
+  const isFidelitySubjectTemplate = isFidelitySubjectFormName(selectedTemplateName);
   const showFullPage = step === 2 && isFidelitySubjectTemplate;
 
   return (

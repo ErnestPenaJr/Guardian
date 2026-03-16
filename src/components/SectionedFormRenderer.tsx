@@ -1,6 +1,7 @@
 import React from 'react';
 import FidelitySubjectFormLayout from './FidelitySubjectFormLayout';
 import SmartFormLayout from './SmartFormLayout';
+import { isFidelitySubjectFormName } from '../utils/formIdentity';
 
 interface FormField {
   FIELD_ID: number;
@@ -38,7 +39,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
   requestId,
 }) => {
   // Fidelity-Subject gets its custom document-style layout
-  if (formName?.trim() === 'Fidelity-Subject' && fields.length > 0) {
+  if (isFidelitySubjectFormName(formName) && fields.length > 0) {
     return (
       <FidelitySubjectFormLayout
         fields={fields}

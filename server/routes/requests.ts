@@ -1418,23 +1418,29 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 // Delete a request (soft delete)
 router.delete('/:id', async (req: Request, res: Response) => {
-    const requestId = parseInt(req.params.id);
-    const currentDate = new Date().toISOString();
-    
-    try {
-      // Use raw SQL to perform soft delete
-      await prisma.$executeRaw`
-        UPDATE REQUESTS 
-        SET STATUS = 'D', UPDATE_DATE = ${currentDate} 
-        WHERE REQUEST_ID = ${requestId}
-      `;
-      
-      res.json({ message: 'Request deleted successfully' });
-    } catch (error) {
-      console.error(`Error deleting request ${requestId}:`, error);
-      res.status(500).json({ error: 'Failed to delete request' });
+  const requestId = parseInt(req.params.id, 10);
+
+  if (Number.isNaN(requestId)) {
+    return res.status(400).json({ error: 'Invalid request ID' });
+  }
+
+  try {
+    const updatedRows = await prisma.$executeRawUnsafe(`
+      UPDATE ${DB_SCHEMA}.REQUESTS
+      SET STATUS = 'D', UPDATE_DATE = GETDATE()
+      WHERE REQUEST_ID = ${requestId}
+    `);
+
+    if (!updatedRows) {
+      return res.status(404).json({ error: 'Request not found' });
     }
-  });
+
+    res.json({ message: 'Request deleted successfully' });
+  } catch (error) {
+    console.error(`Error deleting request ${requestId}:`, error);
+    res.status(500).json({ error: 'Failed to delete request' });
+  }
+});
 
 import { Resend } from 'resend';
 

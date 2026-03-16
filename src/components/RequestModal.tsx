@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import { Upload, MessageSquare, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
 import './RequestModal.css';
 import SectionedFormRenderer from './SectionedFormRenderer';
+import { isFidelitySubjectFormName } from '../utils/formIdentity';
 
 interface User {
   USER_ID: number;
@@ -1419,7 +1420,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const needsExpandedLayout = activeMainTab === 'details' && formFields.length > 0;
 
   // Fidelity-Subject opens as a dedicated full-page view instead of inside the modal
-  const isFidelitySubject = formTemplate?.name?.trim() === 'Fidelity-Subject';
+  const isFidelitySubject = isFidelitySubjectFormName(formTemplate?.name);
 
   return (
     <>
