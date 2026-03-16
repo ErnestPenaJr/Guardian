@@ -1717,14 +1717,47 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res
         const requestId = parseInt(req.params.id);
         console.log(`🚀 Starting work on request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'A' (Active/In Progress)
-        await prisma.$executeRaw`
+        const requestBeforeUpdate = await prisma.$queryRaw`
+            SELECT REQUEST_ID, STATUS, ASSIGNED_ID
+            FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId}
+              AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestBeforeUpdate.length) {
+            return res.status(404).json({
+                error: 'Request not found'
+            });
+        }
+
+        const request = requestBeforeUpdate[0];
+
+        if (request.ASSIGNED_ID !== req.userId) {
+            return res.status(403).json({
+                error: 'Only the assigned user can start this request'
+            });
+        }
+
+        if (request.STATUS !== 'P') {
+            return res.status(400).json({
+                error: `Request cannot be started from status ${request.STATUS}`
+            });
+        }
+
+        const updatedRows = await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
             SET STATUS = 'A', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
+                AND STATUS = 'P'
         `;
+
+        if (!updatedRows) {
+            return res.status(409).json({
+                error: 'Request status was not updated'
+            });
+        }
 
         // Create milestone for request start
         try {
@@ -1752,14 +1785,47 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         const { completionNotes } = req.body;
         console.log(`✅ Completing request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'D' (Complete)
-        await prisma.$executeRaw`
+        const requestBeforeUpdate = await prisma.$queryRaw`
+            SELECT REQUEST_ID, STATUS, ASSIGNED_ID
+            FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId}
+              AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (!requestBeforeUpdate.length) {
+            return res.status(404).json({
+                error: 'Request not found'
+            });
+        }
+
+        const request = requestBeforeUpdate[0];
+
+        if (request.ASSIGNED_ID !== req.userId) {
+            return res.status(403).json({
+                error: 'Only the assigned user can complete this request'
+            });
+        }
+
+        if (request.STATUS !== 'A') {
+            return res.status(400).json({
+                error: `Request cannot be completed from status ${request.STATUS}`
+            });
+        }
+
+        const updatedRows = await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'D', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            SET STATUS = 'C', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
+                AND STATUS = 'A'
         `;
+
+        if (!updatedRows) {
+            return res.status(409).json({
+                error: 'Request status was not updated'
+            });
+        }
 
         // Add completion notes if provided
         if (completionNotes) {
@@ -1769,7 +1835,7 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
 
         // Create milestone for request completion
         try {
-            await createStatusChangeMilestone(requestId, 'A', 'D', req.userId, req.companyId);
+            await createStatusChangeMilestone(requestId, 'A', 'C', req.userId, req.companyId);
             console.log(`🏁 Request completion milestone created for request ${requestId}`);
         } catch (milestoneError) {
             console.error('⚠️ Failed to create request completion milestone (continuing):', milestoneError);

@@ -1747,24 +1747,32 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       {activeMainTab === 'attachments' && (
         <div className="tab-pane active">
           <div className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h6 className="mb-0 fw-semibold">Document Management</h6>
-              <div className="d-flex gap-2">
-                <span className="badge bg-secondary">
-                  {attachmentsLoading ? 'Loading...' : `${attachments.length} document${attachments.length !== 1 ? 's' : ''}`}
-                </span>
-                <Button size="sm" variant="primary" className="d-flex align-items-center" onClick={handleUploadFiles} disabled={uploadingFiles || selectedFiles.length === 0}>
-                  <Upload size={14} className="me-1" />
-                  {uploadingFiles ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : 'Documents'}`}
-                </Button>
+            <div className="card">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <div className="d-flex align-items-center gap-2">
+                  <h6 className="mb-0 fw-semibold">Documents</h6>
+                  <span className="badge bg-secondary">
+                    {attachmentsLoading ? '...' : `${attachments.length} uploaded`}
+                  </span>
+                </div>
+                <div className="d-flex gap-2">
+                  {attachments.length > 0 && (
+                    <Button size="sm" variant="outline-secondary" className="d-flex align-items-center">
+                      <Download size={14} className="me-1" />
+                      Download All
+                    </Button>
+                  )}
+                  {selectedFiles.length > 0 && (
+                    <Button size="sm" variant="primary" className="d-flex align-items-center" onClick={handleUploadFiles} disabled={uploadingFiles}>
+                      <Upload size={14} className="me-1" />
+                      {uploadingFiles ? 'Uploading...' : `Upload (${selectedFiles.length})`}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="card mb-4">
-              <div className="card-header bg-light">
-                <h6 className="mb-0 fw-medium">Upload Support Documents</h6>
-              </div>
               <div className="card-body">
+                {/* Upload zone */}
                 <div className="mb-3">
                   <div {...getRootProps()} className={getDropzoneStyle()}>
                     <input {...getInputProps()} />
@@ -1793,10 +1801,10 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                         )
                       ) : (
                         <>
-                          <Upload size={32} className="mb-2" />
+                          <Upload size={32} className="mb-2 text-muted" />
                           <div className="fw-medium">Drag & drop files here, or click to browse</div>
                           <div className="small text-muted mt-1">
-                            Supported formats: Images, PDF, Word documents, Excel files, Text files (Max 10MB each)
+                            PDF, DOC/DOCX, XLS/XLSX, TXT, Images (JPG/PNG) — Max 10MB each
                           </div>
                         </>
                       )}
@@ -1804,9 +1812,12 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                   </div>
                 </div>
 
+                {/* Staged files queue */}
                 {selectedFiles.length > 0 && (
                   <div className="mb-3">
-                    <h6 className="fw-medium mb-2">Selected Files ({selectedFiles.length})</h6>
+                    <h6 className="fw-medium mb-2 text-muted small text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                      Ready to upload ({selectedFiles.length})
+                    </h6>
                     <div className="row g-2">
                       {selectedFiles.map((file, index) => (
                         <div key={index} className="col-md-6">
@@ -1837,7 +1848,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                         </div>
                       ))}
                     </div>
-
                     {uploadingFiles && (
                       <div className="alert alert-info mt-2 py-2" style={{ fontSize: '0.85rem' }}>
                         <div className="d-flex align-items-center">
@@ -1849,27 +1859,13 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                   </div>
                 )}
 
-                <div className="alert alert-info py-2" style={{ fontSize: '0.85rem' }}>
-                  <strong>Upload Guidelines:</strong>
-                  <ul className="mb-0 mt-1 ps-3">
-                    <li>Maximum file size: 10MB per file</li>
-                    <li>Supported formats: PDF, DOC/DOCX, XLS/XLSX, TXT, Images (JPG/PNG)</li>
-                    <li>Files will be associated with this specific request</li>
-                    <li>All uploaded documents will be visible to request participants</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+                {/* Divider between upload zone and uploaded list */}
+                <hr className="my-3" />
 
-            <div className="card">
-              <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                <h6 className="mb-0 fw-medium">Request Documents</h6>
-                <Button size="sm" variant="outline-secondary" className="d-flex align-items-center">
-                  <Download size={14} className="me-1" />
-                  Download All
-                </Button>
-              </div>
-              <div className="card-body">
+                {/* Uploaded documents list */}
+                <h6 className="fw-medium mb-3 text-muted small text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                  Uploaded Documents
+                </h6>
                 {attachmentsLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border spinner-border-sm text-primary" role="status">
@@ -1892,7 +1888,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                               </div>
                             </div>
                           </div>
-
                           <div className="mt-auto d-flex gap-2">
                             <Button variant="outline-primary" size="sm" onClick={() => handleDownloadAttachment(attachment.attachmentId, attachment.fileName)} className="d-flex align-items-center flex-grow-1">
                               <Download size={12} className="me-1" />
@@ -1909,19 +1904,9 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-5">
-                    <Upload size={48} className="text-muted mb-3" />
-                    <h6 className="text-muted mb-2">No Documents Yet</h6>
-                    <p className="text-muted small mb-3">
-                      No documents have been uploaded for this request. Use the upload section above to add supporting files.
-                    </p>
-                    <div {...getRootProps()} className="cursor-pointer">
-                      <input {...getInputProps()} />
-                      <Button variant="outline-primary" size="sm" className="d-flex align-items-center mx-auto" as="div" style={{ cursor: 'pointer' }}>
-                        <Upload size={14} className="me-1" />
-                        Upload First Document
-                      </Button>
-                    </div>
+                  <div className="text-center py-4 text-muted">
+                    <FileText size={36} className="mb-2 opacity-25" />
+                    <p className="small mb-0">No documents uploaded yet. Use the area above to add files.</p>
                   </div>
                 )}
               </div>
