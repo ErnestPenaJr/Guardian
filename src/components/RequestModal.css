@@ -725,13 +725,14 @@
 .rfp-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 24px 24px 40px;
+  padding: 24px;
 }
 
 .rfp-body-shell {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: 100%;
 }
 
 .rfp-tab-content {
@@ -744,12 +745,26 @@
   padding-bottom: 24px;
 }
 
+.rfp-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid #dee2e6;
+  background: #f4f6f8;
+  padding: 10px 24px 12px;
+}
+
+.rfp-footer-shell {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .rfp-action-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #fff 24px);
-  padding-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: auto;
+  padding: 0;
+  background: #f4f6f8;
 }
 
 /* ── EXPANDED MODAL (form-bearing requests) ──────────────────────────────────────────────

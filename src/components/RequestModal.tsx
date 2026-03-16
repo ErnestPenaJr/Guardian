@@ -1436,6 +1436,80 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     </div>
   );
 
+  const renderActionBar = (isFullscreen = false) => (
+    <div className={isFullscreen ? 'rfp-action-bar' : 'border-top pt-4 mt-4'}>
+      {!isFullscreen && (
+        <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
+      )}
+
+      <div className={`d-flex gap-2 flex-wrap${isFullscreen ? '' : ' mb-3'}`}>
+        {hasAssignPermission && (
+          <Button
+            variant="outline-primary"
+            onClick={() => setShowAssignRequestModal(true)}
+            disabled={loading}
+            style={{ minWidth: '80px' }}
+          >
+            Assign
+          </Button>
+        )}
+
+        {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
+          <Button
+            variant="success"
+            onClick={() => setShowStartConfirmModal(true)}
+            disabled={workActionLoading}
+            style={{ minWidth: '80px' }}
+          >
+            Start
+          </Button>
+        ) : null}
+
+        {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!resultsNotes.trim()) {
+                toast.error('Please add results in the Results tab before completing the request');
+                setActiveMainTab('results');
+                return;
+              }
+              setShowCompleteConfirmModal(true);
+            }}
+            disabled={workActionLoading}
+            style={{ minWidth: '80px' }}
+          >
+            Complete
+          </Button>
+        ) : null}
+
+        {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
+          <Button
+            variant="danger"
+            onClick={() => setShowCancelConfirmModal(true)}
+            disabled={workActionLoading}
+            style={{ minWidth: '80px' }}
+          >
+            Cancel
+          </Button>
+        ) : null}
+      </div>
+
+      {!isFullscreen && (
+        <div className="d-flex justify-content-end">
+          <Button
+            variant="outline-secondary"
+            onClick={onHide}
+            size="sm"
+            className="px-3"
+          >
+            Close
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   const renderDetailsTab = (isFullscreen = false) => (
     <div className="tab-pane active">
       {formTemplate && !isFullscreen && (
@@ -1563,78 +1637,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         </div>
       )}
-
-      <div className={isFullscreen ? 'rfp-action-bar border-top pt-4 mt-4' : 'border-top pt-4 mt-4'}>
-        {!isFullscreen && (
-          <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
-        )}
-
-        <div className={`d-flex gap-2 flex-wrap${isFullscreen ? '' : ' mb-3'}`}>
-          {hasAssignPermission && (
-            <Button
-              variant="outline-primary"
-              onClick={() => setShowAssignRequestModal(true)}
-              disabled={loading}
-              style={{ minWidth: '80px' }}
-            >
-              Assign
-            </Button>
-          )}
-
-          {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
-            <Button
-              variant="success"
-              onClick={() => setShowStartConfirmModal(true)}
-              disabled={workActionLoading}
-              style={{ minWidth: '80px' }}
-            >
-              Start
-            </Button>
-          ) : null}
-
-          {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (!resultsNotes.trim()) {
-                  toast.error('Please add results in the Results tab before completing the request');
-                  setActiveMainTab('results');
-                  return;
-                }
-                setShowCompleteConfirmModal(true);
-              }}
-              disabled={workActionLoading}
-              style={{ minWidth: '80px' }}
-            >
-              Complete
-            </Button>
-          ) : null}
-
-          {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
-            <Button
-              variant="danger"
-              onClick={() => setShowCancelConfirmModal(true)}
-              disabled={workActionLoading}
-              style={{ minWidth: '80px' }}
-            >
-              Cancel
-            </Button>
-          ) : null}
-        </div>
-
-        {!isFullscreen && (
-          <div className="d-flex justify-content-end">
-            <Button
-              variant="outline-secondary"
-              onClick={onHide}
-              size="sm"
-              className="px-3"
-            >
-              Close
-            </Button>
-          </div>
-        )}
-      </div>
+      {!isFullscreen && renderActionBar()}
     </div>
   );
 
@@ -2091,6 +2094,11 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         <div className="rfp-body">
           <div className="rfp-body-shell">
             {renderTabContent(true)}
+          </div>
+        </div>
+        <div className="rfp-footer">
+          <div className="rfp-footer-shell">
+            {renderActionBar(true)}
           </div>
         </div>
       </div>,
