@@ -2162,332 +2162,331 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         {renderTabNavigation()}
         {renderTabContent()}
       </Modal.Body>
+    </Modal>
 
       {/* Add Task Modal */}
-      <Modal show={showAddTaskModal} onHide={() => setShowAddTaskModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Task</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Task Description *</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Enter task description..."
-                value={newTaskData.description}
-                onChange={(e) => setNewTaskData({...newTaskData, description: e.target.value})}
-                required
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Assign To (Optional)</Form.Label>
-              <Form.Select
-                value={newTaskData.assignedUserId}
-                onChange={(e) => setNewTaskData({...newTaskData, assignedUserId: e.target.value})}
-              >
-                <option value="">Leave Unassigned</option>
-                {users.map((user) => (
-                  <option key={user.USER_ID} value={user.USER_ID}>
-                    {user.FULL_NAME} ({user.ROLE_NAMES})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                You can assign this task to a specific user or leave it unassigned
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAddTaskModal(false);
-              setNewTaskData({ assignedUserId: '', description: '' });
-            }}
-            disabled={taskActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAddTask}
-            disabled={taskActionLoading || !newTaskData.description.trim()}
-          >
-            {taskActionLoading ? 'Creating...' : 'Create Task'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Assign Task Modal */}
-      <Modal show={showAssignTaskModal} onHide={() => setShowAssignTaskModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Assign Selected Tasks</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3">
-            <div className="alert alert-info py-2">
-              <small>
-                <strong>{selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected</strong>
-                <br />
-                All selected tasks will be assigned to the chosen user.
-              </small>
-            </div>
-          </div>
-          
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Assign To *</Form.Label>
-              <Form.Select
-                value={assignTaskData.assignedUserId}
-                onChange={(e) => setAssignTaskData({...assignTaskData, assignedUserId: e.target.value})}
-                required
-              >
-                <option value="">Select a user to assign tasks to...</option>
-                {users.map((user) => (
-                  <option key={user.USER_ID} value={user.USER_ID}>
-                    {user.FULL_NAME} ({user.ROLE_NAMES})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Choose a user who will be responsible for completing the selected tasks
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAssignTaskModal(false);
-              setAssignTaskData({ assignedUserId: '' });
-            }}
-            disabled={taskActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAssignTasks}
-            disabled={taskActionLoading || !assignTaskData.assignedUserId}
-          >
-            {taskActionLoading ? 'Assigning...' : `Assign ${selectedTasks.size} Task${selectedTasks.size !== 1 ? 's' : ''}`}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Start Request Confirmation Modal */}
-      <Modal show={showStartConfirmModal} onHide={() => setShowStartConfirmModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Start Confirmation</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to start this request?</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowStartConfirmModal(false)}
-            disabled={workActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={async () => {
-              setShowStartConfirmModal(false);
-              await handleStartWork();
-            }}
-            disabled={workActionLoading}
-          >
-            {workActionLoading ? 'Starting...' : 'Confirm'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Cancel Request Form Modal */}
-      <Modal 
-        show={showCancelConfirmModal} 
-        onHide={() => {
-          if (!workActionLoading) {
-            setShowCancelConfirmModal(false);
-            setCancellationReason('');
-          }
-        }} 
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title className="text-danger">Cancel Request</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3">
-            <h6 className="text-muted mb-2">Request Details:</h6>
-            <div className="bg-light p-3 rounded mb-3">
-              <div><strong>ID:</strong> {request.TRACKINGID || request.REQUEST_ID}</div>
-              <div><strong>Name:</strong> {request.REQUEST_NAME}</div>
-              <div><strong>Current Status:</strong> <span className="badge bg-info">{request.STATUS}</span></div>
-            </div>
-          </div>
-          
-          <div className="mb-3">
-            <label className="form-label">
-              Cancellation Reason <span className="text-danger">*</span>
-            </label>
-            <textarea
-              className={`form-control ${
-                cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 
-                  ? 'is-invalid' 
-                  : cancellationReason.trim().length >= 10 
-                  ? 'is-valid' 
-                  : ''
-              }`}
-              rows={4}
-              value={cancellationReason}
-              onChange={(e) => setCancellationReason(e.target.value)}
-              placeholder="Please provide a detailed reason for cancelling this request. This information will be recorded for audit purposes."
-              maxLength={500}
+    <Modal show={showAddTaskModal} onHide={() => setShowAddTaskModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Add New Task</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label>Task Description *</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Enter task description..."
+              value={newTaskData.description}
+              onChange={(e) => setNewTaskData({...newTaskData, description: e.target.value})}
               required
-              disabled={workActionLoading}
             />
-            <div className="d-flex justify-content-between mt-1">
-              <small className="text-muted">
-                Minimum 10 characters required
-              </small>
-              <small className={`${
-                cancellationReason.length > 450 ? 'text-warning' : 'text-muted'
-              }`}>
-                {cancellationReason.length}/500 characters
-              </small>
-            </div>
-            {cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 && (
-              <div className="invalid-feedback d-block">
-                Please provide at least 10 characters explaining the cancellation reason.
-              </div>
-            )}
-          </div>
-          
-          <div className="alert alert-warning">
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Assign To (Optional)</Form.Label>
+            <Form.Select
+              value={newTaskData.assignedUserId}
+              onChange={(e) => setNewTaskData({...newTaskData, assignedUserId: e.target.value})}
+            >
+              <option value="">Leave Unassigned</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              You can assign this task to a specific user or leave it unassigned
+            </Form.Text>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAddTaskModal(false);
+            setNewTaskData({ assignedUserId: '', description: '' });
+          }}
+          disabled={taskActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleAddTask}
+          disabled={taskActionLoading || !newTaskData.description.trim()}
+        >
+          {taskActionLoading ? 'Creating...' : 'Create Task'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Assign Task Modal */}
+    <Modal show={showAssignTaskModal} onHide={() => setShowAssignTaskModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Assign Selected Tasks</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <div className="alert alert-info py-2">
             <small>
-              <strong>Warning:</strong> Cancelling this request will permanently change its status. 
-              This action cannot be undone and will be recorded in the audit trail.
+              <strong>{selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected</strong>
+              <br />
+              All selected tasks will be assigned to the chosen user.
             </small>
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowCancelConfirmModal(false);
-              setCancellationReason('');
-            }}
-            disabled={workActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="danger" 
-            onClick={handleCancelRequest}
-            disabled={!cancellationReason.trim() || cancellationReason.trim().length < 10 || workActionLoading}
-          >
-            {workActionLoading ? 'Cancelling...' : 'Cancel Request'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </div>
 
-      {/* Complete Request Confirmation Modal */}
-      <Modal show={showCompleteConfirmModal} onHide={() => setShowCompleteConfirmModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="text-success">Complete Request</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to complete this request?</p>
-          <div className="alert alert-info">
-            <small>Available from Results tab after saving results</small>
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label>Assign To *</Form.Label>
+            <Form.Select
+              value={assignTaskData.assignedUserId}
+              onChange={(e) => setAssignTaskData({...assignTaskData, assignedUserId: e.target.value})}
+              required
+            >
+              <option value="">Select a user to assign tasks to...</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Choose a user who will be responsible for completing the selected tasks
+            </Form.Text>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAssignTaskModal(false);
+            setAssignTaskData({ assignedUserId: '' });
+          }}
+          disabled={taskActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleAssignTasks}
+          disabled={taskActionLoading || !assignTaskData.assignedUserId}
+        >
+          {taskActionLoading ? 'Assigning...' : `Assign ${selectedTasks.size} Task${selectedTasks.size !== 1 ? 's' : ''}`}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Start Request Confirmation Modal */}
+    <Modal show={showStartConfirmModal} onHide={() => setShowStartConfirmModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Start Confirmation</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>Are you sure you want to start this request?</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowStartConfirmModal(false)}
+          disabled={workActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={async () => {
+            setShowStartConfirmModal(false);
+            await handleStartWork();
+          }}
+          disabled={workActionLoading}
+        >
+          {workActionLoading ? 'Starting...' : 'Confirm'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Cancel Request Form Modal */}
+    <Modal
+      show={showCancelConfirmModal}
+      onHide={() => {
+        if (!workActionLoading) {
+          setShowCancelConfirmModal(false);
+          setCancellationReason('');
+        }
+      }}
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title className="text-danger">Cancel Request</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <h6 className="text-muted mb-2">Request Details:</h6>
+          <div className="bg-light p-3 rounded mb-3">
+            <div><strong>ID:</strong> {request.TRACKINGID || request.REQUEST_ID}</div>
+            <div><strong>Name:</strong> {request.REQUEST_NAME}</div>
+            <div><strong>Current Status:</strong> <span className="badge bg-info">{request.STATUS}</span></div>
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowCompleteConfirmModal(false)}
-            disabled={workActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="success" 
-            onClick={async () => {
-              setShowCompleteConfirmModal(false);
-              await handleCompleteWork();
-            }}
-            disabled={workActionLoading}
-          >
-            {workActionLoading ? 'Completing...' : 'Complete Request'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </div>
 
-      {/* Assign Request Modal */}
-      <Modal show={showAssignRequestModal} onHide={() => setShowAssignRequestModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Assign Request</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3">
-            <div className="alert alert-info py-2">
-              <small>
-                <strong>Assign this request to a user</strong>
-                <br />
-                Select a user who will be responsible for processing this request.
-              </small>
+        <div className="mb-3">
+          <label className="form-label">
+            Cancellation Reason <span className="text-danger">*</span>
+          </label>
+          <textarea
+            className={`form-control ${
+              cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10
+                ? 'is-invalid'
+                : cancellationReason.trim().length >= 10
+                ? 'is-valid'
+                : ''
+            }`}
+            rows={4}
+            value={cancellationReason}
+            onChange={(e) => setCancellationReason(e.target.value)}
+            placeholder="Please provide a detailed reason for cancelling this request. This information will be recorded for audit purposes."
+            maxLength={500}
+            required
+            disabled={workActionLoading}
+          />
+          <div className="d-flex justify-content-between mt-1">
+            <small className="text-muted">
+              Minimum 10 characters required
+            </small>
+            <small className={`${
+              cancellationReason.length > 450 ? 'text-warning' : 'text-muted'
+            }`}>
+              {cancellationReason.length}/500 characters
+            </small>
+          </div>
+          {cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 && (
+            <div className="invalid-feedback d-block">
+              Please provide at least 10 characters explaining the cancellation reason.
             </div>
-          </div>
-          
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Assign To *</Form.Label>
-              <Form.Select
-                value={assignRequestData.assignedUserId}
-                onChange={(e) => setAssignRequestData({...assignRequestData, assignedUserId: e.target.value})}
-                required
-              >
-                <option value="">Select a user to assign request to...</option>
-                {users.map((user) => (
-                  <option key={user.USER_ID} value={user.USER_ID}>
-                    {user.FULL_NAME} ({user.ROLE_NAMES})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Choose a user who will be responsible for processing this request
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAssignRequestModal(false);
-              setAssignRequestData({ assignedUserId: '' });
-            }}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAssignRequest}
-            disabled={loading || !assignRequestData.assignedUserId}
-          >
-            {loading ? 'Assigning...' : 'Assign Request'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          )}
+        </div>
 
+        <div className="alert alert-warning">
+          <small>
+            <strong>Warning:</strong> Cancelling this request will permanently change its status.
+            This action cannot be undone and will be recorded in the audit trail.
+          </small>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowCancelConfirmModal(false);
+            setCancellationReason('');
+          }}
+          disabled={workActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="danger"
+          onClick={handleCancelRequest}
+          disabled={!cancellationReason.trim() || cancellationReason.trim().length < 10 || workActionLoading}
+        >
+          {workActionLoading ? 'Cancelling...' : 'Cancel Request'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Complete Request Confirmation Modal */}
+    <Modal show={showCompleteConfirmModal} onHide={() => setShowCompleteConfirmModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title className="text-success">Complete Request</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>Are you sure you want to complete this request?</p>
+        <div className="alert alert-info">
+          <small>Available from Results tab after saving results</small>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowCompleteConfirmModal(false)}
+          disabled={workActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="success"
+          onClick={async () => {
+            setShowCompleteConfirmModal(false);
+            await handleCompleteWork();
+          }}
+          disabled={workActionLoading}
+        >
+          {workActionLoading ? 'Completing...' : 'Complete Request'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Assign Request Modal */}
+    <Modal show={showAssignRequestModal} onHide={() => setShowAssignRequestModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Assign Request</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <div className="alert alert-info py-2">
+            <small>
+              <strong>Assign this request to a user</strong>
+              <br />
+              Select a user who will be responsible for processing this request.
+            </small>
+          </div>
+        </div>
+
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label>Assign To *</Form.Label>
+            <Form.Select
+              value={assignRequestData.assignedUserId}
+              onChange={(e) => setAssignRequestData({...assignRequestData, assignedUserId: e.target.value})}
+              required
+            >
+              <option value="">Select a user to assign request to...</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Choose a user who will be responsible for processing this request
+            </Form.Text>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAssignRequestModal(false);
+            setAssignRequestData({ assignedUserId: '' });
+          }}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleAssignRequest}
+          disabled={loading || !assignRequestData.assignedUserId}
+        >
+          {loading ? 'Assigning...' : 'Assign Request'}
+        </Button>
+      </Modal.Footer>
     </Modal>
     </>
   );
