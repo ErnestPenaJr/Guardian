@@ -1564,64 +1564,65 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         </div>
       )}
 
-      {!isFullscreen && (
-        <div className="border-top pt-4 mt-4">
+      <div className={isFullscreen ? 'rfp-action-bar border-top pt-4 mt-4' : 'border-top pt-4 mt-4'}>
+        {!isFullscreen && (
           <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
+        )}
 
-          <div className="d-flex gap-2 flex-wrap mb-3">
-            {hasAssignPermission && (
-              <Button
-                variant="outline-primary"
-                onClick={() => setShowAssignRequestModal(true)}
-                disabled={loading}
-                style={{ minWidth: '80px' }}
-              >
-                Assign
-              </Button>
-            )}
+        <div className={`d-flex gap-2 flex-wrap${isFullscreen ? '' : ' mb-3'}`}>
+          {hasAssignPermission && (
+            <Button
+              variant="outline-primary"
+              onClick={() => setShowAssignRequestModal(true)}
+              disabled={loading}
+              style={{ minWidth: '80px' }}
+            >
+              Assign
+            </Button>
+          )}
 
-            {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
-              <Button
-                variant="success"
-                onClick={() => setShowStartConfirmModal(true)}
-                disabled={workActionLoading}
-                style={{ minWidth: '80px' }}
-              >
-                Start
-              </Button>
-            ) : null}
+          {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
+            <Button
+              variant="success"
+              onClick={() => setShowStartConfirmModal(true)}
+              disabled={workActionLoading}
+              style={{ minWidth: '80px' }}
+            >
+              Start
+            </Button>
+          ) : null}
 
-            {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  if (!resultsNotes.trim()) {
-                    toast.error('Please add results in the Results tab before completing the request');
-                    setActiveMainTab('results');
-                    return;
-                  }
-                  setShowCompleteConfirmModal(true);
-                }}
-                disabled={workActionLoading}
-                style={{ minWidth: '80px' }}
-              >
-                Complete
-              </Button>
-            ) : null}
+          {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!resultsNotes.trim()) {
+                  toast.error('Please add results in the Results tab before completing the request');
+                  setActiveMainTab('results');
+                  return;
+                }
+                setShowCompleteConfirmModal(true);
+              }}
+              disabled={workActionLoading}
+              style={{ minWidth: '80px' }}
+            >
+              Complete
+            </Button>
+          ) : null}
 
-            {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
-              <Button
-                variant="danger"
-                onClick={() => setShowCancelConfirmModal(true)}
-                disabled={workActionLoading}
-                style={{ minWidth: '80px' }}
-              >
-                Cancel
-              </Button>
-            ) : null}
-          </div>
+          {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
+            <Button
+              variant="danger"
+              onClick={() => setShowCancelConfirmModal(true)}
+              disabled={workActionLoading}
+              style={{ minWidth: '80px' }}
+            >
+              Cancel
+            </Button>
+          ) : null}
+        </div>
 
-
+        {!isFullscreen && (
           <div className="d-flex justify-content-end">
             <Button
               variant="outline-secondary"
@@ -1632,8 +1633,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               Close
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 

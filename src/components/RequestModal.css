@@ -725,7 +725,7 @@
 .rfp-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 24px;
+  padding: 24px 24px 40px;
 }
 
 .rfp-body-shell {
@@ -736,10 +736,20 @@
 
 .rfp-tab-content {
   min-height: 100%;
+  padding-bottom: 24px;
 }
 
 .rfp-tab-content .tab-pane.active {
   background: transparent;
+  padding-bottom: 24px;
+}
+
+.rfp-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #fff 24px);
+  padding-bottom: 12px;
 }
 
 /* ── EXPANDED MODAL (form-bearing requests) ──────────────────────────────────────────────
