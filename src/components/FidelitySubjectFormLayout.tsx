@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
 import '../styles/FidelitySubjectForm.css';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -265,6 +264,7 @@ interface MatrixPaneProps {
   onChange: (fieldId: string, value: string) => void;
   readOnly: boolean;
   idPrefix: string;
+  selectionControl?: 'radio' | 'checkbox';
 }
 
 const MatrixPane: React.FC<MatrixPaneProps> = ({
@@ -275,6 +275,7 @@ const MatrixPane: React.FC<MatrixPaneProps> = ({
   onChange,
   readOnly,
   idPrefix,
+  selectionControl = 'radio',
 }) => (
   <div>
     <div className="sw-matrix-hdr">
@@ -294,12 +295,20 @@ const MatrixPane: React.FC<MatrixPaneProps> = ({
           {RADIO_OPTS.map(opt => (
             <div key={opt} className="sw-matrix-radio-cell">
               <input
-                type="radio"
-                name={`${idPrefix}-${fId}`}
+                type={selectionControl}
+                name={selectionControl === 'radio' ? `${idPrefix}-${fId}` : undefined}
                 value={opt}
                 checked={v === opt}
-                onChange={() => !readOnly && onChange(fId, opt)}
+                onChange={() => {
+                  if (readOnly) return;
+                  if (selectionControl === 'checkbox') {
+                    onChange(fId, v === opt ? '' : opt);
+                    return;
+                  }
+                  onChange(fId, opt);
+                }}
                 disabled={readOnly}
+                className={selectionControl === 'checkbox' ? 'sw-matrix-checkbox' : undefined}
               />
             </div>
           ))}
@@ -672,7 +681,13 @@ function replaceControlWithExportText(control: HTMLInputElement | HTMLSelectElem
     }
 
     if (control.type === 'checkbox') {
-      value = control.checked ? 'Yes' : 'No';
+      exportNode.classList.add('sw-export-text--inline');
+      const marker = document.createElement('span');
+      marker.className = 'sw-export-checkbox-marker';
+      marker.textContent = control.checked ? '☒' : '☐';
+      exportNode.appendChild(marker);
+      control.replaceWith(exportNode);
+      return;
     } else {
       value = control.value || control.placeholder || '';
     }
@@ -762,45 +777,6 @@ function normalizeAttachmentBytes(buffer: ArrayBuffer): Uint8Array {
 
   return directBytes;
 }
-
-// ── Attachment preview helpers ────────────────────────────────────
-type FileKind = 'image' | 'pdf' | 'word' | 'excel' | 'other';
-
-function getFileKind(fileName: string): FileKind {
-  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
-  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
-  if (ext === 'pdf') return 'pdf';
-  if (['doc','docx'].includes(ext)) return 'word';
-  if (['xls','xlsx','csv'].includes(ext)) return 'excel';
-  return 'other';
-}
-
-function FileTypeIcon({ kind }: { kind: FileKind }) {
-  if (kind === 'pdf') return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#c10000' }}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-      <line x1="9" y1="13" x2="9" y2="17"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="15" y1="14" x2="15" y2="17"/>
-    </svg>
-  );
-  if (kind === 'word') return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#1a56c4' }}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-      <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10 9 9 9 8 9"/>
-    </svg>
-  );
-  if (kind === 'excel') return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#22a35a' }}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-      <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/>
-    </svg>
-  );
-  return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#7a8fad' }}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-    </svg>
-  );
-}
-
 
 // ── Main layout component ─────────────────────────────────────────
 const FidelitySubjectFormLayout: React.FC<Props> = ({
@@ -2010,6 +1986,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={onChange}
             readOnly={readOnly}
             idPrefix="mc"
+            selectionControl="checkbox"
           />
         </div>
         <div>

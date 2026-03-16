@@ -646,6 +646,13 @@
   accent-color: #1a56c4;
 }
 .sw-matrix-radio-cell input[type="radio"]:disabled { cursor: default; }
+.sw-matrix-radio-cell input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #1a56c4;
+  width: 14px;
+  height: 14px;
+}
+.sw-matrix-radio-cell input[type="checkbox"]:disabled { cursor: default; }
 
 /* ── REQUIRED FIELD INDICATORS ────────────────── */
 .sw-required-star {
@@ -927,6 +934,11 @@
 }
 
 .sw-export-radio-marker {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.sw-export-checkbox-marker {
   font-size: 12px;
   line-height: 1;
 }
