@@ -126,7 +126,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [workActionLoading, setWorkActionLoading] = useState<boolean>(false);
   const [showWorkSection, setShowWorkSection] = useState<boolean>(false);
   const [feedbackText, setFeedbackText] = useState<string>('');
-  const [feedbackFiles, setFeedbackFiles] = useState<File[]>([]);
   const [feedbackType, setFeedbackType] = useState<string>('update');
   const [activeWorkTab, setActiveWorkTab] = useState<'feedback' | 'files' | 'status'>('feedback');
   
@@ -1035,8 +1034,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   const handleSubmitFeedback = async () => {
-    if (!feedbackText.trim() && feedbackFiles.length === 0) {
-      toast.error('Please provide feedback text or upload files');
+    if (!feedbackText.trim()) {
+      toast.error('Please provide feedback text');
       return;
     }
 
@@ -1051,11 +1050,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       formData.append('isVisibleToRequestor', 'true');
       formData.append('hoursWorked', '0');
       
-      // Add first file if any
-      if (feedbackFiles.length > 0) {
-        formData.append('attachment', feedbackFiles[0]);
-      }
-      
       const response = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -1065,7 +1059,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       if (response.data.success) {
         toast.success('Feedback submitted successfully!');
         setFeedbackText('');
-        setFeedbackFiles([]);
         onUpdate(); // Refresh parent component
       } else {
         toast.error('Failed to submit feedback');
@@ -1076,34 +1069,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     } finally {
       setWorkActionLoading(false);
     }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    
-    // Validate file types and sizes
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/', 'application/pdf', 'text/', 'application/msword', 'application/vnd.openxmlformats'];
-    
-    const validFiles = files.filter(file => {
-      if (file.size > maxSize) {
-        toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
-        return false;
-      }
-      
-      if (!allowedTypes.some(type => file.type.startsWith(type))) {
-        toast.error(`File ${file.name} type is not allowed.`);
-        return false;
-      }
-      
-      return true;
-    });
-    
-    setFeedbackFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const removeFeedbackFile = (index: number) => {
-    setFeedbackFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   // Handle results notes change
@@ -1577,29 +1542,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
               </div>
             </div>
 
-            {feedbackFiles.length > 0 && (
-              <div className="mb-3">
-                <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
-                  Selected Files ({feedbackFiles.length})
-                </div>
-                {feedbackFiles.map((file, index) => (
-                  <div key={index} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-2">
-                    <div style={{ fontSize: '0.8rem' }}>
-                      <div className="fw-medium">{file.name}</div>
-                      <div className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                    </div>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => removeFeedbackFile(index)}
-                      style={{ fontSize: '0.75rem' }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div className="d-flex justify-content-end">
               <Button
                 variant="primary"
@@ -1609,7 +1551,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
                   await handleSubmitFeedback();
                   setFeedbackType(originalType);
                 }}
-                disabled={workActionLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
+                disabled={workActionLoading || !feedbackText.trim()}
                 size="sm"
                 className="d-flex align-items-center"
                 style={{ fontSize: '0.85rem' }}

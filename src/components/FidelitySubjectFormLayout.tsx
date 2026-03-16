@@ -763,54 +763,6 @@ function normalizeAttachmentBytes(buffer: ArrayBuffer): Uint8Array {
   return directBytes;
 }
 
-function buildSizedPhotoDataUrl(img: HTMLImageElement): string | null {
-  const MAX_DB_CHARS = 3950;
-  const attempts = [
-    { size: 320, quality: 0.92, format: 'image/webp' },
-    { size: 288, quality: 0.9, format: 'image/webp' },
-    { size: 256, quality: 0.88, format: 'image/webp' },
-    { size: 224, quality: 0.86, format: 'image/webp' },
-    { size: 208, quality: 0.84, format: 'image/webp' },
-    { size: 192, quality: 0.82, format: 'image/webp' },
-    { size: 176, quality: 0.8, format: 'image/webp' },
-    { size: 160, quality: 0.78, format: 'image/webp' },
-    { size: 144, quality: 0.74, format: 'image/webp' },
-    { size: 128, quality: 0.7, format: 'image/webp' },
-    { size: 112, quality: 0.66, format: 'image/webp' },
-    { size: 160, quality: 0.72, format: 'image/jpeg' },
-    { size: 128, quality: 0.64, format: 'image/jpeg' },
-  ];
-
-  for (const attempt of attempts) {
-    let { width, height } = img;
-    if (width > height) {
-      if (width > attempt.size) {
-        height = Math.round((height * attempt.size) / width);
-        width = attempt.size;
-      }
-    } else if (height > attempt.size) {
-      width = Math.round((width * attempt.size) / height);
-      height = attempt.size;
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(width, 1);
-    canvas.height = Math.max(height, 1);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL(attempt.format, attempt.quality);
-    if (dataUrl.length <= MAX_DB_CHARS) {
-      return dataUrl;
-    }
-  }
-
-  return null;
-}
-
 // ── Attachment preview helpers ────────────────────────────────────
 type FileKind = 'image' | 'pdf' | 'word' | 'excel' | 'other';
 
@@ -849,175 +801,6 @@ function FileTypeIcon({ kind }: { kind: FileKind }) {
   );
 }
 
-// ── Unified drop zone + file list for Other Attachments ──────────
-interface AttachmentsDropZoneProps {
-  uploading: boolean;
-  attachLoading: boolean;
-  formAttachments: Attachment[];
-  photoRefValue: string;
-  readOnly: boolean;
-  onFile: (file: File) => void;
-  onDownload: (id: number, name: string) => void;
-  onDelete: (id: number) => void;
-}
-const AttachmentsDropZone: React.FC<AttachmentsDropZoneProps> = ({
-  uploading,
-  attachLoading,
-  formAttachments,
-  photoRefValue,
-  readOnly,
-  onFile,
-  onDownload,
-  onDelete,
-}) => {
-  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
-    disabled: uploading || readOnly,
-    multiple: true,
-    onDrop: (accepted) => { accepted.forEach(f => onFile(f)); },
-  });
-
-  // Blob URLs for image previews, keyed by attachmentId
-  const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
-
-  const photoAttachId = photoRefValue.startsWith(PHOTO_REF_PREFIX)
-    ? parseInt(photoRefValue.slice(PHOTO_REF_PREFIX.length))
-    : null;
-  const others = formAttachments.filter(a =>
-    a.attachmentId !== photoAttachId &&
-    !a.fileName.startsWith(SUBJECT_PHOTO_FILE_PREFIX)
-  );
-
-  // Lazily fetch blob URLs for image attachments
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const toFetch = others.filter(
-      a => getFileKind(a.fileName) === 'image' && !previewUrls[a.attachmentId]
-    );
-    if (toFetch.length === 0) return;
-
-    let cancelled = false;
-    const fetched: Record<number, string> = {};
-
-    Promise.all(
-      toFetch.map(async (a) => {
-        try {
-          const res = await fetch(`/api/attachments/${a.attachmentId}/download`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) return;
-          const blob = await res.blob();
-          fetched[a.attachmentId] = URL.createObjectURL(blob);
-        } catch { /* skip */ }
-      })
-    ).then(() => {
-      if (!cancelled && Object.keys(fetched).length > 0) {
-        setPreviewUrls(prev => ({ ...prev, ...fetched }));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      // Revoke any newly created URLs on cleanup
-      Object.values(fetched).forEach(u => URL.revokeObjectURL(u));
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [others.map(a => a.attachmentId).join(',')]);
-
-  // Revoke all blob URLs on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(previewUrls).forEach(u => URL.revokeObjectURL(u));
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  let dzClass = 'sw-dropzone';
-  if (isDragAccept) dzClass += ' sw-dropzone--accept';
-  else if (isDragReject) dzClass += ' sw-dropzone--reject';
-  else if (isDragActive) dzClass += ' sw-dropzone--over';
-  if (uploading) dzClass += ' sw-dropzone--uploading';
-
-  return (
-    <div className="sw-dropzone-card">
-      {!readOnly && (
-        <div {...getRootProps()} className={dzClass}>
-          <input {...getInputProps()} />
-          {uploading ? (
-            <>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-              <span>Uploading…</span>
-            </>
-          ) : isDragReject ? (
-            <>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-              <span>File type not supported</span>
-            </>
-          ) : (
-            <>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <span><strong>Drop files here</strong> or <span className="sw-dropzone-link">click to browse</span></span>
-            </>
-          )}
-        </div>
-      )}
-
-      {attachLoading ? (
-        <div className="sw-attach-empty">Loading…</div>
-      ) : others.length === 0 ? (
-        !readOnly && <div className="sw-attach-empty">No attachments yet.</div>
-      ) : (
-        <ul className="sw-attach-list">
-          {others.map(a => {
-            const kind = getFileKind(a.fileName);
-            const imgUrl = previewUrls[a.attachmentId];
-            return (
-              <li key={a.attachmentId} className="sw-attach-item">
-                <div className="sw-attach-thumb">
-                  {kind === 'image' && imgUrl ? (
-                    <img src={imgUrl} alt={a.fileName} className="sw-attach-thumb-img" />
-                  ) : (
-                    <div className="sw-attach-thumb-icon">
-                      <FileTypeIcon kind={kind} />
-                    </div>
-                  )}
-                </div>
-                <span className="sw-attach-name">{a.fileName}</span>
-                <div className="sw-attach-actions">
-                  <button
-                    type="button"
-                    className="sw-attach-btn"
-                    onClick={() => onDownload(a.attachmentId, a.fileName)}
-                  >
-                    ↓ Download
-                  </button>
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      className="sw-attach-btn sw-attach-btn--del"
-                      onClick={() => onDelete(a.attachmentId)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-};
 
 // ── Main layout component ─────────────────────────────────────────
 const FidelitySubjectFormLayout: React.FC<Props> = ({
@@ -1037,8 +820,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   const requestIdRef = useRef<number | undefined>(requestId);
   const [investigatorOptions, setInvestigatorOptions] = useState<string[]>([]);
   const [formAttachments, setFormAttachments] = useState<Attachment[]>([]);
-  const [attachLoading, setAttachLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
   // Displayable URL for the subject photo (blob: or data:image — never raw DB value)
   const [photoDisplayUrl, setPhotoDisplayUrl] = useState<string | null>(null);
@@ -1097,7 +878,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         windowHeight: exportClone.scrollHeight,
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
 
       const pageW = pdf.internal.pageSize.getWidth();
@@ -1188,7 +968,6 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   useEffect(() => {
     if (!requestId) return;
     const fetchAttachments = async () => {
-      setAttachLoading(true);
       try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/requests/${requestId}/attachments`, {
@@ -1198,67 +977,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         setFormAttachments(data.attachments || []);
       } catch {
         /* silently ignore — section will show empty */
-      } finally {
-        setAttachLoading(false);
       }
     };
     fetchAttachments();
   }, [requestId]);
-
-  const handleAttachmentUpload = async (file: File) => {
-    if (!file || !requestId) return;
-    setUploading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch(`/api/requests/${requestId}/attachments`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      const data = await res.json();
-      if (data.success && data.attachmentId) {
-        setFormAttachments(prev => [...prev, { attachmentId: data.attachmentId, fileName: data.fileName }]);
-      }
-    } catch (err) {
-      console.error('Attachment upload failed', err);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleAttachmentDownload = async (attachmentId: number, fileName: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/attachments/${attachmentId}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Attachment download failed', err);
-    }
-  };
-
-  const handleAttachmentDelete = async (attachmentId: number) => {
-    if (!confirm('Delete this attachment?')) return;
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`/api/attachments/${attachmentId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFormAttachments(prev => prev.filter(a => a.attachmentId !== attachmentId));
-    } catch (err) {
-      console.error('Attachment delete failed', err);
-    }
-  };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
