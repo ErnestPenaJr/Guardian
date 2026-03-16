@@ -835,11 +835,11 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')
         .forEach(control => replaceControlWithExportText(control));
 
-      const forcedPageBreakHeader = Array.from(exportClone.querySelectorAll<HTMLElement>('.sw-intel-hdr'))
+      const preferredPageBreakHeader = Array.from(exportClone.querySelectorAll<HTMLElement>('.sw-intel-hdr'))
         .find(node => node.textContent?.trim().toLowerCase() === 'investigative / intelligence notes of interest:');
-      const forcedBreakTarget = forcedPageBreakHeader?.nextElementSibling as HTMLElement | null;
-      const forcedBreakOffset = forcedBreakTarget
-        ? forcedBreakTarget.offsetTop + forcedBreakTarget.offsetHeight
+      const preferredBreakTarget = preferredPageBreakHeader?.nextElementSibling as HTMLElement | null;
+      const preferredBreakOffset = preferredBreakTarget
+        ? preferredBreakTarget.offsetTop + preferredBreakTarget.offsetHeight
         : null;
 
       const canvas = await html2canvas(exportClone, {
@@ -863,7 +863,8 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       const printablePageHeight = pageH - margin * 2;
       const canvasPageHeight = Math.floor((printablePageHeight * canvas.width) / printW);
       const cloneToCanvasRatio = canvas.height / exportClone.scrollHeight;
-      let forcedBreakY = forcedBreakOffset ? Math.floor(forcedBreakOffset * cloneToCanvasRatio) : null;
+      let preferredBreakY = preferredBreakOffset ? Math.floor(preferredBreakOffset * cloneToCanvasRatio) : null;
+      const minAutoSliceHeight = Math.floor(canvasPageHeight * 0.35);
 
       let currentY = 0;
       let pageIndex = 0;
@@ -871,12 +872,21 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         let nextY = Math.min(currentY + canvasPageHeight, canvas.height);
 
         if (
-          forcedBreakY !== null &&
-          forcedBreakY > currentY &&
-          forcedBreakY < nextY
+          preferredBreakY !== null &&
+          preferredBreakY > currentY &&
+          preferredBreakY < nextY
         ) {
-          nextY = forcedBreakY;
-          forcedBreakY = null;
+          const sliceBeforeBreak = preferredBreakY - currentY;
+          const sliceAfterBreak = nextY - preferredBreakY;
+
+          // Only honor the preferred breakpoint when it won't create a
+          // tiny/blank-looking page on either side. Otherwise keep the
+          // normal automatic page height.
+          if (sliceBeforeBreak >= minAutoSliceHeight && sliceAfterBreak >= minAutoSliceHeight) {
+            nextY = preferredBreakY;
+          }
+
+          preferredBreakY = null;
         }
 
         const pageCanvas = buildCanvasSlice(canvas, currentY, nextY);
@@ -1998,6 +2008,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             onChange={onChange}
             readOnly={readOnly}
             idPrefix="src"
+            selectionControl="checkbox"
           />
         </div>
       </div>{/* /sw-matrix */}
