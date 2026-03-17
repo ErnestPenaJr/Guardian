@@ -26,6 +26,7 @@ import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
+import JafarAdministration from './JafarAdministration';
 import NoticesLandingPage from './NoticesLandingPage';
 import requestService from '../services/requestService';
 import NewRequestModal from './NewRequestModal';
@@ -108,7 +109,7 @@ function Home() {
   const location = useLocation();
   const { user } = useAuth();
   const { subscribeToRefresh } = useRequestState();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
 
@@ -1897,11 +1898,18 @@ function Home() {
             </div>
           ) : selectedSection === 'admin' && user && ((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') ? (
             <div className="mt-4 md:mt-6 mb-6">
-              <AdminDashboard onShowUserManagement={() => setSelectedSection('adminUserManagement')} />
+              <AdminDashboard
+                onShowUserManagement={() => setSelectedSection('adminUserManagement')}
+                onShowJafarAdministration={() => setSelectedSection('jafarAdministration')}
+              />
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <AdminUserManagement />
+            </div>
+          ) : selectedSection === 'jafarAdministration' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <JafarAdministration />
             </div>
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">
@@ -1978,9 +1986,9 @@ function Home() {
           if (["dashboard", "search", "notifications", "profile"].includes(key)) {
             setMobileNav(key as 'dashboard' | 'search' | 'notifications' | 'profile');
             if (key === 'dashboard') setSelectedSection('dashboard');
-          } else if (["workorder", "myRequests", "admin", "adminUserManagement"].includes(key)) {
+          } else if (["workorder", "myRequests", "admin", "adminUserManagement", "jafarAdministration"].includes(key)) {
             // Handle dashboard dropdown selections
-            setSelectedSection(key as 'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement');
+            setSelectedSection(key as 'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration');
             setMobileNav('dashboard'); // Keep mobile nav on dashboard but change content
           }
         }}

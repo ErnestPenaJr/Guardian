@@ -13523,6 +13523,559 @@ const checkJafarRole = async (req, res, next) => {
     }
 };
 
+const normalizeDeleteCount = (value) => {
+    if (typeof value === 'bigint') return Number(value);
+    const numeric = Number(value || 0);
+    return Number.isNaN(numeric) ? 0 : numeric;
+};
+
+const sqlQuote = (value) => `'${String(value || '').replace(/'/g, "''")}'`;
+const joinIds = (ids) => ids.join(', ');
+const uniqueIds = (values) => Array.from(new Set(
+    (values || [])
+        .map(value => Number(value))
+        .filter(value => Number.isInteger(value) && value > 0)
+));
+
+const countRaw = async (sql) => {
+    const rows = await prisma.$queryRawUnsafe(sql);
+    return normalizeDeleteCount(rows?.[0]?.count);
+};
+
+const idRaw = async (sql, column) => {
+    const rows = await prisma.$queryRawUnsafe(sql);
+    return uniqueIds(rows.map(row => row[column]));
+};
+
+const getJafarUserById = async (userId) => {
+    const rows = await prisma.$queryRawUnsafe(`
+        SELECT TOP 1
+            u.USER_ID,
+            u.FIRST_NAME,
+            u.LAST_NAME,
+            u.EMAIL,
+            TRY_CONVERT(INT, u.COMPANY_ID) AS COMPANY_ID,
+            u.STATUS,
+            c.NAME AS COMPANY_NAME
+        FROM GUARDIAN.USERS u
+        LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, u.COMPANY_ID)
+        WHERE u.USER_ID = ${userId}
+    `);
+
+    return rows[0] || null;
+};
+
+const getJafarCompanyById = async (companyId) => {
+    const rows = await prisma.$queryRawUnsafe(`
+        SELECT TOP 1 COMPANY_ID, NAME
+        FROM GUARDIAN.COMPANY
+        WHERE COMPANY_ID = ${companyId}
+    `);
+
+    return rows[0] || null;
+};
+
+const getJafarUserRequestIds = async (userId) => idRaw(`
+    SELECT REQUEST_ID
+    FROM GUARDIAN.REQUESTS
+    WHERE REQUESTOR_ID = ${userId}
+       OR ASSIGNED_ID = ${userId}
+       OR CANCELLED_BY = ${userId}
+       OR CREATE_USER_ID = ${userId}
+       OR UPDATE_USER_ID = ${userId}
+`, 'REQUEST_ID');
+
+const getJafarCompanyRequestIds = async (companyId) => idRaw(`
+    SELECT REQUEST_ID
+    FROM GUARDIAN.REQUESTS
+    WHERE TRY_CONVERT(INT, COMPANY_ID) = ${companyId}
+`, 'REQUEST_ID');
+
+const getJafarUserAttachmentIds = async (userId, requestIds) => {
+    const requestFilter = requestIds.length > 0 ? ` OR REQUEST_ID IN (${joinIds(requestIds)})` : '';
+    return idRaw(`
+        SELECT ATTACHMENT_ID
+        FROM GUARDIAN.ATTACHMENTS
+        WHERE CREATE_USER_ID = ${userId}
+           OR UPDATE_USER_ID = ${userId}
+           ${requestFilter}
+    `, 'ATTACHMENT_ID');
+};
+
+const getJafarCompanyAttachmentIds = async (companyId, requestIds) => {
+    const requestFilter = requestIds.length > 0 ? ` OR REQUEST_ID IN (${joinIds(requestIds)})` : '';
+    return idRaw(`
+        SELECT ATTACHMENT_ID
+        FROM GUARDIAN.ATTACHMENTS
+        WHERE COMPANY_ID = ${companyId}
+           ${requestFilter}
+    `, 'ATTACHMENT_ID');
+};
+
+const getJafarUserNoticeIds = async (userId) => idRaw(`
+    SELECT NOTICE_ID
+    FROM GUARDIAN.NOTICES
+    WHERE ISSUED_BY_USER_ID = ${userId}
+`, 'NOTICE_ID');
+
+const getJafarCompanyNoticeIds = async (companyId) => idRaw(`
+    SELECT NOTICE_ID
+    FROM GUARDIAN.NOTICES
+    WHERE COMPANY_ID = ${companyId}
+`, 'NOTICE_ID');
+
+const getJafarUserFormInstanceIds = async (userId) => idRaw(`
+    SELECT FORM_INSTANCE_ID
+    FROM GUARDIAN.FORMS_INSTANCE
+    WHERE ASSIGNED_ID = ${userId}
+       OR CREATE_USER_ID = ${userId}
+       OR UPDATE_USER_ID = ${userId}
+`, 'FORM_INSTANCE_ID');
+
+const getJafarCompanyFormInstanceIds = async (companyId) => idRaw(`
+    SELECT FORM_INSTANCE_ID
+    FROM GUARDIAN.FORMS_INSTANCE
+    WHERE COMPANY_ID = ${companyId}
+`, 'FORM_INSTANCE_ID');
+
+const getJafarCompanyWorkspaceIds = async (companyId) => idRaw(`
+    SELECT WORKSPACE_ID
+    FROM GUARDIAN.WORKSPACES
+    WHERE COMPANY_ID = ${companyId}
+`, 'WORKSPACE_ID');
+
+const getJafarCompanyFormIds = async (companyId) => idRaw(`
+    SELECT FORM_ID
+    FROM GUARDIAN.FORMS
+    WHERE COMPANY_ID = ${companyId}
+`, 'FORM_ID');
+
+const getJafarCompanyUserIds = async (companyId) => idRaw(`
+    SELECT USER_ID
+    FROM GUARDIAN.USERS
+    WHERE TRY_CONVERT(INT, COMPANY_ID) = ${companyId}
+`, 'USER_ID');
+
+const createEmptyJafarCounts = () => ({
+    userRoles: 0,
+    userWorkspaces: 0,
+    companyInfo: 0,
+    notifications: 0,
+    invites: 0,
+    noticesIssued: 0,
+    noticeRecipients: 0,
+    noticeReadStatus: 0,
+    workProgress: 0,
+    attachments: 0,
+    tasks: 0,
+    requests: 0,
+    formInstances: 0,
+    formInstanceValues: 0,
+    milestones: 0,
+    workspaces: 0,
+    forms: 0,
+    formFields: 0,
+    users: 0,
+    company: 0
+});
+
+const buildJafarUserPreview = async (userId, actorUserId) => {
+    const user = await getJafarUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    const requestIds = await getJafarUserRequestIds(userId);
+    const attachmentIds = await getJafarUserAttachmentIds(userId, requestIds);
+    const noticeIds = await getJafarUserNoticeIds(userId);
+    const formInstanceIds = await getJafarUserFormInstanceIds(userId);
+    const counts = createEmptyJafarCounts();
+    const blockers = [];
+
+    if (actorUserId && actorUserId === userId) blockers.push('You cannot purge your own JAFAR account.');
+
+    counts.userRoles = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${userId}`);
+    counts.userWorkspaces = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
+    counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE USER_ID = ${userId}`);
+    counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE USER_ID = ${userId}`);
+    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(user.EMAIL)}`);
+    counts.noticeRecipients = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
+    counts.noticeReadStatus = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
+    counts.noticesIssued = noticeIds.length;
+    counts.formInstances = formInstanceIds.length;
+    counts.formInstanceValues = formInstanceIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`) : 0;
+    counts.attachments = attachmentIds.length;
+    counts.workProgress = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.WORK_PROGRESS
+        WHERE USER_ID = ${userId}
+           ${requestIds.length > 0 ? `OR REQUEST_ID IN (${joinIds(requestIds)})` : ''}
+           ${attachmentIds.length > 0 ? `OR RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : ''}
+    `);
+    counts.tasks = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.TASKS
+        WHERE ASSIGNED_USER_ID = ${userId}
+           OR CREATE_USER_ID = ${userId}
+           OR UPDATE_USER_ID = ${userId}
+           ${requestIds.length > 0 ? `OR REQUEST_ID IN (${joinIds(requestIds)})` : ''}
+    `);
+    counts.requests = requestIds.length;
+    counts.milestones = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
+    counts.users = 1;
+
+    return {
+        target: {
+            userId: user.USER_ID,
+            fullName: `${user.FIRST_NAME || ''} ${user.LAST_NAME || ''}`.trim() || user.EMAIL,
+            email: user.EMAIL,
+            companyId: user.COMPANY_ID,
+            companyName: user.COMPANY_NAME || null,
+            status: user.STATUS
+        },
+        scope: 'user',
+        allowed: blockers.length === 0,
+        blockers,
+        counts
+    };
+};
+
+const buildJafarCompanyPreview = async (companyId, actorUserId) => {
+    const company = await getJafarCompanyById(companyId);
+    if (!company) throw new Error('Company not found');
+
+    const userIds = await getJafarCompanyUserIds(companyId);
+    const requestIds = await getJafarCompanyRequestIds(companyId);
+    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, requestIds);
+    const noticeIds = await getJafarCompanyNoticeIds(companyId);
+    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId);
+    const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
+    const formIds = await getJafarCompanyFormIds(companyId);
+    const counts = createEmptyJafarCounts();
+    const blockers = [];
+
+    if (actorUserId && userIds.includes(actorUserId)) blockers.push('You cannot wipe a company that contains your active JAFAR account.');
+
+    counts.users = userIds.length;
+    counts.company = 1;
+    counts.userRoles = userIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID IN (${joinIds(userIds)})`) : 0;
+    counts.userWorkspaces = workspaceIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`) : 0;
+    counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE COMPANY_ID = ${companyId}`);
+    counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE COMPANY_ID = ${companyId}`);
+    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE COMPANY_ID = ${companyId}`);
+    counts.noticeRecipients = noticeIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`) : 0;
+    counts.noticeReadStatus = noticeIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`) : 0;
+    counts.noticesIssued = noticeIds.length;
+    counts.formInstances = formInstanceIds.length;
+    counts.formInstanceValues = formInstanceIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`) : 0;
+    counts.attachments = attachmentIds.length;
+    counts.workProgress = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.WORK_PROGRESS
+        WHERE COMPANY_ID = ${companyId}
+           ${requestIds.length > 0 ? `OR REQUEST_ID IN (${joinIds(requestIds)})` : ''}
+           ${userIds.length > 0 ? `OR USER_ID IN (${joinIds(userIds)})` : ''}
+           ${attachmentIds.length > 0 ? `OR RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : ''}
+    `);
+    counts.tasks = requestIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`) : 0;
+    counts.requests = requestIds.length;
+    counts.milestones = userIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID IN (${joinIds(userIds)})`) : 0;
+    counts.workspaces = workspaceIds.length;
+    counts.forms = formIds.length;
+    counts.formFields = formIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`) : 0;
+
+    return {
+        target: {
+            companyId: company.COMPANY_ID,
+            companyName: company.NAME
+        },
+        scope: 'company',
+        allowed: blockers.length === 0,
+        blockers,
+        counts
+    };
+};
+
+const executeJafarUserPurge = async (userId, actorUserId) => {
+    const preview = await buildJafarUserPreview(userId, actorUserId);
+    if (!preview.allowed) throw new Error(preview.blockers[0] || 'User purge is blocked');
+
+    const requestIds = await getJafarUserRequestIds(userId);
+    const attachmentIds = await getJafarUserAttachmentIds(userId, requestIds);
+    const noticeIds = await getJafarUserNoticeIds(userId);
+    const formInstanceIds = await getJafarUserFormInstanceIds(userId);
+    const counts = createEmptyJafarCounts();
+    const userEmail = String(preview.target.email || '');
+
+    await prisma.$transaction(async (tx) => {
+        if (noticeIds.length > 0) {
+            counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticesIssued += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICES WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+        }
+
+        counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
+        counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
+        counts.notifications += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTIFICATIONS WHERE USER_ID = ${userId}`);
+        counts.invites += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(userEmail)}`);
+
+        if (formInstanceIds.length > 0) {
+            counts.formInstanceValues += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+            counts.formInstances += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+        }
+
+        const workProgressClauses = [`USER_ID = ${userId}`];
+        if (requestIds.length > 0) workProgressClauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+        if (attachmentIds.length > 0) workProgressClauses.push(`RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        counts.workProgress += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORK_PROGRESS WHERE ${workProgressClauses.join(' OR ')}`);
+        counts.milestones += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
+
+        if (requestIds.length > 0) {
+            counts.tasks += await tx.$executeRawUnsafe(`
+                DELETE FROM GUARDIAN.TASKS
+                WHERE REQUEST_ID IN (${joinIds(requestIds)})
+                   OR ASSIGNED_USER_ID = ${userId}
+                   OR CREATE_USER_ID = ${userId}
+                   OR UPDATE_USER_ID = ${userId}
+            `);
+        } else {
+            counts.tasks += await tx.$executeRawUnsafe(`
+                DELETE FROM GUARDIAN.TASKS
+                WHERE ASSIGNED_USER_ID = ${userId}
+                   OR CREATE_USER_ID = ${userId}
+                   OR UPDATE_USER_ID = ${userId}
+            `);
+        }
+
+        if (attachmentIds.length > 0) {
+            counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        }
+
+        if (requestIds.length > 0) {
+            counts.requests += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.REQUESTS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
+        }
+
+        counts.userWorkspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
+        counts.companyInfo += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY_INFO WHERE USER_ID = ${userId}`);
+        counts.userRoles += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${userId}`);
+        await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USERS WHERE USER_ID = ${userId}`);
+        counts.users = 1;
+    });
+
+    return { success: true, scope: 'user', targetId: userId, deletedCounts: counts };
+};
+
+const executeJafarCompanyPurge = async (companyId, actorUserId) => {
+    const preview = await buildJafarCompanyPreview(companyId, actorUserId);
+    if (!preview.allowed) throw new Error(preview.blockers[0] || 'Company wipe is blocked');
+
+    const userIds = await getJafarCompanyUserIds(companyId);
+    const requestIds = await getJafarCompanyRequestIds(companyId);
+    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, requestIds);
+    const noticeIds = await getJafarCompanyNoticeIds(companyId);
+    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId);
+    const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
+    const formIds = await getJafarCompanyFormIds(companyId);
+    const counts = createEmptyJafarCounts();
+
+    await prisma.$transaction(async (tx) => {
+        if (noticeIds.length > 0) {
+            counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticesIssued += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICES WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+        }
+
+        counts.notifications += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTIFICATIONS WHERE COMPANY_ID = ${companyId}`);
+        counts.invites += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.INVITES WHERE COMPANY_ID = ${companyId}`);
+
+        if (formInstanceIds.length > 0) {
+            counts.formInstanceValues += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+            counts.formInstances += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+        }
+
+        const workProgressClauses = [`COMPANY_ID = ${companyId}`];
+        if (requestIds.length > 0) workProgressClauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+        if (userIds.length > 0) workProgressClauses.push(`USER_ID IN (${joinIds(userIds)})`);
+        if (attachmentIds.length > 0) workProgressClauses.push(`RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        counts.workProgress += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORK_PROGRESS WHERE ${workProgressClauses.join(' OR ')}`);
+
+        if (userIds.length > 0) {
+            counts.milestones += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID IN (${joinIds(userIds)})`);
+        }
+
+        if (requestIds.length > 0) {
+            counts.tasks += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
+        }
+
+        if (attachmentIds.length > 0) {
+            counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        }
+
+        if (requestIds.length > 0) {
+            counts.requests += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.REQUESTS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
+        }
+
+        if (workspaceIds.length > 0) {
+            counts.userWorkspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`);
+            counts.workspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`);
+        }
+
+        counts.companyInfo += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY_INFO WHERE COMPANY_ID = ${companyId}`);
+
+        if (formIds.length > 0) {
+            counts.formFields += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`);
+            counts.forms += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS WHERE FORM_ID IN (${joinIds(formIds)})`);
+        }
+
+        if (userIds.length > 0) {
+            counts.userRoles += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_ROLES WHERE USER_ID IN (${joinIds(userIds)})`);
+            counts.users += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USERS WHERE USER_ID IN (${joinIds(userIds)})`);
+        }
+
+        await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY WHERE COMPANY_ID = ${companyId}`);
+        counts.company = 1;
+    });
+
+    return { success: true, scope: 'company', targetId: companyId, deletedCounts: counts };
+};
+
+app.get('/api/jafar-admin/users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const query = String(req.query.q || '').trim();
+        const filter = query ? `
+            AND (
+                u.EMAIL LIKE ${sqlQuote(`%${query}%`)}
+                OR CONCAT(COALESCE(u.FIRST_NAME, ''), ' ', COALESCE(u.LAST_NAME, '')) LIKE ${sqlQuote(`%${query}%`)}
+            )
+        ` : '';
+
+        const users = await prisma.$queryRawUnsafe(`
+            SELECT TOP 250
+                u.USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                TRY_CONVERT(INT, u.COMPANY_ID) AS COMPANY_ID,
+                u.STATUS,
+                c.NAME AS COMPANY_NAME
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, u.COMPANY_ID)
+            WHERE 1 = 1
+              ${filter}
+            ORDER BY u.EMAIL ASC
+        `);
+
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to load users:', error);
+        res.status(500).json({ error: 'Failed to load users' });
+    }
+});
+
+app.get('/api/jafar-admin/companies', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const query = String(req.query.q || '').trim();
+        const filter = query ? `AND c.NAME LIKE ${sqlQuote(`%${query}%`)}` : '';
+        const companies = await prisma.$queryRawUnsafe(`
+            SELECT TOP 250
+                c.COMPANY_ID,
+                c.NAME,
+                COUNT(u.USER_ID) AS USER_COUNT
+            FROM GUARDIAN.COMPANY c
+            LEFT JOIN GUARDIAN.USERS u ON TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID
+            WHERE 1 = 1
+              ${filter}
+            GROUP BY c.COMPANY_ID, c.NAME
+            ORDER BY c.NAME ASC
+        `);
+
+        res.json({
+            success: true,
+            data: companies.map(company => ({
+                ...company,
+                USER_COUNT: normalizeDeleteCount(company.USER_COUNT)
+            }))
+        });
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to load companies:', error);
+        res.status(500).json({ error: 'Failed to load companies' });
+    }
+});
+
+app.get('/api/jafar-admin/purge/user/:userId/preview', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        if (!userId || Number.isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user id' });
+        }
+
+        const preview = await buildJafarUserPreview(userId, req.userId);
+        res.json(preview);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to preview user purge:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to preview user purge'
+        });
+    }
+});
+
+app.post('/api/jafar-admin/purge/user/:userId', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const confirmation = String(req.body?.confirmation || '');
+        if (!userId || Number.isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user id' });
+        }
+        if (confirmation !== 'DELETE') {
+            return res.status(400).json({ error: 'Confirmation phrase must be DELETE' });
+        }
+
+        const result = await executeJafarUserPurge(userId, req.userId);
+        res.json(result);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to purge user:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to purge user'
+        });
+    }
+});
+
+app.get('/api/jafar-admin/purge/company/:companyId/preview', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        if (!companyId || Number.isNaN(companyId)) {
+            return res.status(400).json({ error: 'Invalid company id' });
+        }
+
+        const preview = await buildJafarCompanyPreview(companyId, req.userId);
+        res.json(preview);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to preview company wipe:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to preview company purge'
+        });
+    }
+});
+
+app.post('/api/jafar-admin/purge/company/:companyId', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        const confirmation = String(req.body?.confirmation || '');
+        if (!companyId || Number.isNaN(companyId)) {
+            return res.status(400).json({ error: 'Invalid company id' });
+        }
+        if (confirmation !== 'DELETE') {
+            return res.status(400).json({ error: 'Confirmation phrase must be DELETE' });
+        }
+
+        const result = await executeJafarCompanyPurge(companyId, req.userId);
+        res.json(result);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to purge company:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to purge company'
+        });
+    }
+});
+
 // GET /api/workspaces - List all workspaces for company (role_id=6 only)
 app.get('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
     try {

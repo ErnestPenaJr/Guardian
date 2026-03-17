@@ -92,8 +92,7 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
 
       console.log('[SendInvitesForm] Sending invites:', invites);
       
-      // Fix: Use correct API endpoint that exists in production server
-      const response = await api.post('/api/invites', { invites });
+      const response = await api.post('/api/invites/send', { invites });
       
       console.log('[SendInvitesForm] API Response:', response.data);
       

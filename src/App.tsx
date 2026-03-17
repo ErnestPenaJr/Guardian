@@ -30,6 +30,7 @@ import AccountSettings from './pages/AccountSettings';
 import UpdateProfile from './pages/UpdateProfile';
 import ChangePassword from './pages/ChangePassword';
 import NotificationPreferences from './pages/NotificationPreferences';
+import JafarAdministration from './pages/JafarAdministration';
 
 function App() {
   return (
@@ -70,6 +71,7 @@ function App() {
             <Route path="/update-profile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
             <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
+            <Route path="/jafar-administration" element={<ProtectedRoute><JafarAdministration /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
