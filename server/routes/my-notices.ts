@@ -5,7 +5,23 @@ import { requireAuth } from "../auth.js";
 import { Resend } from "resend";
 import multer from "multer";
 import { canCreateNotice } from "../middleware/canCreateNotice.js";
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'application/pdf', 'image/jpeg', 'image/png', 'image/gif',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain', 'text/csv'
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, images, Word, Excel, and text files are allowed.'));
+    }
+  }
+});
 import { Parser } from "json2csv";
 
 const router = express.Router();
@@ -27,7 +43,9 @@ const NoticeSchema = z.object({
 
 router.get("/export-csv", requireAuth, async (req, res) => {
   try {
+    const companyId = (req.user as any).COMPANY_ID;
     const notices = await prisma.mY_NOTICES.findMany({
+      where: { COMPANY_ID: companyId },
       include: {
         RECIPIENTS: true,
         RESPONSES: {
@@ -105,6 +123,7 @@ router.get("/export-csv/:id", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid notice id 1" });
     }
 
+    const companyId = (req.user as any).COMPANY_ID;
     const notice = await prisma.mY_NOTICES.findUnique({
       where: { NOTICE_ID: id },
       include: {
@@ -120,6 +139,7 @@ router.get("/export-csv/:id", requireAuth, async (req, res) => {
     });
 
     if (!notice) return res.status(404).json({ error: "Notice not found" });
+    if (notice.COMPANY_ID !== companyId) return res.status(403).json({ error: "Access denied" });
 
     // Calculate totals
     const totalAttachments = notice.RESPONSES.reduce(
@@ -212,8 +232,10 @@ router.get("/", requireAuth, async (req, res) => {
     const skip = (pageNumber - 1) * pageSize;
 
     /* ---------- FILTER ---------- */
+    const companyId = (req.user as any).COMPANY_ID;
     const whereCondition = {
       AND: [
+        { COMPANY_ID: companyId },
         search ? { NOTICE_TITLE: { contains: String(search) } } : {},
         status && status !== "All" ? { BUTTON_STATUS: String(status) } : {},
         sensitivity && sensitivity !== "All"
@@ -377,6 +399,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     });
 
     if (!notice) return res.status(404).json({ error: "Notice not found" });
+    if (notice.COMPANY_ID !== (req.user as any).COMPANY_ID) return res.status(403).json({ error: "Access denied" });
     const totalAttachments = notice.RESPONSES?.reduce((count, resp) => {
       return count + (resp.ATTACHMENT ? 1 : 0);
     }, 0);
@@ -414,8 +437,9 @@ router.post("/", requireAuth, canCreateNotice, async (req, res) => {
   try {
     const data = NoticeSchema.parse(req.body);
 
+    const noticeCompanyId = (req.user as any).COMPANY_ID;
     const existingNotice = await prisma.mY_NOTICES.findFirst({
-      where: { NOTICE_TITLE: data.NOTICE_TITLE },
+      where: { NOTICE_TITLE: data.NOTICE_TITLE, COMPANY_ID: noticeCompanyId },
     });
     if (existingNotice) {
       return res.status(400).json({
@@ -430,6 +454,7 @@ router.post("/", requireAuth, canCreateNotice, async (req, res) => {
         BUTTON_STATUS: data.BUTTON_STATUS,
         DISTRIBUTION_TYPE: data.DISTRIBUTION_TYPE,
         NOTICE_BODY: data.NOTICE_BODY,
+        COMPANY_ID: noticeCompanyId,
         CREATE_USER_ID: (req.user as { id?: number })?.id ?? null,
         UPDATE_USER_ID: (req.user as { id?: number })?.id ?? null,
         RECIPIENTS: {
@@ -470,6 +495,14 @@ router.put("/:id", requireAuth, canCreateNotice, async (req: any, res: any) => {
 
   try {
     const data = NoticeSchema.parse(req.body);
+
+    const putCompanyId = (req.user as any).COMPANY_ID;
+    const existingNoticeForUpdate = await prisma.mY_NOTICES.findUnique({
+      where: { NOTICE_ID: parseInt(id) },
+      select: { COMPANY_ID: true },
+    });
+    if (!existingNoticeForUpdate) return res.status(404).json({ error: "Notice not found" });
+    if (existingNoticeForUpdate.COMPANY_ID !== putCompanyId) return res.status(403).json({ error: "Access denied" });
 
     // Update Notice + Recipients
     const updatedNotice = await prisma.mY_NOTICES.update({
@@ -555,6 +588,21 @@ router.patch(
     const files = req.files as Express.Multer.File[] | undefined;
 
     try {
+      const patchCompanyId = (req.user as any).COMPANY_ID;
+      const patchUserId = (req.user as any).USER_ID;
+
+      // Verify notice belongs to user's company (via creator's company)
+      const noticeForPatch = await prisma.mY_NOTICES.findFirst({
+        where: { NOTICE_ID: noticeId, CREATE_USER: { COMPANY_ID: patchCompanyId } },
+      });
+      if (!noticeForPatch) return res.status(404).json({ error: "Notice not found or access denied" });
+
+      // Verify the authenticated user is a recipient of this notice
+      const recipientRecord = await prisma.nOTICE_RECIPIENTS.findFirst({
+        where: { NOTICE_ID: noticeId, USER_ID: patchUserId },
+      });
+      if (!recipientRecord) return res.status(403).json({ error: "You are not a recipient of this notice" });
+
       // Use a transaction to ensure atomicity
       const result = await prisma.$transaction(async (tx) => {
         // 1️⃣ Create response

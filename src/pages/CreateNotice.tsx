@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import CommonEditor from "../components/CommonEditor";
 import { useState, useEffect, useMemo } from "react";
-import userService, { UserAllDetails } from "../services/userService";
+import userService from "../services/userService";
 import Swal from "sweetalert2";
 import MyNoticesService, {
   CreateNoticePayload,
@@ -54,15 +54,20 @@ export default function CreateNotice() {
   const editNoticeId =
     numParam != null && !Number.isNaN(numParam) ? numParam : stateId;
 
-  const [users, setUsers] = useState<UserAllDetails[]>([]);
+  const [users, setUsers] = useState<{ id: number; name: string; email: string }[]>([]);
   const [sendNotice, setSendNotice] = useState(false);
   const [noticeData, setNoticeData] = useState<Notice | null>(null);
   const [loadingNotice, setLoadingNotice] = useState(false);
 
   const fetchUsers = async () => {
     try {
-      const allUser = await userService.getAllUsers();
-      setUsers(allUser || []);
+      const allUser = await userService.getUsers();
+      const mapped = (allUser || []).map((u) => ({
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`.trim(),
+        email: u.email,
+      }));
+      setUsers(mapped);
     } catch (error) {
       console.error("Error fetching users:", error);
     }

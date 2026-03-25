@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
@@ -265,7 +266,7 @@ export default function ViewNotice() {
 
           {/* NOTICE BODY */}
           <div className="bg-gray-100 border rounded-lg p-4 text-sm text-gray-700">
-            <div dangerouslySetInnerHTML={{ __html: notice.NOTICE_BODY }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notice.NOTICE_BODY) }} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t pt-6 mt-6">
