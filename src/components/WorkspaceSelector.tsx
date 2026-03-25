@@ -45,10 +45,10 @@ export default function WorkspaceSelector() {
           setCurrentWorkspace(data.workspaces[0]);
         }
       } else {
-        console.error('Failed to fetch workspaces');
+        console.warn('Workspace fetch returned non-OK — workspace selector hidden');
       }
     } catch (error) {
-      console.error('Error fetching workspaces:', error);
+      console.warn('Error fetching workspaces (non-critical):', error);
     } finally {
       setLoading(false);
     }

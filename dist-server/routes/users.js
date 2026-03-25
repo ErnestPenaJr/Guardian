@@ -221,6 +221,32 @@ router.get('/assignable', passport.authenticate('jwt', { session: false }), asyn
                 { FIRST_NAME: 'asc' }
             ]
         });
+        // Ensure the requesting user is included in the options (creator should be selectable)
+        const requestingUserId = req.user?.USER_ID;
+        if (requestingUserId && !users.some(u => u.USER_ID === requestingUserId)) {
+            try {
+                const requestingUser = await prisma.uSERS.findFirst({
+                    where: {
+                        USER_ID: requestingUserId,
+                        COMPANY_ID: companyId,
+                        STATUS: 'A'
+                    },
+                    select: {
+                        USER_ID: true,
+                        FIRST_NAME: true,
+                        LAST_NAME: true,
+                        EMAIL: true,
+                        COMPANY_ID: true
+                    }
+                });
+                if (requestingUser) {
+                    users.unshift(requestingUser);
+                }
+            }
+            catch (_err) {
+                // Ignore and continue returning the base list
+            }
+        }
         // Format the response to match the expected structure
         const formattedUsers = users.map(user => ({
             USER_ID: user.USER_ID,

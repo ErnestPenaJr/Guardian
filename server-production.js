@@ -1104,11 +1104,11 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         }
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        console.log('✅ JWT token verified successfully for user:', decoded.userId);
+        console.log('✅ JWT token verified successfully for user:', decoded.id);
         
         // Validate that userId exists and is valid in the token
-        if (!decoded.userId || decoded.userId === undefined || decoded.userId === null) {
-            console.error('❌ JWT token contains invalid or missing userId:', decoded.userId);
+        if (!decoded.id || decoded.id === undefined || decoded.id === null) {
+            console.error('❌ JWT token contains invalid or missing userId:', decoded.id);
             return res.status(401).json({ error: 'Invalid token: missing user identification' });
         }
         
@@ -1118,13 +1118,13 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
                    STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
             FROM GUARDIAN.USERS u
             LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
-            WHERE u.USER_ID = ${decoded.userId}
+            WHERE u.USER_ID = ${decoded.id}
             GROUP BY u.USER_ID, u.COMPANY_ID, u.EMAIL
         `;
         const user = users.length > 0 ? users[0] : null;
 
         if (!user) {
-            console.error('❌ User not found in database for userId:', decoded.userId);
+            console.error('❌ User not found in database for userId:', decoded.id);
             return res.status(401).json({ error: 'User not found' });
         }
 
@@ -1662,7 +1662,7 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
             FROM GUARDIAN.REQUESTS r
             LEFT JOIN GUARDIAN.USERS ru ON r.REQUESTOR_ID = ru.USER_ID
             LEFT JOIN GUARDIAN.USERS au ON r.ASSIGNED_ID = au.USER_ID
-            WHERE r.ASSIGNED_ID = ${req.userId} 
+            WHERE (r.ASSIGNED_ID = ${req.userId} OR r.ANALYST_ID = ${req.userId} OR r.INVESTIGATOR_ID = ${req.userId})
                 AND r.COMPANY_ID = ${req.companyId}
             ORDER BY r.CREATE_DATE DESC
         `;
@@ -2599,6 +2599,11 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
             userRoleIds: req.userRoleIds
         });
 
+        if (req.companyId === null || req.companyId === undefined) {
+            console.warn(`⚠️ [DEBUG] No company ID found for user ${req.userId}, returning empty list`);
+            return res.json([]);
+        }
+
         // First, let's see ALL users in the database to understand the data
         const allUsers = await prisma.$queryRaw`
             SELECT 
@@ -2830,6 +2835,51 @@ app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req
             error: 'Failed to fetch users',
             message: error.message
         });
+    }
+});
+
+// Get assignable users for the requester's company (used by Investigator dropdown etc.)
+app.get('/api/users/assignable', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+
+        console.log(`[USERS] Fetching assignable users for company ID: ${companyId}`);
+
+        const users = await prisma.$queryRaw`
+            SELECT
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.COMPANY_ID
+            FROM GUARDIAN.USERS u
+            WHERE u.COMPANY_ID = ${companyId}
+            AND u.STATUS = 'A'
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            EMAIL: user.EMAIL,
+            COMPANY_ID: user.COMPANY_ID,
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            subtitle: user.EMAIL
+        }));
+
+        console.log(`[USERS] Found ${formattedUsers.length} assignable users`);
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('[USERS] Error fetching assignable users:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch assignable users' });
     }
 });
 
@@ -4851,7 +4901,7 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
 
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 
@@ -5624,33 +5674,33 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
         const taskIdResult = await prisma.$queryRaw`SELECT SCOPE_IDENTITY() as TASK_ID`;
         const taskId = taskIdResult[0]?.TASK_ID;
         console.log(`✅ Task created with ID: ${taskId}`, taskIdResult);
-        
-        // Create milestone for task creation
-        try {
-            await createTaskMilestone(
-                requestId,
-                finalTaskId || taskId,
-                'created',
-                req.userId,
-                req.companyId
-            );
-            console.log(`🏁 Task creation milestone created for task ${finalTaskId || taskId}`);
-        } catch (milestoneError) {
-            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
-        }
-        
-        // If SCOPE_IDENTITY didn't work, try to get the task ID by querying the most recent task
+
+        // Resolve finalTaskId WITH fallback BEFORE using it
         let finalTaskId = taskId;
-        if (!taskId) {
+        if (!finalTaskId) {
             console.log('⚠️ SCOPE_IDENTITY returned null, trying alternative method...');
             const recentTask = await prisma.$queryRaw`
-                SELECT TOP 1 TASK_ID 
-                FROM GUARDIAN.TASKS 
+                SELECT TOP 1 TASK_ID
+                FROM GUARDIAN.TASKS
                 WHERE REQUEST_ID = ${requestId} AND CREATE_USER_ID = ${req.userId}
                 ORDER BY CREATE_DATE DESC
             `;
             finalTaskId = recentTask[0]?.TASK_ID;
             console.log(`🔄 Alternative task ID retrieval result: ${finalTaskId}`);
+        }
+
+        // Create milestone for task creation
+        try {
+            await createTaskMilestone(
+                requestId,
+                finalTaskId,
+                'created',
+                req.userId,
+                req.companyId
+            );
+            console.log(`🏁 Task creation milestone created for task ${finalTaskId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
         }
 
         // Create notification for assigned user if different from creator
@@ -5800,7 +5850,8 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
 
         // Verify task exists and belongs to user's company
         const task = await prisma.$queryRaw`
-            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID
+            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID,
+                   t.DESCRIPTION, r.REQUEST_NAME, r.TRACKINGID
             FROM GUARDIAN.TASKS t
             INNER JOIN GUARDIAN.REQUESTS r ON t.REQUEST_ID = r.REQUEST_ID
             WHERE t.TASK_ID = ${taskId} AND r.COMPANY_ID = ${req.companyId}
@@ -5862,6 +5913,45 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                 console.error('⚠️ Failed to create task assignment milestone (continuing):', milestoneError);
             }
 
+            // Notify and email the new assignee if different from the person making the change
+            if (assignedId && assignedId !== req.userId) {
+                try {
+                    const assignedUser = await prisma.$queryRaw`
+                        SELECT FIRST_NAME, LAST_NAME, EMAIL FROM GUARDIAN.USERS
+                        WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
+                    `;
+                    if (assignedUser.length > 0) {
+                        const u = assignedUser[0];
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.NOTIFICATIONS
+                                (USER_ID, TYPE, TITLE, MESSAGE, RELATED_ID, COMPANY_ID, CREATED_DATE, IS_READ)
+                            VALUES
+                                (${assignedId}, 'task_assigned', 'Task Assigned',
+                                 ${'You have been assigned a task: ' + task[0].DESCRIPTION},
+                                 ${taskId}, ${req.companyId}, GETDATE(), 0)
+                        `;
+                        console.log(`📢 Reassignment notification sent to user ${assignedId} for task ${taskId}`);
+                        const assigningUser = await prisma.$queryRaw`
+                            SELECT FIRST_NAME, LAST_NAME FROM GUARDIAN.USERS WHERE USER_ID = ${req.userId}
+                        `;
+                        const assignedByName = assigningUser.length > 0
+                            ? `${assigningUser[0].FIRST_NAME} ${assigningUser[0].LAST_NAME}`.trim()
+                            : '';
+                        await sendTaskAssignmentEmail(
+                            u.EMAIL,
+                            `${u.FIRST_NAME} ${u.LAST_NAME}`,
+                            task[0].REQUEST_NAME,
+                            task[0].TRACKINGID,
+                            task[0].DESCRIPTION,
+                            `T-${taskId}`,
+                            assignedByName
+                        );
+                    }
+                } catch (notifErr) {
+                    console.error('⚠️ Failed to create reassignment notification:', notifErr);
+                }
+            }
+
             console.log(`✅ Task ${taskId} assigned to ${assignedId || 'null'} successfully`);
             return res.json({ success: true, message: 'Task assigned successfully', taskId });
         }
@@ -5889,6 +5979,46 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                     WHERE TASK_ID = ${taskId}
                 `;
                 console.log(`✅ Task ${taskId} status updated to: ${status}`);
+
+                // Create milestone for the status change
+                try {
+                    const statusToAction = {
+                        'In Progress': 'started',
+                        'Completed': 'completed',
+                        'Cancelled': 'cancelled'
+                    };
+                    const milestoneAction = statusToAction[status];
+                    if (milestoneAction) {
+                        await createTaskMilestone(task[0].REQUEST_ID, taskId, milestoneAction, req.userId, req.companyId);
+                        console.log(`🏁 Task status milestone '${milestoneAction}' created for task ${taskId}`);
+                    }
+                } catch (milestoneError) {
+                    console.error('⚠️ Failed to create task status milestone (continuing):', milestoneError);
+                }
+
+                // Notify the task's assignee of the status change (in-app only)
+                const statusMessages = {
+                    'In Progress': 'A task assigned to you has been started.',
+                    'Completed':   'A task assigned to you has been completed.',
+                    'Cancelled':   'A task assigned to you has been cancelled.',
+                };
+                const notifMessage = statusMessages[status];
+                if (notifMessage && task[0].ASSIGNED_USER_ID && task[0].ASSIGNED_USER_ID !== req.userId) {
+                    try {
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.NOTIFICATIONS
+                                (USER_ID, TYPE, TITLE, MESSAGE, RELATED_ID, COMPANY_ID, CREATED_DATE, IS_READ)
+                            VALUES
+                                (${task[0].ASSIGNED_USER_ID}, 'task_update',
+                                 ${'Task ' + status},
+                                 ${notifMessage + ' Task: ' + task[0].DESCRIPTION},
+                                 ${taskId}, ${req.companyId}, GETDATE(), 0)
+                        `;
+                        console.log(`📢 Status notification sent to user ${task[0].ASSIGNED_USER_ID} for task ${taskId}`);
+                    } catch (notifErr) {
+                        console.error('⚠️ Failed to create status notification:', notifErr);
+                    }
+                }
             } else {
                 console.warn('⚠️ [TASK UPDATE] Invalid status value:', status, 'Valid values:', validStatuses);
                 return res.status(400).json({
@@ -6082,7 +6212,7 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
 
         // Verify request belongs to user's company
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
             WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
         `;
 
@@ -6171,10 +6301,14 @@ app.get('/api/attachments/:id/download', getAuthenticatedUserCompany, async (req
         const attachment = attachments[0];
         console.log(`📁 Serving file: ${attachment.FILE_NAME}`);
 
-        // Set appropriate headers for file download
-        res.setHeader('Content-Disposition', `attachment; filename="${attachment.FILE_NAME}"`);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        
+        // Detect MIME type from extension so browsers can render images inline
+        const ext = (attachment.FILE_NAME || '').split('.').pop()?.toLowerCase() || '';
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', pdf: 'application/pdf' };
+        const contentType = mimeMap[ext] || 'application/octet-stream';
+
+        res.setHeader('Content-Disposition', `inline; filename="${attachment.FILE_NAME}"`);
+        res.setHeader('Content-Type', contentType);
+
         // Send the file buffer
         res.send(attachment.ATTACHMENT);
 
@@ -6480,6 +6614,35 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
     }
 });
 
+// Clear a single field value — used to remove stale references (e.g. deleted photo attachment)
+app.delete('/api/requests/:requestId/field-value/:fieldId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        const fieldId   = parseInt(req.params.fieldId);
+        if (isNaN(requestId) || isNaN(fieldId)) {
+            return res.status(400).json({ error: 'Invalid requestId or fieldId' });
+        }
+        const instances = await prisma.$queryRaw`
+            SELECT fi.FORM_INSTANCE_ID
+            FROM GUARDIAN.FORMS_INSTANCE fi
+            INNER JOIN GUARDIAN.REQUESTS r ON fi.REQUEST_ID = r.REQUEST_ID
+            WHERE fi.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+        if (!instances.length) {
+            return res.status(404).json({ error: 'Form instance not found' });
+        }
+        const formInstanceId = instances[0].FORM_INSTANCE_ID;
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
+            WHERE FORM_INSTANCE_ID = ${formInstanceId} AND FIELD_ID = ${fieldId}
+        `;
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Error clearing field value:', error);
+        res.status(500).json({ error: 'Failed to clear field value' });
+    }
+});
+
 // Submit form data for a specific request
 app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -6613,15 +6776,66 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         let savedCount = 0;
         for (const [fieldId, value] of Object.entries(fieldValues)) {
             if (value !== null && value !== undefined && value !== '') {
+                const safeValue = String(value);
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
                         FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${formInstanceId}, ${parseInt(fieldId)}, ${String(value)}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${formInstanceId}, ${parseInt(fieldId)}, ${safeValue}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 savedCount++;
             }
+        }
+
+        // Sync Analyst / Investigator USER_IDs onto the REQUESTS record (Fidelity-Subject only)
+        try {
+            const formNameRows = await prisma.$queryRaw`
+                SELECT FORM_NAME FROM GUARDIAN.FORMS WHERE FORM_ID = ${request.FORM_ID} AND IS_DELETED = 0
+            `;
+            if (formNameRows.length > 0 && formNameRows[0].FORM_NAME === 'Fidelity-Subject') {
+                const fieldRows = await prisma.$queryRaw`
+                    SELECT FIELD_ID, FIELD_NAME FROM GUARDIAN.FIELDS
+                    WHERE FIELD_NAME IN ('Analyst', 'Investigator') AND IS_DELETED = 0
+                `;
+                const resolveUserId = async (fullName) => {
+                    if (!fullName || !fullName.trim()) return null;
+                    const parts = fullName.trim().split(' ');
+                    const firstName = parts[0];
+                    const lastName = parts.slice(1).join(' ');
+                    if (!firstName || !lastName) return null;
+                    const users = await prisma.$queryRaw`
+                        SELECT USER_ID FROM GUARDIAN.USERS
+                        WHERE FIRST_NAME = ${firstName} AND LAST_NAME = ${lastName}
+                          AND COMPANY_ID = ${req.companyId} AND STATUS = 'A'
+                    `;
+                    return users.length > 0 ? users[0].USER_ID : null;
+                };
+                const analystRow = fieldRows.find(f => f.FIELD_NAME === 'Analyst');
+                const investigatorRow = fieldRows.find(f => f.FIELD_NAME === 'Investigator');
+                if (analystRow) {
+                    const analystName = fieldValues[String(analystRow.FIELD_ID)];
+                    const analystId = await resolveUserId(analystName);
+                    if (analystId !== null) {
+                        await prisma.$executeRaw`UPDATE GUARDIAN.REQUESTS SET ANALYST_ID = ${analystId} WHERE REQUEST_ID = ${requestId}`;
+                        console.log(`🔗 Set ANALYST_ID=${analystId} on request ${requestId}`);
+                        await createSystemMilestone(requestId, 'system', 'Analyst Assigned',
+                            `Analyst set to ${analystName}`, req.userId, req.companyId);
+                    }
+                }
+                if (investigatorRow) {
+                    const investigatorName = fieldValues[String(investigatorRow.FIELD_ID)];
+                    const investigatorId = await resolveUserId(investigatorName);
+                    if (investigatorId !== null) {
+                        await prisma.$executeRaw`UPDATE GUARDIAN.REQUESTS SET INVESTIGATOR_ID = ${investigatorId} WHERE REQUEST_ID = ${requestId}`;
+                        console.log(`🔗 Set INVESTIGATOR_ID=${investigatorId} on request ${requestId}`);
+                        await createSystemMilestone(requestId, 'system', 'Investigator Assigned',
+                            `Investigator set to ${investigatorName}`, req.userId, req.companyId);
+                    }
+                }
+            }
+        } catch (syncError) {
+            console.warn('⚠️ Could not sync analyst/investigator IDs (continuing):', syncError.message);
         }
 
         // Determine the final status
@@ -6775,18 +6989,25 @@ app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) =>
             // 5. Delete notifications related to this specific request
             const deletedNotifications = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.NOTIFICATIONS
-                WHERE MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
+                WHERE RELATED_ID = ${requestId} OR MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
             `;
             console.log(`✅ Deleted ${deletedNotifications} related notifications`);
 
-            // 6. Delete attachments related to this request
+            // 6. Delete work progress entries related to this request
+            const deletedProgress = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.WORK_PROGRESS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedProgress} work progress entries`);
+
+            // 7. Delete attachments related to this request
             const deletedAttachments = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.ATTACHMENTS
                 WHERE REQUEST_ID = ${requestId}
             `;
             console.log(`✅ Deleted ${deletedAttachments} related attachments`);
 
-            // 7. Finally, delete the request itself
+            // 8. Finally, delete the request itself
             const deletedRequests = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.REQUESTS
                 WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
@@ -6842,11 +7063,16 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         let forms;
         
         // All users can only access their company's forms - no exceptions for data isolation
+        // Global forms (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL) are accessible to all companies
         forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
             FROM GUARDIAN.FORMS 
             WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            AND (
+                ORGANIZATION_ID = ${req.companyId}
+                OR COMPANY_ID = ${req.companyId}
+                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL)
+            )
             AND IS_DELETED = 0
         `;
 

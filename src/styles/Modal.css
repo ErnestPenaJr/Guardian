@@ -39,7 +39,7 @@
 
 .modal-body {
   padding: 24px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 160px);
   overflow-y: auto;
 }
 
@@ -49,6 +49,40 @@
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid #e3e3e3;
+}
+
+/* Full-page modal variant — used when a form has many fields (e.g. step 2 of AddRequestModal) */
+.modal-content--fullscreen {
+  max-width: none;
+  width: calc(100vw - 48px);
+  height: calc(100vh - 48px);
+  margin: 24px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden; /* Prevent form fields from escaping the modal box */
+}
+
+/* Pin the header so it never shrinks in a flex-column fullscreen modal */
+.modal-content--fullscreen .modal-header {
+  flex: 0 0 auto;
+}
+
+/* The <form> element wrapping the body must participate in the flex column
+   so it stretches to fill the remaining height after the header. */
+.modal-content--fullscreen > form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.modal-content--fullscreen .modal-body {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0; /* Allow the flex child to shrink below content size */
+  overflow-y: auto;
 }
 
 /* Responsive adjustments */

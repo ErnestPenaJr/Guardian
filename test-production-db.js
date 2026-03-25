@@ -2,7 +2,7 @@
 import { PrismaClient } from '@prisma/client';
 
 // Production database connection string
-const DATABASE_URL = process.env.DATABASE_URL || "sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=;encrypt=true;trustServerCertificate=false;schema=GUARDIAN";
+const DATABASE_URL = process.env.DATABASE_URL || "sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false;schema=GUARDIAN";
 
 console.log('Testing production database connection...');
 console.log('Database URL:', DATABASE_URL.replace(/password=[^;]+/i, 'password=***'));

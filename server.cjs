@@ -1104,11 +1104,11 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         }
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        console.log('✅ JWT token verified successfully for user:', decoded.userId);
+        console.log('✅ JWT token verified successfully for user:', decoded.id);
         
         // Validate that userId exists and is valid in the token
-        if (!decoded.userId || decoded.userId === undefined || decoded.userId === null) {
-            console.error('❌ JWT token contains invalid or missing userId:', decoded.userId);
+        if (!decoded.id || decoded.id === undefined || decoded.id === null) {
+            console.error('❌ JWT token contains invalid or missing userId:', decoded.id);
             return res.status(401).json({ error: 'Invalid token: missing user identification' });
         }
         
@@ -1118,13 +1118,13 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
                    STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
             FROM GUARDIAN.USERS u
             LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
-            WHERE u.USER_ID = ${decoded.userId}
+            WHERE u.USER_ID = ${decoded.id}
             GROUP BY u.USER_ID, u.COMPANY_ID, u.EMAIL
         `;
         const user = users.length > 0 ? users[0] : null;
 
         if (!user) {
-            console.error('❌ User not found in database for userId:', decoded.userId);
+            console.error('❌ User not found in database for userId:', decoded.id);
             return res.status(401).json({ error: 'User not found' });
         }
 
@@ -1662,7 +1662,7 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
             FROM GUARDIAN.REQUESTS r
             LEFT JOIN GUARDIAN.USERS ru ON r.REQUESTOR_ID = ru.USER_ID
             LEFT JOIN GUARDIAN.USERS au ON r.ASSIGNED_ID = au.USER_ID
-            WHERE r.ASSIGNED_ID = ${req.userId} 
+            WHERE (r.ASSIGNED_ID = ${req.userId} OR r.ANALYST_ID = ${req.userId} OR r.INVESTIGATOR_ID = ${req.userId})
                 AND r.COMPANY_ID = ${req.companyId}
             ORDER BY r.CREATE_DATE DESC
         `;
@@ -2623,6 +2623,11 @@ app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
             userRoleIds: req.userRoleIds
         });
 
+        if (req.companyId === null || req.companyId === undefined) {
+            console.warn(`⚠️ [DEBUG] No company ID found for user ${req.userId}, returning empty list`);
+            return res.json([]);
+        }
+
         // First, let's see ALL users in the database to understand the data
         const allUsers = await prisma.$queryRaw`
             SELECT 
@@ -2854,6 +2859,51 @@ app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req
             error: 'Failed to fetch users',
             message: error.message
         });
+    }
+});
+
+// Get assignable users for the requester's company (used by Investigator dropdown etc.)
+app.get('/api/users/assignable', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+
+        console.log(`[USERS] Fetching assignable users for company ID: ${companyId}`);
+
+        const users = await prisma.$queryRaw`
+            SELECT
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.COMPANY_ID
+            FROM GUARDIAN.USERS u
+            WHERE u.COMPANY_ID = ${companyId}
+            AND u.STATUS = 'A'
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            EMAIL: user.EMAIL,
+            COMPANY_ID: user.COMPANY_ID,
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            subtitle: user.EMAIL
+        }));
+
+        console.log(`[USERS] Found ${formattedUsers.length} assignable users`);
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('[USERS] Error fetching assignable users:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch assignable users' });
     }
 });
 
@@ -4873,10 +4923,10 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
             });
         }
 
-        // Verify request belongs to user's company
+        // Verify request belongs to user's company (OR COMPANY_ID IS NULL for legacy records)
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
         if (!requestExists.length) {
@@ -4886,7 +4936,8 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
         }
 
         // Build WHERE conditions
-        let whereConditions = `wp.REQUEST_ID = ${requestId} AND wp.COMPANY_ID = ${req.companyId}`;
+        const companyIdNum = Number(req.companyId);
+        let whereConditions = `wp.REQUEST_ID = ${requestId} AND wp.COMPANY_ID = ${companyIdNum}`;
         
         if (type && type !== 'all') {
             whereConditions += ` AND wp.PROGRESS_TYPE = '${type}'`;
@@ -4948,18 +4999,23 @@ app.get('/api/requests/:requestId/milestones', getAuthenticatedUserCompany, asyn
             OFFSET ${offset} ROWS FETCH NEXT ${limitNum} ROWS ONLY
         `;
         
-        const milestones = await prisma.$queryRawUnsafe(milestonesQuery);
+        let milestones = [];
+        let totalCount = 0;
+        try {
+            milestones = await prisma.$queryRawUnsafe(milestonesQuery);
 
-        // Get total count for pagination
-        const countQuery = `
-            SELECT COUNT(*) as total_count
-            FROM GUARDIAN.WORK_PROGRESS wp
-            WHERE ${whereConditions}
-        `;
-        
-        const countResult = await prisma.$queryRawUnsafe(countQuery);
-        
-        const totalCount = parseInt(countResult[0].total_count);
+            // Get total count for pagination
+            const countQuery = `
+                SELECT COUNT(*) as total_count
+                FROM GUARDIAN.WORK_PROGRESS wp
+                WHERE ${whereConditions}
+            `;
+            const countResult = await prisma.$queryRawUnsafe(countQuery);
+            totalCount = parseInt(countResult[0]?.total_count || 0);
+        } catch (queryError) {
+            console.warn(`⚠️ Milestones query failed for request ${requestId}:`, queryError.message);
+            // Return empty results rather than 500 if WORK_PROGRESS table is unavailable
+        }
         const totalPages = Math.ceil(totalCount / limitNum);
 
         console.log(`✅ Found ${milestones.length} milestones for request ${requestId} (Page ${pageNum}/${totalPages})`);
@@ -5500,11 +5556,11 @@ app.get('/api/requests/:requestId/tasks', getAuthenticatedUserCompany, async (re
             });
         }
 
-        // Verify request belongs to user's company
+        // Verify request belongs to user's company (OR COMPANY_ID IS NULL for legacy records)
         const request = await prisma.$queryRaw`
             SELECT REQUEST_ID, REQUESTOR_ID, ASSIGNED_ID, STATUS
             FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
         if (!request.length) {
@@ -5648,33 +5704,33 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
         const taskIdResult = await prisma.$queryRaw`SELECT SCOPE_IDENTITY() as TASK_ID`;
         const taskId = taskIdResult[0]?.TASK_ID;
         console.log(`✅ Task created with ID: ${taskId}`, taskIdResult);
-        
-        // Create milestone for task creation
-        try {
-            await createTaskMilestone(
-                requestId,
-                finalTaskId || taskId,
-                'created',
-                req.userId,
-                req.companyId
-            );
-            console.log(`🏁 Task creation milestone created for task ${finalTaskId || taskId}`);
-        } catch (milestoneError) {
-            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
-        }
-        
-        // If SCOPE_IDENTITY didn't work, try to get the task ID by querying the most recent task
+
+        // Resolve finalTaskId WITH fallback BEFORE using it
         let finalTaskId = taskId;
-        if (!taskId) {
+        if (!finalTaskId) {
             console.log('⚠️ SCOPE_IDENTITY returned null, trying alternative method...');
             const recentTask = await prisma.$queryRaw`
-                SELECT TOP 1 TASK_ID 
-                FROM GUARDIAN.TASKS 
+                SELECT TOP 1 TASK_ID
+                FROM GUARDIAN.TASKS
                 WHERE REQUEST_ID = ${requestId} AND CREATE_USER_ID = ${req.userId}
                 ORDER BY CREATE_DATE DESC
             `;
             finalTaskId = recentTask[0]?.TASK_ID;
             console.log(`🔄 Alternative task ID retrieval result: ${finalTaskId}`);
+        }
+
+        // Create milestone for task creation
+        try {
+            await createTaskMilestone(
+                requestId,
+                finalTaskId,
+                'created',
+                req.userId,
+                req.companyId
+            );
+            console.log(`🏁 Task creation milestone created for task ${finalTaskId}`);
+        } catch (milestoneError) {
+            console.error('⚠️ Failed to create task creation milestone (continuing):', milestoneError);
         }
 
         // Create notification for assigned user if different from creator
@@ -5824,7 +5880,8 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
 
         // Verify task exists and belongs to user's company
         const task = await prisma.$queryRaw`
-            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID
+            SELECT t.TASK_ID, t.REQUEST_ID, t.ASSIGNED_USER_ID, t.CREATE_USER_ID, r.COMPANY_ID,
+                   t.DESCRIPTION, r.REQUEST_NAME, r.TRACKINGID
             FROM GUARDIAN.TASKS t
             INNER JOIN GUARDIAN.REQUESTS r ON t.REQUEST_ID = r.REQUEST_ID
             WHERE t.TASK_ID = ${taskId} AND r.COMPANY_ID = ${req.companyId}
@@ -5886,6 +5943,45 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                 console.error('⚠️ Failed to create task assignment milestone (continuing):', milestoneError);
             }
 
+            // Notify and email the new assignee if different from the person making the change
+            if (assignedId && assignedId !== req.userId) {
+                try {
+                    const assignedUser = await prisma.$queryRaw`
+                        SELECT FIRST_NAME, LAST_NAME, EMAIL FROM GUARDIAN.USERS
+                        WHERE USER_ID = ${assignedId} AND COMPANY_ID = ${req.companyId}
+                    `;
+                    if (assignedUser.length > 0) {
+                        const u = assignedUser[0];
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.NOTIFICATIONS
+                                (USER_ID, TYPE, TITLE, MESSAGE, RELATED_ID, COMPANY_ID, CREATED_DATE, IS_READ)
+                            VALUES
+                                (${assignedId}, 'task_assigned', 'Task Assigned',
+                                 ${'You have been assigned a task: ' + task[0].DESCRIPTION},
+                                 ${taskId}, ${req.companyId}, GETDATE(), 0)
+                        `;
+                        console.log(`📢 Reassignment notification sent to user ${assignedId} for task ${taskId}`);
+                        const assigningUser = await prisma.$queryRaw`
+                            SELECT FIRST_NAME, LAST_NAME FROM GUARDIAN.USERS WHERE USER_ID = ${req.userId}
+                        `;
+                        const assignedByName = assigningUser.length > 0
+                            ? `${assigningUser[0].FIRST_NAME} ${assigningUser[0].LAST_NAME}`.trim()
+                            : '';
+                        await sendTaskAssignmentEmail(
+                            u.EMAIL,
+                            `${u.FIRST_NAME} ${u.LAST_NAME}`,
+                            task[0].REQUEST_NAME,
+                            task[0].TRACKINGID,
+                            task[0].DESCRIPTION,
+                            `T-${taskId}`,
+                            assignedByName
+                        );
+                    }
+                } catch (notifErr) {
+                    console.error('⚠️ Failed to create reassignment notification:', notifErr);
+                }
+            }
+
             console.log(`✅ Task ${taskId} assigned to ${assignedId || 'null'} successfully`);
             return res.json({ success: true, message: 'Task assigned successfully', taskId });
         }
@@ -5913,6 +6009,46 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
                     WHERE TASK_ID = ${taskId}
                 `;
                 console.log(`✅ Task ${taskId} status updated to: ${status}`);
+
+                // Create milestone for the status change
+                try {
+                    const statusToAction = {
+                        'In Progress': 'started',
+                        'Completed': 'completed',
+                        'Cancelled': 'cancelled'
+                    };
+                    const milestoneAction = statusToAction[status];
+                    if (milestoneAction) {
+                        await createTaskMilestone(task[0].REQUEST_ID, taskId, milestoneAction, req.userId, req.companyId);
+                        console.log(`🏁 Task status milestone '${milestoneAction}' created for task ${taskId}`);
+                    }
+                } catch (milestoneError) {
+                    console.error('⚠️ Failed to create task status milestone (continuing):', milestoneError);
+                }
+
+                // Notify the task's assignee of the status change (in-app only)
+                const statusMessages = {
+                    'In Progress': 'A task assigned to you has been started.',
+                    'Completed':   'A task assigned to you has been completed.',
+                    'Cancelled':   'A task assigned to you has been cancelled.',
+                };
+                const notifMessage = statusMessages[status];
+                if (notifMessage && task[0].ASSIGNED_USER_ID && task[0].ASSIGNED_USER_ID !== req.userId) {
+                    try {
+                        await prisma.$executeRaw`
+                            INSERT INTO GUARDIAN.NOTIFICATIONS
+                                (USER_ID, TYPE, TITLE, MESSAGE, RELATED_ID, COMPANY_ID, CREATED_DATE, IS_READ)
+                            VALUES
+                                (${task[0].ASSIGNED_USER_ID}, 'task_update',
+                                 ${'Task ' + status},
+                                 ${notifMessage + ' Task: ' + task[0].DESCRIPTION},
+                                 ${taskId}, ${req.companyId}, GETDATE(), 0)
+                        `;
+                        console.log(`📢 Status notification sent to user ${task[0].ASSIGNED_USER_ID} for task ${taskId}`);
+                    } catch (notifErr) {
+                        console.error('⚠️ Failed to create status notification:', notifErr);
+                    }
+                }
             } else {
                 console.warn('⚠️ [TASK UPDATE] Invalid status value:', status, 'Valid values:', validStatuses);
                 return res.status(400).json({
@@ -6104,10 +6240,10 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
             });
         }
 
-        // Verify request belongs to user's company
+        // Verify request belongs to user's company (OR COMPANY_ID IS NULL for legacy records)
         const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS 
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            SELECT REQUEST_ID FROM GUARDIAN.REQUESTS
+            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
         if (!requestExists.length) {
@@ -6195,10 +6331,14 @@ app.get('/api/attachments/:id/download', getAuthenticatedUserCompany, async (req
         const attachment = attachments[0];
         console.log(`📁 Serving file: ${attachment.FILE_NAME}`);
 
-        // Set appropriate headers for file download
-        res.setHeader('Content-Disposition', `attachment; filename="${attachment.FILE_NAME}"`);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        
+        // Detect MIME type from extension so browsers can render images inline
+        const ext = (attachment.FILE_NAME || '').split('.').pop()?.toLowerCase() || '';
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', pdf: 'application/pdf' };
+        const contentType = mimeMap[ext] || 'application/octet-stream';
+
+        res.setHeader('Content-Disposition', `inline; filename="${attachment.FILE_NAME}"`);
+        res.setHeader('Content-Type', contentType);
+
         // Send the file buffer
         res.send(attachment.ATTACHMENT);
 
@@ -6504,6 +6644,36 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
     }
 });
 
+// Clear a single field value — used to remove stale references (e.g. deleted photo attachment)
+app.delete('/api/requests/:requestId/field-value/:fieldId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const requestId = parseInt(req.params.requestId);
+        const fieldId   = parseInt(req.params.fieldId);
+        if (isNaN(requestId) || isNaN(fieldId)) {
+            return res.status(400).json({ error: 'Invalid requestId or fieldId' });
+        }
+        // Find the form instance for this request (company-isolated)
+        const instances = await prisma.$queryRaw`
+            SELECT fi.FORM_INSTANCE_ID
+            FROM GUARDIAN.FORMS_INSTANCE fi
+            INNER JOIN GUARDIAN.REQUESTS r ON fi.REQUEST_ID = r.REQUEST_ID
+            WHERE fi.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${req.companyId}
+        `;
+        if (!instances.length) {
+            return res.status(404).json({ error: 'Form instance not found' });
+        }
+        const formInstanceId = instances[0].FORM_INSTANCE_ID;
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
+            WHERE FORM_INSTANCE_ID = ${formInstanceId} AND FIELD_ID = ${fieldId}
+        `;
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Error clearing field value:', error);
+        res.status(500).json({ error: 'Failed to clear field value' });
+    }
+});
+
 // Submit form data for a specific request
 app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -6637,15 +6807,66 @@ app.post('/api/requests/:id/form/submit', getAuthenticatedUserCompany, async (re
         let savedCount = 0;
         for (const [fieldId, value] of Object.entries(fieldValues)) {
             if (value !== null && value !== undefined && value !== '') {
+                const safeValue = String(value);
                 await prisma.$executeRaw`
                     INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES (
                         FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
                     ) VALUES (
-                        ${formInstanceId}, ${parseInt(fieldId)}, ${String(value)}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
+                        ${formInstanceId}, ${parseInt(fieldId)}, ${safeValue}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
                     )
                 `;
                 savedCount++;
             }
+        }
+
+        // Sync Analyst / Investigator USER_IDs onto the REQUESTS record (Fidelity-Subject only)
+        try {
+            const formNameRows = await prisma.$queryRaw`
+                SELECT FORM_NAME FROM GUARDIAN.FORMS WHERE FORM_ID = ${request.FORM_ID} AND IS_DELETED = 0
+            `;
+            if (formNameRows.length > 0 && formNameRows[0].FORM_NAME === 'Fidelity-Subject') {
+                const fieldRows = await prisma.$queryRaw`
+                    SELECT FIELD_ID, FIELD_NAME FROM GUARDIAN.FIELDS
+                    WHERE FIELD_NAME IN ('Analyst', 'Investigator') AND IS_DELETED = 0
+                `;
+                const resolveUserId = async (fullName) => {
+                    if (!fullName || !fullName.trim()) return null;
+                    const parts = fullName.trim().split(' ');
+                    const firstName = parts[0];
+                    const lastName = parts.slice(1).join(' ');
+                    if (!firstName || !lastName) return null;
+                    const users = await prisma.$queryRaw`
+                        SELECT USER_ID FROM GUARDIAN.USERS
+                        WHERE FIRST_NAME = ${firstName} AND LAST_NAME = ${lastName}
+                          AND COMPANY_ID = ${req.companyId} AND STATUS = 'A'
+                    `;
+                    return users.length > 0 ? users[0].USER_ID : null;
+                };
+                const analystRow = fieldRows.find(f => f.FIELD_NAME === 'Analyst');
+                const investigatorRow = fieldRows.find(f => f.FIELD_NAME === 'Investigator');
+                if (analystRow) {
+                    const analystName = fieldValues[String(analystRow.FIELD_ID)];
+                    const analystId = await resolveUserId(analystName);
+                    if (analystId !== null) {
+                        await prisma.$executeRaw`UPDATE GUARDIAN.REQUESTS SET ANALYST_ID = ${analystId} WHERE REQUEST_ID = ${requestId}`;
+                        console.log(`🔗 Set ANALYST_ID=${analystId} on request ${requestId}`);
+                        await createSystemMilestone(requestId, 'system', 'Analyst Assigned',
+                            `Analyst set to ${analystName}`, req.userId, req.companyId);
+                    }
+                }
+                if (investigatorRow) {
+                    const investigatorName = fieldValues[String(investigatorRow.FIELD_ID)];
+                    const investigatorId = await resolveUserId(investigatorName);
+                    if (investigatorId !== null) {
+                        await prisma.$executeRaw`UPDATE GUARDIAN.REQUESTS SET INVESTIGATOR_ID = ${investigatorId} WHERE REQUEST_ID = ${requestId}`;
+                        console.log(`🔗 Set INVESTIGATOR_ID=${investigatorId} on request ${requestId}`);
+                        await createSystemMilestone(requestId, 'system', 'Investigator Assigned',
+                            `Investigator set to ${investigatorName}`, req.userId, req.companyId);
+                    }
+                }
+            }
+        } catch (syncError) {
+            console.warn('⚠️ Could not sync analyst/investigator IDs (continuing):', syncError.message);
         }
 
         // Determine the final status
@@ -6799,18 +7020,25 @@ app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) =>
             // 5. Delete notifications related to this specific request
             const deletedNotifications = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.NOTIFICATIONS
-                WHERE MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
+                WHERE RELATED_ID = ${requestId} OR MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
             `;
             console.log(`✅ Deleted ${deletedNotifications} related notifications`);
 
-            // 6. Delete attachments related to this request
+            // 6. Delete work progress entries related to this request
+            const deletedProgress = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.WORK_PROGRESS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedProgress} work progress entries`);
+
+            // 7. Delete attachments related to this request
             const deletedAttachments = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.ATTACHMENTS
                 WHERE REQUEST_ID = ${requestId}
             `;
             console.log(`✅ Deleted ${deletedAttachments} related attachments`);
 
-            // 7. Finally, delete the request itself
+            // 8. Finally, delete the request itself
             const deletedRequests = await tx.$executeRaw`
                 DELETE FROM GUARDIAN.REQUESTS
                 WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
@@ -6865,12 +7093,17 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         // Get the form details - admin users can access global forms (ORGANIZATION_ID IS NULL)
         let forms;
         
-        // All users can only access their company's forms - no exceptions for data isolation
+        // Users can access their company's forms, global forms (both IDs null), or any public form
         forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} 
-            AND (ORGANIZATION_ID = ${req.companyId} OR COMPANY_ID = ${req.companyId})
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
+            AND (
+                ORGANIZATION_ID = ${req.companyId}
+                OR COMPANY_ID = ${req.companyId}
+                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL)
+                OR IS_PUBLIC = 1
+            )
             AND IS_DELETED = 0
         `;
 
@@ -7016,10 +7249,11 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
 
         // Update form basic details
         await prisma.$queryRaw`
-            UPDATE GUARDIAN.FORMS 
-            SET FORM_NAME = ${name.trim()}, 
+            UPDATE GUARDIAN.FORMS
+            SET FORM_NAME = ${name.trim()},
                 FORM_DESCRIPTION = ${description?.trim() || ''},
-                UPDATE_DATE = GETDATE()
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId}
             WHERE FORM_ID = ${formId}
         `;
 
@@ -7190,14 +7424,15 @@ app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get the form fields
+        // Get the form fields using the FORMS_FIELDS junction table
         const fields = await prisma.$queryRaw`
-            SELECT ff.FIELD_ID, ff.FIELD_NAME, ff.FIELD_TYPE_ID, ff.IS_REQUIRED, ff.OPTIONS, ff.SEQUENCE,
-                   ff.IS_ACTIVE, ft.FIELD_TYPE_DESC
-            FROM GUARDIAN.FORM_FIELDS ff
-            INNER JOIN GUARDIAN.FIELD_TYPE ft ON ff.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
-            WHERE ff.FORM_ID = ${formId} AND ff.IS_DELETED = ${false}
-            ORDER BY ff.SEQUENCE, ff.FIELD_ID
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, ff.IS_REQUIRED, f.OPTIONS, ff.SORT_ORDER as SEQUENCE,
+                   f.IS_ACTIVE, ft.FIELD_TYPE_DESC
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
+            WHERE ff.FORM_ID = ${formId} AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
         `;
 
         console.log(`✅ Found form ${formId} with ${fields.length} fields`);
@@ -13306,6 +13541,616 @@ const checkJafarRole = async (req, res, next) => {
     }
 };
 
+const normalizeDeleteCount = (value) => {
+    if (value == null) return 0;
+    if (typeof value === 'bigint') return Number(value);
+    if (typeof value === 'number') return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sqlQuote = (value) => `'${String(value).replace(/'/g, "''")}'`;
+const joinIds = (ids) => ids.map(id => Number(id)).filter(id => Number.isFinite(id)).join(', ');
+const uniqueIds = (rows, key) => [...new Set(rows.map(row => normalizeDeleteCount(row[key])).filter(Boolean))];
+
+const countRaw = async (sql) => {
+    const rows = await prisma.$queryRawUnsafe(sql);
+    const firstRow = Array.isArray(rows) ? rows[0] : rows;
+    if (!firstRow) return 0;
+    const firstKey = Object.keys(firstRow)[0];
+    return normalizeDeleteCount(firstRow[firstKey]);
+};
+
+const idRaw = async (sql, key) => {
+    const rows = await prisma.$queryRawUnsafe(sql);
+    return uniqueIds(rows, key);
+};
+
+const getJafarUserById = async (userId) => {
+    const rows = await prisma.$queryRawUnsafe(`
+        SELECT TOP 1
+            u.USER_ID,
+            u.FIRST_NAME,
+            u.LAST_NAME,
+            u.EMAIL,
+            TRY_CONVERT(INT, u.COMPANY_ID) AS COMPANY_ID,
+            c.NAME AS COMPANY_NAME
+        FROM GUARDIAN.USERS u
+        LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, u.COMPANY_ID)
+        WHERE u.USER_ID = ${userId}
+    `);
+
+    return rows[0] || null;
+};
+
+const getJafarCompanyById = async (companyId) => {
+    const rows = await prisma.$queryRawUnsafe(`
+        SELECT TOP 1 COMPANY_ID, NAME
+        FROM GUARDIAN.COMPANY
+        WHERE COMPANY_ID = ${companyId}
+    `);
+
+    return rows[0] || null;
+};
+
+const getJafarUserRequestIds = async (userId) => idRaw(`
+    SELECT DISTINCT REQUEST_ID
+    FROM GUARDIAN.REQUESTS
+    WHERE REQUESTOR_ID = ${userId}
+       OR ASSIGNED_ID = ${userId}
+       OR CANCELLED_BY = ${userId}
+       OR CREATE_USER_ID = ${userId}
+       OR UPDATE_USER_ID = ${userId}
+`, 'REQUEST_ID');
+
+const getJafarCompanyRequestIds = async (companyId, userIds) => {
+    const clauses = [`TRY_CONVERT(INT, COMPANY_ID) = ${companyId}`];
+    if (userIds.length > 0) {
+        const idList = joinIds(userIds);
+        clauses.push(`CREATE_USER_ID IN (${idList})`);
+        clauses.push(`ASSIGNED_ID IN (${idList})`);
+        clauses.push(`UPDATE_USER_ID IN (${idList})`);
+        clauses.push(`REQUESTOR_ID IN (${idList})`);
+        clauses.push(`CANCELLED_BY IN (${idList})`);
+    }
+
+    return idRaw(`
+        SELECT DISTINCT REQUEST_ID
+        FROM GUARDIAN.REQUESTS
+        WHERE ${clauses.join(' OR ')}
+    `, 'REQUEST_ID');
+};
+
+const getJafarUserAttachmentIds = async (userId, requestIds) => {
+    const clauses = [`CREATE_USER_ID = ${userId}`, `UPDATE_USER_ID = ${userId}`];
+    if (requestIds.length > 0) clauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+    return idRaw(`
+        SELECT DISTINCT ATTACHMENT_ID
+        FROM GUARDIAN.ATTACHMENTS
+        WHERE ${clauses.join(' OR ')}
+    `, 'ATTACHMENT_ID');
+};
+
+const getJafarCompanyAttachmentIds = async (companyId, userIds, requestIds) => {
+    const clauses = [`COMPANY_ID = ${companyId}`];
+    if (userIds.length > 0) {
+        const idList = joinIds(userIds);
+        clauses.push(`CREATE_USER_ID IN (${idList})`);
+        clauses.push(`UPDATE_USER_ID IN (${idList})`);
+    }
+    if (requestIds.length > 0) clauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+
+    return idRaw(`
+        SELECT DISTINCT ATTACHMENT_ID
+        FROM GUARDIAN.ATTACHMENTS
+        WHERE ${clauses.join(' OR ')}
+    `, 'ATTACHMENT_ID');
+};
+
+const getJafarUserNoticeIds = async (userId) => idRaw(`
+    SELECT DISTINCT NOTICE_ID
+    FROM GUARDIAN.NOTICES
+    WHERE ISSUED_BY_USER_ID = ${userId}
+`, 'NOTICE_ID');
+
+const getJafarCompanyNoticeIds = async (companyId, userIds) => {
+    const clauses = [`COMPANY_ID = ${companyId}`];
+    if (userIds.length > 0) {
+        const idList = joinIds(userIds);
+        clauses.push(`ISSUED_BY_USER_ID IN (${idList})`);
+    }
+
+    return idRaw(`
+        SELECT DISTINCT NOTICE_ID
+        FROM GUARDIAN.NOTICES
+        WHERE ${clauses.join(' OR ')}
+    `, 'NOTICE_ID');
+};
+
+const getJafarUserFormInstanceIds = async (userId) => idRaw(`
+    SELECT DISTINCT FORM_INSTANCE_ID
+    FROM GUARDIAN.FORMS_INSTANCE
+    WHERE ASSIGNED_ID = ${userId}
+       OR CREATE_USER_ID = ${userId}
+       OR UPDATE_USER_ID = ${userId}
+`, 'FORM_INSTANCE_ID');
+
+const getJafarCompanyFormInstanceIds = async (companyId, requestIds) => {
+    const clauses = [`COMPANY_ID = ${companyId}`];
+    if (requestIds.length > 0) clauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+
+    return idRaw(`
+        SELECT DISTINCT FORM_INSTANCE_ID
+        FROM GUARDIAN.FORMS_INSTANCE
+        WHERE ${clauses.join(' OR ')}
+    `, 'FORM_INSTANCE_ID');
+};
+
+const getJafarCompanyWorkspaceIds = async (companyId) => idRaw(`
+    SELECT WORKSPACE_ID
+    FROM GUARDIAN.WORKSPACES
+    WHERE COMPANY_ID = ${companyId}
+`, 'WORKSPACE_ID');
+
+const getJafarCompanyFormIds = async (companyId) => idRaw(`
+    SELECT FORM_ID
+    FROM GUARDIAN.FORMS
+    WHERE COMPANY_ID = ${companyId}
+`, 'FORM_ID');
+
+const getJafarCompanyUserIds = async (companyId) => idRaw(`
+    SELECT USER_ID
+    FROM GUARDIAN.USERS
+    WHERE TRY_CONVERT(INT, COMPANY_ID) = ${companyId}
+`, 'USER_ID');
+
+const createEmptyJafarCounts = () => ({
+    attachments: 0,
+    requests: 0,
+    tasks: 0,
+    workProgress: 0,
+    milestones: 0,
+    noticesIssued: 0,
+    noticeRecipients: 0,
+    noticeReadStatus: 0,
+    notifications: 0,
+    invites: 0,
+    companyInfo: 0,
+    userRoles: 0,
+    userWorkspaces: 0,
+    workspaces: 0,
+    users: 0,
+    company: 0,
+    forms: 0,
+    formFields: 0,
+    formInstances: 0,
+    formInstanceValues: 0
+});
+
+const buildJafarUserPreview = async (userId, actorUserId) => {
+    const user = await getJafarUserById(userId);
+    if (!user) throw new Error('Target user not found');
+
+    const counts = createEmptyJafarCounts();
+    const blockers = [];
+
+    if (userId === actorUserId) {
+        blockers.push('You cannot purge your own active JAFAR account.');
+    }
+
+    const requestIds = await getJafarUserRequestIds(userId);
+    const attachmentIds = await getJafarUserAttachmentIds(userId, requestIds);
+    const noticeIds = await getJafarUserNoticeIds(userId);
+    const formInstanceIds = await getJafarUserFormInstanceIds(userId);
+
+    counts.requests = requestIds.length;
+    counts.attachments = attachmentIds.length;
+    counts.noticesIssued = noticeIds.length;
+    counts.formInstances = formInstanceIds.length;
+
+    counts.tasks = requestIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`)
+        : 0;
+    counts.formInstanceValues = formInstanceIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`)
+        : 0;
+    counts.userRoles = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${userId}`);
+    counts.userWorkspaces = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
+    counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE USER_ID = ${userId}`);
+    counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE USER_ID = ${userId}`);
+    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(user.EMAIL || '')}`);
+    counts.workProgress = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.WORK_PROGRESS
+        WHERE USER_ID = ${userId}
+           OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+           OR ${attachmentIds.length > 0 ? `RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : '1 = 0'}
+    `);
+    counts.milestones = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
+    counts.noticeRecipients = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
+    counts.noticeReadStatus = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
+    counts.tasks = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.TASKS
+        WHERE ASSIGNED_USER_ID = ${userId}
+           OR CREATE_USER_ID = ${userId}
+           OR UPDATE_USER_ID = ${userId}
+           OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+    `);
+    counts.users = 1;
+
+    return {
+        scope: 'user',
+        allowed: blockers.length === 0,
+        blockers,
+        target: {
+            id: normalizeDeleteCount(user.USER_ID),
+            email: user.EMAIL || '',
+            firstName: user.FIRST_NAME || '',
+            lastName: user.LAST_NAME || '',
+            companyId: normalizeDeleteCount(user.COMPANY_ID),
+            companyName: user.COMPANY_NAME || ''
+        },
+        counts
+    };
+};
+
+const buildJafarCompanyPreview = async (companyId, actorUserId) => {
+    const company = await getJafarCompanyById(companyId);
+    if (!company) throw new Error('Target company not found');
+
+    const counts = createEmptyJafarCounts();
+    const blockers = [];
+
+    const userIds = await getJafarCompanyUserIds(companyId);
+    if (userIds.includes(actorUserId)) {
+        blockers.push('You cannot wipe the company that contains your active JAFAR account.');
+    }
+
+    const requestIds = await getJafarCompanyRequestIds(companyId, userIds);
+    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, userIds, requestIds);
+    const noticeIds = await getJafarCompanyNoticeIds(companyId, userIds);
+    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId, requestIds);
+    const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
+    const formIds = await getJafarCompanyFormIds(companyId);
+
+    counts.users = userIds.length;
+    counts.requests = requestIds.length;
+    counts.attachments = attachmentIds.length;
+    counts.noticesIssued = noticeIds.length;
+    counts.formInstances = formInstanceIds.length;
+    counts.workspaces = workspaceIds.length;
+    counts.forms = formIds.length;
+
+    counts.tasks = requestIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`)
+        : 0;
+    counts.formInstanceValues = formInstanceIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`)
+        : 0;
+    counts.workProgress = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.WORK_PROGRESS
+        WHERE COMPANY_ID = ${companyId}
+           OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+           OR ${attachmentIds.length > 0 ? `RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : '1 = 0'}
+    `);
+    counts.milestones = userIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID IN (${joinIds(userIds)})`)
+        : 0;
+    counts.noticeRecipients = noticeIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`)
+        : 0;
+    counts.noticeReadStatus = noticeIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`)
+        : 0;
+    counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE COMPANY_ID = ${companyId}`);
+    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE COMPANY_ID = ${companyId}`);
+    counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE COMPANY_ID = ${companyId}`);
+    counts.userRoles = userIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID IN (${joinIds(userIds)})`)
+        : 0;
+    counts.userWorkspaces = workspaceIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`)
+        : 0;
+    counts.formFields = formIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`)
+        : 0;
+    counts.company = 1;
+
+    return {
+        scope: 'company',
+        allowed: blockers.length === 0,
+        blockers,
+        target: {
+            id: normalizeDeleteCount(company.COMPANY_ID),
+            name: company.NAME || ''
+        },
+        counts
+    };
+};
+
+const executeJafarUserPurge = async (userId, actorUserId) => {
+    const preview = await buildJafarUserPreview(userId, actorUserId);
+    if (!preview.allowed) {
+        const error = new Error(preview.blockers[0] || 'User purge is blocked');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const counts = createEmptyJafarCounts();
+    const requestIds = await getJafarUserRequestIds(userId);
+    const attachmentIds = await getJafarUserAttachmentIds(userId, requestIds);
+    const noticeIds = await getJafarUserNoticeIds(userId);
+    const formInstanceIds = await getJafarUserFormInstanceIds(userId);
+    const user = await getJafarUserById(userId);
+
+    await prisma.$transaction(async (tx) => {
+        if (noticeIds.length > 0) {
+            counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticesIssued += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICES WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+        }
+
+        counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
+        counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
+        counts.notifications += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTIFICATIONS WHERE USER_ID = ${userId}`);
+        counts.invites += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(user?.EMAIL || '')}`);
+
+        if (formInstanceIds.length > 0) {
+            counts.formInstanceValues += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+            counts.formInstances += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+        }
+
+        const workProgressClauses = [`USER_ID = ${userId}`];
+        if (requestIds.length > 0) workProgressClauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+        if (attachmentIds.length > 0) workProgressClauses.push(`RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        counts.workProgress += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORK_PROGRESS WHERE ${workProgressClauses.join(' OR ')}`);
+
+        counts.milestones += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
+
+        counts.tasks += await tx.$executeRawUnsafe(`
+            DELETE FROM GUARDIAN.TASKS
+            WHERE ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)}) OR` : ''}
+                  ASSIGNED_USER_ID = ${userId}
+               OR CREATE_USER_ID = ${userId}
+               OR UPDATE_USER_ID = ${userId}
+        `);
+
+        if (attachmentIds.length > 0) {
+            counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        }
+
+        if (requestIds.length > 0) {
+            counts.requests += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.REQUESTS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
+        }
+
+        counts.companyInfo += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY_INFO WHERE USER_ID = ${userId}`);
+        counts.userRoles += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${userId}`);
+        counts.userWorkspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
+        counts.users += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USERS WHERE USER_ID = ${userId}`);
+    });
+
+    return { success: true, scope: 'user', targetId: userId, deletedCounts: counts };
+};
+
+const executeJafarCompanyPurge = async (companyId, actorUserId) => {
+    const preview = await buildJafarCompanyPreview(companyId, actorUserId);
+    if (!preview.allowed) {
+        const error = new Error(preview.blockers[0] || 'Company purge is blocked');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const counts = createEmptyJafarCounts();
+    const userIds = await getJafarCompanyUserIds(companyId);
+    const requestIds = await getJafarCompanyRequestIds(companyId, userIds);
+    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, userIds, requestIds);
+    const noticeIds = await getJafarCompanyNoticeIds(companyId, userIds);
+    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId, requestIds);
+    const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
+    const formIds = await getJafarCompanyFormIds(companyId);
+
+    await prisma.$transaction(async (tx) => {
+        if (noticeIds.length > 0) {
+            counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+            counts.noticesIssued += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICES WHERE NOTICE_ID IN (${joinIds(noticeIds)})`);
+        }
+
+        counts.notifications += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTIFICATIONS WHERE COMPANY_ID = ${companyId}`);
+        counts.invites += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.INVITES WHERE COMPANY_ID = ${companyId}`);
+
+        if (formInstanceIds.length > 0) {
+            counts.formInstanceValues += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+            counts.formInstances += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
+        }
+
+        const workProgressClauses = [`COMPANY_ID = ${companyId}`];
+        if (requestIds.length > 0) workProgressClauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+        if (userIds.length > 0) workProgressClauses.push(`USER_ID IN (${joinIds(userIds)})`);
+        if (attachmentIds.length > 0) workProgressClauses.push(`RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        counts.workProgress += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORK_PROGRESS WHERE ${workProgressClauses.join(' OR ')}`);
+
+        if (userIds.length > 0) {
+            counts.milestones += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID IN (${joinIds(userIds)})`);
+        }
+
+        if (requestIds.length > 0) {
+            counts.tasks += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
+        }
+
+        if (attachmentIds.length > 0) {
+            counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
+        }
+
+        if (requestIds.length > 0) {
+            counts.requests += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.REQUESTS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
+        }
+
+        if (workspaceIds.length > 0) {
+            counts.userWorkspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`);
+            counts.workspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`);
+        }
+
+        counts.companyInfo += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY_INFO WHERE COMPANY_ID = ${companyId}`);
+
+        if (formIds.length > 0) {
+            counts.formFields += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`);
+            counts.forms += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS WHERE FORM_ID IN (${joinIds(formIds)})`);
+        }
+
+        if (userIds.length > 0) {
+            counts.userRoles += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_ROLES WHERE USER_ID IN (${joinIds(userIds)})`);
+            counts.users += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USERS WHERE USER_ID IN (${joinIds(userIds)})`);
+        }
+
+        await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY WHERE COMPANY_ID = ${companyId}`);
+        counts.company = 1;
+    });
+
+    return { success: true, scope: 'company', targetId: companyId, deletedCounts: counts };
+};
+
+app.get('/api/jafar-admin/users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const query = String(req.query.q || '').trim();
+        const filter = query ? `
+            AND (
+                u.EMAIL LIKE ${sqlQuote(`%${query}%`)}
+                OR CONCAT(COALESCE(u.FIRST_NAME, ''), ' ', COALESCE(u.LAST_NAME, '')) LIKE ${sqlQuote(`%${query}%`)}
+            )
+        ` : '';
+
+        const users = await prisma.$queryRawUnsafe(`
+            SELECT TOP 250
+                u.USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                TRY_CONVERT(INT, u.COMPANY_ID) AS COMPANY_ID,
+                u.STATUS,
+                c.NAME AS COMPANY_NAME
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, u.COMPANY_ID)
+            WHERE 1 = 1
+              ${filter}
+            ORDER BY u.EMAIL ASC
+        `);
+
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to load users:', error);
+        res.status(500).json({ error: 'Failed to load users' });
+    }
+});
+
+app.get('/api/jafar-admin/companies', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const query = String(req.query.q || '').trim();
+        const filter = query ? `AND c.NAME LIKE ${sqlQuote(`%${query}%`)}` : '';
+        const companies = await prisma.$queryRawUnsafe(`
+            SELECT TOP 250
+                c.COMPANY_ID,
+                c.NAME,
+                COUNT(u.USER_ID) AS USER_COUNT
+            FROM GUARDIAN.COMPANY c
+            LEFT JOIN GUARDIAN.USERS u ON TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID
+            WHERE 1 = 1
+              ${filter}
+            GROUP BY c.COMPANY_ID, c.NAME
+            ORDER BY c.NAME ASC
+        `);
+
+        res.json({
+            success: true,
+            data: companies.map(company => ({
+                ...company,
+                USER_COUNT: normalizeDeleteCount(company.USER_COUNT)
+            }))
+        });
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to load companies:', error);
+        res.status(500).json({ error: 'Failed to load companies' });
+    }
+});
+
+app.get('/api/jafar-admin/purge/user/:userId/preview', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        if (!userId || Number.isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user id' });
+        }
+
+        const preview = await buildJafarUserPreview(userId, req.userId);
+        res.json(preview);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to preview user purge:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to preview user purge'
+        });
+    }
+});
+
+app.post('/api/jafar-admin/purge/user/:userId', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const confirmation = String(req.body?.confirmation || '');
+        if (!userId || Number.isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user id' });
+        }
+        if (confirmation !== 'DELETE') {
+            return res.status(400).json({ error: 'Confirmation phrase must be DELETE' });
+        }
+
+        const result = await executeJafarUserPurge(userId, req.userId);
+        res.json(result);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to purge user:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to purge user'
+        });
+    }
+});
+
+app.get('/api/jafar-admin/purge/company/:companyId/preview', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        if (!companyId || Number.isNaN(companyId)) {
+            return res.status(400).json({ error: 'Invalid company id' });
+        }
+
+        const preview = await buildJafarCompanyPreview(companyId, req.userId);
+        res.json(preview);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to preview company wipe:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to preview company purge'
+        });
+    }
+});
+
+app.post('/api/jafar-admin/purge/company/:companyId', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId);
+        const confirmation = String(req.body?.confirmation || '');
+        if (!companyId || Number.isNaN(companyId)) {
+            return res.status(400).json({ error: 'Invalid company id' });
+        }
+        if (confirmation !== 'DELETE') {
+            return res.status(400).json({ error: 'Confirmation phrase must be DELETE' });
+        }
+
+        const result = await executeJafarCompanyPurge(companyId, req.userId);
+        res.json(result);
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to purge company:', error);
+        res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
+            error: error.message || 'Failed to purge company'
+        });
+    }
+});
+
 // GET /api/workspaces - List all workspaces for company (role_id=6 only)
 app.get('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
     try {
@@ -13923,6 +14768,16 @@ app.get('/api/users/workspaces', getAuthenticatedUserCompany, async (req, res) =
         });
         
     } catch (error) {
+        // Gracefully handle case where WORKSPACES table doesn't exist yet
+        const isTableMissing = error.message && (
+            error.message.includes('Invalid object name') ||
+            error.message.includes('does not exist') ||
+            error.message.includes('WORKSPACES')
+        );
+        if (isTableMissing) {
+            console.warn('⚠️ WORKSPACES table not found — returning empty list');
+            return res.json({ success: true, workspaces: [] });
+        }
         console.error('❌ Error fetching user workspaces:', error);
         res.status(500).json({
             success: false,

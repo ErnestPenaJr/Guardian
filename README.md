@@ -239,7 +239,21 @@ Guardian MVP provides a guided onboarding experience for first-time administrato
 
 Create environment files for different environments:
 
+#### `.env.development`
+```env
+DATABASE_URL="sqlserver://server:1433;database=GUARDIAN-DEV;user=username;password=password;encrypt=true;trustServerCertificate=false"
+JWT_SECRET="your-jwt-secret-key"
+SMTP_PASSWORD="your-resend-api-key"
+EMAIL_FROM="support@yourdomain.com"
+```
 
+#### `.env.production`  
+```env
+DATABASE_URL="sqlserver://production-server:1433;database=GUARDIAN-PROD;user=username;password=password;encrypt=true;trustServerCertificate=false"
+JWT_SECRET="your-production-jwt-secret"
+SMTP_PASSWORD="your-resend-api-key"
+EMAIL_FROM="support@yourdomain.com"
+```
 
 ### Installation Steps
 
@@ -455,7 +469,10 @@ npm install --production
 1. Verify connection string format
 2. Escape special characters in passwords (`$` → `\$`)
 3. Check firewall and network connectivity
-
+4. Use explicit DATABASE_URL when starting server (Required for stable development - Fixed 2025-08-12):
+   ```bash
+   DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+   ```
 
 #### Form Template Creation Issues (Fixed 2025-08-12)
 **Symptom**: Form creation fails with server errors in SimpleFormBuilder

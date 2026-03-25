@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { useDropzone } from 'react-dropzone';
 import api from '../utils/api';
@@ -6,6 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
 import { Upload, MessageSquare, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
 import './RequestModal.css';
+import SectionedFormRenderer from './SectionedFormRenderer';
+import { isFidelitySubjectFormName } from '../utils/formIdentity';
 
 interface User {
   USER_ID: number;
@@ -110,16 +113,19 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [formFieldValues, setFormFieldValues] = useState<FormFieldValue[]>([]);
+  const formFieldValuesRef = useRef(formFieldValues);
+  useEffect(() => { formFieldValuesRef.current = formFieldValues; }, [formFieldValues]);
+  const [formFields, setFormFields] = useState<any[]>([]);
   const [formTemplate, setFormTemplate] = useState<any>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [isSavingForm, setIsSavingForm] = useState<boolean>(false);
   const [formHasChanges, setFormHasChanges] = useState<boolean>(false);
+  const [hasPersistedFormData, setHasPersistedFormData] = useState<boolean>(false);
   
   // Work management state
   const [workActionLoading, setWorkActionLoading] = useState<boolean>(false);
   const [showWorkSection, setShowWorkSection] = useState<boolean>(false);
   const [feedbackText, setFeedbackText] = useState<string>('');
-  const [feedbackFiles, setFeedbackFiles] = useState<File[]>([]);
   const [feedbackType, setFeedbackType] = useState<string>('update');
   const [activeWorkTab, setActiveWorkTab] = useState<'feedback' | 'files' | 'status'>('feedback');
   
@@ -383,24 +389,27 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     return request.REQUEST_NAME?.toLowerCase() || 'general';
   };
 
-  // Load users and form data when modal opens
+  // Load form data, tasks, attachments, results and milestones when modal opens.
+  // Intentionally excludes hasAssignPermission so user-auth changes don't re-trigger
+  // fetches and cause the form fields to flash/disappear.
   useEffect(() => {
     if (show) {
-      
-      // Reset form change tracking
       setFormHasChanges(false);
-      
-      // Only fetch users if current user can assign requests
-      if (hasAssignPermission) {
-        fetchUsers();
-      }
-      // Always try to fetch form data, tasks, attachments, results, and milestones
       fetchFormFieldValues();
       fetchTasks();
       fetchAttachments();
       fetchResults();
       fetchMilestones();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, request.REQUEST_ID]);
+
+  // Fetch users separately so auth changes don't re-trigger the form fetch above
+  useEffect(() => {
+    if (show && hasAssignPermission) {
+      fetchUsers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, request.REQUEST_ID, hasAssignPermission]);
 
   // Initialize selected user with currently assigned user
@@ -474,37 +483,43 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
         } else {
           setFormTemplate(null);
         }
-        
+
+        // Store raw field metadata for SectionedFormRenderer
+        setFormFields(formData.fields && Array.isArray(formData.fields) ? formData.fields : []);
+
         // Convert form instance values to display format - ONLY show real database data
         const fieldValues: FormFieldValue[] = [];
-        
+
         if (formData.fields && Array.isArray(formData.fields)) {
           formData.fields.forEach((field: any) => {
             // Get the actual value - try both field ID and field name as keys
             const valueByName = formData.values?.[field.FIELD_NAME];
             const valueById = formData.values?.[field.FIELD_ID];
             const value = valueByName || valueById;
-            
+
             fieldValues.push({
               fieldId: field.FIELD_ID,
               fieldName: field.FIELD_NAME,
-              fieldValue: value && value.toString().trim() !== '' 
+              fieldValue: value && value.toString().trim() !== ''
                 ? value // Real database value from FORMS_INSTANCE_VALUES
                 : '' // Empty string for unfilled fields
             });
           });
         }
-        
+
         setFormFieldValues(fieldValues);
+        setHasPersistedFormData(fieldValues.some(field => field.fieldValue?.toString().trim() !== ''));
       } else {
         setFormTemplate(null);
         setFormFieldValues([]);
+        setHasPersistedFormData(false);
       }
     } catch (err) {
       console.error('Failed to load form field values:', err);
       // NO fallback data - only show real database data
       setFormTemplate(null);
       setFormFieldValues([]);
+      setHasPersistedFormData(false);
     } finally {
       setFormLoading(false);
     }
@@ -791,50 +806,131 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   // Handle form field value changes
   const handleFieldValueChange = (fieldName: string, newValue: string) => {
     setFormFieldValues(prevValues => {
-      const updatedValues = prevValues.map(field => 
-        field.fieldName === fieldName 
+      const updatedValues = prevValues.map(field =>
+        field.fieldName === fieldName
           ? { ...field, fieldValue: newValue }
           : field
       );
-      
+
       // Check if there are any changes from original values
       setFormHasChanges(true);
-      
+
       return updatedValues;
     });
   };
 
+  // Stable fieldValues record for SectionedFormRenderer — keyed by String(fieldId)
+  const currentFieldValues = useMemo(
+    () =>
+      formFieldValues.reduce((acc, fv) => {
+        acc[String(fv.fieldId)] = fv.fieldValue ?? '';
+        return acc;
+      }, {} as Record<string, string>),
+    [formFieldValues],
+  );
+
+  // Adapter: SectionedFormRenderer calls onChange(fieldId, value); map back to fieldName-based handler
+  const handleFormFieldChangeById = useCallback(
+    (fieldId: string, value: string) => {
+      const field = formFieldValues.find(f => String(f.fieldId) === fieldId);
+      if (field) handleFieldValueChange(field.fieldName, value);
+    },
+    [formFieldValues, handleFieldValueChange],
+  );
+
   // Save form data to the server
-  const handleSaveFormData = async () => {
+  const handleSaveFormData = async (options?: { silent?: boolean }) => {
     try {
       setIsSavingForm(true);
-      
+      const silent = options?.silent === true;
+
       // Prepare form data in the format the server expects
-      const fieldValues = formFieldValues.reduce((acc, field) => {
+      // Use the ref to guarantee we read the latest state (avoids stale closure with concurrent updates)
+      const rawFields = formFieldValuesRef.current;
+
+      // Route base64 image values through the attachments endpoint to avoid
+      // column size limits (NVARCHAR(4000)) and keep form values table lean.
+      // Subject photo stays inline so it remains in the dedicated photo box
+      // and never gets duplicated into Other Attachments.
+      for (const field of rawFields) {
+        const val = field.fieldValue?.toString() ?? '';
+        const normalizedFieldName = field.fieldName?.trim().toLowerCase() ?? '';
+        const isSubjectPhotoField =
+          normalizedFieldName === 'subject photo image' ||
+          normalizedFieldName === 'subject photo';
+
+        if (isSubjectPhotoField) {
+          continue;
+        }
+
+        if (val.startsWith('data:image/')) {
+          try {
+            const [header, base64Data] = val.split(',');
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+            const byteChars = atob(base64Data);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) {
+              byteArr[i] = byteChars.charCodeAt(i);
+            }
+            const blob = new Blob([byteArr], { type: mime });
+            const ext = mime.split('/')[1] || 'jpg';
+            const formData = new FormData();
+            formData.append('file', blob, `photo_field_${field.fieldId}.${ext}`);
+            const uploadRes = await api.post(`/api/requests/${request.REQUEST_ID}/attachments`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            // Store the attachment ID reference so the photo can be reloaded
+            const attachmentId = uploadRes.data?.attachmentId;
+            field.fieldValue = attachmentId ? `photo_ref:${attachmentId}` : '';
+          } catch (photoErr) {
+            console.error(`Failed to upload photo for field ${field.fieldId}:`, photoErr);
+            // Clear value so a truncated base64 isn't saved to the DB
+            field.fieldValue = '';
+          }
+        }
+      }
+
+      const fieldValues = rawFields.reduce((acc, field) => {
         if (field.fieldValue && field.fieldValue.toString().trim() !== '') {
           acc[field.fieldId.toString()] = field.fieldValue;
         }
         return acc;
       }, {} as Record<string, string>);
-      
+
       const submissionData = {
         fieldValues,
         isComplete: false, // Mark as draft/auto-save
         isDraft: true
       };
-      
+
       // Submit form data to the correct endpoint
       const response = await api.post(`/api/requests/${request.REQUEST_ID}/form/submit`, submissionData);
-      
+
       if (response.status === 200 || response.status === 201) {
         setFormHasChanges(false);
-        // Refresh the form data
-        await fetchFormFieldValues();
+        if (!silent) {
+          // For explicit saves, refresh from the server so the UI reflects any
+          // backend normalization. Silent saves keep local state to avoid a full
+          // Fidelity form redraw after actions like subject photo upload.
+          await fetchFormFieldValues();
+          setFormHasChanges(false);
+        }
+        setHasPersistedFormData(true);
+        if (!silent) {
+          toast.success('Form data saved successfully');
+        }
       } else {
         console.error('Failed to save form data:', response.status);
+        if (!silent) {
+          toast.error('Failed to save form data. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error saving form data:', error);
+      if (!options?.silent) {
+        toast.error('Error saving form data. Please try again.');
+      }
     } finally {
       setIsSavingForm(false);
     }
@@ -938,8 +1034,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   const handleSubmitFeedback = async () => {
-    if (!feedbackText.trim() && feedbackFiles.length === 0) {
-      toast.error('Please provide feedback text or upload files');
+    if (!feedbackText.trim()) {
+      toast.error('Please provide feedback text');
       return;
     }
 
@@ -954,11 +1050,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       formData.append('isVisibleToRequestor', 'true');
       formData.append('hoursWorked', '0');
       
-      // Add first file if any
-      if (feedbackFiles.length > 0) {
-        formData.append('attachment', feedbackFiles[0]);
-      }
-      
       const response = await api.post(`/api/requests/${request.REQUEST_ID}/progress`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -968,7 +1059,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       if (response.data.success) {
         toast.success('Feedback submitted successfully!');
         setFeedbackText('');
-        setFeedbackFiles([]);
         onUpdate(); // Refresh parent component
       } else {
         toast.error('Failed to submit feedback');
@@ -979,34 +1069,6 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     } finally {
       setWorkActionLoading(false);
     }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    
-    // Validate file types and sizes
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/', 'application/pdf', 'text/', 'application/msword', 'application/vnd.openxmlformats'];
-    
-    const validFiles = files.filter(file => {
-      if (file.size > maxSize) {
-        toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
-        return false;
-      }
-      
-      if (!allowedTypes.some(type => file.type.startsWith(type))) {
-        toast.error(`File ${file.name} type is not allowed.`);
-        return false;
-      }
-      
-      return true;
-    });
-    
-    setFeedbackFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const removeFeedbackFile = (index: number) => {
-    setFeedbackFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   // Handle results notes change
@@ -1311,8 +1373,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   };
 
   // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Unknown';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'numeric',
@@ -1321,8 +1383,720 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     });
   };
 
+  // Determine if the modal should use the expanded full-screen layout
+  // It only expands when on the Details tab AND there are actually form fields to show
+  const needsExpandedLayout = activeMainTab === 'details' && formFields.length > 0;
+
+  // Fidelity-Subject opens as a dedicated full-page view instead of inside the modal
+  const isFidelitySubject = isFidelitySubjectFormName(formTemplate?.name);
+  const tabButtonClass = (tab: typeof activeMainTab) =>
+    `btn btn-sm border-0 px-3 py-2${tab === 'details' ? '' : ' ms-2'} ${
+      activeMainTab === tab ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
+    }`;
+
+  const renderTabNavigation = (isFullscreen = false) => (
+    <div className={isFullscreen ? 'rfp-tabs' : 'border-top pt-3 mb-4'}>
+      <div className={isFullscreen ? 'rfp-tabs-nav' : 'd-flex mb-0 border-bottom'}>
+        <button
+          className={tabButtonClass('details')}
+          onClick={() => setActiveMainTab('details')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'details' ? '600' : '400' }}
+        >
+          Details
+        </button>
+        <button
+          className={tabButtonClass('tasks')}
+          onClick={() => setActiveMainTab('tasks')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'tasks' ? '600' : '400' }}
+        >
+          Tasks
+        </button>
+        <button
+          className={tabButtonClass('results')}
+          onClick={() => setActiveMainTab('results')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'results' ? '600' : '400' }}
+        >
+          Results
+        </button>
+        <button
+          className={tabButtonClass('attachments')}
+          onClick={() => setActiveMainTab('attachments')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'attachments' ? '600' : '400' }}
+        >
+          Attachments
+        </button>
+        <button
+          className={tabButtonClass('milestones')}
+          onClick={() => setActiveMainTab('milestones')}
+          style={{ fontSize: '1rem', fontWeight: activeMainTab === 'milestones' ? '600' : '400' }}
+        >
+          Milestones
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderActionBar = (isFullscreen = false) => (
+    <div className={isFullscreen ? 'rfp-action-bar' : 'border-top pt-4 mt-4'}>
+      {!isFullscreen && (
+        <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
+      )}
+
+      <div className={`d-flex gap-2 flex-wrap${isFullscreen ? '' : ' mb-3'}`}>
+        {hasAssignPermission && (
+          <Button
+            variant="outline-primary"
+            onClick={() => setShowAssignRequestModal(true)}
+            disabled={loading}
+            style={{ minWidth: '80px' }}
+          >
+            Assign
+          </Button>
+        )}
+
+        {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
+          <Button
+            variant="success"
+            onClick={() => setShowStartConfirmModal(true)}
+            disabled={workActionLoading}
+            style={{ minWidth: '80px' }}
+          >
+            Start
+          </Button>
+        ) : null}
+
+        {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (!resultsNotes.trim()) {
+                toast.error('Please add results in the Results tab before completing the request');
+                setActiveMainTab('results');
+                return;
+              }
+              setShowCompleteConfirmModal(true);
+            }}
+            disabled={workActionLoading}
+            style={{ minWidth: '80px' }}
+          >
+            Complete
+          </Button>
+        ) : null}
+
+        {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
+          <Button
+            variant="danger"
+            onClick={() => setShowCancelConfirmModal(true)}
+            disabled={workActionLoading}
+            style={{ minWidth: '80px' }}
+          >
+            Cancel
+          </Button>
+        ) : null}
+      </div>
+
+      {!isFullscreen && (
+        <div className="d-flex justify-content-end">
+          <Button
+            variant="outline-secondary"
+            onClick={onHide}
+            size="sm"
+            className="px-3"
+          >
+            Close
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderDetailsTab = (isFullscreen = false) => (
+    <div className="tab-pane active">
+      {formTemplate && !isFullscreen && (
+        <div className="border-top pt-3 mb-3">
+          <div className="text-primary fw-semibold mb-1" style={{ fontSize: '1rem' }}>
+            {formTemplate.name}
+          </div>
+          <div className="text-muted mb-2" style={{ fontSize: '0.85rem' }}>
+            {formTemplate.description}
+          </div>
+        </div>
+      )}
+
+      {formLoading ? (
+        <div className="text-center py-3">
+          <div className="spinner-border spinner-border-sm text-primary" role="status">
+            <span className="visually-hidden">Loading form data...</span>
+          </div>
+          <div className="mt-2 text-muted small">Loading form data...</div>
+        </div>
+      ) : formFieldValues.length > 0 ? (
+        <SectionedFormRenderer
+          formName={formTemplate?.name ?? ''}
+          fields={formFields}
+          fieldValues={currentFieldValues}
+          onChange={handleFormFieldChangeById}
+          onAutoSave={() => handleSaveFormData({ silent: true })}
+          readOnly={request.STATUS === 'C'}
+          requestId={request.REQUEST_ID}
+        />
+      ) : formTemplate ? (
+        <div className="alert alert-info">
+          <h6 className="alert-heading">Form Template Found</h6>
+          <p className="mb-0">Template: <strong>{formTemplate.name}</strong></p>
+          <p className="mb-0">Description: {formTemplate.description}</p>
+          <hr className="my-2" />
+          <small className="text-muted">No form fields found for this template. The form may not have been configured with fields yet.</small>
+        </div>
+      ) : (
+        <div className="alert alert-warning">
+          <h6 className="alert-heading">No Form Data Available</h6>
+          <p className="mb-1">This request does not have an associated form template.</p>
+          <hr className="my-2" />
+          <small className="text-muted">
+            Request ID: {request.REQUEST_ID}<br />
+            Form ID: {request.FORM_ID || 'None'}<br />
+            Check the browser console for detailed API response information.
+          </small>
+        </div>
+      )}
+
+      {formFieldValues.length > 0 && !isFullscreen && (
+        <div className="border-top pt-3 mt-3">
+          <div className="d-flex gap-2 justify-content-between align-items-center mb-3">
+            <div className="text-dark fw-semibold" style={{ fontSize: '0.9rem' }}>Form Data</div>
+            <Button
+              variant="success"
+              onClick={handleSaveFormData}
+              disabled={isSavingForm || !formHasChanges}
+              size="sm"
+              className="px-3"
+              style={{ fontSize: '0.85rem' }}
+            >
+              {isSavingForm ? 'Saving...' : hasPersistedFormData ? 'Update' : 'Save'}
+            </Button>
+          </div>
+          {formHasChanges && (
+            <div className="alert alert-warning py-2 mb-3" style={{ fontSize: '0.8rem' }}>
+              <small>⚠️ You have unsaved changes to the form data.</small>
+            </div>
+          )}
+        </div>
+      )}
+
+
+
+
+      {isRequestorUser && !isAssignedToCurrentUser && (
+        <div className="border-top pt-3 mt-3">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="text-dark fw-semibold" style={{ fontSize: '1rem' }}>
+              📝 Respond to Processor
+            </div>
+            <span className="badge bg-info" style={{ fontSize: '0.75rem' }}>
+              Your Request
+            </span>
+          </div>
+
+          <div className="bg-light rounded p-3">
+            <div className="mb-3">
+              <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
+                Response to Processor
+              </label>
+              <textarea
+                className="form-control"
+                rows={4}
+                placeholder="Provide additional information, answer questions, or clarify details..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                style={{ fontSize: '0.85rem' }}
+              />
+              <div className="form-text" style={{ fontSize: '0.75rem' }}>
+                Your response will be sent to the assigned processor and may help speed up your request.
+              </div>
+            </div>
+
+            <div className="d-flex justify-content-end">
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  const originalType = feedbackType;
+                  setFeedbackType('update');
+                  await handleSubmitFeedback();
+                  setFeedbackType(originalType);
+                }}
+                disabled={workActionLoading || !feedbackText.trim()}
+                size="sm"
+                className="d-flex align-items-center"
+                style={{ fontSize: '0.85rem' }}
+              >
+                <Send size={14} className="me-1" />
+                {workActionLoading ? 'Sending...' : 'Send Response'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {!isFullscreen && renderActionBar()}
+    </div>
+  );
+
+  const renderTabContent = (isFullscreen = false) => (
+    <div className={`tab-content${isFullscreen ? ' rfp-tab-content' : ''}`}>
+      {activeMainTab === 'details' && renderDetailsTab(isFullscreen)}
+      {activeMainTab === 'tasks' && (
+        <div className="tab-pane active">
+          <div className="mb-3">
+            <div className="mb-3">
+              <div className="d-flex align-items-center mb-2">
+                <h6 className="mb-0 me-2">Task Management</h6>
+                {selectedTasks.size > 0 && (
+                  <span className="badge bg-primary">{selectedTasks.size} selected</span>
+                )}
+              </div>
+              <div className="d-flex gap-2 flex-wrap">
+                <Button size="sm" variant="outline-primary" onClick={() => setShowAddTaskModal(true)} disabled={taskActionLoading}>
+                  Add Task
+                </Button>
+                <Button size="sm" variant="outline-secondary" onClick={() => setShowAssignTaskModal(true)} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Assign Tasks
+                </Button>
+                <Button size="sm" variant="outline-success" onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'In Progress')} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Start Tasks
+                </Button>
+                <Button size="sm" variant="outline-success" onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Completed')} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Complete Tasks
+                </Button>
+                <Button size="sm" variant="outline-danger" onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Cancelled')} disabled={taskActionLoading || selectedTasks.size === 0}>
+                  Cancel Tasks
+                </Button>
+              </div>
+            </div>
+
+            {tasksLoading ? (
+              <div className="text-center py-4">
+                <div className="spinner-border spinner-border-sm text-primary" role="status">
+                  <span className="visually-hidden">Loading tasks...</span>
+                </div>
+                <div className="mt-2 text-muted small">Loading tasks...</div>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-sm table-hover">
+                  <thead className="bg-light">
+                    <tr>
+                      <th style={{ width: '50px' }}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={tasks.length > 0 && selectedTasks.size === tasks.length}
+                          onChange={(e) => handleSelectAllTasks(e.target.checked)}
+                        />
+                      </th>
+                      <th>Task ID</th>
+                      <th>Status</th>
+                      <th>Assigned To</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center text-muted py-4">
+                          <div>No tasks found for this request</div>
+                          <small>Click "Add" to create the first task</small>
+                        </td>
+                      </tr>
+                    ) : (
+                      tasks.map((task: Task) => (
+                        <tr key={task.TASK_ID}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              checked={selectedTasks.has(task.TASK_ID)}
+                              onChange={(e) => handleTaskSelect(task.TASK_ID, e.target.checked)}
+                            />
+                          </td>
+                          <td><code>T-{task.TASK_ID}</code></td>
+                          <td>
+                            <span className={getTaskStatusBadgeClass(task.STATUS)}>
+                              {getTaskStatusText(task.STATUS)}
+                            </span>
+                          </td>
+                          <td>
+                            {task.assignedUser
+                              ? task.assignedUser.FULL_NAME || `${task.assignedUser.FIRST_NAME} ${task.assignedUser.LAST_NAME}`
+                              : 'Unassigned'}
+                          </td>
+                          <td>
+                            <span title={task.DESCRIPTION} className="text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
+                              {task.DESCRIPTION}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {activeMainTab === 'attachments' && (
+        <div className="tab-pane active">
+          <div className="mb-4">
+            <div className="card">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <div className="d-flex align-items-center gap-2">
+                  <h6 className="mb-0 fw-semibold">Documents</h6>
+                  <span className="badge bg-secondary">
+                    {attachmentsLoading ? '...' : `${attachments.length} uploaded`}
+                  </span>
+                </div>
+                <div className="d-flex gap-2">
+                  {attachments.length > 0 && (
+                    <Button size="sm" variant="outline-secondary" className="d-flex align-items-center">
+                      <Download size={14} className="me-1" />
+                      Download All
+                    </Button>
+                  )}
+                  {selectedFiles.length > 0 && (
+                    <Button size="sm" variant="primary" className="d-flex align-items-center" onClick={handleUploadFiles} disabled={uploadingFiles}>
+                      <Upload size={14} className="me-1" />
+                      {uploadingFiles ? 'Uploading...' : `Upload (${selectedFiles.length})`}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="card-body">
+                {/* Upload zone */}
+                <div className="mb-3">
+                  <div {...getRootProps()} className={getDropzoneStyle()}>
+                    <input {...getInputProps()} />
+                    <div className="py-3">
+                      {uploadingFiles ? (
+                        <>
+                          <div className="spinner-border spinner-border-sm mb-2" role="status">
+                            <span className="visually-hidden">Uploading...</span>
+                          </div>
+                          <div className="fw-medium">Uploading files...</div>
+                          <div className="small text-muted">Please wait while files are being uploaded</div>
+                        </>
+                      ) : isDragActive ? (
+                        isDragAccept ? (
+                          <>
+                            <Upload size={32} className="mb-2 text-success" />
+                            <div className="fw-medium text-success">Drop files here to upload</div>
+                            <div className="small text-success">Release to add files to upload queue</div>
+                          </>
+                        ) : (
+                          <>
+                            <X size={32} className="mb-2 text-danger" />
+                            <div className="fw-medium text-danger">Some files are not supported</div>
+                            <div className="small text-danger">Only images, PDF, DOC/DOCX, XLS/XLSX, and TXT files are allowed</div>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <Upload size={32} className="mb-2 text-muted" />
+                          <div className="fw-medium">Drag & drop files here, or click to browse</div>
+                          <div className="small text-muted mt-1">
+                            PDF, DOC/DOCX, XLS/XLSX, TXT, Images (JPG/PNG) — Max 10MB each
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Staged files queue */}
+                {selectedFiles.length > 0 && (
+                  <div className="mb-3">
+                    <h6 className="fw-medium mb-2 text-muted small text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                      Ready to upload ({selectedFiles.length})
+                    </h6>
+                    <div className="row g-2">
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="col-md-6">
+                          <div className="border rounded p-2 d-flex justify-content-between align-items-center bg-light">
+                            <div className="d-flex align-items-start flex-grow-1 min-w-0">
+                              <FileText size={16} className="text-primary me-2 flex-shrink-0 mt-1" />
+                              <div className="flex-grow-1 min-w-0">
+                                <div className="fw-medium text-truncate" title={file.name} style={{ fontSize: '0.85rem' }}>
+                                  {file.name}
+                                </div>
+                                <div className="text-muted small">
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type || 'Unknown type'}
+                                </div>
+                                {uploadProgress[file.name] !== undefined && (
+                                  <>
+                                    <div className="progress mt-1" style={{ height: '6px' }}>
+                                      <div className="progress-bar progress-bar-striped progress-bar-animated" style={{ width: `${uploadProgress[file.name]}%` }}></div>
+                                    </div>
+                                    <div className="small text-muted mt-1">{uploadProgress[file.name]}% uploaded</div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button variant="outline-danger" size="sm" className="ms-2 d-flex align-items-center" onClick={() => removeSelectedFile(index)} disabled={uploadingFiles} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} title="Remove file">
+                              <X size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {uploadingFiles && (
+                      <div className="alert alert-info mt-2 py-2" style={{ fontSize: '0.85rem' }}>
+                        <div className="d-flex align-items-center">
+                          <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+                          Uploading files... Please do not close this window.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Divider between upload zone and uploaded list */}
+                <hr className="my-3" />
+
+                {/* Uploaded documents list */}
+                <h6 className="fw-medium mb-3 text-muted small text-uppercase" style={{ letterSpacing: '0.05em' }}>
+                  Uploaded Documents
+                </h6>
+                {attachmentsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-primary" role="status">
+                      <span className="visually-hidden">Loading attachments...</span>
+                    </div>
+                    <div className="mt-2 text-muted small">Loading documents...</div>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  <div className="row g-3">
+                    {attachments.map((attachment: Attachment) => (
+                      <div key={attachment.attachmentId} className="col-md-6 col-lg-4">
+                        <div className="border rounded p-3 h-100 d-flex flex-column">
+                          <div className="d-flex align-items-start mb-2">
+                            <FileText size={20} className="text-primary me-2 flex-shrink-0 mt-1" />
+                            <div className="flex-grow-1 min-w-0">
+                              <h6 className="mb-1 fw-medium text-truncate" title={attachment.fileName}>{attachment.fileName}</h6>
+                              <div className="text-muted small">
+                                <div>By: {attachment.uploadedBy.firstName} {attachment.uploadedBy.lastName}</div>
+                                <div>Date: {formatDate(attachment.createDate)}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-auto d-flex gap-2">
+                            <Button variant="outline-primary" size="sm" onClick={() => handleDownloadAttachment(attachment.attachmentId, attachment.fileName)} className="d-flex align-items-center flex-grow-1">
+                              <Download size={12} className="me-1" />
+                              Download
+                            </Button>
+                            {canWorkOnRequest && (
+                              <Button variant="outline-danger" size="sm" onClick={() => handleDeleteAttachment(attachment.attachmentId, attachment.fileName)} title="Delete document">
+                                ×
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted">
+                    <FileText size={36} className="mb-2 opacity-25" />
+                    <p className="small mb-0">No documents uploaded yet. Use the area above to add files.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeMainTab === 'results' && (
+        <div className="tab-pane active">
+          <div className="mb-4">
+            <div className="card mb-4">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <h6 className="mb-0 fw-semibold">Notes and Results</h6>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-muted small">{resultsNotes.length}/4000</span>
+                  {resultsHasChanges && (
+                    <span className="badge bg-warning text-dark d-inline-flex align-items-center px-2 py-1">
+                      <Save size={12} className="me-1 align-middle" />
+                      <span className="align-middle">Unsaved Changes</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="card-body">
+                <Form.Group className="mb-3">
+                  <Form.Control
+                    as="textarea"
+                    rows={8}
+                    maxLength={4000}
+                    placeholder="Document the results of this request, findings, outcomes, or any relevant information..."
+                    value={resultsNotes}
+                    onChange={(e) => handleResultsNotesChange(e.target.value)}
+                    className="form-control"
+                    style={{ minHeight: '200px', fontSize: '0.9rem', lineHeight: '1.5' }}
+                  />
+                  <Form.Text className="text-muted">
+                    This information will be visible to the requestor and stored as part of the request record.
+                  </Form.Text>
+                </Form.Group>
+
+                <div className="d-flex gap-2 justify-content-end">
+                  <Button variant="outline-primary" size="sm" onClick={handleSaveResults} disabled={savingResults || !resultsHasChanges} className="d-flex align-items-center">
+                    <Save size={14} className="me-1" />
+                    {savingResults ? 'Saving...' : 'Save Results'}
+                  </Button>
+
+                  {canWorkOnRequest && isAssignedToCurrentUser && request.STATUS !== 'C' && (
+                    <Button variant="success" size="sm" onClick={handleCompleteRequestWithResults} disabled={savingResults || !resultsNotes.trim()} className="d-flex align-items-center">
+                      <CheckCircle size={14} className="me-1" />
+                      {savingResults ? 'Completing...' : 'Complete Request'}
+                    </Button>
+                  )}
+                </div>
+
+                {!resultsNotes.trim() && (
+                  <div className="alert alert-info mt-3 py-2" style={{ fontSize: '0.85rem' }}>
+                    <strong>Tip:</strong> Add detailed results and findings here. This helps maintain a complete record of the request outcome.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {request.STATUS === 'C' && (
+              <div className="card mt-3 border-success">
+                <div className="card-header bg-success bg-opacity-10 border-success">
+                  <h6 className="mb-0 fw-semibold text-success">
+                    <CheckCircle size={16} className="me-1" />
+                    Request Completed
+                  </h6>
+                </div>
+                <div className="card-body">
+                  <div className="row">
+                    <div className="col-sm-6">
+                      <small className="text-muted">Request ID:</small>
+                      <div className="fw-medium">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
+                    </div>
+                    <div className="col-sm-6">
+                      <small className="text-muted">Completed by:</small>
+                      <div className="fw-medium">{request.assignedName || 'Unknown'}</div>
+                    </div>
+                    <div className="col-sm-6 mt-2">
+                      <small className="text-muted">Completion Date:</small>
+                      <div className="fw-medium">{formatDate(request.UPDATE_DATE)}</div>
+                    </div>
+                    <div className="col-sm-6 mt-2">
+                      <small className="text-muted">Total Documents:</small>
+                      <div className="fw-medium">{attachments.length}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {activeMainTab === 'milestones' && (
+        <div className="tab-pane active">
+          <h6 className="mb-3">Milestones</h6>
+          {milestonesLoading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <div className="mt-2 text-muted small">Loading milestones...</div>
+            </div>
+          ) : milestones.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-muted">No milestones found for this request.</p>
+            </div>
+          ) : (
+            <table className="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Date/Time</th>
+                  <th>By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {milestones
+                  .sort((a, b) => new Date(b.createDate).getTime() - new Date(a.createDate).getTime())
+                  .map((milestone) => (
+                    <tr key={milestone.workProgressId}>
+                      <td>{getEventName(milestone)}</td>
+                      <td>{formatDateTime(milestone.createDate)}</td>
+                      <td>{`${milestone.user.firstName} ${milestone.user.lastName}`.trim()}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered className="request-modal-improved">
+    <>
+    {/* ── FIDELITY-SUBJECT FULL-PAGE PORTAL ───────────────────────────────── */}
+    {isFidelitySubject && show && createPortal(
+      <div className="rfp-overlay">
+        <div className="rfp-header">
+          <button className="rfp-close-btn" onClick={onHide}>
+            <X size={16} />
+            Close
+          </button>
+          <div className="rfp-title">
+            <span>Subject Workup —</span>
+            <span className="rfp-tracking">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</span>
+            <span className={getStatusBadgeClass(request.STATUS)} style={{ fontSize: '0.75rem' }}>
+              {getStatusText(request.STATUS)}
+            </span>
+          </div>
+          <div className="rfp-actions">
+            {formHasChanges && (
+              <span className="text-warning small">⚠ Unsaved changes</span>
+            )}
+            <Button
+              variant="success"
+              size="sm"
+              onClick={handleSaveFormData}
+              disabled={isSavingForm || !formHasChanges}
+              className="px-3"
+            >
+              {isSavingForm ? 'Saving…' : hasPersistedFormData ? 'Update' : 'Save'}
+            </Button>
+          </div>
+        </div>
+        {renderTabNavigation(true)}
+        <div className="rfp-body">
+          <div className="rfp-body-shell">
+            {renderTabContent(true)}
+          </div>
+        </div>
+        <div className="rfp-footer">
+          <div className="rfp-footer-shell">
+            {renderActionBar(true)}
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    <Modal
+      show={show && !isFidelitySubject}
+      onHide={onHide}
+      centered
+      className="request-modal-improved"
+      dialogClassName={needsExpandedLayout ? "rmi-dialog-expanded" : "rmi-dialog-standard"}
+      contentClassName={needsExpandedLayout ? "rmi-content-expanded" : "rmi-content-standard"}
+    >
       <Modal.Header closeButton className="border-0 pb-2">
         <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>
           Request Details: {request.TRACKINGID || `REQ-${request.REQUEST_ID}`}
@@ -1370,1181 +2144,336 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="border-top pt-3 mb-4">
-          <div className="d-flex mb-0 border-bottom">
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ${
-                activeMainTab === 'details' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('details')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'details' ? '600' : '400' }}
-            >
-              Details
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'tasks' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('tasks')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'tasks' ? '600' : '400' }}
-            >
-              Tasks
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'results' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('results')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'results' ? '600' : '400' }}
-            >
-              Results
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'attachments' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('attachments')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'attachments' ? '600' : '400' }}
-            >
-              Attachments
-            </button>
-            <button
-              className={`btn btn-sm border-0 px-3 py-2 ms-2 ${
-                activeMainTab === 'milestones' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'
-              }`}
-              onClick={() => setActiveMainTab('milestones')}
-              style={{ fontSize: '1rem', fontWeight: activeMainTab === 'milestones' ? '600' : '400' }}
-            >
-              Milestones
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="tab-content" style={{ minHeight: '400px' }}>
-          
-          {/* Details Tab */}
-          {activeMainTab === 'details' && (
-            <div className="tab-pane active">
-              {/* Form Template Section - Compact */}
-        {formTemplate && (
-          <div className="border-top pt-3 mb-3">
-            <div className="text-primary fw-semibold mb-1" style={{ fontSize: '1rem' }}>
-              {formTemplate.name}
-            </div>
-            <div className="text-muted mb-2" style={{ fontSize: '0.85rem' }}>
-              {formTemplate.description}
-            </div>
-          </div>
-        )}
-
-        {/* Form Field Values - Compact Layout */}
-        {formLoading ? (
-          <div className="text-center py-3">
-            <div className="spinner-border spinner-border-sm text-primary" role="status">
-              <span className="visually-hidden">Loading form data...</span>
-            </div>
-            <div className="mt-2 text-muted small">Loading form data...</div>
-          </div>
-        ) : formFieldValues.length > 0 ? (
-          <div className="mb-3">
-            {formFieldValues.map((field, index) => {
-              const hasValue = field.fieldValue && field.fieldValue.toString().trim() !== '';
-              const isRequired = field.fieldName.includes('*') || field.fieldName.includes('#');
-              
-              return (
-                <div key={index} className="mb-2">
-                  <label className="form-label fw-medium text-dark mb-1" style={{ fontSize: '0.85rem' }}>
-                    {field.fieldName}
-                    {isRequired && <span className="text-danger ms-1">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={field.fieldValue || ''}
-                    placeholder={`Enter ${field.fieldName}`}
-                    onChange={(e) => handleFieldValueChange(field.fieldName, e.target.value)}
-                    style={{ 
-                      backgroundColor: 'white',
-                      color: '#212529',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                  {/* Compact status indicators */}
-                  {hasValue && (
-                    <div className="form-text text-success" style={{ fontSize: '0.7rem', marginTop: '2px' }}>
-                      ✓ Value from database
-                    </div>
-                  )}
-                  {!hasValue && (
-                    <div className="form-text text-muted" style={{ fontSize: '0.7rem', marginTop: '2px' }}>
-                      No value submitted yet
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : formTemplate ? (
-          <div className="alert alert-info">
-            <h6 className="alert-heading">Form Template Found</h6>
-            <p className="mb-0">Template: <strong>{formTemplate.name}</strong></p>
-            <p className="mb-0">Description: {formTemplate.description}</p>
-            <hr className="my-2" />
-            <small className="text-muted">No form fields found for this template. The form may not have been configured with fields yet.</small>
-          </div>
-        ) : (
-          <div className="alert alert-warning">
-            <h6 className="alert-heading">No Form Data Available</h6>
-            <p className="mb-1">This request does not have an associated form template.</p>
-            <hr className="my-2" />
-            <small className="text-muted">
-              Request ID: {request.REQUEST_ID}<br />
-              Form ID: {request.FORM_ID || 'None'}<br />
-              Check the browser console for detailed API response information.
-            </small>
-          </div>
-        )}
-
-        {/* Form Data Save Section */}
-        {formFieldValues.length > 0 && (
-          <div className="border-top pt-3 mt-3">
-            <div className="d-flex gap-2 justify-content-between align-items-center mb-3">
-              <div className="text-dark fw-semibold" style={{ fontSize: '0.9rem' }}>Form Data</div>
-              <Button 
-                variant="success" 
-                onClick={handleSaveFormData}
-                disabled={isSavingForm || !formHasChanges}
-                size="sm"
-                className="px-3"
-                style={{ fontSize: '0.85rem' }}
-              >
-                {isSavingForm ? 'Saving...' : 'Save Form Data'}
-              </Button>
-            </div>
-            {formHasChanges && (
-              <div className="alert alert-warning py-2 mb-3" style={{ fontSize: '0.8rem' }}>
-                <small>⚠️ You have unsaved changes to the form data.</small>
-              </div>
-            )}
-          </div>
-        )}
-
-
-
-
-        {/* Requestor Response Section - Only show if user is the requestor */}
-        {isRequestorUser && !isAssignedToCurrentUser && (
-          <div className="border-top pt-3 mt-3">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="text-dark fw-semibold" style={{ fontSize: '1rem' }}>
-                📝 Respond to Processor
-              </div>
-              <span className="badge bg-info" style={{ fontSize: '0.75rem' }}>
-                Your Request
-              </span>
-            </div>
-            
-            <div className="bg-light rounded p-3">
-              <div className="mb-3">
-                <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
-                  Response to Processor
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={4}
-                  placeholder="Provide additional information, answer questions, or clarify details..."
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  style={{ fontSize: '0.85rem' }}
-                />
-                <div className="form-text" style={{ fontSize: '0.75rem' }}>
-                  Your response will be sent to the assigned processor and may help speed up your request.
-                </div>
-              </div>
-              
-              {/* File upload for requestors */}
-              <div className="mb-3">
-                <label className="form-label fw-medium" style={{ fontSize: '0.85rem' }}>
-                  Additional Documents
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="form-control"
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  style={{ fontSize: '0.85rem' }}
-                />
-                <div className="form-text" style={{ fontSize: '0.75rem' }}>
-                  Upload additional documents that may help with your request
-                </div>
-              </div>
-              
-              {/* Show selected files */}
-              {feedbackFiles.length > 0 && (
-                <div className="mb-3">
-                  <div className="fw-medium mb-2" style={{ fontSize: '0.85rem' }}>
-                    Selected Files ({feedbackFiles.length})
-                  </div>
-                  {feedbackFiles.map((file, index) => (
-                    <div key={index} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-2">
-                      <div style={{ fontSize: '0.8rem' }}>
-                        <div className="fw-medium">{file.name}</div>
-                        <div className="text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                      </div>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => removeFeedbackFile(index)}
-                        style={{ fontSize: '0.75rem' }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <div className="d-flex justify-content-end">
-                <Button
-                  variant="primary"
-                  onClick={async () => {
-                    // Use same feedback mechanism but with requestor context
-                    const originalType = feedbackType;
-                    setFeedbackType('update'); // Set as update from requestor
-                    await handleSubmitFeedback();
-                    setFeedbackType(originalType);
-                  }}
-                  disabled={workActionLoading || (!feedbackText.trim() && feedbackFiles.length === 0)}
-                  size="sm"
-                  className="d-flex align-items-center"
-                  style={{ fontSize: '0.85rem' }}
-                >
-                  <Send size={14} className="me-1" />
-                  {workActionLoading ? 'Sending...' : 'Send Response'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-              {/* Action Buttons Row */}
-              <div className="border-top pt-4 mt-4">
-                <h6 className="mb-3 fw-semibold">Action Buttons Row</h6>
-                
-                <div className="d-flex gap-2 flex-wrap mb-3">
-                  {/* 1. Assign Button - Always show for users with permission */}
-                  {hasAssignPermission && (
-                    <Button 
-                      variant="outline-primary"
-                      onClick={() => setShowAssignRequestModal(true)}
-                      disabled={loading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Assign
-                    </Button>
-                  )}
-
-                  {/* 2. Start Button - Show for pending requests when user has permission, Super Admin sees all */}
-                  {(isSuperAdmin) || ((request.STATUS === 'P') && (hasAssignPermission || canWorkOnRequest || isRequestorUser)) ? (
-                    <Button 
-                      variant="success"
-                      onClick={() => setShowStartConfirmModal(true)}
-                      disabled={workActionLoading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Start
-                    </Button>
-                  ) : null}
-                  
-                  {/* 3. Complete Button - Show for assigned user, Processor, Manager, Admin when status is In Progress, Super Admin sees all */}
-                  {(isSuperAdmin) || ((request.STATUS === 'A') && (isAssignedToCurrentUser || canWorkOnRequest)) ? (
-                    <Button 
-                      variant="primary"
-                      onClick={() => {
-                        if (!resultsNotes.trim()) {
-                          toast.error('Please add results in the Results tab before completing the request');
-                          setActiveMainTab('results');
-                          return;
-                        }
-                        setShowCompleteConfirmModal(true);
-                      }}
-                      disabled={workActionLoading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Complete
-                    </Button>
-                  ) : null}
-                  
-                  {/* 4. Cancel Button - Show for Processor, Manager, Admin when status is Pending or In Progress, Super Admin sees all */}
-                  {(isSuperAdmin) || ((request.STATUS === 'P' || request.STATUS === 'A') && canWorkOnRequest) ? (
-                    <Button 
-                      variant="danger"
-                      onClick={() => setShowCancelConfirmModal(true)}
-                      disabled={workActionLoading}
-                      style={{ minWidth: '80px' }}
-                    >
-                      Cancel
-                    </Button>
-                  ) : null}
-                </div>
-
-
-                <div className="d-flex justify-content-end">
-                  <Button 
-                    variant="outline-secondary" 
-                    onClick={onHide} 
-                    size="sm"
-                    className="px-3"
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tasks Tab */}
-          {activeMainTab === 'tasks' && (
-            <div className="tab-pane active">
-              <div className="mb-3">
-                <div className="mb-3">
-                  <div className="d-flex align-items-center mb-2">
-                    <h6 className="mb-0 me-2">Task Management</h6>
-                    {selectedTasks.size > 0 && (
-                      <span className="badge bg-primary">{selectedTasks.size} selected</span>
-                    )}
-                  </div>
-                  <div className="d-flex gap-2 flex-wrap">
-                    <Button 
-                      size="sm" 
-                      variant="outline-primary"
-                      onClick={() => setShowAddTaskModal(true)}
-                      disabled={taskActionLoading}
-                    >
-                      Add Task
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-secondary"
-                      onClick={() => setShowAssignTaskModal(true)}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Assign Tasks
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-success"
-                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'In Progress')}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Start Tasks
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-success"
-                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Completed')}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Complete Tasks
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-danger"
-                      onClick={() => handleTaskStatusUpdate(Array.from(selectedTasks), 'Cancelled')}
-                      disabled={taskActionLoading || selectedTasks.size === 0}
-                    >
-                      Cancel Tasks
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Task Table */}
-                {tasksLoading ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border spinner-border-sm text-primary" role="status">
-                      <span className="visually-hidden">Loading tasks...</span>
-                    </div>
-                    <div className="mt-2 text-muted small">Loading tasks...</div>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-sm table-hover">
-                      <thead className="bg-light">
-                        <tr>
-                          <th style={{ width: '50px' }}>
-                            <input 
-                              type="checkbox" 
-                              className="form-check-input"
-                              checked={tasks.length > 0 && selectedTasks.size === tasks.length}
-                              onChange={(e) => handleSelectAllTasks(e.target.checked)}
-                            />
-                          </th>
-                          <th>Task ID</th>
-                          <th>Status</th>
-                          <th>Assigned To</th>
-                          <th>Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tasks.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="text-center text-muted py-4">
-                              <div>No tasks found for this request</div>
-                              <small>Click "Add" to create the first task</small>
-                            </td>
-                          </tr>
-                        ) : (
-                          tasks.map((task: Task) => (
-                            <tr key={task.TASK_ID}>
-                              <td>
-                                <input 
-                                  type="checkbox" 
-                                  className="form-check-input"
-                                  checked={selectedTasks.has(task.TASK_ID)}
-                                  onChange={(e) => handleTaskSelect(task.TASK_ID, e.target.checked)}
-                                />
-                              </td>
-                              <td>
-                                <code>T-{task.TASK_ID}</code>
-                              </td>
-                              <td>
-                                <span className={getTaskStatusBadgeClass(task.STATUS)}>
-                                  {getTaskStatusText(task.STATUS)}
-                                </span>
-                              </td>
-                              <td>
-                                {task.assignedUser ? 
-                                  task.assignedUser.FULL_NAME || 
-                                  `${task.assignedUser.FIRST_NAME} ${task.assignedUser.LAST_NAME}` 
-                                  : 'Unassigned'}
-                              </td>
-                              <td>
-                                <span title={task.DESCRIPTION} className="text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
-                                  {task.DESCRIPTION}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Attachments Tab */}
-          {activeMainTab === 'attachments' && (
-            <div className="tab-pane active">
-              <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0 fw-semibold">Document Management</h6>
-                  <div className="d-flex gap-2">
-                    <span className="badge bg-secondary">
-                      {attachmentsLoading ? 'Loading...' : `${attachments.length} document${attachments.length !== 1 ? 's' : ''}`}
-                    </span>
-                    <Button 
-                      size="sm" 
-                      variant="primary" 
-                      className="d-flex align-items-center"
-                      onClick={handleUploadFiles}
-                      disabled={uploadingFiles || selectedFiles.length === 0}
-                    >
-                      <Upload size={14} className="me-1" />
-                      {uploadingFiles ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : 'Documents'}`}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* File Upload Section */}
-                <div className="card mb-4">
-                  <div className="card-header bg-light">
-                    <h6 className="mb-0 fw-medium">Upload Support Documents</h6>
-                  </div>
-                  <div className="card-body">
-                    {/* React Dropzone Upload Area */}
-                    <div className="mb-3">
-                      <div {...getRootProps()} className={getDropzoneStyle()}>
-                        <input {...getInputProps()} />
-                        <div className="py-3">
-                          {uploadingFiles ? (
-                            <>
-                              <div className="spinner-border spinner-border-sm mb-2" role="status">
-                                <span className="visually-hidden">Uploading...</span>
-                              </div>
-                              <div className="fw-medium">Uploading files...</div>
-                              <div className="small text-muted">Please wait while files are being uploaded</div>
-                            </>
-                          ) : isDragActive ? (
-                            isDragAccept ? (
-                              <>
-                                <Upload size={32} className="mb-2 text-success" />
-                                <div className="fw-medium text-success">Drop files here to upload</div>
-                                <div className="small text-success">Release to add files to upload queue</div>
-                              </>
-                            ) : (
-                              <>
-                                <X size={32} className="mb-2 text-danger" />
-                                <div className="fw-medium text-danger">Some files are not supported</div>
-                                <div className="small text-danger">Only images, PDF, DOC/DOCX, XLS/XLSX, and TXT files are allowed</div>
-                              </>
-                            )
-                          ) : (
-                            <>
-                              <Upload size={32} className="mb-2" />
-                              <div className="fw-medium">Drag & drop files here, or click to browse</div>
-                              <div className="small text-muted mt-1">
-                                Supported formats: Images, PDF, Word documents, Excel files, Text files (Max 10MB each)
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Selected Files Preview */}
-                    {selectedFiles.length > 0 && (
-                      <div className="mb-3">
-                        <h6 className="fw-medium mb-2">Selected Files ({selectedFiles.length})</h6>
-                        <div className="row g-2">
-                          {selectedFiles.map((file, index) => (
-                            <div key={index} className="col-md-6">
-                              <div className="border rounded p-2 d-flex justify-content-between align-items-center bg-light">
-                                <div className="d-flex align-items-start flex-grow-1 min-w-0">
-                                  <FileText size={16} className="text-primary me-2 flex-shrink-0 mt-1" />
-                                  <div className="flex-grow-1 min-w-0">
-                                    <div className="fw-medium text-truncate" title={file.name} style={{ fontSize: '0.85rem' }}>
-                                      {file.name}
-                                    </div>
-                                    <div className="text-muted small">
-                                      {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type || 'Unknown type'}
-                                    </div>
-                                    {uploadProgress[file.name] !== undefined && (
-                                      <>
-                                        <div className="progress mt-1" style={{ height: '6px' }}>
-                                          <div 
-                                            className="progress-bar progress-bar-striped progress-bar-animated" 
-                                            style={{ width: `${uploadProgress[file.name]}%` }}
-                                          ></div>
-                                        </div>
-                                        <div className="small text-muted mt-1">
-                                          {uploadProgress[file.name]}% uploaded
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                                <Button
-                                  variant="outline-danger"
-                                  size="sm"
-                                  className="ms-2 d-flex align-items-center"
-                                  onClick={() => removeSelectedFile(index)}
-                                  disabled={uploadingFiles}
-                                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                                  title="Remove file"
-                                >
-                                  <X size={12} />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {uploadingFiles && (
-                          <div className="alert alert-info mt-2 py-2" style={{ fontSize: '0.85rem' }}>
-                            <div className="d-flex align-items-center">
-                              <div className="spinner-border spinner-border-sm me-2" role="status"></div>
-                              Uploading files... Please do not close this window.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div className="alert alert-info py-2" style={{ fontSize: '0.85rem' }}>
-                      <strong>Upload Guidelines:</strong>
-                      <ul className="mb-0 mt-1 ps-3">
-                        <li>Maximum file size: 10MB per file</li>
-                        <li>Supported formats: PDF, DOC/DOCX, XLS/XLSX, TXT, Images (JPG/PNG)</li>
-                        <li>Files will be associated with this specific request</li>
-                        <li>All uploaded documents will be visible to request participants</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Existing Attachments */}
-                <div className="card">
-                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-medium">Request Documents</h6>
-                    <Button size="sm" variant="outline-secondary" className="d-flex align-items-center">
-                      <Download size={14} className="me-1" />
-                      Download All
-                    </Button>
-                  </div>
-                  <div className="card-body">
-                    {attachmentsLoading ? (
-                      <div className="text-center py-4">
-                        <div className="spinner-border spinner-border-sm text-primary" role="status">
-                          <span className="visually-hidden">Loading attachments...</span>
-                        </div>
-                        <div className="mt-2 text-muted small">Loading documents...</div>
-                      </div>
-                    ) : attachments.length > 0 ? (
-                      <div className="row g-3">
-                        {attachments.map((attachment: Attachment) => (
-                          <div key={attachment.attachmentId} className="col-md-6 col-lg-4">
-                            <div className="border rounded p-3 h-100 d-flex flex-column">
-                              <div className="d-flex align-items-start mb-2">
-                                <FileText size={20} className="text-primary me-2 flex-shrink-0 mt-1" />
-                                <div className="flex-grow-1 min-w-0">
-                                  <h6 className="mb-1 fw-medium text-truncate" title={attachment.fileName}>
-                                    {attachment.fileName}
-                                  </h6>
-                                  <div className="text-muted small">
-                                    <div>By: {attachment.uploadedBy.firstName} {attachment.uploadedBy.lastName}</div>
-                                    <div>Date: {formatDate(attachment.createDate)}</div>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="mt-auto d-flex gap-2">
-                                <Button
-                                  variant="outline-primary"
-                                  size="sm"
-                                  onClick={() => handleDownloadAttachment(attachment.attachmentId, attachment.fileName)}
-                                  className="d-flex align-items-center flex-grow-1"
-                                >
-                                  <Download size={12} className="me-1" />
-                                  Download
-                                </Button>
-                                {canWorkOnRequest && (
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() => handleDeleteAttachment(attachment.attachmentId, attachment.fileName)}
-                                    title="Delete document"
-                                  >
-                                    ×
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-5">
-                        <Upload size={48} className="text-muted mb-3" />
-                        <h6 className="text-muted mb-2">No Documents Yet</h6>
-                        <p className="text-muted small mb-3">
-                          No documents have been uploaded for this request. Use the upload section above to add supporting files.
-                        </p>
-                        <div {...getRootProps()} className="cursor-pointer">
-                          <input {...getInputProps()} />
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm" 
-                            className="d-flex align-items-center mx-auto"
-                            as="div"
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <Upload size={14} className="me-1" />
-                            Upload First Document
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Results Tab */}
-          {activeMainTab === 'results' && (
-            <div className="tab-pane active">
-              <div className="mb-4">
-                
-                {/* Notes and Results Section */}
-                <div className="card mb-4">
-                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-semibold">Notes and Results</h6>
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="text-muted small">
-                        {resultsNotes.length}/4000
-                      </span>
-                      {resultsHasChanges && (
-                        <span className="badge bg-warning text-dark d-inline-flex align-items-center px-2 py-1">
-                          <Save size={12} className="me-1 align-middle" />
-                          <span className="align-middle">Unsaved Changes</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="card-body">
-                    <Form.Group className="mb-3">
-                      <Form.Control
-                        as="textarea"
-                        rows={8}
-                        maxLength={4000}
-                        placeholder="Document the results of this request, findings, outcomes, or any relevant information..."
-                        value={resultsNotes}
-                        onChange={(e) => handleResultsNotesChange(e.target.value)}
-                        className="form-control"
-                        style={{ 
-                          minHeight: '200px',
-                          fontSize: '0.9rem',
-                          lineHeight: '1.5'
-                        }}
-                      />
-                      <Form.Text className="text-muted">
-                        This information will be visible to the requestor and stored as part of the request record.
-                      </Form.Text>
-                    </Form.Group>
-
-                    {/* Action Buttons */}
-                    <div className="d-flex gap-2 justify-content-end">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={handleSaveResults}
-                        disabled={savingResults || !resultsHasChanges}
-                        className="d-flex align-items-center"
-                      >
-                        <Save size={14} className="me-1" />
-                        {savingResults ? 'Saving...' : 'Save Results'}
-                      </Button>
-                      
-                      {canWorkOnRequest && isAssignedToCurrentUser && request.STATUS !== 'C' && (
-                        <Button
-                          variant="success"
-                          size="sm"
-                          onClick={handleCompleteRequestWithResults}
-                          disabled={savingResults || !resultsNotes.trim()}
-                          className="d-flex align-items-center"
-                        >
-                          <CheckCircle size={14} className="me-1" />
-                          {savingResults ? 'Completing...' : 'Complete Request'}
-                        </Button>
-                      )}
-                    </div>
-
-                    {!resultsNotes.trim() && (
-                      <div className="alert alert-info mt-3 py-2" style={{ fontSize: '0.85rem' }}>
-                        <strong>Tip:</strong> Add detailed results and findings here. This helps maintain a complete record of the request outcome.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-
-                {/* Request Summary (Optional) */}
-                {request.STATUS === 'C' && (
-                  <div className="card mt-3 border-success">
-                    <div className="card-header bg-success bg-opacity-10 border-success">
-                      <h6 className="mb-0 fw-semibold text-success">
-                        <CheckCircle size={16} className="me-1" />
-                        Request Completed
-                      </h6>
-                    </div>
-                    <div className="card-body">
-                      <div className="row">
-                        <div className="col-sm-6">
-                          <small className="text-muted">Request ID:</small>
-                          <div className="fw-medium">{request.TRACKINGID || `REQ-${request.REQUEST_ID}`}</div>
-                        </div>
-                        <div className="col-sm-6">
-                          <small className="text-muted">Completed by:</small>
-                          <div className="fw-medium">{request.assignedName || 'Unknown'}</div>
-                        </div>
-                        <div className="col-sm-6 mt-2">
-                          <small className="text-muted">Completion Date:</small>
-                          <div className="fw-medium">{formatDate(request.UPDATE_DATE)}</div>
-                        </div>
-                        <div className="col-sm-6 mt-2">
-                          <small className="text-muted">Total Documents:</small>
-                          <div className="fw-medium">{attachments.length}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Milestones Tab */}
-          {activeMainTab === 'milestones' && (
-            <div className="tab-pane active">
-              <h6 className="mb-3">Milestones</h6>
-              {milestonesLoading ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border spinner-border-sm text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  <div className="mt-2 text-muted small">Loading milestones...</div>
-                </div>
-              ) : milestones.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-muted">No milestones found for this request.</p>
-                </div>
-              ) : (
-                <table className="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th>Event</th>
-                      <th>Date/Time</th>
-                      <th>By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {milestones
-                      .sort((a, b) => new Date(b.createDate).getTime() - new Date(a.createDate).getTime())
-                      .map((milestone) => (
-                      <tr key={milestone.workProgressId}>
-                        <td>{getEventName(milestone)}</td>
-                        <td>{formatDateTime(milestone.createDate)}</td>
-                        <td>{`${milestone.user.firstName} ${milestone.user.lastName}`.trim()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-        </div>
+        {renderTabNavigation()}
+        {renderTabContent()}
       </Modal.Body>
+    </Modal>
 
       {/* Add Task Modal */}
-      <Modal show={showAddTaskModal} onHide={() => setShowAddTaskModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Task</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Task Description *</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Enter task description..."
-                value={newTaskData.description}
-                onChange={(e) => setNewTaskData({...newTaskData, description: e.target.value})}
-                required
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Assign To (Optional)</Form.Label>
-              <Form.Select
-                value={newTaskData.assignedUserId}
-                onChange={(e) => setNewTaskData({...newTaskData, assignedUserId: e.target.value})}
-              >
-                <option value="">Leave Unassigned</option>
-                {users.map((user) => (
-                  <option key={user.USER_ID} value={user.USER_ID}>
-                    {user.FULL_NAME} ({user.ROLE_NAMES})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                You can assign this task to a specific user or leave it unassigned
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAddTaskModal(false);
-              setNewTaskData({ assignedUserId: '', description: '' });
-            }}
-            disabled={taskActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAddTask}
-            disabled={taskActionLoading || !newTaskData.description.trim()}
-          >
-            {taskActionLoading ? 'Creating...' : 'Create Task'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Assign Task Modal */}
-      <Modal show={showAssignTaskModal} onHide={() => setShowAssignTaskModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Assign Selected Tasks</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3">
-            <div className="alert alert-info py-2">
-              <small>
-                <strong>{selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected</strong>
-                <br />
-                All selected tasks will be assigned to the chosen user.
-              </small>
-            </div>
-          </div>
-          
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Assign To *</Form.Label>
-              <Form.Select
-                value={assignTaskData.assignedUserId}
-                onChange={(e) => setAssignTaskData({...assignTaskData, assignedUserId: e.target.value})}
-                required
-              >
-                <option value="">Select a user to assign tasks to...</option>
-                {users.map((user) => (
-                  <option key={user.USER_ID} value={user.USER_ID}>
-                    {user.FULL_NAME} ({user.ROLE_NAMES})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Choose a user who will be responsible for completing the selected tasks
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAssignTaskModal(false);
-              setAssignTaskData({ assignedUserId: '' });
-            }}
-            disabled={taskActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAssignTasks}
-            disabled={taskActionLoading || !assignTaskData.assignedUserId}
-          >
-            {taskActionLoading ? 'Assigning...' : `Assign ${selectedTasks.size} Task${selectedTasks.size !== 1 ? 's' : ''}`}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Start Request Confirmation Modal */}
-      <Modal show={showStartConfirmModal} onHide={() => setShowStartConfirmModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Start Confirmation</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to start this request?</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowStartConfirmModal(false)}
-            disabled={workActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={async () => {
-              setShowStartConfirmModal(false);
-              await handleStartWork();
-            }}
-            disabled={workActionLoading}
-          >
-            {workActionLoading ? 'Starting...' : 'Confirm'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Cancel Request Form Modal */}
-      <Modal 
-        show={showCancelConfirmModal} 
-        onHide={() => {
-          if (!workActionLoading) {
-            setShowCancelConfirmModal(false);
-            setCancellationReason('');
-          }
-        }} 
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title className="text-danger">Cancel Request</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3">
-            <h6 className="text-muted mb-2">Request Details:</h6>
-            <div className="bg-light p-3 rounded mb-3">
-              <div><strong>ID:</strong> {request.TRACKINGID || request.REQUEST_ID}</div>
-              <div><strong>Name:</strong> {request.REQUEST_NAME}</div>
-              <div><strong>Current Status:</strong> <span className="badge bg-info">{request.STATUS}</span></div>
-            </div>
-          </div>
-          
-          <div className="mb-3">
-            <label className="form-label">
-              Cancellation Reason <span className="text-danger">*</span>
-            </label>
-            <textarea
-              className={`form-control ${
-                cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 
-                  ? 'is-invalid' 
-                  : cancellationReason.trim().length >= 10 
-                  ? 'is-valid' 
-                  : ''
-              }`}
-              rows={4}
-              value={cancellationReason}
-              onChange={(e) => setCancellationReason(e.target.value)}
-              placeholder="Please provide a detailed reason for cancelling this request. This information will be recorded for audit purposes."
-              maxLength={500}
+    <Modal show={showAddTaskModal} onHide={() => setShowAddTaskModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Add New Task</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label>Task Description *</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Enter task description..."
+              value={newTaskData.description}
+              onChange={(e) => setNewTaskData({...newTaskData, description: e.target.value})}
               required
-              disabled={workActionLoading}
             />
-            <div className="d-flex justify-content-between mt-1">
-              <small className="text-muted">
-                Minimum 10 characters required
-              </small>
-              <small className={`${
-                cancellationReason.length > 450 ? 'text-warning' : 'text-muted'
-              }`}>
-                {cancellationReason.length}/500 characters
-              </small>
-            </div>
-            {cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 && (
-              <div className="invalid-feedback d-block">
-                Please provide at least 10 characters explaining the cancellation reason.
-              </div>
-            )}
-          </div>
-          
-          <div className="alert alert-warning">
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Assign To (Optional)</Form.Label>
+            <Form.Select
+              value={newTaskData.assignedUserId}
+              onChange={(e) => setNewTaskData({...newTaskData, assignedUserId: e.target.value})}
+            >
+              <option value="">Leave Unassigned</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              You can assign this task to a specific user or leave it unassigned
+            </Form.Text>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAddTaskModal(false);
+            setNewTaskData({ assignedUserId: '', description: '' });
+          }}
+          disabled={taskActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleAddTask}
+          disabled={taskActionLoading || !newTaskData.description.trim()}
+        >
+          {taskActionLoading ? 'Creating...' : 'Create Task'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Assign Task Modal */}
+    <Modal show={showAssignTaskModal} onHide={() => setShowAssignTaskModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Assign Selected Tasks</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <div className="alert alert-info py-2">
             <small>
-              <strong>Warning:</strong> Cancelling this request will permanently change its status. 
-              This action cannot be undone and will be recorded in the audit trail.
+              <strong>{selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected</strong>
+              <br />
+              All selected tasks will be assigned to the chosen user.
             </small>
           </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowCancelConfirmModal(false);
-              setCancellationReason('');
-            }}
-            disabled={workActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="danger" 
-            onClick={handleCancelRequest}
-            disabled={!cancellationReason.trim() || cancellationReason.trim().length < 10 || workActionLoading}
-          >
-            {workActionLoading ? 'Cancelling...' : 'Cancel Request'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </div>
 
-      {/* Complete Request Confirmation Modal */}
-      <Modal show={showCompleteConfirmModal} onHide={() => setShowCompleteConfirmModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="text-success">Complete Request</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to complete this request?</p>
-          <div className="alert alert-info">
-            <small>Available from Results tab after saving results</small>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowCompleteConfirmModal(false)}
-            disabled={workActionLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="success" 
-            onClick={async () => {
-              setShowCompleteConfirmModal(false);
-              await handleCompleteWork();
-            }}
-            disabled={workActionLoading}
-          >
-            {workActionLoading ? 'Completing...' : 'Complete Request'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Assign Request Modal */}
-      <Modal show={showAssignRequestModal} onHide={() => setShowAssignRequestModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Assign Request</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-3">
-            <div className="alert alert-info py-2">
-              <small>
-                <strong>Assign this request to a user</strong>
-                <br />
-                Select a user who will be responsible for processing this request.
-              </small>
-            </div>
-          </div>
-          
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Assign To *</Form.Label>
-              <Form.Select
-                value={assignRequestData.assignedUserId}
-                onChange={(e) => setAssignRequestData({...assignRequestData, assignedUserId: e.target.value})}
-                required
-              >
-                <option value="">Select a user to assign request to...</option>
-                {users.map((user) => (
-                  <option key={user.USER_ID} value={user.USER_ID}>
-                    {user.FULL_NAME} ({user.ROLE_NAMES})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Choose a user who will be responsible for processing this request
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowAssignRequestModal(false);
-              setAssignRequestData({ assignedUserId: '' });
-            }}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAssignRequest}
-            disabled={loading || !assignRequestData.assignedUserId}
-          >
-            {loading ? 'Assigning...' : 'Assign Request'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label>Assign To *</Form.Label>
+            <Form.Select
+              value={assignTaskData.assignedUserId}
+              onChange={(e) => setAssignTaskData({...assignTaskData, assignedUserId: e.target.value})}
+              required
+            >
+              <option value="">Select a user to assign tasks to...</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Choose a user who will be responsible for completing the selected tasks
+            </Form.Text>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAssignTaskModal(false);
+            setAssignTaskData({ assignedUserId: '' });
+          }}
+          disabled={taskActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleAssignTasks}
+          disabled={taskActionLoading || !assignTaskData.assignedUserId}
+        >
+          {taskActionLoading ? 'Assigning...' : `Assign ${selectedTasks.size} Task${selectedTasks.size !== 1 ? 's' : ''}`}
+        </Button>
+      </Modal.Footer>
     </Modal>
+
+    {/* Start Request Confirmation Modal */}
+    <Modal show={showStartConfirmModal} onHide={() => setShowStartConfirmModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Start Confirmation</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>Are you sure you want to start this request?</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowStartConfirmModal(false)}
+          disabled={workActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={async () => {
+            setShowStartConfirmModal(false);
+            await handleStartWork();
+          }}
+          disabled={workActionLoading}
+        >
+          {workActionLoading ? 'Starting...' : 'Confirm'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Cancel Request Form Modal */}
+    <Modal
+      show={showCancelConfirmModal}
+      onHide={() => {
+        if (!workActionLoading) {
+          setShowCancelConfirmModal(false);
+          setCancellationReason('');
+        }
+      }}
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title className="text-danger">Cancel Request</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <h6 className="text-muted mb-2">Request Details:</h6>
+          <div className="bg-light p-3 rounded mb-3">
+            <div><strong>ID:</strong> {request.TRACKINGID || request.REQUEST_ID}</div>
+            <div><strong>Name:</strong> {request.REQUEST_NAME}</div>
+            <div><strong>Current Status:</strong> <span className="badge bg-info">{request.STATUS}</span></div>
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">
+            Cancellation Reason <span className="text-danger">*</span>
+          </label>
+          <textarea
+            className={`form-control ${
+              cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10
+                ? 'is-invalid'
+                : cancellationReason.trim().length >= 10
+                ? 'is-valid'
+                : ''
+            }`}
+            rows={4}
+            value={cancellationReason}
+            onChange={(e) => setCancellationReason(e.target.value)}
+            placeholder="Please provide a detailed reason for cancelling this request. This information will be recorded for audit purposes."
+            maxLength={500}
+            required
+            disabled={workActionLoading}
+          />
+          <div className="d-flex justify-content-between mt-1">
+            <small className="text-muted">
+              Minimum 10 characters required
+            </small>
+            <small className={`${
+              cancellationReason.length > 450 ? 'text-warning' : 'text-muted'
+            }`}>
+              {cancellationReason.length}/500 characters
+            </small>
+          </div>
+          {cancellationReason.trim().length > 0 && cancellationReason.trim().length < 10 && (
+            <div className="invalid-feedback d-block">
+              Please provide at least 10 characters explaining the cancellation reason.
+            </div>
+          )}
+        </div>
+
+        <div className="alert alert-warning">
+          <small>
+            <strong>Warning:</strong> Cancelling this request will permanently change its status.
+            This action cannot be undone and will be recorded in the audit trail.
+          </small>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowCancelConfirmModal(false);
+            setCancellationReason('');
+          }}
+          disabled={workActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="danger"
+          onClick={handleCancelRequest}
+          disabled={!cancellationReason.trim() || cancellationReason.trim().length < 10 || workActionLoading}
+        >
+          {workActionLoading ? 'Cancelling...' : 'Cancel Request'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Complete Request Confirmation Modal */}
+    <Modal show={showCompleteConfirmModal} onHide={() => setShowCompleteConfirmModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title className="text-success">Complete Request</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>Are you sure you want to complete this request?</p>
+        <div className="alert alert-info">
+          <small>Available from Results tab after saving results</small>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowCompleteConfirmModal(false)}
+          disabled={workActionLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="success"
+          onClick={async () => {
+            setShowCompleteConfirmModal(false);
+            await handleCompleteWork();
+          }}
+          disabled={workActionLoading}
+        >
+          {workActionLoading ? 'Completing...' : 'Complete Request'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* Assign Request Modal */}
+    <Modal show={showAssignRequestModal} onHide={() => setShowAssignRequestModal(false)} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Assign Request</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <div className="alert alert-info py-2">
+            <small>
+              <strong>Assign this request to a user</strong>
+              <br />
+              Select a user who will be responsible for processing this request.
+            </small>
+          </div>
+        </div>
+
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label>Assign To *</Form.Label>
+            <Form.Select
+              value={assignRequestData.assignedUserId}
+              onChange={(e) => setAssignRequestData({...assignRequestData, assignedUserId: e.target.value})}
+              required
+            >
+              <option value="">Select a user to assign request to...</option>
+              {users.map((user) => (
+                <option key={user.USER_ID} value={user.USER_ID}>
+                  {user.FULL_NAME} ({user.ROLE_NAMES})
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Choose a user who will be responsible for processing this request
+            </Form.Text>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setShowAssignRequestModal(false);
+            setAssignRequestData({ assignedUserId: '' });
+          }}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleAssignRequest}
+          disabled={loading || !assignRequestData.assignedUserId}
+        >
+          {loading ? 'Assigning...' : 'Assign Request'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+    </>
   );
 };
 

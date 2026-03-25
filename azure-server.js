@@ -609,6 +609,56 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Get specific form by ID (with fields)
+app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        console.log(`📋 Fetching form ${formId} for company: ${req.companyId}`);
+
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({ error: 'Valid form ID is required' });
+        }
+
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
+            AND (
+                ORGANIZATION_ID = ${req.companyId}
+                OR COMPANY_ID = ${req.companyId}
+                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL)
+                OR IS_PUBLIC = 1
+            )
+            AND IS_DELETED = 0
+        `;
+
+        if (!forms.length) {
+            console.log(`❌ Form ${formId} not found for company ${req.companyId}`);
+            return res.status(404).json({ error: 'Form not found or access denied', formId });
+        }
+
+        const form = forms[0];
+
+        const fields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP,
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, ff.IS_REQUIRED, f.IS_SENSITIVE,
+                   f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID, ff.SORT_ORDER
+            FROM GUARDIAN.FIELDS f
+            INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${formId}
+            AND f.IS_DELETED = 0
+            ORDER BY ff.SORT_ORDER, f.FIELD_ID
+        `;
+
+        console.log(`✅ Form ${formId} found with ${fields.length} fields`);
+        res.json({ form, fields });
+
+    } catch (error) {
+        console.error(`❌ Error fetching form ${req.params.id}:`, error);
+        res.status(500).json({ error: 'Failed to fetch form', message: error.message });
+    }
+});
+
 // Registration endpoints for Azure production
 
 // Start registration process
