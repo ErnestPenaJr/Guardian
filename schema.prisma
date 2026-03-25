@@ -1,12 +1,14 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x", "windows"]
-  engineType    = "binary"
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-3.0.x", "windows"]
+  engineType      = "binary"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
+  schemas  = ["GUARDIAN"]
 }
 
 model ATTACHMENTS {
@@ -18,6 +20,9 @@ model ATTACHMENTS {
   UPDATE_USER_ID Int?
   CREATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__CREAT__2BFE89A6") @db.DateTime
   UPDATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__UPDAT__2CF2ADDF") @db.DateTime
+  RESPONSES      RESPONSE_MY_NOTICE[]
+
+  @@schema("GUARDIAN")
 }
 
 model COMPANY {
@@ -28,6 +33,8 @@ model COMPANY {
   CREATED_AT   DateTime       @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
   COMPANY_INFO COMPANY_INFO[]
   FORMS        FORMS[]
+
+  @@schema("GUARDIAN")
 }
 
 model COMPANY_INFO {
@@ -42,18 +49,24 @@ model COMPANY_INFO {
   UPDATED_AT      DateTime @default(now(), map: "DF__COMPANY_I__UPDAT__1758727B") @db.DateTime
   COMPANY         COMPANY  @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_COMPANY")
   USERS           USERS    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_USERS")
+
+  @@schema("GUARDIAN")
 }
 
 model FIELD_LOOKUP_DISPLAY_TYPE {
   FIELD_LOOKUP_DISPLAY_TYPE_ID          Int    @id(map: "PK_FIELD_LOOKUP_DISPLAY_TYPE") @default(autoincrement())
   FIELD_LOOKUP_DISPLAY_TYPE_DESCRIPTION String @db.VarChar(50)
   SORT_ORDER                            Int?
+
+  @@schema("GUARDIAN")
 }
 
 model FIELD_TYPE {
   FIELD_TYPE_ID   Int    @id(map: "PK_FIELD_TYPE") @default(autoincrement())
   FIELD_TYPE_DESC String @db.VarChar(50)
   SORT_ORDER      Int?
+
+  @@schema("GUARDIAN")
 }
 
 model FIELDS {
@@ -76,6 +89,8 @@ model FIELDS {
   SysEndTime                   DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FIELDS_SysEnd")
   FIELD_LOOKUP_DISPLAY_TYPE_ID Int?
   ORGANIZATION_ID              Int?
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -102,6 +117,7 @@ model FIELDS_HISTORY {
 
   @@index([SysEndTime, SysStartTime], map: "ix_FIELDS_HISTORY", clustered: true)
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model FIELDS_LOOKUP {
@@ -114,6 +130,8 @@ model FIELDS_LOOKUP {
   UPDATE_USER_ID     Int?
   CREATE_DATE        DateTime @default(now(), map: "DF__FIELDS_LO__CREAT__703EA55A") @db.DateTime
   UPDATE_DATE        DateTime @default(now(), map: "DF__FIELDS_LO__UPDAT__7132C993") @db.DateTime
+
+  @@schema("GUARDIAN")
 }
 
 model FORMS {
@@ -132,6 +150,8 @@ model FORMS {
   SysEndTime       DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
   COMPANY_ID       Int?
   COMPANY          COMPANY? @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__COMPANY")
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -146,6 +166,7 @@ model FORMS_FIELDS {
   UPDATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__UPDAT__66B53B20") @db.DateTime
 
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model FORMS_GROUPS {
@@ -159,6 +180,8 @@ model FORMS_GROUPS {
   UPDATE_USER_ID    Int?
   CREATE_DATE       DateTime @default(now(), map: "DF__GROUPS__CREATE_D__6497E884") @db.DateTime
   UPDATE_DATE       DateTime @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -172,6 +195,7 @@ model FORMS_GROUPS_FIELDS {
   UPDATE_DATE    DateTime @default(now(), map: "DF__GROUP_FIE__UPDAT__695C9DA1") @db.DateTime
 
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -193,6 +217,7 @@ model FORMS_HISTORY {
 
   @@index([SysEndTime, SysStartTime], map: "ix_FORMS_HISTORY", clustered: true)
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model FORMS_INSTANCE {
@@ -206,6 +231,8 @@ model FORMS_INSTANCE {
   UPDATE_DATE      DateTime  @default(now(), map: "DF__FORMS_INS__UPDAT__7814D14C") @db.DateTime
   SysStartTime     DateTime  @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_INSTANCE_SysStart")
   SysEndTime       DateTime  @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_SysEnd")
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -223,6 +250,7 @@ model FORMS_INSTANCE_HISTORY {
 
   @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_HISTORY", clustered: true)
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model FORMS_INSTANCE_VALUES {
@@ -236,6 +264,8 @@ model FORMS_INSTANCE_VALUES {
   UPDATE_DATE            DateTime @default(now(), map: "DF__FORMS_INS__UPDAT__536D5C82") @db.DateTime
   SysStartTime           DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_INSTANCE_VALUES_SysStart")
   SysEndTime             DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_VALUES_SysEnd")
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -253,6 +283,7 @@ model FORMS_INSTANCE_VALUES_HISTORY {
 
   @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_VALUES_HISTORY", clustered: true)
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model INVITES {
@@ -265,6 +296,8 @@ model INVITES {
   EXPIRES_AT DateTime
   USED_AT    DateTime?
   CREATED_AT DateTime  @default(dbgenerated("sysdatetime()"), map: "DF__INVITES__CREATED__2C538F61")
+
+  @@schema("GUARDIAN")
 }
 
 model MILESTONES {
@@ -276,6 +309,8 @@ model MILESTONES {
   UPDATE_USER_ID Int?
   CREATE_DATE    DateTime @default(now(), map: "DF__MILESTONE__CREAT__22751F6C") @db.DateTime
   UPDATE_DATE    DateTime @default(now(), map: "DF__MILESTONE__UPDAT__236943A5") @db.DateTime
+
+  @@schema("GUARDIAN")
 }
 
 model ORGANIZATIONS {
@@ -289,6 +324,8 @@ model ORGANIZATIONS {
   STATUS          String   @default("P", map: "DF__ORGANIZAT__STATU__44CA3770") @db.Char(1)
   SysStartTime    DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_ORGANIZATIONS_SysStart")
   SysEndTime      DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_ORGANIZATIONS_SysEnd")
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -306,6 +343,7 @@ model ORGANIZATIONS_HISTORY {
 
   @@index([SysEndTime, SysStartTime], map: "ix_ORGANIZATIONS_HISTORY", clustered: true)
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model REQUESTS {
@@ -325,6 +363,8 @@ model REQUESTS {
   COMPANY_ID          Decimal?  @db.Decimal(38, 0)
   REQUEST_DESCRIPTION String?   @db.VarChar(2000)
   FORM_ID             Decimal?  @db.Decimal(38, 0)
+
+  @@schema("GUARDIAN")
 }
 
 model ROLES {
@@ -337,6 +377,8 @@ model ROLES {
   CREATE_DATE    DateTime? @default(now(), map: "DF__ROLES__CREATE_DA__72C60C4A") @db.DateTime
   UPDATE_DATE    DateTime? @default(now(), map: "DF__ROLES__UPDATE_DA__73BA3083") @db.DateTime
   STATUS         String    @default("P", map: "DF__ROLES__STATUS__74AE54BC") @db.Char(1)
+
+  @@schema("GUARDIAN")
 }
 
 model TASKS {
@@ -350,6 +392,8 @@ model TASKS {
   CREATE_DATE      DateTime @default(now(), map: "DF__TASKS__CREATE_DA__3D2915A8") @db.DateTime
   UPDATE_DATE      DateTime @default(now(), map: "DF__TASKS__UPDATE_DA__3E1D39E1") @db.DateTime
   TRACKINGID       String?  @db.NVarChar(4000)
+
+  @@schema("GUARDIAN")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -358,6 +402,7 @@ model TEST {
   NAME String? @db.VarChar(20)
 
   @@ignore
+  @@schema("GUARDIAN")
 }
 
 model USER_ROLES {
@@ -369,28 +414,83 @@ model USER_ROLES {
   CREATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__CREAT__797309D9") @db.DateTime
   UPDATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__UPDAT__7A672E12") @db.DateTime
   STATUS         String    @default("P", map: "DF__USER_ROLE__STATU__7B5B524B") @db.Char(1)
+
+  @@schema("GUARDIAN")
 }
 
 model USERS {
-  USER_ID                       Int            @id(map: "PK_USERS") @default(autoincrement())
-  FIRST_NAME                    String         @db.VarChar(30)
-  LAST_NAME                     String         @db.VarChar(30)
-  EMAIL                         String         @db.VarChar(100)
+  USER_ID                       Int                 @id(map: "PK_USERS") @default(autoincrement())
+  FIRST_NAME                    String              @db.VarChar(30)
+  LAST_NAME                     String              @db.VarChar(30)
+  EMAIL                         String              @db.VarChar(100)
   PIN                           Int?
   CREATE_USER_ID                Int?
   UPDATE_USER_ID                Int?
-  CREATE_DATE                   DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
-  UPDATE_DATE                   DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
-  STATUS                        String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
-  SysStartTime                  DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
-  SysEndTime                    DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
-  PASSWORD_HASH                 String?        @db.VarChar(255)
-  EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
-  EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
-  PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
+  CREATE_DATE                   DateTime            @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
+  UPDATE_DATE                   DateTime            @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
+  STATUS                        String              @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
+  SysStartTime                  DateTime            @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
+  SysEndTime                    DateTime            @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
+  PASSWORD_HASH                 String?             @db.VarChar(255)
+  EMAIL_VALIDATED               Boolean             @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
+  EMAIL_VALIDATION_TOKEN        String?             @db.VarChar(255)
+  PASSWORD_RESET_TOKEN          String?             @db.VarChar(255)
   COMPANY_ID                    Int?
-  EMAIL_VALIDATION_CODE_PLAIN   String?        @db.VarChar(10)
+  EMAIL_VALIDATION_CODE_PLAIN   String?             @db.VarChar(10)
   EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
   PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
   COMPANY_INFO                  COMPANY_INFO[]
+  createdNotices                MY_NOTICES[] @relation("NoticeCreatedBy")
+  updatedNotices                MY_NOTICES[] @relation("NoticeUpdatedBy")
+  NOTICE_RECIPIENTS             NOTICE_RECIPIENTS[]
+  RESPONSES                     RESPONSE_MY_NOTICE[]
+
+
+  @@schema("GUARDIAN")
+}
+
+model MY_NOTICES {
+  NOTICE_ID                  Int                 @id @default(autoincrement())
+  NOTICE_TITLE               String              @db.VarChar(255)
+  SENSITIVITY_CLASSIFICATION String              @db.VarChar(50)
+  BUTTON_STATUS              String              @db.VarChar(50)
+  DISTRIBUTION_TYPE          String?             @db.VarChar(50)
+  NOTICE_BODY                String?             @db.VarChar(Max)
+  CREATE_USER_ID             Int?
+  UPDATE_USER_ID             Int?
+  CREATE_USER USERS? @relation("NoticeCreatedBy", fields: [CREATE_USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction)
+  UPDATE_USER USERS? @relation("NoticeUpdatedBy", fields: [UPDATE_USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: NoAction)
+
+  CREATE_DATE                DateTime            @default(now())
+  UPDATE_DATE                DateTime?           @updatedAt
+  RECIPIENTS NOTICE_RECIPIENTS[]
+  RESPONSES RESPONSE_MY_NOTICE[]
+
+  @@schema("GUARDIAN")
+}
+
+model NOTICE_RECIPIENTS {
+  NOTICE_RECIPIENT_ID Int        @id @default(autoincrement())
+  NOTICE_ID           Int
+  USER_ID             Int
+  NOTICE              MY_NOTICES @relation(fields: [NOTICE_ID], references: [NOTICE_ID], onUpdate: NoAction, onDelete: Cascade)
+  USER                USERS      @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, onDelete: Cascade)
+
+  @@schema("GUARDIAN")
+}
+
+model RESPONSE_MY_NOTICE {
+  RESPONSE_MY_NOTICE_ID Int      @id @default(autoincrement())
+  MY_NOTICE_ID          Int
+  RESPONSE_TEXT         String?
+  USER_ID               Int
+  ATTACHMENT_ID         Int?
+  CREATE_DATE           DateTime @default(now())
+  UPDATE_DATE           DateTime?
+
+  MY_NOTICE MY_NOTICES @relation(fields: [MY_NOTICE_ID], references: [NOTICE_ID])
+  USER       USERS        @relation(fields: [USER_ID], references: [USER_ID])
+  ATTACHMENT ATTACHMENTS? @relation(fields: [ATTACHMENT_ID], references: [ATTACHMENT_ID])
+
+   @@schema("GUARDIAN")
 }

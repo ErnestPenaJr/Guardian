@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 export interface User {
   id: number;
@@ -15,6 +15,11 @@ export interface User {
   companyId: number | null;
 }
 
+export interface UserAllDetails {
+  id: number;
+  name: string;
+  email: string;
+}
 const userService = {
   /**
    * Get all users for the current company
@@ -23,50 +28,73 @@ const userService = {
   getUsers: async (): Promise<User[]> => {
     try {
       // Get the JWT token from localStorage
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (!token) {
-        console.warn('No authentication token found');
+        console.warn("No authentication token found");
         return [];
       }
-      
-      const response = await axios.get('/api/users', {
+
+      const response = await axios.get("/api/users", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       return response.data.data || [];
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
       return [];
     }
   },
-  
+
   /**
    * Get the current user's information
    */
   getCurrentUser: async (): Promise<User | null> => {
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (!token) {
-        console.warn('No authentication token found');
+        console.warn("No authentication token found");
         return null;
       }
-      
-      const response = await axios.get('/api/me', {
+
+      const response = await axios.get("/api/me", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       return response.data;
     } catch (error) {
-      console.error('Error fetching current user:', error);
+      console.error("Error fetching current user:", error);
       return null;
     }
-  }
+  },
+
+  getAllUsers: async (): Promise<UserAllDetails[]> => {
+    try {
+      // Get the JWT token from localStorage
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.warn("No authentication token found");
+        return [];
+      }
+
+      const response = await axios.get("/api/users/all-users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.data || [];
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return [];
+    }
+  },
 };
 
 export default userService;

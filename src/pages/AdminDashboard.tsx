@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 // Set the app element for accessibility for react-modal
 ReactModal.setAppElement('#root');
 
-const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarAdministration?: () => void }> = ({ onShowUserManagement, onShowJafarAdministration }) => {
+const AdminDashboard: React.FC<{ onShowUserManagement?: () => void }> = ({ onShowUserManagement }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
@@ -203,31 +203,6 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
               <li>View users & invites</li>
               <li>Add, edit, delete users</li>
               <li>Manage invitations</li>
-            </ul>
-          </a>
-        )}
-
-        {isJafarUser() && (
-          <a
-            href="#"
-            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-danger"
-            style={{
-              borderRadius: '6px',
-              backgroundColor: '#FFFFFF'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
-            onClick={e => {
-              e.preventDefault();
-              onShowJafarAdministration && onShowJafarAdministration();
-            }}
-          >
-            <FaUsers className="h-12 w-12 text-danger mb-4" />
-            <h3 className="text-lg font-semibold mb-2">JAFAR Hard Delete</h3>
-            <ul className="text-gray-600">
-              <li>Preview destructive purges</li>
-              <li>Hard delete users</li>
-              <li>Wipe an entire company</li>
             </ul>
           </a>
         )}

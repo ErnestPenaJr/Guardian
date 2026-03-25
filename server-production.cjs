@@ -1,4 +1,3 @@
-
 // CommonJS version of server-production.js to work with "type": "module" in package.json
 const express = require('express');
 const cors = require('cors');
