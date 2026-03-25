@@ -31,6 +31,10 @@ import UpdateProfile from './pages/UpdateProfile';
 import ChangePassword from './pages/ChangePassword';
 import NotificationPreferences from './pages/NotificationPreferences';
 import JafarAdministration from './pages/JafarAdministration';
+import AllNotices from './pages/AllNotices';
+import CreateNotice from './pages/CreateNotice';
+import ViewNotice from './pages/ViewNotice';
+import DeliveryDashboard from './pages/DeliveryDashboard';
 
 function App() {
   return (
@@ -72,6 +76,12 @@ function App() {
             <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
             <Route path="/jafar-administration" element={<ProtectedRoute><JafarAdministration /></ProtectedRoute>} />
+            <Route path="/my-notices" element={<ProtectedRoute><AllNotices /></ProtectedRoute>} />
+            <Route path="/my-notices/create" element={<ProtectedRoute><CreateNotice /></ProtectedRoute>} />
+            <Route path="/my-notices/edit/:id" element={<ProtectedRoute><CreateNotice /></ProtectedRoute>} />
+            <Route path="/my-notices/view-notice/:id" element={<ProtectedRoute><ViewNotice /></ProtectedRoute>} />
+            <Route path="/my-notices/view-notice" element={<ProtectedRoute><ViewNotice /></ProtectedRoute>} />
+            <Route path="/my-notices/notification-status-dashboard" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
