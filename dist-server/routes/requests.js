@@ -1,164 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import multer from 'multer';
-import path from 'path';
 import { requireAuth } from '../auth.js';
 const prisma = new PrismaClient();
 const router = express.Router();
-const attachmentUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
-});
 // Database schema name - this is the only fixed constant
 const DB_SCHEMA = 'GUARDIAN';
-const escapeSqlValue = (value) => value.replace(/'/g, "''");
-const getRequestCompanyClause = (companyId) => companyId > 0 ? ` AND COMPANY_ID = ${companyId}` : '';
-const SUBJECT_PHOTO_FIELD_NAME = 'subject photo image';
-const PHOTO_REF_PREFIX = 'photo_ref:';
-const SUBJECT_PHOTO_FILE_PREFIX = '__subject_photo__::';
-const contentTypeByExtension = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.bmp': 'image/bmp',
-    '.svg': 'image/svg+xml',
-    '.pdf': 'application/pdf',
-    '.doc': 'application/msword',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.xls': 'application/vnd.ms-excel',
-    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    '.csv': 'text/csv',
-    '.txt': 'text/plain',
-};
-const getContentType = (fileName) => contentTypeByExtension[path.extname(fileName).toLowerCase()] || 'application/octet-stream';
-function normalizeAttachmentBinary(value) {
-    if (!value)
-        return null;
-    if (Buffer.isBuffer(value))
-        return value;
-    if (value instanceof Uint8Array)
-        return Buffer.from(value);
-    if (Array.isArray(value))
-        return Buffer.from(value);
-    if (typeof value === 'object') {
-        const entries = Object.entries(value)
-            .filter(([key, byte]) => /^\d+$/.test(key) && typeof byte === 'number')
-            .sort((a, b) => Number(a[0]) - Number(b[0]));
-        if (entries.length > 0) {
-            return Buffer.from(entries.map(([, byte]) => Number(byte)));
-        }
-    }
-    if (typeof value === 'string') {
-        try {
-            const parsed = JSON.parse(value);
-            const normalized = normalizeAttachmentBinary(parsed);
-            if (normalized)
-                return normalized;
-        }
-        catch {
-            return Buffer.from(value, 'base64');
-        }
-    }
-    return null;
-}
-async function resolveFormInstanceIdForRequest(requestData) {
-    if (!requestData.FORM_ID)
-        return null;
-    const candidateUserIds = [
-        requestData.CREATE_USER_ID,
-        requestData.REQUESTOR_ID,
-        requestData.ASSIGNED_ID,
-        requestData.UPDATE_USER_ID,
-    ]
-        .filter((value) => typeof value === 'number' && value > 0);
-    const userIdClause = candidateUserIds.length > 0
-        ? `AND (
-        fi.CREATE_USER_ID IN (${candidateUserIds.join(',')})
-        OR fi.ASSIGNED_ID IN (${candidateUserIds.join(',')})
-      )`
-        : '';
-    const companyIdClause = requestData.COMPANY_ID
-        ? `AND fi.COMPANY_ID = ${Number(requestData.COMPANY_ID)}`
-        : '';
-    const createDateValue = requestData.CREATE_DATE
-        ? `'${new Date(requestData.CREATE_DATE).toISOString().slice(0, 19).replace('T', ' ')}'`
-        : 'GETDATE()';
-    const rows = await prisma.$queryRawUnsafe(`
-    SELECT TOP 1 fi.FORM_INSTANCE_ID
-    FROM GUARDIAN.FORMS_INSTANCE fi
-    WHERE fi.FORM_ID = ${requestData.FORM_ID}
-      ${companyIdClause}
-      ${userIdClause}
-    ORDER BY
-      CASE WHEN fi.CREATE_USER_ID = ${requestData.CREATE_USER_ID || 0} THEN 0 ELSE 1 END,
-      CASE WHEN fi.ASSIGNED_ID = ${requestData.REQUESTOR_ID || 0} THEN 0 ELSE 1 END,
-      ABS(DATEDIFF(SECOND, fi.CREATE_DATE, ${createDateValue})) ASC,
-      fi.FORM_INSTANCE_ID ASC
-  `);
-    return rows.length > 0 ? rows[0].FORM_INSTANCE_ID : null;
-}
-async function getSubjectPhotoAttachmentIdForRequest(requestData) {
-    const formInstanceId = await resolveFormInstanceIdForRequest(requestData);
-    if (!formInstanceId)
-        return null;
-    const rows = await prisma.$queryRawUnsafe(`
-    SELECT TOP 1 fiv.VALUE
-    FROM GUARDIAN.FORMS_INSTANCE_VALUES fiv
-    JOIN GUARDIAN.FIELDS f
-      ON f.FIELD_ID = fiv.FIELD_ID
-    WHERE fiv.FORM_INSTANCE_ID = ${formInstanceId}
-      AND LOWER(LTRIM(RTRIM(f.FIELD_NAME))) = '${SUBJECT_PHOTO_FIELD_NAME}'
-      AND fiv.VALUE LIKE '${PHOTO_REF_PREFIX}%'
-    ORDER BY fiv.UPDATE_DATE DESC
-  `);
-    if (!rows.length || !rows[0].VALUE?.startsWith(PHOTO_REF_PREFIX)) {
-        return null;
-    }
-    const attachmentId = parseInt(rows[0].VALUE.slice(PHOTO_REF_PREFIX.length), 10);
-    return Number.isNaN(attachmentId) ? null : attachmentId;
-}
-async function getDedicatedSubjectPhotoAttachmentForRequest(requestId) {
-    return prisma.aTTACHMENTS.findFirst({
-        where: {
-            REQUEST_ID: requestId,
-            FILE_NAME: {
-                startsWith: SUBJECT_PHOTO_FILE_PREFIX,
-            },
-        },
-        orderBy: [
-            { CREATE_DATE: 'desc' },
-            { ATTACHMENT_ID: 'desc' },
-        ],
-        select: {
-            ATTACHMENT_ID: true,
-            FILE_NAME: true,
-            ATTACHMENT: true,
-            CREATE_DATE: true,
-        },
-    });
-}
-async function getActiveSubjectPhotoAttachmentForRequest(requestData) {
-    const dedicated = await getDedicatedSubjectPhotoAttachmentForRequest(requestData.REQUEST_ID);
-    if (dedicated) {
-        return dedicated;
-    }
-    const legacyAttachmentId = await getSubjectPhotoAttachmentIdForRequest(requestData);
-    if (!legacyAttachmentId) {
-        return null;
-    }
-    return prisma.aTTACHMENTS.findUnique({
-        where: { ATTACHMENT_ID: legacyAttachmentId },
-        select: {
-            ATTACHMENT_ID: true,
-            FILE_NAME: true,
-            ATTACHMENT: true,
-            CREATE_DATE: true,
-        },
-    });
-}
 // Helper function to extract user information from the request
 const getUserInfoFromRequest = (req) => {
     // Default values as fallback
@@ -1562,10 +1409,21 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         let formId = requestData.FORM_ID;
         let formInstanceId = null;
         console.log(`[GET FORM] Using FORM_ID: ${formId}`);
-        const resolvedFormInstanceId = await resolveFormInstanceIdForRequest(requestData);
-        if (resolvedFormInstanceId) {
-            formInstanceId = resolvedFormInstanceId;
-            console.log(`[GET FORM] Resolved form instance ${formInstanceId} for request ${requestId}`);
+        // Try to find existing form instance
+        if (requestData.ASSIGNED_ID) {
+            const formInstance = await prisma.$queryRawUnsafe(`
+        SELECT fi.FORM_ID, fi.FORM_INSTANCE_ID
+        FROM GUARDIAN.FORMS_INSTANCE fi
+        WHERE fi.ASSIGNED_ID = ${requestData.ASSIGNED_ID}
+      `);
+            if (formInstance && formInstance.length > 0) {
+                // Use the form instance's form ID if it exists, otherwise keep the request's form ID
+                formInstanceId = formInstance[0].FORM_INSTANCE_ID;
+                if (formInstance[0].FORM_ID) {
+                    formId = formInstance[0].FORM_ID;
+                }
+                console.log(`[GET FORM] Found existing form instance ${formInstanceId} with form ID ${formId}`);
+            }
         }
         // If no form ID found in the request, fall back to pattern matching (legacy behavior)
         if (!formId) {
@@ -1704,23 +1562,8 @@ router.get('/:id/form', requireAuth, async (req, res) => {
                 { FIELD_ID: 1, FIELD_NAME: 'Notes', FIELD_TYPE_ID: 2, IS_REQUIRED: false, SEQUENCE: 1 }
             ];
         }
+        // For now, return empty values since we're focusing on getting the correct form template
         const valueMap = {};
-        if (finalRequestData.FORM_INSTANCE_ID) {
-            const rawValues = await prisma.$queryRawUnsafe(`
-        SELECT
-          fiv.FIELD_ID,
-          fiv.VALUE,
-          f.FIELD_NAME
-        FROM GUARDIAN.FORMS_INSTANCE_VALUES fiv
-        JOIN GUARDIAN.FIELDS f ON f.FIELD_ID = fiv.FIELD_ID
-        WHERE fiv.FORM_INSTANCE_ID = ${finalRequestData.FORM_INSTANCE_ID}
-      `);
-            for (const row of rawValues) {
-                const normalizedValue = row.VALUE ?? '';
-                valueMap[String(row.FIELD_ID)] = normalizedValue;
-                valueMap[row.FIELD_NAME] = normalizedValue;
-            }
-        }
         res.json({
             request: finalRequestData,
             form: form[0],
@@ -1766,15 +1609,20 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
         // Verify request is assigned to current user and get form instance
         // Find the most recently created form instance that matches both the request's form ID and assigned user
         const request = await prisma.$queryRawUnsafe(`
-      SELECT r.*
+      SELECT r.*, fi.FORM_INSTANCE_ID
       FROM GUARDIAN.REQUESTS r
+      LEFT JOIN GUARDIAN.FORMS_INSTANCE fi ON fi.FORM_ID = r.FORM_ID AND fi.ASSIGNED_ID = r.ASSIGNED_ID AND fi.CREATE_DATE = (
+        SELECT MAX(fi2.CREATE_DATE)
+        FROM GUARDIAN.FORMS_INSTANCE fi2
+        WHERE fi2.FORM_ID = r.FORM_ID AND fi2.ASSIGNED_ID = r.ASSIGNED_ID
+      )
       WHERE r.REQUEST_ID = ${requestId} 
       AND r.ASSIGNED_ID = ${userInfo.userId}
     `);
         if (!request || request.length === 0) {
             return res.status(404).json({ error: 'Request not found or not assigned to you' });
         }
-        const formInstanceId = await resolveFormInstanceIdForRequest(request[0]);
+        const formInstanceId = request[0].FORM_INSTANCE_ID;
         if (!formInstanceId) {
             return res.status(400).json({ error: 'No form instance found for this request' });
         }
@@ -1789,7 +1637,7 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
           )
           BEGIN
             UPDATE GUARDIAN.FORMS_INSTANCE_VALUES 
-            SET VALUE = '${escapeSqlValue(String(value))}', 
+            SET VALUE = '${String(value).replace(/'/g, "''")}', 
                 UPDATE_DATE = GETDATE(),
                 UPDATE_USER_ID = ${userInfo.userId}
             WHERE FORM_INSTANCE_ID = ${formInstanceId} 
@@ -1799,15 +1647,8 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
           BEGIN
             INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES 
             (FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID)
-            VALUES (${formInstanceId}, ${fieldId}, '${escapeSqlValue(String(value))}', GETDATE(), GETDATE(), ${userInfo.userId}, ${userInfo.userId})
+            VALUES (${formInstanceId}, ${fieldId}, '${String(value).replace(/'/g, "''")}', GETDATE(), GETDATE(), ${userInfo.userId}, ${userInfo.userId})
           END
-        `);
-            }
-            else {
-                await prisma.$executeRawUnsafe(`
-          DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
-          WHERE FORM_INSTANCE_ID = ${formInstanceId}
-            AND FIELD_ID = ${fieldId}
         `);
             }
         }
@@ -1828,273 +1669,6 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
     catch (error) {
         console.error('Error saving form data:', error);
         res.status(500).json({ error: 'Failed to save form data' });
-    }
-});
-router.delete('/:id/field-value/:fieldId', requireAuth, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const fieldId = parseInt(req.params.fieldId);
-        const userInfo = getUserInfoFromRequest(req);
-        if (isNaN(requestId) || isNaN(fieldId)) {
-            return res.status(400).json({ error: 'Invalid request or field ID' });
-        }
-        const request = await prisma.$queryRawUnsafe(`
-      SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}
-        AND r.ASSIGNED_ID = ${userInfo.userId}
-    `);
-        const formInstanceId = request.length ? await resolveFormInstanceIdForRequest(request[0]) : null;
-        if (!request.length || !formInstanceId) {
-            return res.status(404).json({ error: 'Request or form instance not found' });
-        }
-        await prisma.$executeRawUnsafe(`
-      DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
-      WHERE FORM_INSTANCE_ID = ${formInstanceId}
-        AND FIELD_ID = ${fieldId}
-    `);
-        res.json({ success: true });
-    }
-    catch (error) {
-        console.error('Error deleting field value:', error);
-        res.status(500).json({ error: 'Failed to delete field value' });
-    }
-});
-router.get('/:id/subject-photo', requireAuth, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const userInfo = getUserInfoFromRequest(req);
-        if (isNaN(requestId)) {
-            return res.status(400).json({ error: 'Invalid request ID' });
-        }
-        const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
-    `);
-        if (requestRows.length === 0) {
-            return res.status(404).json({ error: 'Request not found' });
-        }
-        const attachment = await getActiveSubjectPhotoAttachmentForRequest(requestRows[0]);
-        if (!attachment) {
-            return res.status(404).json({ error: 'Subject photo not found' });
-        }
-        res.json({
-            success: true,
-            attachmentId: attachment.ATTACHMENT_ID,
-            fileName: attachment.FILE_NAME,
-            createDate: attachment.CREATE_DATE,
-        });
-    }
-    catch (error) {
-        console.error('Error fetching subject photo metadata:', error);
-        res.status(500).json({ error: 'Failed to fetch subject photo metadata' });
-    }
-});
-router.get('/:id/subject-photo/download', requireAuth, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const userInfo = getUserInfoFromRequest(req);
-        if (isNaN(requestId)) {
-            return res.status(400).json({ error: 'Invalid request ID' });
-        }
-        const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
-    `);
-        if (requestRows.length === 0) {
-            return res.status(404).json({ error: 'Request not found' });
-        }
-        const attachment = await getActiveSubjectPhotoAttachmentForRequest(requestRows[0]);
-        if (!attachment?.ATTACHMENT) {
-            return res.status(404).json({ error: 'Subject photo not found' });
-        }
-        const fileName = attachment.FILE_NAME.startsWith(SUBJECT_PHOTO_FILE_PREFIX)
-            ? attachment.FILE_NAME.slice(SUBJECT_PHOTO_FILE_PREFIX.length)
-            : attachment.FILE_NAME;
-        const fileBuffer = normalizeAttachmentBinary(attachment.ATTACHMENT);
-        if (!fileBuffer) {
-            return res.status(500).json({ error: 'Subject photo data is not valid binary' });
-        }
-        res.setHeader('Content-Type', getContentType(fileName));
-        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
-        res.send(fileBuffer);
-    }
-    catch (error) {
-        console.error('Error downloading subject photo:', error);
-        res.status(500).json({ error: 'Failed to download subject photo' });
-    }
-});
-router.post('/:id/subject-photo', requireAuth, attachmentUpload.single('file'), async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const userInfo = getUserInfoFromRequest(req);
-        const file = req.file;
-        if (isNaN(requestId)) {
-            return res.status(400).json({ error: 'Invalid request ID' });
-        }
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-        const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
-    `);
-        if (requestRows.length === 0) {
-            return res.status(404).json({ error: 'Request not found' });
-        }
-        await prisma.aTTACHMENTS.deleteMany({
-            where: {
-                REQUEST_ID: requestId,
-                FILE_NAME: {
-                    startsWith: SUBJECT_PHOTO_FILE_PREFIX,
-                },
-            },
-        });
-        const storedFileName = `${SUBJECT_PHOTO_FILE_PREFIX}${file.originalname}`;
-        const attachment = await prisma.aTTACHMENTS.create({
-            data: {
-                REQUEST_ID: requestId,
-                FILE_NAME: storedFileName,
-                ATTACHMENT: Buffer.from(file.buffer),
-                CREATE_USER_ID: userInfo.userId || null,
-                UPDATE_USER_ID: userInfo.userId || null,
-                CREATE_DATE: new Date(),
-                UPDATE_DATE: new Date(),
-            },
-            select: {
-                ATTACHMENT_ID: true,
-                FILE_NAME: true,
-            },
-        });
-        res.status(201).json({
-            success: true,
-            attachmentId: attachment.ATTACHMENT_ID,
-            fileName: file.originalname,
-        });
-    }
-    catch (error) {
-        console.error('Error uploading subject photo:', error);
-        res.status(500).json({ error: 'Failed to upload subject photo' });
-    }
-});
-router.delete('/:id/subject-photo', requireAuth, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const userInfo = getUserInfoFromRequest(req);
-        if (isNaN(requestId)) {
-            return res.status(400).json({ error: 'Invalid request ID' });
-        }
-        const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
-    `);
-        if (requestRows.length === 0) {
-            return res.status(404).json({ error: 'Request not found' });
-        }
-        await prisma.aTTACHMENTS.deleteMany({
-            where: {
-                REQUEST_ID: requestId,
-                FILE_NAME: {
-                    startsWith: SUBJECT_PHOTO_FILE_PREFIX,
-                },
-            },
-        });
-        res.json({ success: true });
-    }
-    catch (error) {
-        console.error('Error deleting subject photo:', error);
-        res.status(500).json({ error: 'Failed to delete subject photo' });
-    }
-});
-router.get('/:id/attachments', requireAuth, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const userInfo = getUserInfoFromRequest(req);
-        if (isNaN(requestId)) {
-            return res.status(400).json({ error: 'Invalid request ID' });
-        }
-        const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
-    `);
-        if (requestRows.length === 0) {
-            return res.status(404).json({ error: 'Request not found' });
-        }
-        const activeSubjectPhotoAttachment = await getActiveSubjectPhotoAttachmentForRequest(requestRows[0]);
-        const subjectPhotoAttachmentId = activeSubjectPhotoAttachment?.ATTACHMENT_ID ?? null;
-        const attachments = await prisma.aTTACHMENTS.findMany({
-            where: { REQUEST_ID: requestId },
-            orderBy: { CREATE_DATE: 'desc' },
-            select: {
-                ATTACHMENT_ID: true,
-                FILE_NAME: true,
-                CREATE_DATE: true,
-            },
-        });
-        res.json({
-            success: true,
-            attachments: attachments
-                .filter(a => a.ATTACHMENT_ID !== subjectPhotoAttachmentId)
-                .map(a => ({
-                attachmentId: a.ATTACHMENT_ID,
-                fileName: a.FILE_NAME,
-                createDate: a.CREATE_DATE,
-            })),
-        });
-    }
-    catch (error) {
-        console.error('Error fetching attachments:', error);
-        res.status(500).json({ error: 'Failed to fetch attachments' });
-    }
-});
-router.post('/:id/attachments', requireAuth, attachmentUpload.single('file'), async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id);
-        const userInfo = getUserInfoFromRequest(req);
-        const file = req.file;
-        if (isNaN(requestId)) {
-            return res.status(400).json({ error: 'Invalid request ID' });
-        }
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-        const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT REQUEST_ID, COMPANY_ID
-      FROM GUARDIAN.REQUESTS
-      WHERE REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
-    `);
-        if (requestRows.length === 0) {
-            return res.status(404).json({ error: 'Request not found' });
-        }
-        const attachment = await prisma.aTTACHMENTS.create({
-            data: {
-                REQUEST_ID: requestId,
-                FILE_NAME: file.originalname,
-                ATTACHMENT: Buffer.from(file.buffer),
-                CREATE_USER_ID: userInfo.userId || null,
-                UPDATE_USER_ID: userInfo.userId || null,
-                CREATE_DATE: new Date(),
-                UPDATE_DATE: new Date(),
-            },
-            select: {
-                ATTACHMENT_ID: true,
-                FILE_NAME: true,
-            },
-        });
-        res.status(201).json({
-            success: true,
-            attachmentId: attachment.ATTACHMENT_ID,
-            fileName: attachment.FILE_NAME,
-        });
-    }
-    catch (error) {
-        console.error('Error uploading attachment:', error);
-        res.status(500).json({ error: 'Failed to upload attachment' });
     }
 });
 export default router;

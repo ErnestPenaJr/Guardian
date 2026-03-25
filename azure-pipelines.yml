@@ -210,7 +210,7 @@ steps:
   inputs:
     azureSubscription: 'AzureSP-Dev'
     appType: 'webApp'
-    appName: 'GUARDIAN-MVP'
+    appName: 'GUARDIAN-DEV-MVP'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
   displayName: 'Deploy to Azure Web App'

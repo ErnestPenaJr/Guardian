@@ -29,6 +29,8 @@
   border-radius: 0.5rem;
   border: 1px solid #dee2e6;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow: hidden;
 }
 
 .request-modal-improved .modal-header {
@@ -46,6 +48,8 @@
 .request-modal-improved .modal-body {
   padding: 0.75rem 1rem;
   background-color: #fff;
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
 }
 
 /* Form Labels and Text */
@@ -639,189 +643,4 @@
   .request-modal-improved .input-group {
     max-width: 100% !important;
   }
-}
-
-/* ── FIDELITY-SUBJECT FULL-PAGE OVERLAY ──────────────────────────────────────────────────
-   Rendered via React portal to document.body; sits above the app but below Bootstrap modals.
-──────────────────────────────────────────────────────────────────────────────────────── */
-
-.rfp-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1040;
-  background: #f4f6f8;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.rfp-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 10px 24px;
-  background: #fff;
-  border-bottom: 1px solid #dee2e6;
-  flex: 0 0 auto;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.rfp-close-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  color: #495057;
-  flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.rfp-close-btn:hover {
-  background: #f8f9fa;
-  border-color: #adb5bd;
-}
-
-.rfp-title {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 1rem;
-  color: #212529;
-}
-
-.rfp-tracking {
-  color: #0d6efd;
-}
-
-.rfp-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.rfp-tabs {
-  background: #fff;
-  border-bottom: 1px solid #dee2e6;
-  padding: 0 24px;
-  flex: 0 0 auto;
-  overflow-x: auto;
-}
-
-.rfp-tabs-nav {
-  display: flex;
-  align-items: center;
-  min-width: max-content;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.rfp-body {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.rfp-body-shell {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100%;
-}
-
-.rfp-tab-content {
-  min-height: 100%;
-  padding-bottom: 24px;
-}
-
-.rfp-tab-content .tab-pane.active {
-  background: transparent;
-  padding-bottom: 24px;
-}
-
-.rfp-footer {
-  flex: 0 0 auto;
-  border-top: 1px solid #dee2e6;
-  background: #f4f6f8;
-  padding: 10px 24px 12px;
-}
-
-.rfp-footer-shell {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.rfp-action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: auto;
-  padding: 0;
-  background: #f4f6f8;
-}
-
-/* ── EXPANDED MODAL (form-bearing requests) ──────────────────────────────────────────────
-   .rmi-dialog-expanded  → applied via dialogClassName prop → targets .modal-dialog directly
-   .rmi-content-expanded → applied via contentClassName prop → targets .modal-content directly
-──────────────────────────────────────────────────────────────────────────────────────── */
-
-/* Expanded: full-width flex wrapper so the content can be centered and sized explicitly */
-.rmi-dialog-expanded {
-  max-width: 100% !important;
-  width: 100% !important;
-  min-height: 100% !important;
-  margin: 0 !important;
-  padding: 32px !important;
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: center !important;
-}
-
-/* Standard: let Bootstrap handle centering, just cap the width */
-.rmi-dialog-standard {
-  max-width: 800px !important;
-}
-
-/* Shared base properties for both content variants */
-.rmi-content-expanded,
-.rmi-content-standard {
-  width: 100% !important;
-  max-height: calc(100vh - 64px) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  border-radius: 8px !important;
-}
-
-/* Expanded content: fills available space with explicit viewport-based height */
-.rmi-content-expanded {
-  max-width: 1400px !important;
-  height: calc(100vh - 64px) !important;
-}
-
-/* Standard content: auto height, capped to not overflow screen */
-.rmi-content-standard {
-  height: auto !important;
-}
-
-.rmi-content-expanded .modal-header,
-.rmi-content-expanded .modal-footer,
-.rmi-content-standard .modal-header,
-.rmi-content-standard .modal-footer {
-  flex: 0 0 auto !important;
-}
-
-.rmi-content-expanded .modal-body,
-.rmi-content-standard .modal-body {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow-y: auto !important;
 }

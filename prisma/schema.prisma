@@ -253,7 +253,7 @@ model FORMS_INSTANCE_VALUES {
   FORM_INSTANCE_VALUE_ID Int            @id(map: "PK_FORMS_INSTANCE_VALUES") @default(autoincrement())
   FORM_INSTANCE_ID       Int
   FIELD_ID               Int
-  VALUE                  String?        @db.NVarChar(4000)
+  VALUE                  String?        @db.VarChar(255)
   CREATE_USER_ID         Int?
   UPDATE_USER_ID         Int?
   CREATE_DATE            DateTime       @default(now(), map: "DF__FORMS_INS__CREAT__52793849") @db.DateTime

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Shield } from 'lucide-react';
+import { User, ChevronDown, Shield } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -20,19 +20,6 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const normalizeRole = (role: any): Role => {
-    const roleId = role?.ROLE_ID ?? role?.id;
-    const roleName = role?.ROLE_NAME ?? role?.ROLE ?? role?.NAME ?? role?.name;
-    const displayName = role?.DISPLAY_NAME ?? role?.displayName ?? roleName;
-
-    return {
-      ROLE_ID: roleId,
-      ROLE_NAME: roleName,
-      DISPLAY_NAME: displayName,
-      DESCRIPTION: role?.DESCRIPTION ?? role?.description,
-    } as Role;
-  };
 
   // Fetch all available roles
   useEffect(() => {
@@ -55,10 +42,8 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
     try {
       setLoading(true);
       const response = await api.get('/api/roles/all');
-      const rolesData = response.data?.data || response.data;
-
-      if (Array.isArray(rolesData)) {
-        setAllRoles(rolesData.map(normalizeRole));
+      if (response.data && Array.isArray(response.data)) {
+        setAllRoles(response.data);
       }
     } catch (error) {
       console.error('Error fetching roles:', error);
@@ -67,7 +52,7 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
         const response = await api.get('/api/roles');
         const rolesData = response.data?.data || response.data;
         if (Array.isArray(rolesData)) {
-          setAllRoles(rolesData.map(normalizeRole));
+          setAllRoles(rolesData);
         }
       } catch (fallbackError) {
         console.error('Error fetching roles:', fallbackError);

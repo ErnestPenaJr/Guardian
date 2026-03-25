@@ -9,7 +9,6 @@ interface UserProfile {
   COMPANY_ID: number;
   ROLE_NAMES: string;
   roles?: Array<{ id: number; name: string; displayName: string; }>;
-  role?: string;
   id?: number;
   userId?: number;
   firstName?: string;
@@ -104,41 +103,24 @@ export function useAuth() {
     }
   };
 
-  const switchUserRole = async (newRole: {
-    ROLE_ID?: number;
-    ROLE_NAME?: string;
-    DISPLAY_NAME?: string;
-    DESCRIPTION?: string;
-    id?: number;
-    name?: string;
-    displayName?: string;
-    description?: string;
-  }) => {
+  const switchUserRole = async (newRole: { ROLE_ID: number; ROLE_NAME: string; DISPLAY_NAME: string; DESCRIPTION?: string }) => {
     try {
       console.log('🔄 [useAuth] Switching to user role:', newRole);
       
       if (!user) {
         throw new Error('No user available for role switching');
       }
-
-      const roleId = newRole.ROLE_ID ?? newRole.id;
-      const roleName = newRole.ROLE_NAME ?? newRole.name;
-      const displayName = newRole.DISPLAY_NAME ?? newRole.displayName ?? roleName;
-
-      if (typeof roleId !== 'number' || Number.isNaN(roleId)) {
-        throw new Error('Invalid role payload: missing role id');
-      }
       
       // Create updated user object with new role
       const updatedUser = {
         ...user,
         roles: [{
-          id: roleId,
-          name: roleName || 'Role',
-          displayName: displayName || 'Role'
+          id: newRole.ROLE_ID,
+          name: newRole.ROLE_NAME,
+          displayName: newRole.DISPLAY_NAME
         }],
-        ROLE_NAMES: displayName || roleName || user.ROLE_NAMES,
-        role: String(roleId)
+        ROLE_NAMES: newRole.DISPLAY_NAME || newRole.ROLE_NAME,
+        role: newRole.ROLE_ID.toString()
       };
       
       // Update localStorage
@@ -147,7 +129,7 @@ export function useAuth() {
       // Update state
       setUser(updatedUser);
       
-      console.log('✅ [useAuth] Role switched successfully to:', displayName);
+      console.log('✅ [useAuth] Role switched successfully to:', newRole.DISPLAY_NAME);
       
       // Force a page reload to ensure all components update with new role context
       setTimeout(() => {

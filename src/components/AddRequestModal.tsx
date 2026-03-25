@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import Modal from 'react-modal';
 import '../styles/Modal.css';
-import './RequestModal.css';
 import { toast } from 'react-toastify';
 import { FaUser, FaSpinner, FaClipboardList } from 'react-icons/fa';
 import formService from '../services/formService';
 import requestService from '../services/requestService';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import SectionedFormRenderer from './SectionedFormRenderer';
-import api from '../utils/api';
-import { requestStateManager } from '../hooks/useRequestState';
-import { isFidelitySubjectFormName } from '../utils/formIdentity';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
@@ -45,8 +39,6 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   const [fieldValues, setFieldValues] = useState<{[key: string]: string}>({});
   const [loadingFields, setLoadingFields] = useState(false);
   const [priorityLevel, setPriorityLevel] = useState('Standard');
-  const [fidelityValidationErrors, setFidelityValidationErrors] = useState<Set<string>>(new Set());
-  const [draftRequestId, setDraftRequestId] = useState<number | null>(null);
   
   // Get icon for user-created templates (using a generic workflow icon)
   const getIconForTemplate = (templateName: string) => {
@@ -122,7 +114,6 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       setTemplateFields([]);
       setFieldValues({});
       setPriorityLevel('Standard');
-      setDraftRequestId(null);
     }
   }, [isOpen]);
   
@@ -216,104 +207,11 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       [fieldId]: value
     }));
   };
-
-  const getSelectedFormId = () => {
-    const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
-    return parseInt(selectedTemplateObj?.id || '0');
-  };
-
-  const getPersistableFieldValues = () => {
-    return Object.entries(fieldValues).reduce((acc, [fieldId, value]) => {
-      if (fieldId !== 'request_status' && value !== null && value !== undefined && value.toString().trim() !== '') {
-        acc[fieldId] = value;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-  };
-
-  const saveDraftRequestAndForm = async () => {
-    const formId = getSelectedFormId();
-    if (!formId || isNaN(formId)) {
-      throw new Error('Invalid workflow selected');
-    }
-
-    let requestId = draftRequestId;
-
-    if (!requestId) {
-      const requestPayload = {
-        REQUEST_NAME: requestName,
-        REQUEST_DESCRIPTION: description || '',
-        ABBREVIATION: abbreviation,
-        STATUS: 'P',
-        ASSIGNED_ID: null,
-        FORM_ID: formId,
-        templateId: formId,
-      };
-
-      const requestResponse = await api.post('/api/requests', requestPayload);
-      if (!requestResponse.data?.success || !requestResponse.data?.data?.REQUEST_ID) {
-        throw new Error(requestResponse.data?.message || 'Failed to create draft request');
-      }
-
-      requestId = requestResponse.data.data.REQUEST_ID;
-      setDraftRequestId(requestId);
-    }
-
-    await formService.submitForm(requestId, getPersistableFieldValues(), {
-      isComplete: false,
-      isDraft: true,
-    });
-
-    requestStateManager.triggerRefresh();
-    return requestId;
-  };
   
-  // Fidelity-Subject: validate the hard-required fields before submission
-  const validateFidelityRequiredFields = (): string[] => {
-    const errors: string[] = [];
-
-    const getVal = (name: string): string => {
-      const field = templateFields.find(
-        f => f.FIELD_NAME?.trim().toLowerCase() === name.trim().toLowerCase()
-      );
-      if (!field) return '';
-      return fieldValues[String(field.FIELD_ID)] ?? '';
-    };
-
-    // Subject Name — at minimum First Name is required
-    if (!getVal('First Name').trim()) errors.push('Subject First Name');
-    if (!getVal('Last Name').trim())  errors.push('Subject Last Name');
-
-    // DOB
-    if (!getVal('Date of Birth').trim()) errors.push('Date of Birth (DOB)');
-
-    // SSN
-    if (!getVal('Social Security Number').trim()) errors.push('Social Security Number (SSN)');
-
-    // Address — first entry must have street1
-    const addrRaw = getVal('Address');
-    let addrEntries: any[] = [];
-    try { addrEntries = addrRaw.trim() ? JSON.parse(addrRaw) : []; } catch { /* ignore */ }
-    if (addrEntries.length === 0 || !addrEntries[0]?.street1?.trim()) {
-      errors.push('Address — at least one address with a Street line is required');
-    }
-
-    // Phone Number — first entry must have a number
-    const phoneRaw = getVal('Phone Number');
-    let phoneEntries: any[] = [];
-    try { phoneEntries = phoneRaw.trim() ? JSON.parse(phoneRaw) : []; } catch { /* ignore */ }
-    if (phoneEntries.length === 0 || !phoneEntries[0]?.number?.trim()) {
-      errors.push('Phone Number — at least one phone number is required');
-    }
-
-    return errors;
-  };
-
   // Check if form is complete (all required fields filled)
   const isFormComplete = () => {
-    const requiredFields = templateFields.filter(field =>
-      field.FIELD_NAME !== 'Request Status' && field.IS_REQUIRED === true
-    );
+    // For now, consider all fields as required since IS_REQUIRED property is not in the database response
+    const requiredFields = templateFields.filter(field => field.FIELD_NAME !== 'Request Status');
     
     const missingFields = requiredFields.filter(field => {
       const fieldId = String(field.FIELD_ID || '');
@@ -342,38 +240,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
 
   // Handle start button (saves form data with conditional status based on form data)
   const handleStart = async () => {
-    // Fidelity-Subject: enforce hard-required fields first
-    if (isFidelitySubjectTemplate) {
-      const missingFields = validateFidelityRequiredFields();
-      if (missingFields.length > 0) {
-        // Track which field names failed so the form can highlight them
-        setFidelityValidationErrors(new Set(missingFields.map(m => {
-          if (m.startsWith('Subject First')) return 'First Name';
-          if (m.startsWith('Subject Last'))  return 'Last Name';
-          if (m.startsWith('Date of Birth')) return 'Date of Birth';
-          if (m.startsWith('Social Security')) return 'Social Security Number';
-          if (m.startsWith('Address'))       return 'Address';
-          if (m.startsWith('Phone'))         return 'Phone Number';
-          return m;
-        })));
-        await MySwal.fire({
-          icon: 'warning',
-          title: 'Required Fields Missing',
-          html: `
-            <p style="margin-bottom:10px">Please fill in the following required fields before submitting:</p>
-            <ul style="text-align:left;margin:0;padding-left:20px">
-              ${missingFields.map(f => `<li style="margin-bottom:4px">${f}</li>`).join('')}
-            </ul>`,
-          confirmButtonText: 'Go Back & Fill In',
-          confirmButtonColor: '#032424',
-        });
-        return;
-      }
-      setFidelityValidationErrors(new Set());
-    }
-
-    // Check if form is complete first (skip for Fidelity-Subject — it has its own required fields validation above)
-    if (!isFidelitySubjectTemplate && !isFormComplete()) {
+    // Check if form is complete first
+    if (!isFormComplete()) {
       const shouldContinue = await showIncompleteFormWarning();
       if (!shouldContinue) {
         return; // User chose to go back
@@ -452,33 +320,10 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     // Perform the actual submission with the specific status
     try {
       setIsSubmitting(true);
-
-      if (draftRequestId) {
-        const finalRequestId = await saveDraftRequestAndForm();
-
-        if (status === 'Completed') {
-          await formService.completeForm(finalRequestId, getPersistableFieldValues());
-        } else if (status === 'Cancelled') {
-          await requestService.cancelRequest(finalRequestId, {});
-        }
-
-        requestStateManager.triggerRefresh();
-        resetForm();
-        onClose();
-
-        MySwal.fire({
-          icon: 'success',
-          title: 'Success!',
-          text: `Request ${status.toLowerCase()} successfully!`,
-          confirmButtonText: 'OK',
-          timer: 3000,
-          timerProgressBar: true
-        });
-        return;
-      }
       
       // Get the selected workflow's form ID
-      const formId = getSelectedFormId();
+      const selectedTemplateObj = formTemplates.find(t => t.id === selectedTemplate);
+      const formId = parseInt(selectedTemplateObj?.id || '0');
       
       if (!formId || isNaN(formId)) {
         toast.error('Invalid workflow selected');
@@ -627,8 +472,6 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setTemplateFields([]);
     setFieldValues({});
     setPriorityLevel('Standard');
-    setDraftRequestId(null);
-    setFidelityValidationErrors(new Set());
   };
 
   // Helper functions for input field formatting and validation
@@ -785,92 +628,14 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     return undefined;
   };
   
-  const selectedTemplateName = formTemplates.find(t => t.id === selectedTemplate)?.name ?? '';
-  const isFidelitySubjectTemplate = isFidelitySubjectFormName(selectedTemplateName);
-  const showFullPage = step === 2 && isFidelitySubjectTemplate;
-
   return (
-    <>
-    {/* ── FIDELITY-SUBJECT FULL-PAGE PORTAL (new request) ─────────────────── */}
-    {showFullPage && createPortal(
-      <div className="rfp-overlay">
-        <div className="rfp-header">
-          <button className="rfp-close-btn" onClick={() => setStep(1)}>
-            ← Back
-          </button>
-          <div className="rfp-title">
-            <span>New Request —</span>
-            <span className="rfp-tracking">{requestName}</span>
-          </div>
-          <div className="rfp-actions">
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-              style={{ borderColor: '#C10000', color: '#C10000' }}
-            >
-              {isSubmitting ? 'Cancelling...' : 'Cancel'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm px-3"
-              onClick={handleStart}
-              disabled={isSubmitting}
-              style={{ backgroundColor: '#032424', color: '#fff', borderColor: '#032424' }}
-            >
-              {isSubmitting ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
-        <div className="rfp-body">
-          {loadingFields ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <div className="mt-2 text-muted small">Loading form fields...</div>
-            </div>
-          ) : (
-            <SectionedFormRenderer
-              formName={selectedTemplateName}
-              fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
-              fieldValues={fieldValues}
-              onChange={(id, val) => handleFieldValueChange(id, val)}
-              onAutoSave={saveDraftRequestAndForm}
-              validationErrors={fidelityValidationErrors}
-              requestId={draftRequestId ?? undefined}
-            />
-          )}
-        </div>
-      </div>,
-      document.body
-    )}
     <Modal
-      isOpen={isOpen && !showFullPage}
+      isOpen={isOpen}
       onRequestClose={onClose}
       contentLabel="Add Request Modal"
-      className={step === 2 ? 'modal-content modal-content--fullscreen' : 'modal-content'}
+      className="modal-content"
       overlayClassName="modal-overlay"
       id="AddRequestModal"
-      style={step === 2 ? {
-        content: {
-          position: 'fixed',
-          top: '24px',
-          left: '24px',
-          right: '24px',
-          bottom: '24px',
-          width: 'calc(100vw - 48px)',
-          height: 'calc(100vh - 48px)',
-          maxWidth: 'none',
-          margin: 0,
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column' as const,
-          borderRadius: '8px',
-          overflow: 'hidden',
-        }
-      } : {}}
     >
       <div className="modal-header" style={{ paddingTop: '20px', paddingLeft: '20px', paddingRight: '20px' }}>
         <h2 className="modal-title">
@@ -884,20 +649,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         ></button>
       </div>
       
-      <form 
-        onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}
-        style={step === 2 ? { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, overflow: 'hidden' } : undefined}
-      >
-        <div 
-          className="modal-body" 
-          style={step === 2 ? { 
-            maxHeight: 'none', 
-            padding: '16px 20px',
-            flex: '1 1 auto',
-            minHeight: 0,
-            overflowY: 'auto'
-          } : { padding: '16px 20px' }}
-        >
+      <form onSubmit={step === 1 ? handleNext : (e) => e.preventDefault()}>
+        <div className="modal-body" style={{ maxHeight: 'none', overflow: 'visible', padding: '16px 20px' }}>
           {step === 1 && (
             <>
           <div className="mb-4">
@@ -905,8 +658,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             <div
               className="d-flex flex-column gap-2 template-selection-container"
               style={{
-                height: '220px',
-                maxHeight: '220px',
+                height: '300px',
+                maxHeight: '300px',
                 overflowY: 'auto',
                 padding: '12px',
                 marginBottom: '15px',
@@ -1043,6 +796,44 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
           </div>
 
           
+          {/* Submit button for step 1 */}
+          <div className="d-flex justify-content-end gap-2 mt-4">
+            <button 
+              type="button" 
+              className="btn btn-outline-secondary transition-colors duration-200"
+              onClick={onClose}
+              style={{ 
+                borderRadius: '0.375rem', 
+                padding: '0.5rem 1.5rem',
+                borderColor: '#2EBCBC',
+                color: '#2EBCBC'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#24A5A5';
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#2EBCBC';
+              }}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary transition-colors duration-200" 
+              disabled={isSubmitting || formTemplates.length === 0 || !selectedTemplate}
+              style={{ 
+                borderRadius: '0.375rem', 
+                padding: '0.5rem 1.5rem',
+                backgroundColor: '#032424'
+              }}
+              onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
+              onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
+            >
+              Next
+            </button>
+          </div>
             </>
           )}
           
@@ -1064,12 +855,64 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                   <p className="mt-2">Loading form fields...</p>
                 </div>
               ) : (
-                <SectionedFormRenderer
-                  formName={formTemplates.find(t => t.id === selectedTemplate)?.name ?? ''}
-                  fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
-                  fieldValues={fieldValues}
-                  onChange={(id, val) => handleFieldValueChange(id, val)}
-                />
+                <div>
+                  {templateFields.filter(field => field.FIELD_NAME !== 'Request Status').map((field, index) => {
+                    const fieldId = String(field.FIELD_ID || index);
+                    return (
+                    <div key={fieldId} className="mb-3">
+                      <label className="form-label">
+                        {field.FIELD_NAME}
+                        <span className="text-danger ms-1">*</span>
+                      </label>
+                      {field.FIELD_TYPE_DESC === 'date' ? (
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        />
+                      ) : field.FIELD_TYPE_DESC === 'textarea' ? (
+                        <textarea
+                          className="form-control"
+                          rows={3}
+                          placeholder={`Enter ${field.FIELD_NAME}`}
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        />
+                      ) : field.FIELD_TYPE_DESC === 'select' && field.OPTIONS ? (
+                        <select
+                          className="form-select"
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          required
+                        >
+                          <option value="">Select {field.FIELD_NAME}</option>
+                          {field.OPTIONS.split(',').map((option: string, i: number) => (
+                            <option key={i} value={option.trim()}>{option.trim()}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={getInputType(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          className="form-control"
+                          placeholder={getPlaceholder(field.FIELD_NAME, fieldId)}
+                          value={fieldValues[fieldId] || ''}
+                          onChange={(e) => handleFieldValueChange(fieldId, e.target.value)}
+                          pattern={getInputPattern(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          min={getMinValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          max={getMaxValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          step={getStepValue(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          maxLength={getMaxLength(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          title={getInputTitle(field.FIELD_NAME, field.FIELD_TYPE_DESC)}
+                          required
+                        />
+                      )}
+                    </div>
+                    );
+                  })}
+                </div>
               )}
               
               {/* Submit buttons for step 2 */}
@@ -1119,35 +962,8 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
             </div>
           )}
         </div>
-
-        {/* Footer lives outside modal-body so it's always inside the white box */}
-        {step === 1 && (
-          <div className="modal-footer">
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={onClose}
-              style={{ borderColor: '#2EBCBC', color: '#2EBCBC' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#2EBCBC'; e.currentTarget.style.color = '#fff'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#2EBCBC'; }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSubmitting || formTemplates.length === 0 || !selectedTemplate}
-              style={{ backgroundColor: '#032424', borderColor: '#032424' }}
-              onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
-              onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
-            >
-              Next
-            </button>
-          </div>
-        )}
       </form>
     </Modal>
-    </>
   );
 };
 
