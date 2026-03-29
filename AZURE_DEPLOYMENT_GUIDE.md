@@ -87,10 +87,10 @@ DATABASE_URL=your-azure-sql-connection-string (optional)
 3. **Deploy:** Push to main branch to trigger deployment
 
 4. **CRITICAL VERIFICATION (UPDATED 2025-08-21):** Check these endpoints after deployment:
-   - ✅ `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/health` (Should show Node.js v20.18.3 status)
-   - ✅ `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/login` (JWT authentication must work)  
-   - ✅ `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/test` (Basic API functionality)
-   - ✅ `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/` (Frontend loads without asset 404s)
+   - ✅ `https://Guardian-ep-dev.azurewebsites.net/api/health` (Should show Node.js v20.18.3 status)
+   - ✅ `https://Guardian-ep-dev.azurewebsites.net/api/login` (JWT authentication must work)  
+   - ✅ `https://Guardian-ep-dev.azurewebsites.net/api/test` (Basic API functionality)
+   - ✅ `https://Guardian-ep-dev.azurewebsites.net/` (Frontend loads without asset 404s)
    - ✅ React Router navigation works (SPA fallback route functional)
 
 ## Troubleshooting

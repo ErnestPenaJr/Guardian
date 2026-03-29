@@ -288,7 +288,7 @@ Create test accounts for each role:
 - **Email**: SendGrid (support@shieldlytics.com)
 
 ### Production Environment  
-- **Frontend**: https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net
+- **Frontend**: https://Guardian-ep-dev.azurewebsites.net
 - **Database**: Azure SQL Server
 - **Email**: SendGrid production configuration
 

@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
   Send,
   Search,
   Plus,
   SquarePen,
+  Trash2,
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
+import Swal from "sweetalert2";
 
 import moment from "moment";
 import MyNoticesService, {
@@ -19,16 +22,20 @@ import MyNoticesService, {
 import PaginationPage from "../components/NoticeManagementSystem/Pagination";
 
 interface Props {
-  openCreateNotice: () => void;
-  openViewNotice: (noticeId?: number) => void;
-  editNotice: (noticeId?: number) => void;
+  openCreateNotice?: () => void;
+  openViewNotice?: (noticeId?: number) => void;
+  editNotice?: (noticeId?: number) => void;
 }
 
 export default function AllNotices({
-  openCreateNotice,
-  openViewNotice,
-  editNotice,
+  openCreateNotice: openCreateNoticeProp,
+  openViewNotice: openViewNoticeProp,
+  editNotice: editNoticeProp,
 }: Props) {
+  const navigate = useNavigate();
+  const openCreateNotice = openCreateNoticeProp ?? (() => navigate('/my-notices/create'));
+  const openViewNotice = openViewNoticeProp ?? ((noticeId?: number) => navigate(noticeId ? `/my-notices/view-notice/${noticeId}` : '/my-notices/view-notice'));
+  const editNotice = editNoticeProp ?? ((noticeId?: number) => navigate(noticeId ? `/my-notices/edit/${noticeId}` : '/my-notices/create'));
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<NoticeStatus | "All">("All");
   const [sensitivityFilter, setSensitivityFilter] = useState<
@@ -96,6 +103,27 @@ export default function AllNotices({
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally debounced; fetchNotices(1, rowsPerPage) uses current filter state
   }, [searchTerm, statusFilter, sensitivityFilter]);
+
+  const handleDelete = async (noticeId: number, title: string) => {
+    const result = await Swal.fire({
+      title: "Delete Notice?",
+      text: `Are you sure you want to delete "${title}"? This cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await MyNoticesService.deleteNotice(noticeId);
+      await Swal.fire({ icon: "success", title: "Deleted", text: "Notice deleted successfully", timer: 1500, showConfirmButton: false });
+      fetchNotices();
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to delete notice";
+      await Swal.fire({ icon: "error", title: "Error", text: msg });
+    }
+  };
 
   // Server-side pagination: API returns current page only
   const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
@@ -213,7 +241,7 @@ export default function AllNotices({
               <tbody className="divide-y divide-gray-100">
                 {!loading && paginatedNotices.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-500">
+                    <td colSpan={8} className="py-8 text-center text-gray-500">
                       No notices found
                     </td>
                   </tr>
@@ -274,23 +302,34 @@ export default function AllNotices({
                       </td>
 
                       <td className="text-center">
-                        {notice.BUTTON_STATUS === "Sent" ? (
-                          <button
-                            onClick={() => openViewNotice(notice.NOTICE_ID)}
-                            className="inline-flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50 "
-                          >
-                            <Eye size={14} />
-                            View
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => editNotice(notice.NOTICE_ID)}
-                            className="inline-flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50 "
-                          >
-                            <SquarePen size={14} />
-                            Edit
-                          </button>
-                        )}
+                        <div className="inline-flex items-center gap-2">
+                          {notice.BUTTON_STATUS === "Sent" ? (
+                            <button
+                              onClick={() => openViewNotice(notice.NOTICE_ID)}
+                              className="inline-flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50"
+                            >
+                              <Eye size={14} />
+                              View
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => editNotice(notice.NOTICE_ID)}
+                                className="inline-flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50"
+                              >
+                                <SquarePen size={14} />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(notice.NOTICE_ID, notice.NOTICE_TITLE)}
+                                className="inline-flex items-center gap-2 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-sm hover:bg-red-50"
+                              >
+                                <Trash2 size={14} />
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

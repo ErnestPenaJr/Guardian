@@ -235,6 +235,14 @@ const MyNoticesService = {
     }
   },
 
+  deleteNotice: async (id: number): Promise<void> => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated");
+    await axios.delete(`/api/my-notices/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   /** PATCH /my-notices/:id – submit response (required) and optional attachment(s). */
   submitNoticeResponse: async (
     noticeId: number,

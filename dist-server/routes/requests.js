@@ -1204,15 +1204,19 @@ router.put('/:id', async (req, res) => {
 });
 // Delete a request (soft delete)
 router.delete('/:id', async (req, res) => {
-    const requestId = parseInt(req.params.id);
-    const currentDate = new Date().toISOString();
+    const requestId = parseInt(req.params.id, 10);
+    if (Number.isNaN(requestId)) {
+        return res.status(400).json({ error: 'Invalid request ID' });
+    }
     try {
-        // Use raw SQL to perform soft delete
-        await prisma.$executeRaw `
-        UPDATE REQUESTS 
-        SET STATUS = 'D', UPDATE_DATE = ${currentDate} 
-        WHERE REQUEST_ID = ${requestId}
-      `;
+        const updatedRows = await prisma.$executeRawUnsafe(`
+      UPDATE ${DB_SCHEMA}.REQUESTS
+      SET STATUS = 'D', UPDATE_DATE = GETDATE()
+      WHERE REQUEST_ID = ${requestId}
+    `);
+        if (!updatedRows) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
         res.json({ message: 'Request deleted successfully' });
     }
     catch (error) {
@@ -1877,7 +1881,7 @@ router.get('/:id/subject-photo', requireAuth, async (req, res) => {
         }
         const attachment = await getActiveSubjectPhotoAttachmentForRequest(requestRows[0]);
         if (!attachment) {
-            return res.status(404).json({ error: 'Subject photo not found' });
+            return res.status(204).send();
         }
         res.json({
             success: true,

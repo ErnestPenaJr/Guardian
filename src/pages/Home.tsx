@@ -27,7 +27,7 @@ import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import JafarAdministration from './JafarAdministration';
-import NoticesLandingPage from './NoticesLandingPage';
+import AllNotices from './AllNotices';
 import requestService from '../services/requestService';
 import NewRequestModal from './NewRequestModal';
 import AccountCreatorInviteModal from '../components/AccountCreatorInviteModal';
@@ -1913,7 +1913,11 @@ function Home() {
             </div>
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">
-              <NoticesLandingPage />
+              <AllNotices
+                openCreateNotice={() => navigate('/my-notices/create')}
+                openViewNotice={(noticeId) => navigate(noticeId ? `/my-notices/view-notice/${noticeId}` : '/my-notices/view-notice')}
+                editNotice={(noticeId) => navigate(noticeId ? `/my-notices/edit/${noticeId}` : '/my-notices/create')}
+              />
             </div>
           ) : selectedSection === 'workspaces' ? (
             <div className="mt-4 md:mt-6 mb-6">

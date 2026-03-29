@@ -66,7 +66,7 @@ For each test execution:
 - **Email**: SendGrid (support@shieldlytics.com)
 
 ### Production Environment
-- **Application**: https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net
+- **Application**: https://Guardian-ep-dev.azurewebsites.net
 - **Database**: Azure SQL Server
 - **Email**: SendGrid production configuration
 

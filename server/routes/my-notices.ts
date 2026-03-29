@@ -26,6 +26,18 @@ import { Parser } from "json2csv";
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+/** Strip dangerous HTML tags (script, iframe, object, embed, form) from notice body before emailing */
+function sanitizeHtmlForEmail(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<iframe\b[^>]*>.*?<\/iframe>/gi, "")
+    .replace(/<object\b[^>]*>.*?<\/object>/gi, "")
+    .replace(/<embed\b[^>]*\/?>/gi, "")
+    .replace(/<form\b[^>]*>.*?<\/form>/gi, "")
+    .replace(/on\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/on\w+\s*=\s*'[^']*'/gi, "");
+}
 const RESEND_API_KEY = process.env.SMTP_PASSWORD; // Using SMTP_PASSWORD from .env which contains Resend API key
 const EMAIL_FROM = process.env.EMAIL_FROM || "support@shieldlytics.com";
 const resend = new Resend(RESEND_API_KEY);
@@ -59,7 +71,7 @@ router.get("/export-csv", requireAuth, async (req, res) => {
 
     const data = notices.map((notice) => {
       const totalAttachments = notice.RESPONSES.reduce(
-        (count, resp) => (resp.ATTACHMENT ? count + 1 : count),
+        (count: number, resp: { ATTACHMENT: unknown }) => (resp.ATTACHMENT ? count + 1 : count),
         0,
       );
 
@@ -127,7 +139,7 @@ router.get("/export-csv/:id", requireAuth, async (req, res) => {
     const notice = await prisma.mY_NOTICES.findUnique({
       where: { NOTICE_ID: id },
       include: {
-        CREATE_USER: { select: { FIRST_NAME: true } },
+        CREATE_USER: { select: { FIRST_NAME: true, COMPANY_ID: true } },
         RECIPIENTS: { include: { USER: { select: { FIRST_NAME: true } } } },
         RESPONSES: {
           include: {
@@ -143,7 +155,7 @@ router.get("/export-csv/:id", requireAuth, async (req, res) => {
 
     // Calculate totals
     const totalAttachments = notice.RESPONSES.reduce(
-      (count, resp) => (resp.ATTACHMENT ? count + 1 : count),
+      (count: number, resp: { ATTACHMENT: unknown }) => (resp.ATTACHMENT ? count + 1 : count),
       0,
     );
 
@@ -235,7 +247,7 @@ router.get("/", requireAuth, async (req, res) => {
     const companyId = (req.user as any).COMPANY_ID;
     const whereCondition = {
       AND: [
-        { COMPANY_ID: companyId },
+        { CREATE_USER: { COMPANY_ID: companyId } },
         search ? { NOTICE_TITLE: { contains: String(search) } } : {},
         status && status !== "All" ? { BUTTON_STATUS: String(status) } : {},
         sensitivity && sensitivity !== "All"
@@ -248,7 +260,7 @@ router.get("/", requireAuth, async (req, res) => {
     };
 
     /* ---------- DB CALLS ---------- */
-    const [notices, total, allNotices] = await Promise.all([
+    const [notices, total, recipientCount, responseCount, attachmentCount, noticesWithResponses] = await Promise.all([
       // ✅ PAGINATED DATA (for UI)
       prisma.mY_NOTICES.findMany({
         where: whereCondition,
@@ -285,24 +297,25 @@ router.get("/", requireAuth, async (req, res) => {
         where: whereCondition,
       }),
 
-      // ✅ ALL DATA (for summary)
-      prisma.mY_NOTICES.findMany({
-        where: whereCondition,
-        include: {
-          RECIPIENTS: true,
-          RESPONSES: {
-            include: {
-              ATTACHMENT: true,
-            },
-          },
-        },
+      // ✅ SUMMARY COUNTS (efficient aggregation instead of loading all data)
+      prisma.nOTICE_RECIPIENTS.count({
+        where: { MY_NOTICE: { ...whereCondition } },
+      }),
+      prisma.rESPONSE_MY_NOTICE.count({
+        where: { MY_NOTICE: { ...whereCondition } },
+      }),
+      prisma.rESPONSE_MY_NOTICE.count({
+        where: { MY_NOTICE: { ...whereCondition }, ATTACHMENT_ID: { not: null } },
+      }),
+      prisma.mY_NOTICES.count({
+        where: { ...whereCondition, RESPONSES: { some: {} } },
       }),
     ]);
 
     /* ---------- FORMAT PAGINATED DATA ---------- */
     const formattedNotices = notices.map((notice) => {
       const totalAttachments = notice.RESPONSES.reduce(
-        (count, resp) => (resp.ATTACHMENT ? count + 1 : count),
+        (count: number, resp: { ATTACHMENT: unknown }) => (resp.ATTACHMENT ? count + 1 : count),
         0,
       );
 
@@ -328,32 +341,13 @@ router.get("/", requireAuth, async (req, res) => {
       };
     });
 
-    /* ---------- SUMMARY FROM FULL DATA ---------- */
+    /* ---------- SUMMARY FROM AGGREGATION ---------- */
     const summary = {
-      RECIPIENTS_COUNT: allNotices.reduce(
-        (sum, n) => sum + n.RECIPIENTS.length,
-        0,
-      ),
-
-      RESPONSES_COUNT: allNotices.reduce(
-        (sum, n) => sum + n.RESPONSES.length,
-        0,
-      ),
-
-      TOTAL_ATTACHMENTS: allNotices.reduce(
-        (sum, n) =>
-          sum +
-          n.RESPONSES.reduce(
-            (count, r) => (r.ATTACHMENT ? count + 1 : count),
-            0,
-          ),
-        0,
-      ),
-
-      NOTICES_WITH_RESPONSES: allNotices.filter((n) => n.RESPONSES.length > 0)
-        .length,
-
-      TOTAL_NOTICES: allNotices.length,
+      RECIPIENTS_COUNT: recipientCount,
+      RESPONSES_COUNT: responseCount,
+      TOTAL_ATTACHMENTS: attachmentCount,
+      NOTICES_WITH_RESPONSES: noticesWithResponses,
+      TOTAL_NOTICES: total,
     };
 
     /* ---------- RESPONSE ---------- */
@@ -387,7 +381,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     const notice = await prisma.mY_NOTICES.findUnique({
       where: { NOTICE_ID: id },
       include: {
-        CREATE_USER: { select: { FIRST_NAME: true } }, // creator
+        CREATE_USER: { select: { FIRST_NAME: true, COMPANY_ID: true } }, // creator
         RECIPIENTS: { include: { USER: { select: { FIRST_NAME: true } } } },
         RESPONSES: {
           include: {
@@ -400,7 +394,7 @@ router.get("/:id", requireAuth, async (req, res) => {
 
     if (!notice) return res.status(404).json({ error: "Notice not found" });
     if (notice.COMPANY_ID !== (req.user as any).COMPANY_ID) return res.status(403).json({ error: "Access denied" });
-    const totalAttachments = notice.RESPONSES?.reduce((count, resp) => {
+    const totalAttachments = notice.RESPONSES?.reduce((count: number, resp: { ATTACHMENT: unknown }) => {
       return count + (resp.ATTACHMENT ? 1 : 0);
     }, 0);
     // Format response safely
@@ -438,6 +432,23 @@ router.post("/", requireAuth, canCreateNotice, async (req, res) => {
     const data = NoticeSchema.parse(req.body);
 
     const noticeCompanyId = (req.user as any).COMPANY_ID;
+
+    // Validate recipients belong to the same company
+    if (data.RECIPIENTS.length > 0) {
+      const validRecipients = await prisma.uSERS.findMany({
+        where: { USER_ID: { in: data.RECIPIENTS }, COMPANY_ID: noticeCompanyId },
+        select: { USER_ID: true },
+      });
+      const validIds = new Set(validRecipients.map((r) => r.USER_ID));
+      const invalidIds = data.RECIPIENTS.filter((id) => !validIds.has(id));
+      if (invalidIds.length > 0) {
+        return res.status(400).json({
+          error: "Some recipients do not belong to your company",
+          invalidIds,
+        });
+      }
+    }
+
     const existingNotice = await prisma.mY_NOTICES.findFirst({
       where: { NOTICE_TITLE: data.NOTICE_TITLE, COMPANY_ID: noticeCompanyId },
     });
@@ -458,7 +469,7 @@ router.post("/", requireAuth, canCreateNotice, async (req, res) => {
         CREATE_USER_ID: (req.user as { id?: number })?.id ?? null,
         UPDATE_USER_ID: (req.user as { id?: number })?.id ?? null,
         RECIPIENTS: {
-          create: data.RECIPIENTS.map((userId) => ({ USER_ID: userId })),
+          create: data.RECIPIENTS.map((userId) => ({ USER_ID: userId, COMPANY_ID: noticeCompanyId })),
         },
       },
       include: { RECIPIENTS: true },
@@ -475,7 +486,7 @@ router.post("/", requireAuth, canCreateNotice, async (req, res) => {
           from: EMAIL_FROM,
           to: emails,
           subject: notice.NOTICE_TITLE,
-          html: notice.NOTICE_BODY || "",
+          html: sanitizeHtmlForEmail(notice.NOTICE_BODY || ""),
         });
       }
     }
@@ -522,6 +533,7 @@ router.put("/:id", requireAuth, canCreateNotice, async (req: any, res: any) => {
           deleteMany: {}, // remove old recipients
           create: data.RECIPIENTS.map((userId) => ({
             USER_ID: userId,
+            COMPANY_ID: putCompanyId,
           })),
         },
       },
@@ -550,7 +562,7 @@ router.put("/:id", requireAuth, canCreateNotice, async (req: any, res: any) => {
           from: EMAIL_FROM,
           to: emails,
           subject: updatedNotice.NOTICE_TITLE,
-          html: updatedNotice.NOTICE_BODY || "",
+          html: sanitizeHtmlForEmail(updatedNotice.NOTICE_BODY || ""),
         });
       }
     }
@@ -589,11 +601,11 @@ router.patch(
 
     try {
       const patchCompanyId = (req.user as any).COMPANY_ID;
-      const patchUserId = (req.user as any).USER_ID;
+      const patchUserId = (req.user as any).id;
 
       // Verify notice belongs to user's company (via creator's company)
       const noticeForPatch = await prisma.mY_NOTICES.findFirst({
-        where: { NOTICE_ID: noticeId, CREATE_USER: { COMPANY_ID: patchCompanyId } },
+        where: { NOTICE_ID: noticeId, COMPANY_ID: patchCompanyId },
       });
       if (!noticeForPatch) return res.status(404).json({ error: "Notice not found or access denied" });
 
@@ -611,6 +623,7 @@ router.patch(
             MY_NOTICE_ID: noticeId,
             USER_ID: userId,
             RESPONSE_TEXT: responseText,
+            COMPANY_ID: patchCompanyId,
           },
         });
 
@@ -660,6 +673,37 @@ router.patch(
   },
 );
 
+// DELETE /my-notices/:id — delete a draft notice (only drafts can be deleted)
+router.delete("/:id", requireAuth, canCreateNotice, async (req, res) => {
+  try {
+    const noticeId = Number(req.params.id);
+    if (!noticeId || isNaN(noticeId)) {
+      return res.status(400).json({ error: "Invalid notice ID" });
+    }
+
+    const companyId = (req.user as any).COMPANY_ID;
+    const notice = await prisma.mY_NOTICES.findUnique({
+      where: { NOTICE_ID: noticeId },
+    });
+
+    if (!notice) return res.status(404).json({ error: "Notice not found" });
+    if (notice.COMPANY_ID !== companyId) return res.status(403).json({ error: "Access denied" });
+    if (notice.BUTTON_STATUS === "Sent") {
+      return res.status(400).json({ error: "Cannot delete a sent notice" });
+    }
+
+    // Delete recipients first (FK constraint), then the notice
+    await prisma.nOTICE_RECIPIENTS.deleteMany({ where: { NOTICE_ID: noticeId } });
+    await prisma.rESPONSE_MY_NOTICE.deleteMany({ where: { MY_NOTICE_ID: noticeId } });
+    await prisma.mY_NOTICES.delete({ where: { NOTICE_ID: noticeId } });
+
+    res.json({ message: "Notice deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting notice:", error);
+    res.status(500).json({ error: "Failed to delete notice" });
+  }
+});
+
 // --- Helpers for attachment download (correct Content-Type so images don't download as .txt) ---
 function getContentTypeFromFileName(
   fileName: string | null | undefined,
@@ -697,6 +741,16 @@ router.get("/attachments/:id/download", requireAuth, async (req, res) => {
     const attachmentId = Number(req.params.id);
     if (!attachmentId || Number.isNaN(attachmentId)) {
       return res.status(400).json({ error: "Invalid attachment id" });
+    }
+
+    // Verify the attachment belongs to a notice in the caller's company
+    const companyId = (req.user as any).COMPANY_ID;
+    const responseWithAttachment = await prisma.rESPONSE_MY_NOTICE.findFirst({
+      where: { ATTACHMENT_ID: attachmentId, MY_NOTICE: { COMPANY_ID: companyId } },
+      select: { RESPONSE_MY_NOTICE_ID: true },
+    });
+    if (!responseWithAttachment) {
+      return res.status(403).json({ error: "Access denied" });
     }
 
     const row = await prisma.aTTACHMENTS.findUnique({

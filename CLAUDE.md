@@ -757,7 +757,7 @@ After any server changes:
 1. **Local testing**: Run `bun server.js` to test production code locally
 2. **Update production source**: Ensure `server-production.js` has your changes
 3. **Deploy**: Push to trigger pipeline 
-4. **Verify**: Test endpoints on `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net`
+4. **Verify**: Test endpoints on `https://Guardian-ep-dev.azurewebsites.net`
 5. **Debug endpoint**: Check `/api/debug/endpoints` for confirmation
 6. **Asset verification**: Check `/api/debug/assets` for production asset deployment status (Added 2025-08-20)
 
@@ -855,7 +855,7 @@ If production site returns 404 errors for JavaScript/CSS assets:
 - ✅ **IIS Configuration**: Improved static file serving with proper MIME types and routing separation
 
 **Production Debugging Steps:**
-1. **Check Asset Endpoint**: Visit `https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net/api/debug/assets`
+1. **Check Asset Endpoint**: Visit `https://Guardian-ep-dev.azurewebsites.net/api/debug/assets`
 2. **Verify HTML References**: Ensure `index.html` references match actual deployed asset filenames
 3. **Inspect Pipeline Logs**: Check Azure DevOps pipeline for build artifact validation messages
 4. **Test Asset URLs**: Directly access asset URLs in browser to confirm they exist and load properly

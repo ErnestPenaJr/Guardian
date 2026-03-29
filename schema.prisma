@@ -10,14 +10,15 @@ datasource db {
 }
 
 model ATTACHMENTS {
-  ATTACHMENT_ID  Int      @id(map: "PK_ATTACHMENTS") @default(autoincrement())
-  REQUEST_ID     Int
-  FILE_NAME      String   @db.VarChar(100)
-  ATTACHMENT     Bytes?
-  CREATE_USER_ID Int?
-  UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__CREAT__2BFE89A6") @db.DateTime
-  UPDATE_DATE    DateTime @default(now(), map: "DF__ATTACHMEN__UPDAT__2CF2ADDF") @db.DateTime
+  ATTACHMENT_ID       Int      @id(map: "PK_ATTACHMENTS") @default(autoincrement())
+  REQUEST_ID          Int
+  FILE_NAME           String   @db.VarChar(100)
+  ATTACHMENT          Bytes?
+  CREATE_USER_ID      Int?
+  UPDATE_USER_ID      Int?
+  CREATE_DATE         DateTime @default(now(), map: "DF__ATTACHMEN__CREAT__2BFE89A6") @db.DateTime
+  UPDATE_DATE         DateTime @default(now(), map: "DF__ATTACHMEN__UPDAT__2CF2ADDF") @db.DateTime
+  RESPONSE_MY_NOTICES RESPONSE_MY_NOTICE[]
 }
 
 model COMPANY {
@@ -388,9 +389,60 @@ model USERS {
   EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
   EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
   PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
-  COMPANY_ID                    Int?
-  EMAIL_VALIDATION_CODE_PLAIN   String?        @db.VarChar(10)
-  EMAIL_VALIDATION_TOKEN_EXPIRY DateTime?
-  PASSWORD_RESET_TOKEN_EXPIRY   DateTime?
-  COMPANY_INFO                  COMPANY_INFO[]
+  COMPANY_ID                         Int?
+  EMAIL_VALIDATION_CODE_PLAIN        String?        @db.VarChar(10)
+  EMAIL_VALIDATION_TOKEN_EXPIRY      DateTime?      @db.DateTime2
+  PASSWORD_RESET_TOKEN_EXPIRY        DateTime?      @db.DateTime2
+  ACTIVE_WORKSPACE_ID                Int?
+  ACCOUNT_CREATOR_INVITE_COMPLETED   Boolean        @default(false)
+  NOTIFICATION_PREFERENCES           String?        @db.NVarChar(Max)
+  COMPANY_INFO                       COMPANY_INFO[]
+  MY_NOTICES                         MY_NOTICES[]
+  NOTICE_RECIPIENTS                  NOTICE_RECIPIENTS[]
+  RESPONSE_MY_NOTICES                RESPONSE_MY_NOTICE[]
+}
+
+model MY_NOTICES {
+  NOTICE_ID                  Int                  @id(map: "PK_MY_NOTICES") @default(autoincrement())
+  NOTICE_TITLE               String               @db.NVarChar(255)
+  SENSITIVITY_CLASSIFICATION String?              @db.NVarChar(50)
+  BUTTON_STATUS              String?              @db.NVarChar(50)
+  DISTRIBUTION_TYPE          String?              @db.NVarChar(50)
+  NOTICE_BODY                String?              @db.NVarChar(Max)
+  CREATE_USER_ID             Int?
+  UPDATE_USER_ID             Int?
+  CREATE_DATE                DateTime             @default(now()) @db.DateTime2
+  UPDATE_DATE                DateTime?            @db.DateTime2
+  COMPANY_ID                 Int?
+
+  CREATE_USER                USERS?               @relation(fields: [CREATE_USER_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+  RECIPIENTS                 NOTICE_RECIPIENTS[]
+  RESPONSES                  RESPONSE_MY_NOTICE[]
+
+}
+
+model NOTICE_RECIPIENTS {
+  NOTICE_RECIPIENT_ID Int    @id(map: "PK_NOTICE_RECIPIENTS") @default(autoincrement())
+  NOTICE_ID           Int
+  USER_ID             Int
+  COMPANY_ID          Int?
+
+  MY_NOTICE           MY_NOTICES @relation(fields: [NOTICE_ID], references: [NOTICE_ID], onDelete: NoAction, onUpdate: NoAction)
+  USER                USERS      @relation(fields: [USER_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+
+}
+
+model RESPONSE_MY_NOTICE {
+  RESPONSE_MY_NOTICE_ID Int       @id(map: "PK_RESPONSE_MY_NOTICE") @default(autoincrement())
+  MY_NOTICE_ID          Int
+  USER_ID               Int?
+  RESPONSE_TEXT          String?   @db.NVarChar(Max)
+  ATTACHMENT_ID          Int?
+  CREATE_DATE            DateTime  @default(now()) @db.DateTime2
+  COMPANY_ID             Int?
+
+  MY_NOTICE              MY_NOTICES  @relation(fields: [MY_NOTICE_ID], references: [NOTICE_ID], onDelete: NoAction, onUpdate: NoAction)
+  USER                   USERS?      @relation(fields: [USER_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+  ATTACHMENT             ATTACHMENTS? @relation(fields: [ATTACHMENT_ID], references: [ATTACHMENT_ID], onDelete: NoAction, onUpdate: NoAction)
+
 }

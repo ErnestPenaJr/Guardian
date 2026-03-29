@@ -28,6 +28,7 @@ import invitesRoutes from './routes/invites.js';
 import milestonesRoutes from './routes/milestones.js';
 import notificationsRoutes from './routes/notifications.js';
 import noticesRoutes from './routes/notices.js';
+import myNoticesRoutes from './routes/my-notices.js';
 import attachmentsRoutes from './routes/attachments.js';
 // Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -151,6 +152,7 @@ app.use('/api/invites', invitesRoutes); // Invites routes
 app.use('/api/field-lookups', fieldLookupsRoutes);
 app.use('/api/notifications', notificationsRoutes); // Notifications routes
 app.use('/api/notices', noticesRoutes); // Notices routes
+app.use('/api/my-notices', myNoticesRoutes); // My Notices routes
 app.use('/api/attachments', attachmentsRoutes);
 app.use('/api', milestonesRoutes); // Milestone routes (includes /api/requests/:requestId/milestones and /api/milestones)
 console.log('[ROUTES] ✓ Milestone routes registered at /api');

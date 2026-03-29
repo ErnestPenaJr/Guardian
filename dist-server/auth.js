@@ -80,39 +80,34 @@ passport.use(new LocalStrategy({
             }
         }
         // Try to authenticate against the database
+        // Use raw SQL to query GUARDIAN schema directly (Prisma ORM queries dbo schema incorrectly)
         try {
-            // Find user by email
-            const user = await prisma.uSERS.findFirst({
-                where: {
-                    EMAIL: email,
-                },
-            });
+            const users = await prisma.$queryRawUnsafe(`
+            SELECT u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID,
+                   u.PASSWORD_HASH, u.EMAIL_VALIDATED
+            FROM GUARDIAN.USERS u WHERE u.EMAIL = '${email.replace(/'/g, "''")}'
+          `);
+            const user = users.length > 0 ? users[0] : null;
             if (!user) {
                 return done(null, false, { message: 'User not found with this email address' });
             }
-            // Check if email is validated
             if (!user.EMAIL_VALIDATED) {
                 return done(null, false, { message: 'Email not verified. Please verify your email before logging in' });
             }
-            // Check if user is active
             if (user.STATUS !== 'A') {
                 return done(null, false, { message: 'Account is not active. Please contact support' });
             }
-            // Check if password is correct
-            // Make sure passwordHash is not null
             if (!user.PASSWORD_HASH) {
                 return done(null, false, { message: 'Password not set for this account. Please use password reset' });
             }
-            // Use bcrypt to compare passwords
             const isPasswordValid = await bcrypt.compare(password, user.PASSWORD_HASH);
             if (!isPasswordValid) {
                 return done(null, false, { message: 'Invalid password. Please try again' });
             }
-            // Get user roles
-            const userRoles = await prisma.uSER_ROLES.findMany({
-                where: { USER_ID: user.USER_ID },
-            });
-            // Get role IDs
+            // Get user roles via raw SQL
+            const userRoles = await prisma.$queryRawUnsafe(`
+            SELECT ROLE_ID FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID} AND STATUS = 'P'
+          `);
             const roleIds = userRoles.map((ur) => ur.ROLE_ID);
             // Return user without sensitive data, always include roles array
             const authenticatedUser = {
@@ -174,32 +169,31 @@ passport.use(new JwtStrategy({
             return done(null, authenticatedUser);
         }
         try {
-            // Find user by ID from JWT payload
-            const user = await prisma.uSERS.findUnique({
-                where: { USER_ID: jwtPayload.id },
-            });
+            // Use raw SQL to query GUARDIAN schema directly (Prisma ORM queries dbo schema incorrectly)
+            const users = await prisma.$queryRawUnsafe(`
+            SELECT u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID
+            FROM GUARDIAN.USERS u WHERE u.USER_ID = ${jwtPayload.id}
+          `);
+            const user = users.length > 0 ? users[0] : null;
             if (!user) {
                 return done(null, false, { message: 'User not found with token ID' });
             }
-            // Check if user is active
             if (user.STATUS !== 'A') {
                 return done(null, false, { message: 'Account is not active' });
             }
-            // Get user roles
-            const userRoles = await prisma.uSER_ROLES.findMany({
-                where: { USER_ID: user.USER_ID },
-            });
-            // Get role IDs
+            // Get user roles via raw SQL
+            const userRoles = await prisma.$queryRawUnsafe(`
+            SELECT ROLE_ID FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID} AND STATUS = 'P'
+          `);
             const roleIds = userRoles.map((ur) => ur.ROLE_ID);
-            // Return user without sensitive data
             const authenticatedUser = {
                 id: user.USER_ID,
                 email: user.EMAIL,
                 firstName: user.FIRST_NAME,
                 lastName: user.LAST_NAME,
                 roles: roleIds,
-                COMPANY_ID: user.COMPANY_ID, // Pass COMPANY_ID to downstream handlers
-                username: user.EMAIL, // Use email as username
+                COMPANY_ID: user.COMPANY_ID,
+                username: user.EMAIL,
                 role: roleIds.includes(1) ? 'admin' : 'user', // Determine role based on roles array
             };
             return done(null, authenticatedUser);

@@ -35,12 +35,26 @@ export async function isAdmin(req, res, next) {
                 }
             });
         }
+        // Look up COMPANY_ID from database (JWT may not include it, or Prisma ORM may return wrong value)
+        let companyId = decoded.companyId || decoded.COMPANY_ID || null;
+        if (!companyId) {
+            try {
+                const userRow = await prisma.$queryRawUnsafe(`SELECT COMPANY_ID FROM GUARDIAN.USERS WHERE USER_ID = ${decoded.id}`);
+                if (userRow && userRow.length > 0) {
+                    companyId = userRow[0].COMPANY_ID;
+                }
+            }
+            catch (e) {
+                console.error('Error fetching COMPANY_ID for user:', e);
+            }
+        }
         // Attach user info to the request for downstream middleware
         req.user = {
             id: decoded.id,
             email: decoded.email,
             role: roleIds.includes(1) ? '1' : '6',
-            COMPANY_ID: decoded.COMPANY_ID
+            COMPANY_ID: companyId,
+            USER_ID: decoded.id,
         };
         next();
     }

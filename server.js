@@ -470,7 +470,7 @@ try {
             console.log(`📧 Sending invite email to: ${email}`);
             
             // Create invite acceptance URL
-            const inviteUrl = `${process.env.FRONTEND_URL || 'https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net'}/invite/accept?token=${token}`;
+            const inviteUrl = `${process.env.FRONTEND_URL || 'https://Guardian-ep-dev.azurewebsites.net'}/invite/accept?token=${token}`;
             
             const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
@@ -10609,6 +10609,176 @@ app.get('/api/notices/stats', getAuthenticatedUserCompany, async (req, res) => {
         });
     }
 });
+
+// ── MY-NOTICES (new notice management system) ──────────────────────────────
+
+// Allowed values for notice filters (prevents SQL injection via allowlist)
+const VALID_NOTICE_STATUSES = ['Sent', 'Draft'];
+const VALID_NOTICE_SENSITIVITIES = ['CJIS', 'Medium', 'High', 'Low'];
+
+// GET /api/my-notices — paginated list of notices created by users in the same company
+app.get('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = parseInt(req.companyId, 10);
+        const { search = '', status = '', sensitivity = '', page = '1', limit = '10' } = req.query;
+        const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+        const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+        const offset = (pageNumber - 1) * pageSize;
+
+        let whereClause = `WHERE n.COMPANY_ID = ${companyId}`;
+        if (search) whereClause += ` AND n.NOTICE_TITLE LIKE '%${String(search).replace(/'/g, "''")}%'`;
+        if (status && status !== 'All' && VALID_NOTICE_STATUSES.includes(String(status))) {
+            whereClause += ` AND n.BUTTON_STATUS = '${String(status)}'`;
+        }
+        if (sensitivity && sensitivity !== 'All' && VALID_NOTICE_SENSITIVITIES.includes(String(sensitivity))) {
+            whereClause += ` AND n.SENSITIVITY_CLASSIFICATION = '${String(sensitivity)}'`;
+        }
+
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT n.NOTICE_ID, n.NOTICE_TITLE, n.SENSITIVITY_CLASSIFICATION,
+                   n.BUTTON_STATUS, n.DISTRIBUTION_TYPE, n.CREATE_DATE, n.UPDATE_DATE,
+                   u.FIRST_NAME AS CREATE_USER_NAME,
+                   (SELECT COUNT(*) FROM GUARDIAN.MY_NOTICE_RECIPIENTS nr WHERE nr.NOTICE_ID = n.NOTICE_ID) AS RECIPIENTS_COUNT,
+                   (SELECT COUNT(*) FROM GUARDIAN.RESPONSE_MY_NOTICE r WHERE r.MY_NOTICE_ID = n.NOTICE_ID) AS RESPONSES_COUNT
+            FROM GUARDIAN.MY_NOTICES n
+            LEFT JOIN GUARDIAN.USERS u ON n.CREATE_USER_ID = u.USER_ID
+            ${whereClause}
+            ORDER BY n.CREATE_DATE DESC
+            OFFSET ${offset} ROWS FETCH NEXT ${pageSize} ROWS ONLY
+        `);
+
+        const countResult = await prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) AS total
+            FROM GUARDIAN.MY_NOTICES n
+            ${whereClause}
+        `);
+
+        const total = Number(countResult[0]?.total ?? 0);
+
+        res.json({
+            data: notices,
+            summary: {
+                RECIPIENTS_COUNT: 0,
+                RESPONSES_COUNT: 0,
+                TOTAL_ATTACHMENTS: 0,
+                NOTICES_WITH_RESPONSES: 0,
+                TOTAL_NOTICES: total,
+            },
+            pagination: {
+                total,
+                page: pageNumber,
+                limit: pageSize,
+                totalPages: Math.ceil(total / pageSize),
+            },
+        });
+    } catch (error) {
+        console.error('❌ Error fetching my-notices:', error);
+        res.status(500).json({ error: 'Failed to fetch notices', details: error.message });
+    }
+});
+
+// POST /api/my-notices — create a new notice
+app.post('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, RECIPIENTS = [], SEND_NOTICE } = req.body;
+        if (!NOTICE_TITLE || !SENSITIVITY_CLASSIFICATION || !BUTTON_STATUS) {
+            return res.status(400).json({ error: 'NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, and BUTTON_STATUS are required' });
+        }
+
+        // Validate RECIPIENTS is an array of integers
+        if (!Array.isArray(RECIPIENTS) || !RECIPIENTS.every(id => Number.isInteger(id))) {
+            return res.status(400).json({ error: 'RECIPIENTS must be an array of integer user IDs' });
+        }
+
+        // Validate recipients belong to the same company
+        if (RECIPIENTS.length > 0) {
+            const recipientIdList = RECIPIENTS.join(',');
+            const validRecipients = await prisma.$queryRawUnsafe(`
+                SELECT USER_ID FROM GUARDIAN.USERS WHERE USER_ID IN (${recipientIdList}) AND COMPANY_ID = ${parseInt(req.companyId, 10)}
+            `);
+            const validIds = new Set(validRecipients.map(r => r.USER_ID));
+            const invalidIds = RECIPIENTS.filter(id => !validIds.has(id));
+            if (invalidIds.length > 0) {
+                return res.status(400).json({ error: 'Some recipients do not belong to your company', invalidIds });
+            }
+        }
+
+        const result = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.MY_NOTICES (NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, CREATE_USER_ID, COMPANY_ID, CREATE_DATE)
+            OUTPUT INSERTED.NOTICE_ID
+            VALUES ('${String(NOTICE_TITLE).replace(/'/g, "''")}', '${String(SENSITIVITY_CLASSIFICATION).replace(/'/g, "''")}',
+                    '${String(BUTTON_STATUS).replace(/'/g, "''")}', '${String(DISTRIBUTION_TYPE || '').replace(/'/g, "''")}',
+                    '${String(NOTICE_BODY || '').replace(/'/g, "''")}', ${parseInt(req.userId, 10)}, ${parseInt(req.companyId, 10)}, GETDATE())
+        `);
+
+        const noticeId = result[0]?.NOTICE_ID;
+        if (noticeId && RECIPIENTS.length > 0) {
+            for (const userId of RECIPIENTS) {
+                await prisma.$queryRawUnsafe(`
+                    INSERT INTO GUARDIAN.MY_NOTICE_RECIPIENTS (NOTICE_ID, USER_ID) VALUES (${noticeId}, ${userId})
+                `);
+            }
+        }
+
+        res.status(201).json({ message: 'Notice created successfully', NOTICE_ID: noticeId });
+    } catch (error) {
+        console.error('❌ Error creating notice:', error);
+        res.status(500).json({ error: 'Failed to create notice', details: error.message });
+    }
+});
+
+// GET /api/my-notices/:id — get a single notice
+app.get('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id, 10);
+        if (Number.isNaN(noticeId)) {
+            return res.status(400).json({ error: 'Invalid notice ID' });
+        }
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT n.*, u.FIRST_NAME AS CREATE_USER_NAME
+            FROM GUARDIAN.MY_NOTICES n
+            LEFT JOIN GUARDIAN.USERS u ON n.CREATE_USER_ID = u.USER_ID
+            WHERE n.NOTICE_ID = ${noticeId} AND n.COMPANY_ID = ${parseInt(req.companyId, 10)}
+        `);
+        if (!notices || notices.length === 0) return res.status(404).json({ error: 'Notice not found' });
+        res.json(notices[0]);
+    } catch (error) {
+        console.error('❌ Error fetching notice:', error);
+        res.status(500).json({ error: 'Failed to fetch notice', details: error.message });
+    }
+});
+
+// DELETE /api/my-notices/:id — delete a draft notice
+app.delete('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id, 10);
+        if (Number.isNaN(noticeId)) {
+            return res.status(400).json({ error: 'Invalid notice ID' });
+        }
+        const companyId = parseInt(req.companyId, 10);
+
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT NOTICE_ID, BUTTON_STATUS FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${companyId}
+        `);
+        if (!notices || notices.length === 0) {
+            return res.status(404).json({ error: 'Notice not found' });
+        }
+        if (notices[0].BUTTON_STATUS === 'Sent') {
+            return res.status(400).json({ error: 'Cannot delete a sent notice' });
+        }
+
+        await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.MY_NOTICE_RECIPIENTS WHERE NOTICE_ID = ${noticeId}`);
+        await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.RESPONSE_MY_NOTICE WHERE MY_NOTICE_ID = ${noticeId}`);
+        await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${noticeId}`);
+
+        res.json({ message: 'Notice deleted successfully' });
+    } catch (error) {
+        console.error('❌ Error deleting notice:', error);
+        res.status(500).json({ error: 'Failed to delete notice', details: error.message });
+    }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 
 // Get specific notice details
 app.get('/api/notices/:id', getAuthenticatedUserCompany, async (req, res) => {

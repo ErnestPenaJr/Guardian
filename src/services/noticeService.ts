@@ -100,7 +100,8 @@ class NoticeService {
       const url = `/api/notices/my${queryString ? `?${queryString}` : ''}`;
       
       const response = await api.get(url);
-      return response.data;
+      const payload = response.data;
+      return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
     } catch (error) {
       console.error('Error fetching my notices:', error);
       throw error;
@@ -124,7 +125,8 @@ class NoticeService {
       const url = `/api/notices${queryString ? `?${queryString}` : ''}`;
       
       const response = await api.get(url);
-      return response.data;
+      const payload = response.data;
+      return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
     } catch (error) {
       console.error('Error fetching all notices:', error);
       throw error;
