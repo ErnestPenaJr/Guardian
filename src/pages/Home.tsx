@@ -694,14 +694,14 @@ function Home() {
       active: selectedSection === 'myRequests',
       badge: assignedRequestsCount > 0 ? assignedRequestsCount : undefined,
     },
+    {
+      icon: <MessageSquareText className="w-6 h-6" />,
+      label: 'Notices',
+      onClick: () => setSelectedSection('notices'),
+      active: selectedSection === 'notices',
+    },
     // Super Admin only navigation items (role_id = 6)
     ...((user?.roles?.some((role: any) => role.id === 6) || user?.role === '6') ? [
-      {
-        icon: <MessageSquareText className="w-6 h-6" />,
-        label: 'Notices',
-        onClick: () => setSelectedSection('notices'),
-        active: selectedSection === 'notices',
-      },
       {
         icon: <Building2 className="w-6 h-6" />,
         label: 'Workspaces',
@@ -785,7 +785,7 @@ function Home() {
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
   const [requestSearchTerm, setRequestSearchTerm] = useState('');
   const [requestsPage, setRequestsPage] = useState(1);
-  const [requestsPerPage, setRequestsPerPage] = useState(10);
+  const [requestsPerPage, setRequestsPerPage] = useState(5);
   const [selectedRows, setSelectedRows] = useState<Request[]>([]);
   const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
@@ -811,7 +811,7 @@ function Home() {
   const [filteredNotices, setFilteredNotices] = useState<any[]>([]);
   const [noticeSearchTerm, setNoticeSearchTerm] = useState('');
   const [noticesPage, setNoticesPage] = useState(1);
-  const [noticesPerPage, setNoticesPerPage] = useState(10);
+  const [noticesPerPage, setNoticesPerPage] = useState(5);
   const [isRefreshingNotices, setIsRefreshingNotices] = useState(false);
   
   // First-time admin workflow creation modal (for admins with no form templates)
@@ -1119,11 +1119,12 @@ function Home() {
   };
 
   // Function to fetch requests and prepare chart data
-  const fetchRequests = async () => {
+  // When silent=true, skip the full loading spinner (used for manual refresh)
+  const fetchRequests = async (silent = false) => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Fetching requests...');
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
     
     try {
@@ -1203,7 +1204,7 @@ function Home() {
       setError('Failed to load requests. Please try again.');
       toast.error('Failed to load requests');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -1529,6 +1530,7 @@ function Home() {
           // Dashboard Overview
           <div className="container max-w-full">
             <h1 className="text-2xl font-bold uppercase fs-2 mb-4 sm:mb-8">HOME</h1>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
               {/* Request Overview Card */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">
@@ -1606,12 +1608,11 @@ function Home() {
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
                           onClick={() => {
                             setIsRefreshing(true);
-                            fetchRequests()
-                              .finally(() => {
-                                setIsRefreshing(false);
-                                setToggleCleared(!toggleCleared);
-                                setSelectedRows([]);
-                              });
+                            fetchRequests(true).finally(() => {
+                              setIsRefreshing(false);
+                              setToggleCleared(!toggleCleared);
+                              setSelectedRows([]);
+                            });
                           }}
                           disabled={isRefreshing}
                           data-component-name="Home"
