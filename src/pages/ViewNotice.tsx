@@ -50,9 +50,20 @@ function sensitivityBadgeClass(classification: string): string {
   }
 }
 
-export default function ViewNotice() {
-  const { id } = useParams<{ id: string }>();
+interface ViewNoticeProps {
+  modalMode?: boolean;
+  noticeId?: number;
+  onClose?: () => void;
+}
+
+export default function ViewNotice({
+  modalMode = false,
+  noticeId: noticeIdProp,
+  onClose,
+}: ViewNoticeProps = {}) {
+  const { id: paramId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const id = modalMode ? (noticeIdProp ? String(noticeIdProp) : undefined) : paramId;
 
   const [notice, setNotice] = useState<Notice | null>(null);
   const [loading, setLoading] = useState(false);
@@ -129,8 +140,9 @@ export default function ViewNotice() {
 
     fetchNotice();
   }, [id]);
-  // No notice ID in URL (e.g. user clicked "View Notice" tab without selecting a notice)
+  // No notice ID provided
   if (!id) {
+    if (modalMode) return <p className="text-center text-gray-500 py-8">No notice selected.</p>;
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 flex justify-center items-center">
         <div className="text-center max-w-md">
@@ -156,7 +168,8 @@ export default function ViewNotice() {
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
-  if (error || !notice)
+  if (error || !notice) {
+    if (modalMode) return <p className="text-center text-red-600 py-8">{error ?? "Failed to load notice."}</p>;
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 flex justify-center items-center">
         <div className="text-center">
@@ -174,11 +187,13 @@ export default function ViewNotice() {
         </div>
       </div>
     );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 flex justify-center">
-      <div className="w-full max-w-6xl space-y-6">
+    <div className={modalMode ? "" : "min-h-screen bg-gray-50 py-8 px-4 flex justify-center"}>
+      <div className={modalMode ? "space-y-6" : "w-full max-w-6xl space-y-6"}>
         {/* HEADER */}
+        {!modalMode && (
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -212,6 +227,7 @@ export default function ViewNotice() {
             Export All Responses
           </button>
         </div>
+        )}
 
         {/* NOTICE CARD */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">

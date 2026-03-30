@@ -37,6 +37,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 import NotificationPreferencesModal from '../components/NotificationPreferencesModal';
 import formService from '../services/formService';
 import noticeService from '../services/noticeService';
+import MyNoticesService from '../services/mynotices';
 import WorkspaceSelector from '../components/WorkspaceSelector';
 import WorkspaceManagement from '../components/WorkspaceManagement';
 import { Pie } from 'react-chartjs-2';
@@ -782,6 +783,9 @@ function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
+  const [requestSearchTerm, setRequestSearchTerm] = useState('');
+  const [requestsPage, setRequestsPage] = useState(1);
+  const [requestsPerPage, setRequestsPerPage] = useState(10);
   const [selectedRows, setSelectedRows] = useState<Request[]>([]);
   const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
@@ -789,7 +793,7 @@ function Home() {
   const [requestStatusData, setRequestStatusData] = useState<Array<{ label: string; value: number; color: string }>>([]);
   const [totalRequests, setTotalRequests] = useState<number>(0);
   
-  // State for notices data  
+  // State for notices data
   const [notices, setNotices] = useState<any[]>([]);
   const [noticeStats, setNoticeStats] = useState<{
     totalNotices: number;
@@ -802,6 +806,13 @@ function Home() {
     issuedByMe: 0,
     activeNotices: 0
   });
+  const [noticeStatusData, setNoticeStatusData] = useState<Array<{ label: string; value: number; color: string }>>([]);
+  const [totalNoticesCount, setTotalNoticesCount] = useState<number>(0);
+  const [filteredNotices, setFilteredNotices] = useState<any[]>([]);
+  const [noticeSearchTerm, setNoticeSearchTerm] = useState('');
+  const [noticesPage, setNoticesPage] = useState(1);
+  const [noticesPerPage, setNoticesPerPage] = useState(10);
+  const [isRefreshingNotices, setIsRefreshingNotices] = useState(false);
   
   // First-time admin workflow creation modal (for admins with no form templates)
   const [showFirstTimeWorkflowModal, setShowFirstTimeWorkflowModal] = useState(false);
@@ -1198,31 +1209,32 @@ function Home() {
 
   // Function to fetch notices data for dashboard
   const fetchNotices = async () => {
+    // Fetch from the MY_NOTICES system for both the card and the chart
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Fetching notices for dashboard...');
-      }
-      
-      // Get recent notices for current user
-      const myNotices = await noticeService.getMyNotices({ 
-        unreadOnly: false 
+      const result = await MyNoticesService.getMyNotices({ limit: 1000 });
+      const allNotices = result.data || [];
+
+      // Store all notices for the Notices card
+      setNotices(allNotices);
+      setFilteredNotices(allNotices);
+
+      // Build chart data
+      let sentCount = 0;
+      let draftCount = 0;
+      allNotices.forEach((n) => {
+        if (n.BUTTON_STATUS === 'Sent') sentCount++;
+        else if (n.BUTTON_STATUS === 'Draft') draftCount++;
       });
-      
-      // Get notice statistics
-      const stats = await noticeService.getNoticeStats();
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('My notices:', myNotices);
-        console.log('Notice stats:', stats);
-      }
-      
-      setNotices(myNotices.slice(0, 5)); // Show recent 5 notices on dashboard
-      setNoticeStats(stats);
-      
+
+      const chartItems = [
+        { label: 'Sent', value: sentCount, color: '#10B981' },
+        { label: 'Draft', value: draftCount, color: '#FBBF24' },
+      ].filter(item => item.value > 0);
+
+      setNoticeStatusData(chartItems);
+      setTotalNoticesCount(allNotices.length);
     } catch (err) {
-      console.error('Error fetching notices:', err);
-      // Don't show error toast for notices to avoid overwhelming users
-      // Just log the error and continue
+      console.error('Error fetching my-notices:', err);
     }
   };
 
@@ -1560,7 +1572,7 @@ function Home() {
                           maintainAspectRatio: true,
                           responsive: true
                         }} />
-                        <div className="absolute inset-0 flex items-center justify-center flex-col">
+                        <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
                           <span className="text-xl sm:text-2xl md:text-3xl font-bold">{totalRequests}</span>
                         </div>
                       </>
@@ -1590,7 +1602,7 @@ function Home() {
                   <>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                       <div className="flex items-center">
-                        <button 
+                        <button
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
                           onClick={() => {
                             setIsRefreshing(true);
@@ -1614,20 +1626,21 @@ function Home() {
                         <input
                           type="text"
                           placeholder="Search requests..."
+                          value={requestSearchTerm}
                           className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 bg-gray-50"
                           onChange={(e) => {
-                            const searchTerm = e.target.value.toLowerCase();
-                            if (searchTerm) {
-                              const filteredData = requests.filter(item => {
-                                return (
-                                  (item.REQUEST_NAME?.toLowerCase().includes(searchTerm)) ||
-                                  (item.TRACKINGID?.toLowerCase().includes(searchTerm)) ||
-                                  (item.STATUS?.toLowerCase().includes(searchTerm)) ||
-                                  (item.requestorName?.toLowerCase().includes(searchTerm)) ||
-                                  (item.assignedName?.toLowerCase().includes(searchTerm))
-                                );
-                              });
-                              setFilteredRequests(filteredData);
+                            const term = e.target.value;
+                            setRequestSearchTerm(term);
+                            setRequestsPage(1);
+                            const search = term.toLowerCase();
+                            if (search) {
+                              setFilteredRequests(requests.filter(item =>
+                                (item.REQUEST_NAME?.toLowerCase().includes(search)) ||
+                                (item.TRACKINGID?.toLowerCase().includes(search)) ||
+                                (item.STATUS?.toLowerCase().includes(search)) ||
+                                (item.requestorName?.toLowerCase().includes(search)) ||
+                                (item.assignedName?.toLowerCase().includes(search))
+                              ));
                             } else {
                               setFilteredRequests(requests);
                             }
@@ -1635,194 +1648,315 @@ function Home() {
                         />
                       </div>
                     </div>
-                    
-                    <div className="w-full mb-8">
-                      <DataTable
-                        columns={requestColumns}
-                        data={filteredRequests || requests}
-                        pagination
-                        paginationPerPage={10}
-                        paginationRowsPerPageOptions={[5, 10, 15, 20, 50]}
-                        paginationComponentOptions={{
-                          rowsPerPageText: 'Records per page:',
-                          rangeSeparatorText: 'of',
-                        }}
-                        onRowClicked={handleViewRequest}
-                        pointerOnHover
-                        sortServer={false}
-                        defaultSortFieldId={1}
-                        defaultSortAsc={false}
-                        responsive
-                        noDataComponent={
-                          <div className="p-4 text-center text-gray-500">No requests found</div>
-                        }
-                        customStyles={{
-                          table: {
-                            style: {
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              border: '1px solid #e2e8f0',
-                              width: '100%',
-                            },
-                          },
-                          cells: {
-                            style: {
-                              paddingLeft: '8px',
-                              paddingRight: '8px',
-                              overflow: 'visible',
-                              whiteSpace: 'normal',
-                              fontSize: '14px',
-                            },
-                          },
-                          header: {
-                            style: {
-                              padding: '0',
-                            },
-                          },
-                          subHeader: {
-                            style: {
-                              padding: '0',
-                            },
-                          },
-                          headRow: {
-                            style: {
-                              backgroundColor: '#f8fafc',
-                              borderBottomWidth: '1px',
-                              borderBottomStyle: 'solid',
-                              borderBottomColor: '#e2e8f0',
-                              color: '#475569',
-                              fontWeight: 600,
-                              fontSize: '0.875rem',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
-                            },
-                          },
-                          headCells: {
-                            style: {
-                              paddingLeft: '12px',
-                              paddingRight: '12px',
-                              paddingTop: '12px',
-                              paddingBottom: '12px',
-                              fontWeight: 'bold',
-                            },
-                          },
-                          rows: {
-                            style: {
-                              backgroundColor: '#ffffff',
-                              minHeight: '52px',
-                              '&:not(:last-of-type)': {
-                                borderBottomStyle: 'solid',
-                                borderBottomWidth: '1px',
-                                borderBottomColor: '#e2e8f0',
-                              },
-                              '&:hover': {
-                                backgroundColor: '#f1f5f9',
-                                cursor: 'pointer',
-                              },
-                            },
-                          },
-                          pagination: {
-                            style: {
-                              borderTopStyle: 'solid',
-                              borderTopWidth: '1px',
-                              borderTopColor: '#e2e8f0',
-                              backgroundColor: '#f8fafc',
-                              padding: '8px 12px',
-                            },
-                            pageButtonsStyle: {
-                              color: '#0284c7',
-                              fill: '#0284c7',
-                              '&:disabled': {
-                                color: '#cbd5e1',
-                                fill: '#cbd5e1',
-                              },
-                              '&:hover:not(:disabled)': {
-                                backgroundColor: '#e0f2fe',
-                              },
-                              '&:focus': {
-                                outline: 'none',
-                                backgroundColor: '#e0f2fe',
-                              },
-                            },
-                          },
-                        }}
-                      />
-                    </div>
+
+                    {(filteredRequests || requests).length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">No requests found</div>
+                    ) : (
+                      <>
+                        <div className="overflow-x-auto mb-4">
+                          <table className="w-full text-sm text-left">
+                            <thead className="text-gray-600 border-b uppercase text-xs tracking-wider">
+                              <tr>
+                                <th className="pb-3 font-semibold">REQUEST ID</th>
+                                <th className="pb-3 font-semibold">REQUEST NAME</th>
+                                <th className="pb-3 font-semibold text-center">STATUS</th>
+                                <th className="pb-3 font-semibold text-center">DATE</th>
+                                <th className="pb-3 font-semibold text-center">TYPE</th>
+                                <th className="pb-3 font-semibold text-center">PRIORITY</th>
+                                <th className="pb-3 font-semibold text-center">REQUESTOR</th>
+                                <th className="pb-3 font-semibold text-center">ASSIGNED</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {(filteredRequests || requests).slice((requestsPage - 1) * requestsPerPage, requestsPage * requestsPerPage).map((row) => {
+                                const statusColor: Record<string, string> = {
+                                  'P': 'bg-yellow-200 text-yellow-800',
+                                  'A': 'bg-blue-200 text-blue-800',
+                                  'D': 'bg-green-200 text-green-800',
+                                  'I': 'bg-cyan-200 text-cyan-800',
+                                  'X': 'bg-orange-200 text-orange-800',
+                                  'H': 'bg-purple-200 text-purple-800',
+                                  'R': 'bg-red-200 text-red-800',
+                                };
+                                const statusText: Record<string, string> = {
+                                  'P': 'Pending', 'A': 'Active', 'D': 'Complete', 'I': 'In Progress',
+                                  'X': 'Cancelled', 'H': 'On Hold', 'R': 'Rejected',
+                                };
+                                return (
+                                  <tr
+                                    key={row.REQUEST_ID}
+                                    className="hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => handleViewRequest(row)}
+                                  >
+                                    <td className="py-3 text-xs sm:text-sm text-gray-800">{row.TRACKINGID || 'N/A'}</td>
+                                    <td className="py-3 font-medium text-gray-800 text-xs sm:text-sm">{row.REQUEST_NAME || 'N/A'}</td>
+                                    <td className="py-3 text-center">
+                                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor[row.STATUS] || 'bg-gray-200 text-gray-800'}`}>
+                                        {statusText[row.STATUS] || 'Unknown'}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 text-center text-xs whitespace-nowrap text-gray-600">
+                                      {new Date(row.CREATE_DATE).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                                    </td>
+                                    <td className="py-3 text-center text-xs text-gray-600">{row.ABBREVIATION || 'General'}</td>
+                                    <td className="py-3 text-center">
+                                      <div className="flex items-center justify-center gap-1">
+                                        {getPriorityIcon(row.PRIORITY_LEVEL || 'Standard')}
+                                      </div>
+                                    </td>
+                                    <td className="py-3 text-center text-xs sm:text-sm text-gray-600">{row.requestorName}</td>
+                                    <td className="py-3 text-center text-xs sm:text-sm text-gray-600">{row.assignedName || 'Unassigned'}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {(() => {
+                          const data = filteredRequests || requests;
+                          const totalPages = Math.ceil(data.length / requestsPerPage);
+                          const startRow = (requestsPage - 1) * requestsPerPage + 1;
+                          const endRow = Math.min(requestsPage * requestsPerPage, data.length);
+                          return (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gray-200 pt-3 text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <span>Records per page:</span>
+                                <select
+                                  value={requestsPerPage}
+                                  onChange={(e) => { setRequestsPerPage(Number(e.target.value)); setRequestsPage(1); }}
+                                  className="border border-gray-200 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                >
+                                  {[5, 10, 15, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                                <span className="ml-2">{startRow}-{endRow} of {data.length}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => setRequestsPage(1)} disabled={requestsPage === 1} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&laquo;</button>
+                                <button onClick={() => setRequestsPage(p => Math.max(1, p - 1))} disabled={requestsPage === 1} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&lsaquo;</button>
+                                <span className="px-3 py-1 text-sm">Page {requestsPage} of {totalPages}</span>
+                                <button onClick={() => setRequestsPage(p => Math.min(totalPages, p + 1))} disabled={requestsPage === totalPages} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&rsaquo;</button>
+                                <button onClick={() => setRequestsPage(totalPages)} disabled={requestsPage === totalPages} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&raquo;</button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    )}
                   </>
                 )}
               </section>
 
-              {/* My Notices Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 w-full md:col-span-4 border border-gray-200 mt-4`} data-component-name="Home">
-                <div className="flex items-center justify-between mb-3 md:mb-4">
-                  <h2 className="text-base md:text-lg font-semibold">My Notices</h2>
-                  <div className="flex items-center gap-3">
-                    {noticeStats.unreadNotices > 0 && (
-                      <span className="bg-aqua-500 text-white text-xs px-2 py-1 rounded-full">
-                        {noticeStats.unreadNotices} unread
-                      </span>
-                    )}
-                    <button
-                      onClick={() => navigate('/notices')}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      View All
-                    </button>
-                  </div>
-                </div>
-                
-                {notices.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <MessageSquareText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No notices available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {notices.slice(0, 5).map((notice) => (
-                      <div
-                        key={notice.NOTICE_ID}
-                        className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                          notice._isRead ? 'border-gray-200' : 'border-blue-300 bg-blue-50'
-                        }`}
-                        onClick={() => window.open(`/notices/${notice.NOTICE_ID}`, '_blank')}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className={`text-sm font-medium truncate ${
-                                notice._isRead ? 'text-gray-900' : 'text-blue-900 font-bold'
-                              }`}>
-                                {notice.TITLE}
-                              </h3>
-                              {!notice._isRead && (
-                                <span className="bg-aqua-500 text-white text-xs px-2 py-1 rounded-full">
-                                  NEW
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                              {notice.CONTENT?.substring(0, 100)}...
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span>
-                                By: {notice.ISSUED_BY_USER?.FIRST_NAME} {notice.ISSUED_BY_USER?.LAST_NAME}
-                              </span>
-                              <span>
-                                {new Date(notice.ISSUE_DATE || notice.CREATE_DATE).toLocaleDateString()}
-                              </span>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                notice.STATUS === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
-                                notice.STATUS === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {notice.STATUS}
-                              </span>
-                            </div>
-                          </div>
+              {/* Notices Overview Chart */}
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-center flex-shrink-0">Notices Overview</h2>
+                <div className="flex flex-col items-center justify-center flex-1 min-h-0">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center relative flex-shrink-0" data-component-name="Home">
+                    {noticeStatusData.length === 0 ? (
+                      <div className="text-gray-400 text-xs text-center">No notice data</div>
+                    ) : (
+                      <>
+                        <Pie data={{
+                          labels: noticeStatusData.map(item => item.label),
+                          datasets: [{
+                            data: noticeStatusData.map(item => item.value),
+                            backgroundColor: noticeStatusData.map(item => item.color),
+                            borderWidth: 1
+                          }]
+                        }}
+                        options={{
+                          plugins: {
+                            legend: {
+                              display: false
+                            },
+                            tooltip: {
+                              callbacks: {
+                                label: (context) => {
+                                  const label = context.label || '';
+                                  const value = context.raw || 0;
+                                  const total = noticeStatusData.reduce((sum, item) => sum + item.value, 0);
+                                  const percentage = total > 0 ? Math.round((value as number / total) * 100) : 0;
+                                  return `${label}: ${value} (${percentage}%)`;
+                                }
+                              }
+                            }
+                          },
+                          cutout: '70%',
+                          maintainAspectRatio: true,
+                          responsive: true
+                        }} />
+                        <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                          <span className="text-xl sm:text-2xl md:text-3xl font-bold">{totalNoticesCount}</span>
                         </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="mt-2 sm:mt-3 flex justify-center gap-2 sm:gap-3 text-xs flex-shrink-0 flex-wrap">
+                    {noticeStatusData.map((s) => (
+                      <div key={s.label} className="flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></span>
+                        <span className="dark:text-gray-300">{s.label}</span>
                       </div>
                     ))}
                   </div>
+                </div>
+              </section>
+
+              {/* Notices Card */}
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 w-full md:col-span-3 border border-gray-200`} data-component-name="Home">
+                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Notices Queue</h2>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
+                  <div className="flex items-center">
+                    <button
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
+                      onClick={() => {
+                        setIsRefreshingNotices(true);
+                        fetchNotices().finally(() => setIsRefreshingNotices(false));
+                      }}
+                      disabled={isRefreshingNotices}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1 ${isRefreshingNotices ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {isRefreshingNotices ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <input
+                      type="text"
+                      placeholder="Search notices..."
+                      value={noticeSearchTerm}
+                      className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-700 placeholder-gray-400 bg-gray-50"
+                      onChange={(e) => {
+                        const term = e.target.value;
+                        setNoticeSearchTerm(term);
+                        setNoticesPage(1);
+                        const search = term.toLowerCase();
+                        if (search) {
+                          setFilteredNotices(notices.filter(n =>
+                            (n.NOTICE_TITLE?.toLowerCase().includes(search)) ||
+                            (n.SENSITIVITY_CLASSIFICATION?.toLowerCase().includes(search)) ||
+                            (n.BUTTON_STATUS?.toLowerCase().includes(search)) ||
+                            (n.DISTRIBUTION_TYPE?.toLowerCase().includes(search)) ||
+                            (n.CREATE_USER_NAME?.toLowerCase().includes(search))
+                          ));
+                        } else {
+                          setFilteredNotices(notices);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {filteredNotices.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <MessageSquareText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>{noticeSearchTerm ? 'No notices match your search' : 'No notices available'}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto mb-4">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-gray-600 border-b uppercase text-xs tracking-wider">
+                          <tr>
+                            <th className="pb-3 font-semibold">TITLE</th>
+                            <th className="pb-3 font-semibold">SENSITIVITY</th>
+                            <th className="pb-3 font-semibold text-center">STATUS</th>
+                            <th className="pb-3 font-semibold text-center">TYPE</th>
+                            <th className="pb-3 font-semibold text-center">CREATED BY</th>
+                            <th className="pb-3 font-semibold text-center">DATE CREATED</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {filteredNotices.slice((noticesPage - 1) * noticesPerPage, noticesPage * noticesPerPage).map((notice) => (
+                            <tr
+                              key={notice.NOTICE_ID}
+                              className="hover:bg-gray-50 cursor-pointer"
+                              onClick={() => navigate(`/my-notices/view-notice/${notice.NOTICE_ID}`)}
+                            >
+                              <td className="py-3 font-medium text-gray-800">{notice.NOTICE_TITLE}</td>
+                              <td className="py-3">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 text-xs rounded-full font-medium ${
+                                  notice.SENSITIVITY_CLASSIFICATION === 'CJIS' ? 'bg-red-500 text-white' :
+                                  notice.SENSITIVITY_CLASSIFICATION === 'High' ? 'bg-yellow-100 text-yellow-700' :
+                                  notice.SENSITIVITY_CLASSIFICATION === 'Medium' ? 'bg-blue-700 text-white' :
+                                  'bg-gray-200 text-gray-700'
+                                }`}>
+                                  {notice.SENSITIVITY_CLASSIFICATION}
+                                </span>
+                              </td>
+                              <td className="py-3 text-center">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 text-xs rounded-full font-medium ${
+                                  notice.BUTTON_STATUS === 'Sent' ? 'bg-green-100 text-green-700' :
+                                  'bg-gray-200 text-gray-700'
+                                }`}>
+                                  {notice.BUTTON_STATUS}
+                                </span>
+                              </td>
+                              <td className="py-3 text-center text-gray-600">{notice.DISTRIBUTION_TYPE}</td>
+                              <td className="py-3 text-center text-gray-600">{notice.CREATE_USER_NAME}</td>
+                              <td className="py-3 text-center text-gray-600">{new Date(notice.CREATE_DATE).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {(() => {
+                      const totalPages = Math.ceil(filteredNotices.length / noticesPerPage);
+                      const startRow = (noticesPage - 1) * noticesPerPage + 1;
+                      const endRow = Math.min(noticesPage * noticesPerPage, filteredNotices.length);
+                      return (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gray-200 pt-3 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <span>Records per page:</span>
+                            <select
+                              value={noticesPerPage}
+                              onChange={(e) => { setNoticesPerPage(Number(e.target.value)); setNoticesPage(1); }}
+                              className="border border-gray-200 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                              {[5, 10, 15, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                            <span className="ml-2">{startRow}-{endRow} of {filteredNotices.length}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setNoticesPage(1)}
+                              disabled={noticesPage === 1}
+                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              &laquo;
+                            </button>
+                            <button
+                              onClick={() => setNoticesPage(p => Math.max(1, p - 1))}
+                              disabled={noticesPage === 1}
+                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              &lsaquo;
+                            </button>
+                            <span className="px-3 py-1 text-sm">Page {noticesPage} of {totalPages}</span>
+                            <button
+                              onClick={() => setNoticesPage(p => Math.min(totalPages, p + 1))}
+                              disabled={noticesPage === totalPages}
+                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              &rsaquo;
+                            </button>
+                            <button
+                              onClick={() => setNoticesPage(totalPages)}
+                              disabled={noticesPage === totalPages}
+                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              &raquo;
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
                 )}
               </section>
             </div>

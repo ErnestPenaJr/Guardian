@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Eye,
   Send,
@@ -11,6 +10,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import { Modal } from "react-bootstrap";
 
 import moment from "moment";
 import MyNoticesService, {
@@ -20,22 +20,18 @@ import MyNoticesService, {
 } from "../services/mynotices";
 
 import PaginationPage from "../components/NoticeManagementSystem/Pagination";
+import CreateNotice from "./CreateNotice";
+import ViewNotice from "./ViewNotice";
 
-interface Props {
-  openCreateNotice?: () => void;
-  openViewNotice?: (noticeId?: number) => void;
-  editNotice?: (noticeId?: number) => void;
-}
+export default function AllNotices() {
+  const [modalType, setModalType] = useState<'create' | 'edit' | 'view' | null>(null);
+  const [selectedNoticeId, setSelectedNoticeId] = useState<number | undefined>();
 
-export default function AllNotices({
-  openCreateNotice: openCreateNoticeProp,
-  openViewNotice: openViewNoticeProp,
-  editNotice: editNoticeProp,
-}: Props) {
-  const navigate = useNavigate();
-  const openCreateNotice = openCreateNoticeProp ?? (() => navigate('/my-notices/create'));
-  const openViewNotice = openViewNoticeProp ?? ((noticeId?: number) => navigate(noticeId ? `/my-notices/view-notice/${noticeId}` : '/my-notices/view-notice'));
-  const editNotice = editNoticeProp ?? ((noticeId?: number) => navigate(noticeId ? `/my-notices/edit/${noticeId}` : '/my-notices/create'));
+  const openCreateNotice = () => { setModalType('create'); setSelectedNoticeId(undefined); };
+  const openViewNotice = (noticeId?: number) => { setModalType('view'); setSelectedNoticeId(noticeId); };
+  const editNotice = (noticeId?: number) => { setModalType('edit'); setSelectedNoticeId(noticeId); };
+  const closeModal = () => { setModalType(null); setSelectedNoticeId(undefined); };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<NoticeStatus | "All">("All");
   const [sensitivityFilter, setSensitivityFilter] = useState<
@@ -363,6 +359,34 @@ export default function AllNotices({
           </p>
         </div>
       </div>
+
+      {/* Notice Modal (Create / Edit / View) */}
+      <Modal show={modalType !== null} onHide={closeModal} size="xl" scrollable centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {modalType === 'create' && 'Create New Notice'}
+            {modalType === 'edit' && 'Edit Notice'}
+            {modalType === 'view' && 'Notice Details & Responses'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {(modalType === 'create' || modalType === 'edit') && (
+            <CreateNotice
+              modalMode
+              editNoticeId={modalType === 'edit' ? selectedNoticeId : undefined}
+              onClose={closeModal}
+              onSuccess={() => { closeModal(); fetchNotices(); }}
+            />
+          )}
+          {modalType === 'view' && selectedNoticeId && (
+            <ViewNotice
+              modalMode
+              noticeId={selectedNoticeId}
+              onClose={closeModal}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

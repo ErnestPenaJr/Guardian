@@ -41,7 +41,19 @@ type UserOption = {
   email: string;
 };
 
-export default function CreateNotice() {
+interface CreateNoticeProps {
+  modalMode?: boolean;
+  editNoticeId?: number;
+  onClose?: () => void;
+  onSuccess?: () => void;
+}
+
+export default function CreateNotice({
+  modalMode = false,
+  editNoticeId: editNoticeIdProp,
+  onClose,
+  onSuccess,
+}: CreateNoticeProps = {}) {
   const navigate = useNavigate();
   const { id: paramId } = useParams<{ id: string }>();
   const location = useLocation();
@@ -51,8 +63,9 @@ export default function CreateNotice() {
 
   const numParam = paramId ? Number(paramId) : undefined;
 
-  const editNoticeId =
-    numParam != null && !Number.isNaN(numParam) ? numParam : stateId;
+  const editNoticeId = modalMode
+    ? editNoticeIdProp
+    : (numParam != null && !Number.isNaN(numParam) ? numParam : stateId);
 
   const [users, setUsers] = useState<{ id: number; name: string; email: string }[]>([]);
   const [sendNotice, setSendNotice] = useState(false);
@@ -130,8 +143,8 @@ export default function CreateNotice() {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center p-6">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+    <div className={modalMode ? "" : "min-h-screen bg-gray-100 flex justify-center p-6"}>
+      <div className={modalMode ? "" : "w-full max-w-4xl bg-white rounded-2xl shadow-sm border border-gray-200 p-8"}>
         <h1 className="text-xl font-semibold text-gray-800">
           {isEditMode ? "Edit Notice" : "Create New Notice"}
         </h1>
@@ -177,13 +190,17 @@ export default function CreateNotice() {
                     confirmButtonColor: "#2563eb",
                   });
 
-                  navigate("/my-notices");
+                  if (modalMode) {
+                    onSuccess?.();
+                  } else {
+                    navigate("/my-notices");
+                  }
                 } else {
                   await MyNoticesService.createNotice(
                     payload as CreateNoticePayload,
                   );
 
-                  Swal.fire({
+                  await Swal.fire({
                     icon: "success",
                     title: sendNotice ? "Notice Sent" : "Draft Saved",
                     text: sendNotice
@@ -191,6 +208,10 @@ export default function CreateNotice() {
                       : "Notice saved as draft successfully.",
                     confirmButtonColor: "#2563eb",
                   });
+
+                  if (modalMode) {
+                    onSuccess?.();
+                  }
                 }
 
                 resetForm();
