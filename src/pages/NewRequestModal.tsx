@@ -559,7 +559,6 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                   value="Notice"
                   checked={formData.formType === 'Notice'}
                   onChange={(e) => setFormData(f => ({ ...f, formType: e.target.value }))}
-                  disabled
                   style={{ marginRight: '10px' }}
                 />
                 <label className="form-check-label" htmlFor="formTypeNotice">
