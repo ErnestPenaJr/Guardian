@@ -143,7 +143,7 @@ router.get("/export-csv/:id", requireAuth, async (req, res) => {
         RECIPIENTS: { include: { USER: { select: { FIRST_NAME: true } } } },
         RESPONSES: {
           include: {
-            USER: { select: { FIRST_NAME: true, USER_ID: true, EMAIL: true } },
+            USER: { select: { FIRST_NAME: true, EMAIL: true } },
             ATTACHMENT: { select: { ATTACHMENT_ID: true, FILE_NAME: true } },
           },
         },
@@ -274,7 +274,6 @@ router.get("/", requireAuth, async (req, res) => {
               USER: {
                 select: {
                   FIRST_NAME: true,
-                  USER_ID: true,
                   EMAIL: true,
                 },
               },
@@ -385,7 +384,7 @@ router.get("/:id", requireAuth, async (req, res) => {
         RECIPIENTS: { include: { USER: { select: { FIRST_NAME: true } } } },
         RESPONSES: {
           include: {
-            USER: { select: { FIRST_NAME: true, USER_ID: true, EMAIL: true } },
+            USER: { select: { FIRST_NAME: true, EMAIL: true } },
             ATTACHMENT: { select: { ATTACHMENT_ID: true, FILE_NAME: true } },
           },
         },

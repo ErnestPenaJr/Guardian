@@ -122,7 +122,7 @@
 /* ── DATE / CASE / INVESTIGATOR ROW ───────── */
 .sw-date-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   border-bottom: 2px solid #000;
   background: #edf0f5;
 }
@@ -653,6 +653,31 @@
   height: 14px;
 }
 .sw-matrix-radio-cell input[type="checkbox"]:disabled { cursor: default; }
+
+/* ── RESTRICTION CODES PANEL ─────────────────── */
+.sw-restriction-panel {
+  margin-top: 4px;
+  padding: 4px 0;
+}
+.sw-restriction-list {
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #d0d5dd;
+  border-radius: 3px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.sw-restriction-item {
+  padding: 3px 6px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+.sw-restriction-item:hover {
+  background: #eef4ff;
+}
+.sw-restriction-item:last-child {
+  border-bottom: none;
+}
 
 /* ── REQUIRED FIELD INDICATORS ────────────────── */
 .sw-required-star {

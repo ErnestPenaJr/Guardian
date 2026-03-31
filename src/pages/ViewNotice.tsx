@@ -441,12 +441,25 @@ export default function ViewNotice({
                   : "border-gray-300"
               }`}
             />
-            {(responseForm.touched.response || responseForm.submitCount > 0) &&
-              responseForm.errors.response && (
-                <p className="mt-1 text-sm text-red-600" role="alert">
-                  {responseForm.errors.response}
-                </p>
-              )}
+            <div className="flex justify-between items-center mt-1">
+              <div>
+                {(responseForm.touched.response || responseForm.submitCount > 0) &&
+                  responseForm.errors.response && (
+                    <p className="text-sm text-red-600" role="alert">
+                      {responseForm.errors.response}
+                    </p>
+                  )}
+              </div>
+              <span className={`text-xs ${
+                (responseForm.values.response ?? '').trim().length < 10
+                  ? 'text-red-500'
+                  : (responseForm.values.response ?? '').trim().length > 4500
+                    ? 'text-yellow-600'
+                    : 'text-gray-400'
+              }`}>
+                {(responseForm.values.response ?? '').length} / 5,000 {(responseForm.values.response ?? '').trim().length < 10 && '(min 10)'}
+              </span>
+            </div>
           </div>
 
           <input

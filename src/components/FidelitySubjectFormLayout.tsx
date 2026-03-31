@@ -53,6 +53,7 @@ const MC_FIELDS = [
   'Account Holder Interviewed',
   'Social Media (Checklist)',
   'Additional Contact Info',
+  'Standing Instructions',
 ];
 
 // Sources / Background / OSINT fields (right matrix pane)
@@ -68,6 +69,8 @@ const SRC_FIELDS = [
   'CLEAR / Lexis Nexis',
   'Social Media / CTI',
   'OSINT Notes',
+  'Restriction Codes',
+  'Asset Recovery',
 ];
 
 const RADIO_OPTS = ['Positive', 'Negative', 'Not Reviewed'] as const;
@@ -85,6 +88,18 @@ const DEF_SOCIAL:  SocialEntry  = { platform: '', handle: '', url: '' };
 
 const MARK_TYPE_OPTS  = ['Tattoo', 'Scar', 'Birthmark', 'Piercing', 'Brand', 'Other'];
 const PHONE_TYPE_OPTS = ['Mobile', 'Home', 'Work', 'Fax', 'Unknown'];
+
+const FRAUD_TYPE_OPTS = [
+  'Account Takeover', 'Check Fraud', 'Identity Theft', 'Wire Fraud',
+  'Card Fraud', 'Phishing', 'Elder Fraud', 'Zelle / P2P Fraud',
+  'Business Email Compromise', 'Loan Fraud',
+];
+const CATEGORY_OPTS = ['Internal', 'External', 'Collusion', 'First Party', 'Third Party'];
+const DEVICE_TYPE_OPTS = [
+  'Desktop / Laptop', 'Mobile Phone', 'Tablet', 'Smart TV', 'Gaming Console',
+  'ATM / Kiosk', 'POS Terminal', 'Smart Watch / Wearable', 'IoT Device',
+  'Virtual Machine / Emulator', 'Other',
+];
 
 function parseEntries<T>(raw: string): T[] {
   if (!raw.trim()) return [];
@@ -265,6 +280,7 @@ interface MatrixPaneProps {
   readOnly: boolean;
   idPrefix: string;
   selectionControl?: 'radio' | 'checkbox';
+  renderCustomLabel?: (name: string, fieldId: string) => React.ReactNode;
 }
 
 const MatrixPane: React.FC<MatrixPaneProps> = ({
@@ -276,6 +292,7 @@ const MatrixPane: React.FC<MatrixPaneProps> = ({
   readOnly,
   idPrefix,
   selectionControl = 'radio',
+  renderCustomLabel,
 }) => (
   <div>
     <div className="sw-matrix-hdr">
@@ -291,7 +308,7 @@ const MatrixPane: React.FC<MatrixPaneProps> = ({
       const v = fieldValues[fId] ?? '';
       return (
         <div key={name} className="sw-matrix-row">
-          <div className="sw-matrix-label">{name}</div>
+          <div className="sw-matrix-label">{renderCustomLabel ? renderCustomLabel(name, fId) : name}</div>
           {RADIO_OPTS.map(opt => (
             <div key={opt} className="sw-matrix-radio-cell">
               <input
@@ -317,6 +334,101 @@ const MatrixPane: React.FC<MatrixPaneProps> = ({
     })}
   </div>
 );
+
+// ── Restriction Codes Label (custom MatrixPane label) ────────────
+const PLACEHOLDER_RESTRICTION_CODES = [
+  { code: 'HOLD', description: 'Account Hold' },
+  { code: 'FRZE', description: 'Account Freeze' },
+  { code: 'GARN', description: 'Garnishment' },
+  { code: 'LEVY', description: 'Tax Levy' },
+  { code: 'DECE', description: 'Deceased Owner' },
+  { code: 'LIEN', description: 'Lien Placed' },
+  { code: 'CORT', description: 'Court Order' },
+  { code: 'SUSP', description: 'Suspicious Activity' },
+  { code: 'CLSD', description: 'Account Closed' },
+  { code: 'BLCK', description: 'Blocked Account' },
+];
+
+interface RestrictionCodesLabelProps {
+  fieldValues: Record<string, string>;
+  getF: (name: string) => FormField | undefined;
+  onChange: (id: string, value: string) => void;
+  readOnly: boolean;
+}
+
+const RestrictionCodesLabel: React.FC<RestrictionCodesLabelProps> = ({
+  fieldValues, getF, onChange, readOnly,
+}) => {
+  const codeField = getF('Restriction Code Value');
+  const codeFieldId = codeField ? String(codeField.FIELD_ID) : '';
+  const storedCode = codeFieldId ? (fieldValues[codeFieldId] ?? '') : '';
+  const [enabled, setEnabled] = useState(storedCode.length > 0);
+  const [filter, setFilter] = useState('');
+
+  const filtered = filter
+    ? PLACEHOLDER_RESTRICTION_CODES.filter(c =>
+        c.code.includes(filter.toUpperCase()) || c.description.toLowerCase().includes(filter.toLowerCase())
+      )
+    : PLACEHOLDER_RESTRICTION_CODES;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span>Restriction Codes</span>
+        {!readOnly && (
+          <label style={{ fontSize: 10, marginLeft: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={() => {
+                const next = !enabled;
+                setEnabled(next);
+                if (!next && codeFieldId) onChange(codeFieldId, '');
+              }}
+            />
+            Enable
+          </label>
+        )}
+      </div>
+      {enabled && (
+        <div className="sw-restriction-panel">
+          <input
+            className="sw-input"
+            value={storedCode}
+            maxLength={4}
+            placeholder="Code"
+            style={{ textTransform: 'uppercase', width: 70, fontSize: 12 }}
+            onChange={e => {
+              const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+              if (codeFieldId) onChange(codeFieldId, v);
+              setFilter(v);
+            }}
+            readOnly={readOnly}
+          />
+          <div className="sw-restriction-list">
+            {filtered.map(c => (
+              <div
+                key={c.code}
+                className="sw-restriction-item"
+                onClick={() => {
+                  if (!readOnly && codeFieldId) {
+                    onChange(codeFieldId, c.code);
+                    setFilter('');
+                  }
+                }}
+              >
+                <strong>{c.code}</strong> — {c.description}
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div style={{ padding: '4px 6px', color: '#999', fontStyle: 'italic' }}>No matching codes</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ── Multi-entry: Physical Marks ───────────────────────────────────
 interface PhysicalMarksFieldProps {
@@ -1475,6 +1587,38 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             placeholder="— Select —"
           />
         </div>
+        <div className="sw-date-cell">
+          <span className="sw-date-label">Fraud Type:</span>
+          <DocSelect
+            value={val('Fraud Type')}
+            onChange={v => set('Fraud Type', v)}
+            readOnly={readOnly}
+            options={FRAUD_TYPE_OPTS}
+            placeholder="— Select —"
+          />
+        </div>
+        <div className="sw-date-cell">
+          <span className="sw-date-label">Category:</span>
+          <DocSelect
+            value={val('Category')}
+            onChange={v => set('Category', v)}
+            readOnly={readOnly}
+            options={CATEGORY_OPTS}
+            placeholder="— Select —"
+          />
+        </div>
+        <div className="sw-date-cell">
+          <span className="sw-date-label">Dollar Loss:</span>
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            <span style={{ fontWeight: 600, marginRight: 2, color: '#333' }}>$</span>
+            <DocInput
+              value={val('Dollar Loss Amount')}
+              onChange={v => set('Dollar Loss Amount', v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
+              readOnly={readOnly}
+              placeholder="0.00"
+            />
+          </div>
+        </div>
       </div>
 
       {/* ── BODY: FIELDS + PHOTO ────────────────────── */}
@@ -1919,6 +2063,31 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
               />
             </div>
           </div>
+          <div className="sw-ip-section">
+            <div className="sw-ip-label">Device Type:</div>
+            <div className="sw-contact-body">
+              <DocSelect
+                value={val('Device Type')}
+                onChange={v => {
+                  set('Device Type', v);
+                  if (v !== 'Other') set('Device Type Other', '');
+                }}
+                readOnly={readOnly}
+                options={DEVICE_TYPE_OPTS}
+                placeholder="— Select —"
+              />
+              {val('Device Type') === 'Other' && (
+                <div style={{ marginTop: 4 }}>
+                  <DocInput
+                    value={val('Device Type Other')}
+                    onChange={v => set('Device Type Other', v)}
+                    readOnly={readOnly}
+                    placeholder="Specify device type…"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right: Phone + Social */}
@@ -2009,6 +2178,19 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             readOnly={readOnly}
             idPrefix="src"
             selectionControl="checkbox"
+            renderCustomLabel={(name) => {
+              if (name === 'Restriction Codes') {
+                return (
+                  <RestrictionCodesLabel
+                    fieldValues={fieldValues}
+                    getF={getF}
+                    onChange={onChange}
+                    readOnly={readOnly}
+                  />
+                );
+              }
+              return name;
+            }}
           />
         </div>
       </div>{/* /sw-matrix */}

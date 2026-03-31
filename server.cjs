@@ -10882,6 +10882,61 @@ app.delete('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) 
     }
 });
 
+// PATCH /api/my-notices/:id — submit a response to a notice
+app.patch('/api/my-notices/:id', getAuthenticatedUserCompany, upload.single('attachment'), async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id, 10);
+        if (Number.isNaN(noticeId)) {
+            return res.status(400).json({ error: 'Invalid notice ID' });
+        }
+        const userId = parseInt(req.userId, 10);
+        const companyId = parseInt(req.companyId, 10);
+        const { response } = req.body;
+
+        if (!response || response.trim().length < 10) {
+            return res.status(400).json({ error: 'Response must be at least 10 characters' });
+        }
+
+        // Verify notice exists and belongs to company
+        const notices = await prisma.$queryRawUnsafe(`
+            SELECT NOTICE_ID FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${companyId}
+        `);
+        if (!notices || notices.length === 0) {
+            return res.status(404).json({ error: 'Notice not found' });
+        }
+
+        // Handle optional attachment
+        let attachmentId = null;
+        if (req.file) {
+            const attachmentResult = await prisma.$queryRawUnsafe(`
+                INSERT INTO GUARDIAN.ATTACHMENTS (FILE_NAME, FILE_DATA, FILE_TYPE, FILE_SIZE, CREATE_USER_ID, CREATE_DATE)
+                OUTPUT INSERTED.ATTACHMENT_ID
+                VALUES ('${req.file.originalname.replace(/'/g, "''")}', 0x${req.file.buffer.toString('hex')}, '${req.file.mimetype}', ${req.file.size}, ${userId}, GETDATE())
+            `);
+            attachmentId = attachmentResult[0]?.ATTACHMENT_ID;
+        }
+
+        // Insert response
+        const responseResult = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.RESPONSE_MY_NOTICE (MY_NOTICE_ID, USER_ID, RESPONSE_TEXT, ATTACHMENT_ID, CREATE_DATE)
+            OUTPUT INSERTED.RESPONSE_MY_NOTICE_ID
+            VALUES (${noticeId}, ${userId}, '${response.trim().replace(/'/g, "''")}', ${attachmentId || 'NULL'}, GETDATE())
+        `);
+
+        const responseId = responseResult[0]?.RESPONSE_MY_NOTICE_ID;
+        console.log(`✅ Response ${responseId} submitted for notice ${noticeId} by user ${userId}`);
+
+        res.json({
+            message: 'Response submitted successfully',
+            responseId,
+            attachments: attachmentId ? [attachmentId] : [],
+        });
+    } catch (error) {
+        console.error('❌ Error submitting notice response:', error);
+        res.status(500).json({ error: 'Failed to submit response', details: error.message });
+    }
+});
+
 // ────────────────────────────────────────────────────────────────────────────
 
 // Get specific notice details

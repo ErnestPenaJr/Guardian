@@ -27,6 +27,8 @@ import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import JafarAdministration from './JafarAdministration';
+import { Modal } from 'react-bootstrap';
+import ViewNotice from './ViewNotice';
 import AllNotices from './AllNotices';
 import requestService from '../services/requestService';
 import NewRequestModal from './NewRequestModal';
@@ -42,12 +44,12 @@ import WorkspaceSelector from '../components/WorkspaceSelector';
 import WorkspaceManagement from '../components/WorkspaceManagement';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
-import Modal from 'react-modal';
+import ReactModal from 'react-modal';
 
 ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 // Set the app element for react-modal
-Modal.setAppElement('#root');
+ReactModal.setAppElement('#root');
 
 const MySwal = withReactContent(Swal);
 
@@ -709,27 +711,29 @@ function Home() {
         active: selectedSection === 'workspaces',
       }
     ] : []),
+    ...((user?.roles?.some((role: any) => role.id === 6) || user?.role === '6') ? [
+      {
+        icon: <Landmark className="w-6 h-6" />,
+        label: 'AIM-Financial',
+        onClick: () => window.open('https://aim-financial.netlify.app/', '_blank'),
+        active: false,
+      },
+      {
+        icon: <Globe className="w-6 h-6" />,
+        label: 'AIM-Wildlife',
+        onClick: () => window.open('https://aim-wildlife.netlify.app/', '_blank'),
+        active: false,
+      },
+    ] : []),
     {
-      icon: <Landmark className="w-6 h-6" />,
-      label: 'AIM-Financial',
-      onClick: () => window.open('https://aim-financial.netlify.app/', '_blank'),
+      icon: <Network className="w-6 h-6" />,
+      label: 'API Vendor',
+      onClick: () => {},
       active: false,
-    },
-    {
-      icon: <Globe className="w-6 h-6" />,
-      label: 'AIM-Wildlife',
-      onClick: () => window.open('https://aim-wildlife.netlify.app/', '_blank'),
-      active: false,
+      disabled: true,
     },
     // Admin and Super Admin navigation items (role_id = 1 or 6)
     ...((user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6') ? [
-      {
-        icon: <Network className="w-6 h-6" />,
-        label: 'API Vendor',
-        onClick: () => {},
-        active: false,
-        disabled: true,
-      },
       {
         icon: <Sliders className="w-6 h-6" />,
         label: 'Settings',
@@ -813,6 +817,7 @@ function Home() {
   const [noticesPage, setNoticesPage] = useState(1);
   const [noticesPerPage, setNoticesPerPage] = useState(5);
   const [isRefreshingNotices, setIsRefreshingNotices] = useState(false);
+  const [viewNoticeId, setViewNoticeId] = useState<number | null>(null);
   
   // First-time admin workflow creation modal (for admins with no form templates)
   const [showFirstTimeWorkflowModal, setShowFirstTimeWorkflowModal] = useState(false);
@@ -1875,7 +1880,7 @@ function Home() {
                             <tr
                               key={notice.NOTICE_ID}
                               className="hover:bg-gray-50 cursor-pointer"
-                              onClick={() => navigate(`/my-notices/view-notice/${notice.NOTICE_ID}`)}
+                              onClick={() => setViewNoticeId(notice.NOTICE_ID)}
                             >
                               <td className="py-3 font-medium text-gray-800">{notice.NOTICE_TITLE}</td>
                               <td className="py-3">
@@ -2118,6 +2123,22 @@ function Home() {
         onClose={() => setShowNotificationPreferences(false)}
       />
       
+      {/* View Notice Modal */}
+      <Modal show={viewNoticeId !== null} onHide={() => setViewNoticeId(null)} size="xl" scrollable centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Notice Details & Responses</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {viewNoticeId && (
+            <ViewNotice
+              modalMode
+              noticeId={viewNoticeId}
+              onClose={() => setViewNoticeId(null)}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+
       {/* Mobile Bottom Nav */}
       <MobileNavBar
         selected={mobileNav}
