@@ -41,8 +41,6 @@ steps:
     cp -r dist/* deployment/
     echo "Copying server.js to deployment root"
     cp server.js deployment/
-    echo "Copying optimized web.config for IIS configuration"
-    cp web.config deployment/ || echo "No web.config found - will use pipeline-generated one"
     echo "Deployment directory contents:"
     ls -la deployment
     echo "Asset verification details:"
@@ -120,66 +118,11 @@ steps:
 
 - script: |
     cd deployment
-    echo "Configuring hybrid IIS + Node.js deployment"
+    echo "Configuring Node.js deployment"
     echo '[config]
     SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
-    echo "Creating web.config for static assets + Node.js API routing"
-    cat > web.config << 'EOF'
-    <?xml version="1.0" encoding="utf-8"?>
-    <configuration>
-      <system.webServer>
-        <handlers>
-          <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
-        </handlers>
-        <staticContent>
-          <mimeMap fileExtension=".js" mimeType="application/javascript" />
-          <mimeMap fileExtension=".mjs" mimeType="application/javascript" />
-          <mimeMap fileExtension=".css" mimeType="text/css" />
-          <mimeMap fileExtension=".json" mimeType="application/json" />
-          <mimeMap fileExtension=".woff" mimeType="font/woff" />
-          <mimeMap fileExtension=".woff2" mimeType="font/woff2" />
-          <mimeMap fileExtension=".svg" mimeType="image/svg+xml" />
-        </staticContent>
-        <rewrite>
-          <rules>
-            <!-- API routes go to Node.js -->
-            <rule name="API Routes" stopProcessing="true">
-              <match url="^api/(.*)" />
-              <action type="Rewrite" url="server.js"/>
-            </rule>
-            <!-- Static assets served directly by IIS -->
-            <rule name="Static Assets" stopProcessing="true">
-              <match url="^assets/(.*)" />
-              <action type="None"/>
-            </rule>
-            <!-- Other static files served directly by IIS -->
-            <rule name="Static Files" stopProcessing="true">
-              <match url="^.*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$" />
-              <action type="None"/>
-            </rule>
-            <!-- SPA routing - send all other requests to index.html for React Router -->
-            <rule name="React Router SPA" stopProcessing="true">
-              <match url=".*" />
-              <conditions logicalGrouping="MatchAll">
-                <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-                <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
-              </conditions>
-              <action type="Rewrite" url="/index.html" />
-            </rule>
-          </rules>
-        </rewrite>
-        <defaultDocument>
-          <files>
-            <clear />
-            <add value="index.html" />
-          </files>
-        </defaultDocument>
-      </system.webServer>
-    </configuration>
-    EOF
-    echo "Configuration complete - static assets served by IIS, API routes by Node.js"
-  displayName: 'Configure hybrid IIS + Node.js deployment'
+    echo "Configuration complete - Node.js serves static assets + API + SPA routing"
+  displayName: 'Configure Node.js deployment'
 
 - script: |
     cd deployment
