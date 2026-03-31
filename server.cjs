@@ -13811,8 +13811,7 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
-// === NO CATCH-ALL ROUTE ===
-// IIS handles SPA routing via web.config
+// === SPA ROUTING HANDLED BY EXPRESS STATIC SERVING SECTION BELOW ===
 
 // ========================================
 // WORKSPACE MANAGEMENT ENDPOINTS

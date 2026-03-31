@@ -41,8 +41,6 @@ steps:
     cp -r dist/* deployment/
     echo "Copying server.js to deployment root"
     cp server.js deployment/
-    echo "Copying web.config for Azure App Service Node.js startup"
-    cp web.config deployment/
     echo "Deployment directory contents:"
     ls -la deployment
     echo "Asset verification details:"
