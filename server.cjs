@@ -470,7 +470,8 @@ try {
             console.log(`📧 Sending invite email to: ${email}`);
             
             // Create invite acceptance URL
-            const inviteUrl = `${process.env.FRONTEND_URL || 'https://Guardian-ep-dev.azurewebsites.net'}/invite/accept?token=${token}`;
+            if (!process.env.FRONTEND_URL) console.warn('⚠️ FRONTEND_URL not set - invite links may be incorrect');
+            const inviteUrl = `${process.env.FRONTEND_URL || `https://${req.get('host')}`}/invite/accept?token=${token}`;
             
             const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
