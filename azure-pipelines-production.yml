@@ -15,8 +15,10 @@ steps:
   displayName: 'Install Node.js'
 
 - script: |
-    echo "Installing dependencies..."
-    npm install
+    echo "Installing dependencies (skipping postinstall to avoid double build)..."
+    npm install --ignore-scripts
+    echo "Generating Prisma client..."
+    npx prisma generate
     echo "Cleaning previous builds..."
     rm -rf dist dist-server
     echo "Building frontend..."
