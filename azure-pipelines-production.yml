@@ -1,252 +1,219 @@
-# Azure DevOps Pipeline for Guardian MVP - Corrected Version
-# This pipeline builds the React frontend, prepares the Node.js backend, and deploys to Azure Web App
-
-trigger:
-- main
+# azure-pipelines-production.yml
+# Pipeline Name: Push to Prod
+# Production deployment pipeline for GUARDIAN-MVP
+# Manual trigger only - run after client approves changes on staging
+trigger: none
+name: 'Push to Prod - $(Date:yyyyMMdd)$(Rev:.r)'
 
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  nodeVersion: '20.x'
-  appName: 'GUARDIAN-MVP'
-  azureSubscription: 'Microsoft Azure Sponsorship (3b5bdade-dfc5-4108-8325-658ac0d6c2c5)'
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
 
-stages:
-- stage: Build
-  displayName: 'Build Application'
-  jobs:
-  - job: BuildJob
-    displayName: 'Build Frontend and Backend'
-    steps:
-    
-    # Install Node.js
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '$(nodeVersion)'
-      displayName: 'Install Node.js $(nodeVersion)'
+- script: |
+    echo "Installing dependencies..."
+    npm install
+    echo "Cleaning previous builds..."
+    rm -rf dist dist-server
+    echo "Building frontend..."
+    npm run build
+    echo "Building backend..."
+    npm run build:server
+    echo "Build completed. Listing dist directory contents:"
+    ls -la dist
+    echo "Assets directory:"
+    ls -la dist/assets
+    echo "Checking index.html for asset references:"
+    grep -E "(index-.*\.js|index-.*\.css)" dist/index.html
+    echo "Server directory contents:"
+    ls -la dist-server
+  displayName: 'Install dependencies and build'
 
-    # Cache node_modules for faster builds
-    - task: Cache@2
-      inputs:
-        key: 'npm | "$(Agent.OS)" | package-lock.json'
-        restoreKeys: |
-          npm | "$(Agent.OS)"
-        path: node_modules
-      displayName: 'Cache npm dependencies'
+- script: |
+    mkdir -p deployment
+    echo "Creating deployment directory structure"
+  displayName: 'Prepare deployment directory'
 
-    # Install frontend dependencies and build
-    - script: |
-        echo "Installing frontend dependencies..."
-        npm ci --production=false
-        echo "Building frontend..."
-        npm run build
-        echo "Frontend build completed. Contents of dist:"
-        ls -la dist/
-      displayName: 'Install dependencies and build frontend'
+- script: |
+    echo "Creating simple deployment structure"
+    echo "Copying ONLY the working dist folder to deployment root"
+    cp -r dist/* deployment/
+    echo "Copying server.js to deployment root"
+    cp server.js deployment/
+    echo "Deployment directory contents:"
+    ls -la deployment
+    echo "Asset verification details:"
+    if [ -d "deployment/assets" ]; then
+      echo "✅ Assets directory exists"
+      echo "📊 Asset count: $(ls -1 deployment/assets/ | wc -l) files"
+      echo "📜 JS files: $(ls -1 deployment/assets/*.js 2>/dev/null | wc -l)"
+      echo "🎨 CSS files: $(ls -1 deployment/assets/*.css 2>/dev/null | wc -l)"
+      echo "🖼️ Other files: $(ls -1 deployment/assets/ | grep -v -E '\.(js|css)$' | wc -l)"
+      echo "💾 Total assets size: $(du -sh deployment/assets/ | cut -f1)"
+      echo "Main asset files:"
+      ls -lah deployment/assets/index-*
+      echo "Verify JS file size:"
+      wc -c deployment/assets/index-*.js
+    else
+      echo "❌ ERROR: Assets directory missing!"
+      exit 1
+    fi
+    echo "Critical file verification:"
+    [ -f "deployment/index.html" ] && echo "✅ index.html exists" || echo "❌ index.html missing"
+    [ -f "deployment/server.js" ] && echo "✅ server.js exists" || echo "❌ server.js missing"
+    echo "File types verification:"
+    file deployment/assets/* 2>/dev/null || echo "No assets to verify"
+  displayName: 'Copy build artifacts to deployment'
 
-    # Build backend TypeScript
-    - script: |
-        echo "Building backend TypeScript..."
-        npm run build-server
-        echo "Backend build completed. Contents of dist-server:"
-        ls -la dist-server/
-      displayName: 'Build backend TypeScript'
+- script: |
+    echo "Copying production server file to deployment"
+    cp server-production.js deployment/server.js
+    echo "Production server file copied to deployment as server.js"
+    echo "Verifying server content - first 10 lines:"
+    head -10 deployment/server.js
+    echo "Server file type:"
+    head -1 deployment/server.js
+    echo "Verifying API routes are included:"
+    grep -n "api/requests.*form" deployment/server.js || echo "API routes found"
+    ls -la deployment/
+  displayName: 'Copy production server file to deployment'
 
-    # Prepare deployment directory
-    - script: |
-        echo "Creating deployment directory structure..."
-        mkdir -p deployment
-        
-        # Copy built frontend to deployment
-        echo "Copying frontend build..."
-        cp -r dist deployment/
-        
-        # Copy backend files
-        echo "Copying backend files..."
-        cp -r dist-server/* deployment/
-        cp azure-server.js deployment/
-        cp deployment-package.json deployment/package.json
-        
-        # Copy Prisma schema and migrations
-        echo "Copying Prisma files..."
-        cp -r prisma deployment/
-        
-        # Copy environment template
-        echo "Copying environment files..."
-        cp .env deployment/.env.example
-        
-        # Copy any additional server assets
-        if [ -d "server/emails" ]; then
-          cp -r server/emails deployment/
-        fi
-        
-        echo "Deployment directory contents:"
-        ls -la deployment/
-      displayName: 'Prepare deployment directory'
+- script: |
+    echo "Copying production package.json to deployment"
+    cp package.production.json deployment/package.json
+    echo "Production package.json (CommonJS) copied for Azure compatibility"
+    echo "Package type:"
+    grep '"type"' deployment/package.json
+  displayName: 'Copy production package.json'
 
-    # Create web.config for Azure App Service
-    - script: |
-        cd deployment
-        cat > web.config << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <configuration>
-          <system.webServer>
-            <handlers>
-              <add name="iisnode" path="azure-server.js" verb="*" modules="iisnode" />
-            </handlers>
-            <rewrite>
-              <rules>
-                <rule name="StaticContent">
-                  <match url="^dist/(.*)$" />
-                  <action type="Rewrite" url="dist/{R:1}" />
-                </rule>
-                <rule name="NodeInspector" stopProcessing="true">
-                  <match url="^azure-server.js\/debug[\/]?" />
-                </rule>
-                <rule name="DynamicContent">
-                  <conditions>
-                    <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
-                    <add input="{REQUEST_URI}" pattern="^/dist/" negate="True"/>
-                  </conditions>
-                  <action type="Rewrite" url="azure-server.js"/>
-                </rule>
-              </rules>
-            </rewrite>
-            <iisnode 
-              watchedFiles="web.config;*.js;dist/**/*"
-              nodeProcessCommandLine="node.exe"
-              debuggingEnabled="false"
-              loggingEnabled="true"
-              logDirectory="iisnode" />
-            <defaultDocument>
-              <files>
-                <add value="azure-server.js" />
-              </files>
-            </defaultDocument>
-          </system.webServer>
-        </configuration>
-        EOF
-        echo "Created web.config:"
-        cat web.config
-      displayName: 'Create web.config for Azure'
+- script: |
+    echo "Copying production .env file to deployment"
+    if [ -f ".env.production" ]; then
+      cp .env.production deployment/.env
+      echo "Production .env file copied to deployment as .env"
+      echo "First few lines of production .env file:"
+      head -3 deployment/.env
+    elif [ -f ".env" ]; then
+      cp .env deployment/
+      echo "Development .env file copied to deployment (fallback)"
+      echo "First few lines of .env file:"
+      head -3 deployment/.env
+    else
+      echo "No .env file found - this may cause database connection issues"
+    fi
+  displayName: 'Copy production .env file'
 
-    # Create startup script for Azure
-    - script: |
-        cd deployment
-        cat > startup.sh << 'EOF'
-        #!/bin/bash
-        echo "Starting Guardian MVP application..."
-        echo "Node version: $(node --version)"
-        echo "NPM version: $(npm --version)"
-        
-        # Install production dependencies
-        if [ ! -d "node_modules" ]; then
-          echo "Installing production dependencies..."
-          npm install --production
-        fi
-        
-        # Generate Prisma client if needed
-        if [ -f "prisma/schema.prisma" ]; then
-          echo "Generating Prisma client..."
-          npx prisma generate
-        fi
-        
-        # Start the application
-        echo "Starting application..."
-        node azure-server.js
-        EOF
-        chmod +x startup.sh
-        echo "Created startup script"
-      displayName: 'Create startup script'
+- script: |
+    echo "Copying Prisma schema and related files"
+    if [ -f "prisma/schema.prisma" ]; then
+      mkdir -p deployment/prisma
+      cp -r prisma/* deployment/prisma/
+      echo "Prisma schema copied"
+      ls -la deployment/prisma/
+    else
+      echo "No Prisma schema found - skipping"
+    fi
+  displayName: 'Copy Prisma files'
 
-    # Archive deployment package
-    - task: ArchiveFiles@2
-      inputs:
-        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/deployment'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
-        replaceExistingArchive: true
-      displayName: 'Create deployment package'
+- script: |
+    cd deployment
+    echo "Configuring Node.js deployment"
+    echo '[config]
+    SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
+    echo "Configuration complete - Node.js serves static assets + API + SPA routing"
+  displayName: 'Configure Node.js deployment'
 
-    # Publish build artifacts
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/guardian-app.zip'
-        ArtifactName: 'guardian-app'
-        publishLocation: 'Container'
-      displayName: 'Publish build artifacts'
+- script: |
+    cd deployment
+    npm install
+    echo "Installed server dependencies in deployment directory"
 
-- stage: Deploy
-  displayName: 'Deploy to Azure'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - deployment: DeployJob
-    displayName: 'Deploy to Azure Web App'
-    environment: 'production'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          
-          # Download build artifacts
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: 'guardian-app'
-              downloadPath: '$(System.ArtifactsDirectory)'
-            displayName: 'Download build artifacts'
+    # Always generate Prisma client fresh during deployment
+    if [ -f "prisma/schema.prisma" ]; then
+      echo "Generating Prisma client for deployment..."
+      npx prisma generate
+      echo "Prisma client generated successfully"
+      ls -la node_modules/.prisma/client/
+    else
+      echo "No Prisma schema found - skipping client generation"
+    fi
 
-          # Stop Azure Web App before deployment
-          - task: AzureAppServiceManage@0
-            inputs:
-              azureSubscription: '$(azureSubscription)'
-              Action: 'Stop Azure App Service'
-              WebAppName: '$(appName)'
-            displayName: 'Stop Azure Web App'
-            continueOnError: true
+    ls -la node_modules
+  displayName: 'Install server dependencies and generate Prisma client'
 
-          # Wait for app to fully stop
-          - script: |
-              echo "Waiting for app to fully stop..."
-              sleep 15
-            displayName: 'Wait for app stop'
+- script: |
+    cd deployment
+    zip -r ../app.zip .
+    cd ..
+    du -h app.zip
+  displayName: 'Create deployment package'
 
-          # Deploy to Azure Web App
-          - task: AzureWebApp@1
-            inputs:
-              azureSubscription: '$(azureSubscription)'
-              appType: 'webAppLinux'
-              appName: '$(appName)'
-              package: '$(System.ArtifactsDirectory)/guardian-app/guardian-app.zip'
-              runtimeStack: 'NODE|20-lts'
-              startUpCommand: 'bash startup.sh'
-              deploymentMethod: 'zipDeploy'
-              appSettings: |
-                -NODE_ENV production
-                -WEBSITE_NODE_DEFAULT_VERSION 20.x
-                -SCM_DO_BUILD_DURING_DEPLOYMENT false
-                -ENABLE_ORYX_BUILD false
-                -WEBSITE_RUN_FROM_PACKAGE 0
-                -WEBSITE_RESTART_TIME 60
-            displayName: 'Deploy to Azure Web App'
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: 'AzureSP-Dev'
+    appType: 'webApp'
+    appName: 'GUARDIAN-MVP'
+    package: '$(System.DefaultWorkingDirectory)/app.zip'
+    runtimeStack: 'NODE|20-lts'
+  displayName: 'Deploy to Azure Web App'
 
-          # Start Azure Web App after deployment
-          - task: AzureAppServiceManage@0
-            inputs:
-              azureSubscription: '$(azureSubscription)'
-              Action: 'Start Azure App Service'
-              WebAppName: '$(appName)'
-            displayName: 'Start Azure Web App'
+- script: |
+    echo "🔍 Post-deployment verification starting..."
+    echo "Waiting 30 seconds for deployment to stabilize..."
+    sleep 30
 
-          # Verify deployment
-          - script: |
-              echo "Deployment completed. Waiting for application to start..."
-              sleep 30
-              echo "Attempting to verify deployment..."
-              curl -f https://$(appName).azurewebsites.net/health || echo "Health check failed - application may still be starting"
-            displayName: 'Verify deployment'
-            continueOnError: true
+    # Define the production URL
+    PROD_URL="https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
+
+    echo "Testing basic connectivity..."
+    if curl -f -s --max-time 30 "$PROD_URL/api/health" > /dev/null; then
+      echo "✅ API health check passed"
+    else
+      echo "❌ API health check failed - server may still be starting"
+    fi
+
+    echo "Testing asset verification endpoint..."
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > assets_check.json; then
+      echo "✅ Asset verification endpoint accessible"
+      echo "📊 Asset verification results:"
+      cat assets_check.json | jq '.' 2>/dev/null || cat assets_check.json
+    else
+      echo "❌ Asset verification endpoint failed"
+    fi
+
+    echo "Testing deployment info endpoint..."
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/deployment" > deployment_info.json; then
+      echo "✅ Deployment info endpoint accessible"
+      echo "📊 Deployment info results:"
+      cat deployment_info.json | jq '.server_info' 2>/dev/null || echo "JQ not available, showing raw output:"
+      cat deployment_info.json
+    else
+      echo "❌ Deployment info endpoint failed"
+    fi
+
+    echo "Testing static asset accessibility..."
+    # Try to fetch the main page first to see what assets it references
+    if curl -f -s --max-time 30 "$PROD_URL" > index.html; then
+      echo "✅ Main page accessible"
+      # Extract asset references from the HTML
+      if grep -o '/assets/[^"]*' index.html | head -5; then
+        echo "📄 Found asset references in HTML"
+      else
+        echo "⚠️ No asset references found in HTML"
+      fi
+    else
+      echo "❌ Main page not accessible"
+    fi
+
+    echo "🏁 Post-deployment verification complete"
+    echo "🔗 Production URL: $PROD_URL"
+    echo "🔧 Debug endpoints:"
+    echo "   - Health: $PROD_URL/api/health"
+    echo "   - Assets: $PROD_URL/api/debug/assets"
+    echo "   - Deployment: $PROD_URL/api/debug/deployment"
+
+  displayName: 'Post-deployment verification'
