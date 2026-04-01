@@ -155,15 +155,6 @@ steps:
   inputs:
     azureSubscription: 'AzureSP-Dev'
     appType: 'webApp'
-    appName: 'GUARDIAN-EP-DEV'
-    package: '$(System.DefaultWorkingDirectory)/app.zip'
-    runtimeStack: 'NODE|20-lts'
-  displayName: 'Deploy to Staging (GUARDIAN-EP-DEV)'
-
-- task: AzureWebApp@1
-  inputs:
-    azureSubscription: 'AzureSP-Dev'
-    appType: 'webApp'
     appName: 'GUARDIAN-MVP'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
@@ -171,40 +162,32 @@ steps:
 
 - script: |
     echo "Post-deployment verification starting..."
-    echo "Waiting 30 seconds for deployments to stabilize..."
+    echo "Waiting 30 seconds for deployment to stabilize..."
     sleep 30
 
-    for ENV_NAME in "Staging" "Production"; do
-      if [ "$ENV_NAME" = "Staging" ]; then
-        URL="https://Guardian-ep-dev.azurewebsites.net"
-      else
-        URL="https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
-      fi
+    PROD_URL="https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
 
-      echo ""
-      echo "===== $ENV_NAME ($URL) ====="
+    echo "===== Production ($PROD_URL) ====="
 
-      if curl -f -s --max-time 30 "$URL/api/health" > /dev/null; then
-        echo "  API health check PASSED"
-      else
-        echo "  API health check FAILED - server may still be starting"
-      fi
+    if curl -f -s --max-time 30 "$PROD_URL/api/health" > /dev/null; then
+      echo "  API health check PASSED"
+    else
+      echo "  API health check FAILED - server may still be starting"
+    fi
 
-      if curl -f -s --max-time 30 "$URL/api/debug/assets" > /dev/null; then
-        echo "  Asset verification PASSED"
-      else
-        echo "  Asset verification FAILED"
-      fi
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > /dev/null; then
+      echo "  Asset verification PASSED"
+    else
+      echo "  Asset verification FAILED"
+    fi
 
-      if curl -f -s --max-time 30 "$URL" > /dev/null; then
-        echo "  Main page PASSED"
-      else
-        echo "  Main page FAILED"
-      fi
-    done
+    if curl -f -s --max-time 30 "$PROD_URL" > /dev/null; then
+      echo "  Main page PASSED"
+    else
+      echo "  Main page FAILED"
+    fi
 
     echo ""
     echo "Deployment complete"
-    echo "  Staging:    https://Guardian-ep-dev.azurewebsites.net"
-    echo "  Production: https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
-  displayName: 'Post-deployment verification (both environments)'
+    echo "  Production: $PROD_URL"
+  displayName: 'Post-deployment verification'
