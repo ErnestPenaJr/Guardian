@@ -569,6 +569,9 @@ function Login() {
           Powered by <br></br>
           <img src="/images/shieldlytics.png" alt="Shieldlytics" width={300} />
         </p>
+        <p className="text-white/30 text-xs mt-2" title={`Build: ${__BUILD_NUMBER__} | Commit: ${__GIT_HASH__} | ${__BUILD_TIME__}`}>
+          {__BUILD_NUMBER__!== 'local' ? __BUILD_NUMBER__ : __GIT_HASH__}
+        </p>
       </div>
 
       <LegalModal
