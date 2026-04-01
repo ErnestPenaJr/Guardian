@@ -681,7 +681,7 @@ function Home() {
     },
     {
       icon: <FileText className="w-6 h-6" />,
-      label: 'My Requests',
+      label: 'Requests',
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
     },
