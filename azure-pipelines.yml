@@ -119,6 +119,12 @@ steps:
   displayName: 'Copy Prisma files'
 
 - script: |
+    echo "Copying web.config for IIS Node.js startup"
+    cp web.config deployment/web.config
+    echo "web.config copied to deployment"
+  displayName: 'Copy web.config'
+
+- script: |
     cd deployment
     echo "Configuring Node.js deployment"
     echo '[config]
