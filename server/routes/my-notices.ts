@@ -297,7 +297,7 @@ router.get("/", requireAuth, async (req, res) => {
       }),
 
       // ✅ SUMMARY COUNTS (efficient aggregation instead of loading all data)
-      prisma.nOTICE_RECIPIENTS.count({
+      prisma.mY_NOTICE_RECIPIENTS.count({
         where: { MY_NOTICE: { ...whereCondition } },
       }),
       prisma.rESPONSE_MY_NOTICE.count({
@@ -360,10 +360,11 @@ router.get("/", requireAuth, async (req, res) => {
         totalPages: Math.ceil(total / pageSize),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching notices:", error);
     res.status(500).json({
       error: "Failed to fetch notices",
+      details: error?.message || String(error),
     });
   }
 });
@@ -468,7 +469,7 @@ router.post("/", requireAuth, canCreateNotice, async (req, res) => {
         CREATE_USER_ID: (req.user as { id?: number })?.id ?? null,
         UPDATE_USER_ID: (req.user as { id?: number })?.id ?? null,
         RECIPIENTS: {
-          create: data.RECIPIENTS.map((userId) => ({ USER_ID: userId, COMPANY_ID: noticeCompanyId })),
+          create: data.RECIPIENTS.map((userId) => ({ USER_ID: userId })),
         },
       },
       include: { RECIPIENTS: true },
@@ -532,7 +533,6 @@ router.put("/:id", requireAuth, canCreateNotice, async (req: any, res: any) => {
           deleteMany: {}, // remove old recipients
           create: data.RECIPIENTS.map((userId) => ({
             USER_ID: userId,
-            COMPANY_ID: putCompanyId,
           })),
         },
       },
@@ -609,7 +609,7 @@ router.patch(
       if (!noticeForPatch) return res.status(404).json({ error: "Notice not found or access denied" });
 
       // Verify the authenticated user is a recipient of this notice
-      const recipientRecord = await prisma.nOTICE_RECIPIENTS.findFirst({
+      const recipientRecord = await prisma.mY_NOTICE_RECIPIENTS.findFirst({
         where: { NOTICE_ID: noticeId, USER_ID: patchUserId },
       });
       if (!recipientRecord) return res.status(403).json({ error: "You are not a recipient of this notice" });
@@ -692,7 +692,7 @@ router.delete("/:id", requireAuth, canCreateNotice, async (req, res) => {
     }
 
     // Delete recipients first (FK constraint), then the notice
-    await prisma.nOTICE_RECIPIENTS.deleteMany({ where: { NOTICE_ID: noticeId } });
+    await prisma.mY_NOTICE_RECIPIENTS.deleteMany({ where: { NOTICE_ID: noticeId } });
     await prisma.rESPONSE_MY_NOTICE.deleteMany({ where: { MY_NOTICE_ID: noticeId } });
     await prisma.mY_NOTICES.delete({ where: { NOTICE_ID: noticeId } });
 

@@ -1521,10 +1521,12 @@ app.post('/api/login', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Query the database using raw SQL for GUARDIAN schema with normalized email
+        // Order by COMPANY_ID DESC to prioritize users with a company assigned, then by USER_ID DESC for most recent
         const users = await prisma.$queryRaw`
             SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID, ACCOUNT_CREATOR_INVITE_COMPLETED
-            FROM GUARDIAN.USERS 
+            FROM GUARDIAN.USERS
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+            ORDER BY CASE WHEN COMPANY_ID IS NOT NULL THEN 0 ELSE 1 END, USER_ID DESC
         `;
 
         console.log(`🔍 Login database query result for ${email}:`, users.length > 0 ? users[0] : 'NO USERS FOUND');
@@ -1550,6 +1552,14 @@ app.post('/api/login', async (req, res) => {
             console.log(`❌ User not active: ${email}`);
             return res.status(401).json({
                 error: 'Account is not active. Please contact support.'
+            });
+        }
+
+        // Check if user has a company assigned
+        if (!user.COMPANY_ID) {
+            console.log(`❌ User has no company assigned: ${email} (User ID: ${user.USER_ID})`);
+            return res.status(403).json({
+                error: 'Your account is not associated with a company. Please contact your administrator.'
             });
         }
 
@@ -10909,11 +10919,25 @@ app.patch('/api/my-notices/:id', getAuthenticatedUserCompany, upload.single('att
         // Handle optional attachment
         let attachmentId = null;
         if (req.file) {
-            const attachmentResult = await prisma.$queryRawUnsafe(`
-                INSERT INTO GUARDIAN.ATTACHMENTS (FILE_NAME, FILE_DATA, FILE_TYPE, FILE_SIZE, CREATE_USER_ID, CREATE_DATE)
+            const attachmentResult = await prisma.$queryRaw`
+                INSERT INTO GUARDIAN.ATTACHMENTS (
+                    REQUEST_ID,
+                    FILE_NAME,
+                    ATTACHMENT,
+                    COMPANY_ID,
+                    CREATE_USER_ID,
+                    CREATE_DATE
+                )
                 OUTPUT INSERTED.ATTACHMENT_ID
-                VALUES ('${req.file.originalname.replace(/'/g, "''")}', 0x${req.file.buffer.toString('hex')}, '${req.file.mimetype}', ${req.file.size}, ${userId}, GETDATE())
-            `);
+                VALUES (
+                    ${noticeId},
+                    ${req.file.originalname},
+                    ${req.file.buffer},
+                    ${companyId},
+                    ${userId},
+                    GETDATE()
+                )
+            `;
             attachmentId = attachmentResult[0]?.ATTACHMENT_ID;
         }
 

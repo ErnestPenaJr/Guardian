@@ -11,7 +11,7 @@
   z-index: 1000;
 }
 
-.modal-content {
+.modal-overlay > .modal-content {
   position: relative;
   background-color: #fff;
   border-radius: 8px;
@@ -87,7 +87,7 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .modal-content {
+  .modal-overlay > .modal-content {
     max-width: 90%;
     margin: 15px;
   }

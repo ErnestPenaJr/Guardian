@@ -361,7 +361,7 @@ export default function AllNotices() {
       </div>
 
       {/* Notice Modal (Create / Edit / View) */}
-      <Modal show={modalType !== null} onHide={closeModal} size="xl" scrollable centered>
+      <Modal show={modalType !== null} onHide={closeModal} size="lg" scrollable centered>
         <Modal.Header closeButton>
           <Modal.Title>
             {modalType === 'create' && 'Create New Notice'}

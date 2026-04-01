@@ -201,8 +201,8 @@ app.post('/api/login', loginRateLimiter, async (req, res) => {
             // Check exact email match with raw query
             console.log('[LOGIN] Executing exact email match raw query...');
             const exactMatch = await prisma.$queryRaw `
-        SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, EMAIL_VALIDATED 
-        FROM GUARDIAN.USERS 
+        SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, EMAIL_VALIDATED, COMPANY_ID
+        FROM GUARDIAN.USERS
         WHERE EMAIL = ${email}
       `;
             console.log('[LOGIN] Exact email match raw query result:', exactMatch);

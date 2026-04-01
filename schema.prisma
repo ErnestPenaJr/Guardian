@@ -398,38 +398,40 @@ model USERS {
   NOTIFICATION_PREFERENCES           String?        @db.NVarChar(Max)
   COMPANY_INFO                       COMPANY_INFO[]
   MY_NOTICES                         MY_NOTICES[]
-  NOTICE_RECIPIENTS                  NOTICE_RECIPIENTS[]
+  MY_NOTICE_RECIPIENTS               MY_NOTICE_RECIPIENTS[] @relation("MY_NOTICE_RECIPIENTS")
   RESPONSE_MY_NOTICES                RESPONSE_MY_NOTICE[]
 }
 
 model MY_NOTICES {
-  NOTICE_ID                  Int                  @id(map: "PK_MY_NOTICES") @default(autoincrement())
-  NOTICE_TITLE               String               @db.NVarChar(255)
-  SENSITIVITY_CLASSIFICATION String?              @db.NVarChar(50)
-  BUTTON_STATUS              String?              @db.NVarChar(50)
-  DISTRIBUTION_TYPE          String?              @db.NVarChar(50)
-  NOTICE_BODY                String?              @db.NVarChar(Max)
+  NOTICE_ID                  Int                        @id(map: "PK_MY_NOTICES") @default(autoincrement())
+  NOTICE_TITLE               String                     @db.NVarChar(255)
+  SENSITIVITY_CLASSIFICATION String                     @db.NVarChar(50)
+  BUTTON_STATUS              String                     @db.NVarChar(50)
+  DISTRIBUTION_TYPE          String?                    @db.NVarChar(50)
+  NOTICE_BODY                String?                    @db.NVarChar(Max)
   CREATE_USER_ID             Int?
   UPDATE_USER_ID             Int?
-  CREATE_DATE                DateTime             @default(now()) @db.DateTime2
-  UPDATE_DATE                DateTime?            @db.DateTime2
+  CREATE_DATE                DateTime                   @default(now()) @db.DateTime2
+  UPDATE_DATE                DateTime?                  @db.DateTime2
   COMPANY_ID                 Int?
 
-  CREATE_USER                USERS?               @relation(fields: [CREATE_USER_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
-  RECIPIENTS                 NOTICE_RECIPIENTS[]
+  CREATE_USER                USERS?                     @relation(fields: [CREATE_USER_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_MY_NOTICES_CREATE_USER")
+  RECIPIENTS                 MY_NOTICE_RECIPIENTS[]
   RESPONSES                  RESPONSE_MY_NOTICE[]
 
 }
 
-model NOTICE_RECIPIENTS {
-  NOTICE_RECIPIENT_ID Int    @id(map: "PK_NOTICE_RECIPIENTS") @default(autoincrement())
+model MY_NOTICE_RECIPIENTS {
+  NOTICE_RECIPIENT_ID Int        @id(map: "PK_MY_NOTICE_RECIPIENTS") @default(autoincrement())
   NOTICE_ID           Int
   USER_ID             Int
-  COMPANY_ID          Int?
 
-  MY_NOTICE           MY_NOTICES @relation(fields: [NOTICE_ID], references: [NOTICE_ID], onDelete: NoAction, onUpdate: NoAction)
-  USER                USERS      @relation(fields: [USER_ID], references: [USER_ID], onDelete: NoAction, onUpdate: NoAction)
+  MY_NOTICE           MY_NOTICES @relation(fields: [NOTICE_ID], references: [NOTICE_ID], onDelete: Cascade, onUpdate: NoAction, map: "FK_MY_NOTICE_RECIPIENTS_NOTICE")
+  USER                USERS      @relation("MY_NOTICE_RECIPIENTS", fields: [USER_ID], references: [USER_ID], onDelete: Cascade, onUpdate: NoAction, map: "FK_MY_NOTICE_RECIPIENTS_USER")
 
+  @@unique([NOTICE_ID, USER_ID], map: "UQ_MY_NOTICE_RECIPIENTS")
+  @@index([NOTICE_ID], map: "IX_MY_NOTICE_RECIP_NOTICE")
+  @@index([USER_ID], map: "IX_MY_NOTICE_RECIP_USER")
 }
 
 model RESPONSE_MY_NOTICE {
