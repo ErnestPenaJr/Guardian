@@ -92,7 +92,7 @@ export default function SendInvitesForm({ onClose }: { onClose: () => void }) {
 
       console.log('[SendInvitesForm] Sending invites:', invites);
       
-      const response = await api.post('/api/invites/send', { invites });
+      const response = await api.post('/api/invites', { invites });
       
       console.log('[SendInvitesForm] API Response:', response.data);
       
