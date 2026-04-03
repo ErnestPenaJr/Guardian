@@ -288,6 +288,60 @@ function groupFieldTypes(dbTypes: UiFieldType[]): PaletteGroup[] {
 }
 
 /* ------------------------------------------------------------------ */
+/*  FieldPreview — inline preview of each field type on canvas cards    */
+/* ------------------------------------------------------------------ */
+
+function FieldPreview({ field }: { field: FormField }) {
+  const opts = (field.options || '').split(',').map((o) => o.trim()).filter(Boolean);
+
+  switch (field.fieldType) {
+    case 'textarea':
+      return <textarea className="fb-fi fb-fta" placeholder={field.placeholder || ''} readOnly />;
+    case 'dropdown':
+    case 'select':
+      return (
+        <select className="fb-fi" disabled>
+          <option>{field.placeholder || 'Select...'}</option>
+          {opts.map((o) => <option key={o}>{o}</option>)}
+        </select>
+      );
+    case 'checkbox':
+    case 'checkboxes':
+      return (
+        <div className="fb-fopts">
+          {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
+            <label key={o} className="fb-fopt"><input type="checkbox" readOnly />{o}</label>
+          ))}
+        </div>
+      );
+    case 'radio':
+      return (
+        <div className="fb-fopts">
+          {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
+            <label key={o} className="fb-fopt"><input type="radio" name={field.id} readOnly />{o}</label>
+          ))}
+        </div>
+      );
+    case 'header':
+      return <div className="fb-fh3">{field.fieldName}</div>;
+    case 'divider':
+      return <hr className="fb-fhr" />;
+    case 'file':
+    case 'file_upload':
+      return <div className="fb-ffile">↑ Upload file</div>;
+    case 'date':
+      return <input className="fb-fi" type="date" readOnly />;
+    case 'time':
+      return <input className="fb-fi" type="time" readOnly />;
+    case 'datetime':
+    case 'date_time':
+      return <input className="fb-fi" type="datetime-local" readOnly />;
+    default:
+      return <input className="fb-fi" type="text" placeholder={field.placeholder || ''} readOnly />;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -409,6 +463,40 @@ export default function FormBuilder({
 
   /* -- palette groups -- */
   const paletteGroups = groupFieldTypes(fieldTypes);
+
+  /* -- drag-and-drop -- */
+  const handleDrop = useCallback((insertAt: number) => {
+    setDropOver(null);
+    const d = drag.current;
+    if (!d.type || !d.payload) return;
+
+    if (d.type === 'palette') {
+      // New field from palette
+      const match = fieldTypes.find((ft) => ft.type === d.payload);
+      const layoutMatch = LAYOUT_FIELD_DEFS.find((ld) => ld.type === d.payload);
+      const f = mkField(d.payload, match?.dbFieldTypeId);
+      if (layoutMatch) f.fieldName = layoutMatch.label;
+      pushHistory(fields);
+      const next = [...fields];
+      next.splice(insertAt, 0, f);
+      next.forEach((fld, i) => { fld.sequence = i; });
+      setFields(next);
+      setSelectedId(f.id);
+    } else if (d.type === 'canvas') {
+      // Reorder existing field
+      const fromIdx = fields.findIndex((f) => f.id === d.payload);
+      if (fromIdx === -1) return;
+      pushHistory(fields);
+      const next = [...fields];
+      const [moved] = next.splice(fromIdx, 1);
+      const adjustedIdx = insertAt > fromIdx ? insertAt - 1 : insertAt;
+      next.splice(adjustedIdx, 0, moved);
+      next.forEach((fld, i) => { fld.sequence = i; });
+      setFields(next);
+    }
+
+    drag.current = { type: null, payload: null };
+  }, [fields, fieldTypes, pushHistory]);
 
   /* -- derived -- */
   const fieldCount = fields.filter((f) => !LAYOUT_TYPES.includes(f.fieldType)).length;
@@ -556,12 +644,115 @@ export default function FormBuilder({
           </div>
         )}
 
-        {/* Canvas placeholder */}
-        <div className="fb-canvas">
-          <div className="fb-ci">
-            <p style={{ color: 'var(--fb-t3)' }}>Canvas (Task 4)</p>
+        {/* Canvas */}
+        {view === 'editor' && (
+          <div className="fb-canvas">
+            <div className="fb-ci">
+              {/* Title row */}
+              <div className="fb-titlerow">
+                <input
+                  className="fb-titleinp"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); setFormStatus('draft'); }}
+                  placeholder="Untitled form"
+                />
+                <span className="fb-draftbadge">{isEditing ? 'Editing' : 'New'}</span>
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom: 20 }}>
+                <input
+                  className="fb-fi"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Form description (optional)"
+                />
+              </div>
+
+              {/* Empty state */}
+              {fields.length === 0 ? (
+                <div
+                  className={`fb-empty ${dropOver === 0 ? 'over' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropOver(0); }}
+                  onDragLeave={() => setDropOver(null)}
+                  onDrop={() => handleDrop(0)}
+                >
+                  <div>
+                    <div className="fb-ei">+</div>
+                    <div className="fb-et">Drop fields here</div>
+                    <div className="fb-es">Drag from the left panel or click to add</div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* DropZone(0) */}
+                  <div
+                    className="fb-dz"
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropOver(0); }}
+                    onDragLeave={() => setDropOver(null)}
+                    onDrop={() => handleDrop(0)}
+                  >
+                    <div className={`fb-dl ${dropOver === 0 ? 'over' : ''}`} />
+                  </div>
+
+                  {fields.map((f, i) => (
+                    <div key={f.id}>
+                      {/* Card */}
+                      <div
+                        className={`fb-card ${selectedId === f.id ? 'selected' : ''}`}
+                        draggable
+                        onClick={() => setSelectedId(f.id)}
+                        onDragStart={(e) => {
+                          drag.current = { type: 'canvas', payload: f.id };
+                          e.dataTransfer.setData('text/plain', f.id);
+                          (e.currentTarget as HTMLElement).classList.add('dragging');
+                        }}
+                        onDragEnd={(e) => {
+                          (e.currentTarget as HTMLElement).classList.remove('dragging');
+                          drag.current = { type: null, payload: null };
+                          setDropOver(null);
+                        }}
+                      >
+                        <div className="fb-handle">&#x2807;</div>
+                        <button className="fb-del" onClick={(e) => { e.stopPropagation(); deleteField(f.id); }}>
+                          &times;
+                        </button>
+                        <div className="fb-cmeta">
+                          <span className="fb-ctype">{f.fieldType}</span>
+                          {f.required && <span className="fb-creq">Required</span>}
+                        </div>
+                        <span className="fb-clbl">
+                          {f.fieldName}
+                          {f.required && <span className="fb-ast">*</span>}
+                        </span>
+                        <FieldPreview field={f} />
+                        {f.helpText && <p className="fb-cdesc">{f.helpText}</p>}
+                      </div>
+
+                      {/* DropZone(i+1) */}
+                      <div
+                        className="fb-dz"
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropOver(i + 1); }}
+                        onDragLeave={() => setDropOver(null)}
+                        onDrop={() => handleDrop(i + 1)}
+                      >
+                        <div className={`fb-dl ${dropOver === i + 1 ? 'over' : ''}`} />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Add field button */}
+              <button
+                className="fb-addbtn"
+                onClick={() => addField('text_input', fieldTypes.find((ft) => ft.type === 'text_input')?.dbFieldTypeId)}
+              >
+                + Add field
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right panel placeholder */}
         {view === 'editor' && (
