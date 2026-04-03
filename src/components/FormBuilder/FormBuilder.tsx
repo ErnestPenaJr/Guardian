@@ -288,6 +288,181 @@ function groupFieldTypes(dbTypes: UiFieldType[]): PaletteGroup[] {
 }
 
 /* ------------------------------------------------------------------ */
+/*  PropsPanel — right panel properties editor                         */
+/* ------------------------------------------------------------------ */
+
+const VALIDATION_RULES = ['required', 'min', 'max', 'email', 'url', 'regex', 'numeric', 'alpha'];
+const OPTION_FIELD_TYPES = ['dropdown', 'select', 'radio', 'checkbox', 'checkboxes'];
+
+function PropsPanel({
+  field,
+  subTab,
+  setSubTab,
+  onChange,
+}: {
+  field: FormField;
+  subTab: SubTab;
+  setSubTab: (t: SubTab) => void;
+  onChange: (f: FormField) => void;
+}) {
+  const opts = (field.options || '').split(',').map((o) => o.trim()).filter(Boolean);
+  const valRules = (field.validation || '').split(',').map((v) => v.trim()).filter(Boolean);
+
+  const toggleValidation = (rule: string) => {
+    const next = valRules.includes(rule) ? valRules.filter((r) => r !== rule) : [...valRules, rule];
+    onChange({ ...field, validation: next.join(',') });
+  };
+
+  return (
+    <>
+      <div className="fb-stabs">
+        {(['properties', 'data', 'layout', 'validation', 'conditions'] as SubTab[]).map((t) => (
+          <button
+            key={t}
+            className={`fb-stab ${subTab === t ? 'active' : ''}`}
+            onClick={() => setSubTab(t)}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div className="fb-pform">
+        {subTab === 'properties' && (
+          <>
+            <div className="fb-prow">
+              <label className="fb-plbl2">Label</label>
+              <input
+                className="fb-pinp"
+                value={field.fieldName}
+                onChange={(e) => onChange({ ...field, fieldName: e.target.value })}
+              />
+            </div>
+            <div className="fb-prow">
+              <label className="fb-plbl2">Placeholder</label>
+              <input
+                className="fb-pinp"
+                value={field.placeholder || ''}
+                onChange={(e) => onChange({ ...field, placeholder: e.target.value })}
+              />
+            </div>
+            <div className="fb-prow">
+              <label className="fb-plbl2">Help text</label>
+              <input
+                className="fb-pinp"
+                value={field.helpText || ''}
+                onChange={(e) => onChange({ ...field, helpText: e.target.value })}
+              />
+            </div>
+            <div className="fb-prow">
+              <label className="fb-togrow">
+                <span className="fb-togwrap">
+                  <input
+                    type="checkbox"
+                    checked={field.required}
+                    onChange={(e) => onChange({ ...field, required: e.target.checked })}
+                  />
+                  <span className="fb-togbg" />
+                  <span className="fb-togknob" />
+                </span>
+                <span className="fb-toglbl">Required</span>
+              </label>
+            </div>
+          </>
+        )}
+
+        {subTab === 'data' && (
+          <>
+            {OPTION_FIELD_TYPES.includes(field.fieldType) ? (
+              <>
+                <label className="fb-plbl2">Options</label>
+                <div className="fb-optlist">
+                  {opts.map((o, i) => (
+                    <div key={i} className="fb-optrow">
+                      <input
+                        className="fb-pinp"
+                        value={o}
+                        onChange={(e) => {
+                          const next = [...opts];
+                          next[i] = e.target.value;
+                          onChange({ ...field, options: next.join(',') });
+                        }}
+                      />
+                      <button
+                        className="fb-delopt"
+                        onClick={() => {
+                          const next = opts.filter((_, idx) => idx !== i);
+                          onChange({ ...field, options: next.join(',') });
+                        }}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="fb-addopt"
+                  onClick={() => onChange({ ...field, options: [...opts, `Option ${opts.length + 1}`].join(',') })}
+                >
+                  + Add option
+                </button>
+              </>
+            ) : (
+              <p style={{ color: 'var(--fb-t3)', fontSize: 13, textAlign: 'center', marginTop: 16 }}>
+                Options are not applicable for this field type.
+              </p>
+            )}
+          </>
+        )}
+
+        {subTab === 'layout' && (
+          <>
+            <div className="fb-prow">
+              <label className="fb-plbl2">Size</label>
+              <div className="fb-segs">
+                {['SM', 'MD', 'LG'].map((s) => (
+                  <button key={s} className={`fb-seg ${s === 'MD' ? 'active' : ''}`}>{s}</button>
+                ))}
+              </div>
+            </div>
+            <div className="fb-prow">
+              <label className="fb-plbl2">Column span</label>
+              <div className="fb-segs">
+                {['1/3', '2/3', 'Full'].map((s) => (
+                  <button key={s} className={`fb-seg ${s === 'Full' ? 'active' : ''}`}>{s}</button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {subTab === 'validation' && (
+          <>
+            {VALIDATION_RULES.map((rule) => (
+              <label key={rule} className="fb-valrule">
+                <input
+                  type="checkbox"
+                  checked={valRules.includes(rule)}
+                  onChange={() => toggleValidation(rule)}
+                />
+                {rule}
+              </label>
+            ))}
+          </>
+        )}
+
+        {subTab === 'conditions' && (
+          <>
+            <button className="fb-stubbtn">+ Add condition</button>
+            <p className="fb-muted">No conditions</p>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  FieldPreview — inline preview of each field type on canvas cards    */
 /* ------------------------------------------------------------------ */
 
@@ -754,10 +929,42 @@ export default function FormBuilder({
           </div>
         )}
 
-        {/* Right panel placeholder */}
+        {/* Right panel */}
         {view === 'editor' && (
           <div className="fb-right">
-            <p style={{ padding: 16, color: 'var(--fb-t3)' }}>Properties (Task 5)</p>
+            <div className="fb-rscroll">
+              {selectedId && fields.find((f) => f.id === selectedId) ? (
+                <PropsPanel
+                  field={fields.find((f) => f.id === selectedId)!}
+                  subTab={subTab}
+                  setSubTab={setSubTab}
+                  onChange={updateField}
+                />
+              ) : (
+                <div className="fb-rempty">
+                  <div className="fb-rempty-arrow">&larr;</div>
+                  <p className="fb-rempty-txt">Select a field to edit its properties</p>
+                </div>
+              )}
+            </div>
+
+            {/* Theme section */}
+            <div className="fb-tpanel" style={{ borderTop: '1.5px solid var(--fb-border)' }}>
+              <label className="fb-plbl2">Accent color</label>
+              <div className="fb-swatches">
+                {['#3B6EF0', '#E53935', '#43A047', '#FB8C00', '#8E24AA', '#00ACC1'].map((c) => (
+                  <button
+                    key={c}
+                    className={`fb-swatch ${accentColor === c ? 'active' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => {
+                      setAccentColor(c);
+                      document.querySelector<HTMLElement>('.fb-wrap')?.style.setProperty('--fb-accent', c);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
