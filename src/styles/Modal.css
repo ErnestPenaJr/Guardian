@@ -1,4 +1,5 @@
-.modal-overlay {
+/* ── React-Modal overlay (shared across all react-modal instances) ── */
+.rm-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -8,19 +9,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9998;
 }
 
-.modal-overlay > .modal-content {
+/* ── React-Modal content box ── */
+.rm-overlay > .rm-content {
   position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
   background-color: #fff;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 100%;
+  border-radius: 16px;
+  max-width: 800px;
+  width: calc(100% - 32px);
+  max-height: 90vh;
+  overflow: auto;
   padding: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid #219191;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   outline: none;
-  margin: 30px;
+  margin: 0;
 }
 
 .modal-header {
@@ -52,25 +61,26 @@
 }
 
 /* Full-page modal variant — used when a form has many fields (e.g. step 2 of AddRequestModal) */
-.modal-content--fullscreen {
-  max-width: none;
-  width: calc(100vw - 48px);
-  height: calc(100vh - 48px);
-  margin: 24px;
+.rm-content--fullscreen {
+  max-width: none !important;
+  width: calc(100vw - 48px) !important;
+  height: calc(100vh - 48px) !important;
+  max-height: none !important;
+  margin: 0 !important;
   display: flex;
   flex-direction: column;
   border-radius: 8px;
-  overflow: hidden; /* Prevent form fields from escaping the modal box */
+  overflow: hidden;
 }
 
 /* Pin the header so it never shrinks in a flex-column fullscreen modal */
-.modal-content--fullscreen .modal-header {
+.rm-content--fullscreen .modal-header {
   flex: 0 0 auto;
 }
 
 /* The <form> element wrapping the body must participate in the flex column
    so it stretches to fill the remaining height after the header. */
-.modal-content--fullscreen > form {
+.rm-content--fullscreen > form {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -78,25 +88,25 @@
   overflow: hidden;
 }
 
-.modal-content--fullscreen .modal-body {
+.rm-content--fullscreen .modal-body {
   flex: 1 1 auto;
   max-height: none;
-  min-height: 0; /* Allow the flex child to shrink below content size */
+  min-height: 0;
   overflow-y: auto;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .modal-overlay > .modal-content {
+  .rm-overlay > .rm-content {
     max-width: 90%;
-    margin: 15px;
+    width: calc(100% - 24px);
   }
-  
+
   .modal-body {
     max-height: calc(100vh - 180px);
     padding: 16px;
   }
-  
+
   .modal-footer {
     padding: 12px 16px;
   }
@@ -105,4 +115,37 @@
 /* Ensure padding for AddRequestModal body regardless of Bootstrap overrides */
 #AddRequestModal .modal-body {
   padding: 16px 20px !important;
+}
+
+/* ── Legacy aliases (keep for other modals still using old class names) ── */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.modal-overlay > .modal-content {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  background-color: #fff;
+  border-radius: 16px;
+  max-width: 800px;
+  width: calc(100% - 32px);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 0;
+  border: 2px solid #219191;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  outline: none;
+  margin: 0;
 }

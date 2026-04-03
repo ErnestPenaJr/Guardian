@@ -2215,22 +2215,21 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const startTime = Date.now();
-        console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
+        console.log(`📋 Fetching requests for company ID: ${req.companyId}, user ID: ${req.userId}`);
 
-        // Get user's active workspace
         const userWorkspace = await prisma.$queryRaw`
-            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS 
+            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS
             WHERE USER_ID = ${req.userId}
         `;
-        
+
         const activeWorkspaceId = userWorkspace[0]?.ACTIVE_WORKSPACE_ID;
-        
+
         console.log(`🏢 User ${req.userId} active workspace: ${activeWorkspaceId || 'None'}`);
 
-        // OPTIMIZED: Single query with proper JOINs, timeout handling, and workspace filtering
+        // All users only see requests they created or that are assigned to them
         const requests = await Promise.race([
             prisma.$queryRaw`
-                SELECT 
+                SELECT
                     r.REQUEST_ID,
                     r.REQUEST_NAME,
                     r.REQUEST_DESCRIPTION,
@@ -2267,6 +2266,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 LEFT JOIN GUARDIAN.WORKSPACES w ON r.WORKSPACE_ID = w.WORKSPACE_ID
                 WHERE r.COMPANY_ID = ${req.companyId}
                   AND (r.WORKSPACE_ID = ${activeWorkspaceId || null} OR r.WORKSPACE_ID IS NULL)
+                  AND (r.CREATE_USER_ID = ${req.userId} OR r.REQUESTOR_ID = ${req.userId} OR r.ASSIGNED_ID = ${req.userId})
                 ORDER BY r.CREATE_DATE DESC
             `,
             new Promise((_, reject) => 
