@@ -35,6 +35,7 @@ import AllNotices from './pages/AllNotices';
 import CreateNotice from './pages/CreateNotice';
 import ViewNotice from './pages/ViewNotice';
 import DeliveryDashboard from './pages/DeliveryDashboard';
+import FormBuilderPage from './pages/FormBuilderPage';
 
 function App() {
   return (
@@ -82,6 +83,8 @@ function App() {
             <Route path="/my-notices/view-notice/:id" element={<ProtectedRoute><ViewNotice /></ProtectedRoute>} />
             <Route path="/my-notices/view-notice" element={<ProtectedRoute><ViewNotice /></ProtectedRoute>} />
             <Route path="/my-notices/notification-status-dashboard" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
+            <Route path="/form-builder/new" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
+            <Route path="/form-builder/:formId" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
