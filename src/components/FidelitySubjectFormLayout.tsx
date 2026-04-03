@@ -90,11 +90,17 @@ const MARK_TYPE_OPTS  = ['Tattoo', 'Scar', 'Birthmark', 'Piercing', 'Brand', 'Ot
 const PHONE_TYPE_OPTS = ['Mobile', 'Home', 'Work', 'Fax', 'Unknown'];
 
 const FRAUD_TYPE_OPTS = [
-  'Account Takeover', 'Check Fraud', 'Identity Theft', 'Wire Fraud',
-  'Card Fraud', 'Phishing', 'Elder Fraud', 'Zelle / P2P Fraud',
-  'Business Email Compromise', 'Loan Fraud',
+  'Check Fraud', 'Identity Theft', 'Wire Fraud', 'Phishing',
+  'Elder Fraud', 'Business Email Compromise', 'Debit Card',
+  'Credit Card', 'HSA Card', 'After Hours Trading',
+  'Stock Manipulation', 'Pump and Dump Scheme', 'Insider Trading',
+  'Basic Securities', 'Other',
 ];
-const CATEGORY_OPTS = ['Internal', 'External', 'Collusion', 'First Party', 'Third Party'];
+const CATEGORY_OPTS = [
+  'Account Owner Fraud (AOF)', 'Account Takeover (ATO)',
+  'True Name Fraud (TNF)', 'Scam Victim (SV)',
+  'Victim Assisted Fraud (VAF)', 'Other (OTH)',
+];
 const DEVICE_TYPE_OPTS = [
   'Desktop / Laptop', 'Mobile Phone', 'Tablet', 'Smart TV', 'Gaming Console',
   'ATM / Kiosk', 'POS Terminal', 'Smart Watch / Wearable', 'IoT Device',
@@ -362,7 +368,6 @@ const RestrictionCodesLabel: React.FC<RestrictionCodesLabelProps> = ({
   const codeField = getF('Restriction Code Value');
   const codeFieldId = codeField ? String(codeField.FIELD_ID) : '';
   const storedCode = codeFieldId ? (fieldValues[codeFieldId] ?? '') : '';
-  const [enabled, setEnabled] = useState(storedCode.length > 0);
   const [filter, setFilter] = useState('');
 
   const filtered = filter
@@ -373,59 +378,41 @@ const RestrictionCodesLabel: React.FC<RestrictionCodesLabelProps> = ({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span>Restriction Codes</span>
-        {!readOnly && (
-          <label style={{ fontSize: 10, marginLeft: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={() => {
-                const next = !enabled;
-                setEnabled(next);
-                if (!next && codeFieldId) onChange(codeFieldId, '');
+      <span>Restriction Codes</span>
+      <div className="sw-restriction-panel">
+        <input
+          className="sw-input"
+          value={storedCode}
+          maxLength={4}
+          placeholder="Code"
+          style={{ textTransform: 'uppercase', width: 70, fontSize: 12 }}
+          onChange={e => {
+            const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (codeFieldId) onChange(codeFieldId, v);
+            setFilter(v);
+          }}
+          readOnly={readOnly}
+        />
+        <div className="sw-restriction-list">
+          {filtered.map(c => (
+            <div
+              key={c.code}
+              className="sw-restriction-item"
+              onClick={() => {
+                if (!readOnly && codeFieldId) {
+                  onChange(codeFieldId, c.code);
+                  setFilter('');
+                }
               }}
-            />
-            Enable
-          </label>
-        )}
-      </div>
-      {enabled && (
-        <div className="sw-restriction-panel">
-          <input
-            className="sw-input"
-            value={storedCode}
-            maxLength={4}
-            placeholder="Code"
-            style={{ textTransform: 'uppercase', width: 70, fontSize: 12 }}
-            onChange={e => {
-              const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-              if (codeFieldId) onChange(codeFieldId, v);
-              setFilter(v);
-            }}
-            readOnly={readOnly}
-          />
-          <div className="sw-restriction-list">
-            {filtered.map(c => (
-              <div
-                key={c.code}
-                className="sw-restriction-item"
-                onClick={() => {
-                  if (!readOnly && codeFieldId) {
-                    onChange(codeFieldId, c.code);
-                    setFilter('');
-                  }
-                }}
-              >
-                <strong>{c.code}</strong> — {c.description}
-              </div>
-            ))}
-            {filtered.length === 0 && (
-              <div style={{ padding: '4px 6px', color: '#999', fontStyle: 'italic' }}>No matching codes</div>
-            )}
-          </div>
+            >
+              <strong>{c.code}</strong> — {c.description}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ padding: '4px 6px', color: '#999', fontStyle: 'italic' }}>No matching codes</div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

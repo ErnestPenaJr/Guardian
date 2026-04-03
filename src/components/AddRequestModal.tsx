@@ -850,27 +850,9 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       isOpen={isOpen && !showFullPage}
       onRequestClose={onClose}
       contentLabel="Add Request Modal"
-      className={step === 2 ? 'modal-content modal-content--fullscreen' : 'modal-content'}
-      overlayClassName="modal-overlay"
+      className={step === 2 ? 'rm-content rm-content--fullscreen' : 'rm-content'}
+      overlayClassName="rm-overlay"
       id="AddRequestModal"
-      style={step === 2 ? {
-        content: {
-          position: 'fixed',
-          top: '24px',
-          left: '24px',
-          right: '24px',
-          bottom: '24px',
-          width: 'calc(100vw - 48px)',
-          height: 'calc(100vh - 48px)',
-          maxWidth: 'none',
-          margin: 0,
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column' as const,
-          borderRadius: '8px',
-          overflow: 'hidden',
-        }
-      } : {}}
     >
       <div className="modal-header" style={{ paddingTop: '20px', paddingLeft: '20px', paddingRight: '20px' }}>
         <h2 className="modal-title">

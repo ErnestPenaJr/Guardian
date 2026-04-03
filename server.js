@@ -470,7 +470,8 @@ try {
             console.log(`📧 Sending invite email to: ${email}`);
             
             // Create invite acceptance URL
-            const inviteUrl = `${process.env.FRONTEND_URL || 'https://Guardian-ep-dev.azurewebsites.net'}/invite/accept?token=${token}`;
+            if (!process.env.FRONTEND_URL) console.warn('⚠️ FRONTEND_URL not set - invite links may be incorrect');
+            const inviteUrl = `${process.env.FRONTEND_URL || `https://${req.get('host')}`}/invite/accept?token=${token}`;
             
             const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
@@ -1520,10 +1521,12 @@ app.post('/api/login', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Query the database using raw SQL for GUARDIAN schema with normalized email
+        // Order by COMPANY_ID DESC to prioritize users with a company assigned, then by USER_ID DESC for most recent
         const users = await prisma.$queryRaw`
             SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID, ACCOUNT_CREATOR_INVITE_COMPLETED
-            FROM GUARDIAN.USERS 
+            FROM GUARDIAN.USERS
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+            ORDER BY CASE WHEN COMPANY_ID IS NOT NULL THEN 0 ELSE 1 END, USER_ID DESC
         `;
 
         console.log(`🔍 Login database query result for ${email}:`, users.length > 0 ? users[0] : 'NO USERS FOUND');
@@ -1549,6 +1552,14 @@ app.post('/api/login', async (req, res) => {
             console.log(`❌ User not active: ${email}`);
             return res.status(401).json({
                 error: 'Account is not active. Please contact support.'
+            });
+        }
+
+        // Check if user has a company assigned
+        if (!user.COMPANY_ID) {
+            console.log(`❌ User has no company assigned: ${email} (User ID: ${user.USER_ID})`);
+            return res.status(403).json({
+                error: 'Your account is not associated with a company. Please contact your administrator.'
             });
         }
 
@@ -1717,47 +1728,14 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res
         const requestId = parseInt(req.params.id);
         console.log(`🚀 Starting work on request ${requestId} by user ${req.userId}`);
 
-        const requestBeforeUpdate = await prisma.$queryRaw`
-            SELECT REQUEST_ID, STATUS, ASSIGNED_ID
-            FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId}
-              AND COMPANY_ID = ${req.companyId}
-        `;
-
-        if (!requestBeforeUpdate.length) {
-            return res.status(404).json({
-                error: 'Request not found'
-            });
-        }
-
-        const request = requestBeforeUpdate[0];
-
-        if (request.ASSIGNED_ID !== req.userId) {
-            return res.status(403).json({
-                error: 'Only the assigned user can start this request'
-            });
-        }
-
-        if (request.STATUS !== 'P') {
-            return res.status(400).json({
-                error: `Request cannot be started from status ${request.STATUS}`
-            });
-        }
-
-        const updatedRows = await prisma.$executeRaw`
+        // Update request status to 'A' (Active/In Progress)
+        await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
             SET STATUS = 'A', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
-                AND STATUS = 'P'
         `;
-
-        if (!updatedRows) {
-            return res.status(409).json({
-                error: 'Request status was not updated'
-            });
-        }
 
         // Create milestone for request start
         try {
@@ -1785,47 +1763,14 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
         const { completionNotes } = req.body;
         console.log(`✅ Completing request ${requestId} by user ${req.userId}`);
 
-        const requestBeforeUpdate = await prisma.$queryRaw`
-            SELECT REQUEST_ID, STATUS, ASSIGNED_ID
-            FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId}
-              AND COMPANY_ID = ${req.companyId}
-        `;
-
-        if (!requestBeforeUpdate.length) {
-            return res.status(404).json({
-                error: 'Request not found'
-            });
-        }
-
-        const request = requestBeforeUpdate[0];
-
-        if (request.ASSIGNED_ID !== req.userId) {
-            return res.status(403).json({
-                error: 'Only the assigned user can complete this request'
-            });
-        }
-
-        if (request.STATUS !== 'A') {
-            return res.status(400).json({
-                error: `Request cannot be completed from status ${request.STATUS}`
-            });
-        }
-
-        const updatedRows = await prisma.$executeRaw`
+        // Update request status to 'D' (Complete)
+        await prisma.$executeRaw`
             UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'C', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
+            SET STATUS = 'D', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
             WHERE REQUEST_ID = ${requestId} 
                 AND COMPANY_ID = ${req.companyId}
                 AND ASSIGNED_ID = ${req.userId}
-                AND STATUS = 'A'
         `;
-
-        if (!updatedRows) {
-            return res.status(409).json({
-                error: 'Request status was not updated'
-            });
-        }
 
         // Add completion notes if provided
         if (completionNotes) {
@@ -1835,7 +1780,7 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, 
 
         // Create milestone for request completion
         try {
-            await createStatusChangeMilestone(requestId, 'A', 'C', req.userId, req.companyId);
+            await createStatusChangeMilestone(requestId, 'A', 'D', req.userId, req.companyId);
             console.log(`🏁 Request completion milestone created for request ${requestId}`);
         } catch (milestoneError) {
             console.error('⚠️ Failed to create request completion milestone (continuing):', milestoneError);
@@ -2033,11 +1978,14 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         // Create the request with company-based data isolation using raw SQL
         const currentDate = new Date();
         
-        console.log('🔍 INSERT Parameters:', {
+        console.log('🔍 DEBUG - REQUEST CREATION PARAMETERS:', {
             finalRequestName: finalRequestName.trim(),
             finalDescription: finalDescription.trim() || null,
             finalAbbreviation,
-            finalStatus,
+            finalStatus: finalStatus,
+            STATUS_IN_BODY: STATUS,
+            status_IN_BODY: status,
+            FINAL_STATUS_BEING_INSERTED: finalStatus,
             currentDate,
             userId: req.userId,
             companyId: req.companyId,
@@ -2045,6 +1993,12 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             finalAssignedId,
             finalPriorityLevel
         });
+        
+        console.log('🔍 DEBUG - STATUS VALUE TRACE:');
+        console.log('  - STATUS from body:', STATUS);
+        console.log('  - status from body:', status);
+        console.log('  - Final computed status:', finalStatus);
+        console.log('  - Expected: Should be "P" for new requests');
         
         // Get user's active workspace for request assignment
         const userWorkspace = await prisma.$queryRaw`
@@ -2121,6 +2075,21 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
         `;
         
         const newRequest = newRequestResults[0];
+        
+        console.log('🔍 DEBUG - INSERTED REQUEST STATUS CHECK:');
+        console.log('  - Request ID:', newRequest?.REQUEST_ID);
+        console.log('  - Status in database:', newRequest?.STATUS);
+        console.log('  - Expected status: P');
+        console.log('  - Status matches expected:', newRequest?.STATUS === 'P');
+        
+        if (newRequest?.STATUS !== 'P') {
+            console.log('❌ CRITICAL: Request created with wrong status!');
+            console.log('  - Database returned status:', newRequest?.STATUS);
+            console.log('  - This indicates either:');
+            console.log('    1. Database trigger/default is overriding our value');
+            console.log('    2. Some middleware/process is auto-starting requests');
+            console.log('    3. The INSERT statement is using wrong status value');
+        }
         
         if (!newRequest) {
             console.log('❌ Request not found after insert, company ID mismatch?');
@@ -2246,22 +2215,21 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const startTime = Date.now();
-        console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
+        console.log(`📋 Fetching requests for company ID: ${req.companyId}, user ID: ${req.userId}`);
 
-        // Get user's active workspace
         const userWorkspace = await prisma.$queryRaw`
-            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS 
+            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS
             WHERE USER_ID = ${req.userId}
         `;
-        
+
         const activeWorkspaceId = userWorkspace[0]?.ACTIVE_WORKSPACE_ID;
-        
+
         console.log(`🏢 User ${req.userId} active workspace: ${activeWorkspaceId || 'None'}`);
 
-        // OPTIMIZED: Single query with proper JOINs, timeout handling, and workspace filtering
+        // All users only see requests they created or that are assigned to them
         const requests = await Promise.race([
             prisma.$queryRaw`
-                SELECT 
+                SELECT
                     r.REQUEST_ID,
                     r.REQUEST_NAME,
                     r.REQUEST_DESCRIPTION,
@@ -2298,6 +2266,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 LEFT JOIN GUARDIAN.WORKSPACES w ON r.WORKSPACE_ID = w.WORKSPACE_ID
                 WHERE r.COMPANY_ID = ${req.companyId}
                   AND (r.WORKSPACE_ID = ${activeWorkspaceId || null} OR r.WORKSPACE_ID IS NULL)
+                  AND (r.CREATE_USER_ID = ${req.userId} OR r.REQUESTOR_ID = ${req.userId} OR r.ASSIGNED_ID = ${req.userId})
                 ORDER BY r.CREATE_DATE DESC
             `,
             new Promise((_, reject) => 
@@ -2901,6 +2870,51 @@ app.get('/api/users/company/:companyId', getAuthenticatedUserCompany, async (req
             error: 'Failed to fetch users',
             message: error.message
         });
+    }
+});
+
+// Get assignable users for the requester's company (used by Investigator dropdown etc.)
+app.get('/api/users/assignable', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+
+        console.log(`[USERS] Fetching assignable users for company ID: ${companyId}`);
+
+        const users = await prisma.$queryRaw`
+            SELECT
+                u.USER_ID,
+                u.EMAIL,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.COMPANY_ID
+            FROM GUARDIAN.USERS u
+            WHERE u.COMPANY_ID = ${companyId}
+            AND u.STATUS = 'A'
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+
+        const formattedUsers = users.map(user => ({
+            USER_ID: user.USER_ID,
+            FIRST_NAME: user.FIRST_NAME,
+            LAST_NAME: user.LAST_NAME,
+            FULL_NAME: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            EMAIL: user.EMAIL,
+            COMPANY_ID: user.COMPANY_ID,
+            value: user.USER_ID,
+            label: `${user.FIRST_NAME} ${user.LAST_NAME}`,
+            subtitle: user.EMAIL
+        }));
+
+        console.log(`[USERS] Found ${formattedUsers.length} assignable users`);
+        res.json(formattedUsers);
+
+    } catch (error) {
+        console.error('[USERS] Error fetching assignable users:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch assignable users' });
     }
 });
 
@@ -6294,64 +6308,6 @@ app.get('/api/requests/:id/attachments', getAuthenticatedUserCompany, async (req
     }
 });
 
-// Get subject photo metadata for a request
-app.get('/api/requests/:id/subject-photo', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        const requestId = parseInt(req.params.id, 10);
-        const subjectPhotoPrefix = '__subject_photo__::';
-
-        if (!requestId || isNaN(requestId)) {
-            return res.status(400).json({
-                error: 'Valid request ID is required'
-            });
-        }
-
-        const requestExists = await prisma.$queryRaw`
-            SELECT REQUEST_ID
-            FROM GUARDIAN.REQUESTS
-            WHERE REQUEST_ID = ${requestId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
-        `;
-
-        if (!requestExists.length) {
-            return res.status(404).json({
-                error: 'Request not found or access denied'
-            });
-        }
-
-        const attachments = await prisma.$queryRaw`
-            SELECT TOP 1
-                ATTACHMENT_ID,
-                FILE_NAME,
-                CREATE_DATE
-            FROM GUARDIAN.ATTACHMENTS
-            WHERE REQUEST_ID = ${requestId}
-              AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
-              AND FILE_NAME LIKE ${`${subjectPhotoPrefix}%`}
-            ORDER BY CREATE_DATE DESC, ATTACHMENT_ID DESC
-        `;
-
-        if (!attachments.length) {
-            return res.status(204).send();
-        }
-
-        const attachment = attachments[0];
-
-        res.json({
-            success: true,
-            attachmentId: attachment.ATTACHMENT_ID,
-            fileName: attachment.FILE_NAME,
-            createDate: attachment.CREATE_DATE
-        });
-
-    } catch (error) {
-        console.error('❌ Error fetching subject photo metadata:', error);
-        res.status(500).json({
-            error: 'Failed to fetch subject photo metadata',
-            message: error.message
-        });
-    }
-});
-
 // Download specific attachment
 app.get('/api/attachments/:id/download', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -6707,6 +6663,7 @@ app.delete('/api/requests/:requestId/field-value/:fieldId', getAuthenticatedUser
         if (isNaN(requestId) || isNaN(fieldId)) {
             return res.status(400).json({ error: 'Invalid requestId or fieldId' });
         }
+        // Find the form instance for this request (company-isolated)
         const instances = await prisma.$queryRaw`
             SELECT fi.FORM_INSTANCE_ID
             FROM GUARDIAN.FORMS_INSTANCE fi
@@ -7020,19 +6977,91 @@ app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) =>
         const request = existingRequest[0];
         console.log(`📋 Found request to delete: ${request.REQUEST_NAME}`);
 
-        const updatedRequests = await prisma.$executeRaw`
-            UPDATE GUARDIAN.REQUESTS
-            SET STATUS = 'D',
-                UPDATE_DATE = GETDATE(),
-                UPDATE_USER_ID = ${req.userId}
-            WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
-        `;
+        // Use a transaction to ensure all deletions succeed or all fail
+        await prisma.$transaction(async (tx) => {
+            
+            // 1. First, get all form instance IDs for this request
+            const formInstances = await tx.$queryRaw`
+                SELECT FORM_INSTANCE_ID 
+                FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`📋 Found ${formInstances.length} form instances to delete`);
 
-        if (updatedRequests === 0) {
-            throw new Error(`Failed to delete request ${requestId}`);
-        }
+            // 2. Delete form instance values for each form instance (avoid foreign key constraint issues)
+            let totalValuesDeleted = 0;
+            if (formInstances.length > 0) {
+                for (const instance of formInstances) {
+                    const deletedValues = await tx.$executeRaw`
+                        DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES 
+                        WHERE FORM_INSTANCE_ID = ${instance.FORM_INSTANCE_ID}
+                    `;
+                    console.log(`🗑️ Deleted ${deletedValues} values for form instance ${instance.FORM_INSTANCE_ID}`);
+                    totalValuesDeleted += deletedValues;
+                }
+                console.log(`✅ Deleted total of ${totalValuesDeleted} form instance values`);
+            }
 
-        console.log(`✅ Successfully soft deleted request ${requestId}: ${request.REQUEST_NAME}`);
+            // 3. Delete form instances (to avoid foreign key constraint with REQUEST_ID)
+            const deletedInstances = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.FORMS_INSTANCE
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedInstances} form instances`);
+
+            // Verify form instances are actually deleted
+            const remainingInstances = await tx.$queryRaw`
+                SELECT COUNT(*) as count 
+                FROM GUARDIAN.FORMS_INSTANCE 
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`🔍 Remaining form instances: ${remainingInstances[0].count}`);
+            
+            if (remainingInstances[0].count > 0) {
+                throw new Error(`Failed to delete all form instances. ${remainingInstances[0].count} remain.`);
+            }
+
+            // 4. Delete tasks related to this request
+            const deletedTasks = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.TASKS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedTasks} related tasks`);
+
+            // 5. Delete notifications related to this specific request
+            const deletedNotifications = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.NOTIFICATIONS
+                WHERE RELATED_ID = ${requestId} OR MESSAGE LIKE 'Request #${requestId}%' OR MESSAGE LIKE '%request ${requestId}%'
+            `;
+            console.log(`✅ Deleted ${deletedNotifications} related notifications`);
+
+            // 6. Delete work progress entries related to this request
+            const deletedProgress = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.WORK_PROGRESS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedProgress} work progress entries`);
+
+            // 7. Delete attachments related to this request
+            const deletedAttachments = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.ATTACHMENTS
+                WHERE REQUEST_ID = ${requestId}
+            `;
+            console.log(`✅ Deleted ${deletedAttachments} related attachments`);
+
+            // 8. Finally, delete the request itself
+            const deletedRequests = await tx.$executeRaw`
+                DELETE FROM GUARDIAN.REQUESTS
+                WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            `;
+            console.log(`✅ Deleted ${deletedRequests} request(s)`);
+            
+            if (deletedRequests === 0) {
+                throw new Error(`Failed to delete request ${requestId}`);
+            }
+        });
+
+        console.log(`✅ Successfully deleted request ${requestId}: ${request.REQUEST_NAME}`);
 
         res.json({
             success: true,
@@ -7231,8 +7260,8 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
 
         // Update form basic details
         await prisma.$queryRaw`
-            UPDATE GUARDIAN.FORMS 
-            SET FORM_NAME = ${name.trim()}, 
+            UPDATE GUARDIAN.FORMS
+            SET FORM_NAME = ${name.trim()},
                 FORM_DESCRIPTION = ${description?.trim() || ''},
                 UPDATE_DATE = GETDATE(),
                 UPDATE_USER_ID = ${req.userId}
@@ -10741,10 +10770,94 @@ app.get('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => 
             WHERE n.NOTICE_ID = ${noticeId} AND n.COMPANY_ID = ${parseInt(req.companyId, 10)}
         `);
         if (!notices || notices.length === 0) return res.status(404).json({ error: 'Notice not found' });
-        res.json(notices[0]);
+
+        // Get recipients from MY_NOTICE_RECIPIENTS
+        const recipients = await prisma.$queryRawUnsafe(`
+            SELECT nr.NOTICE_RECIPIENT_ID, nr.NOTICE_ID, nr.USER_ID,
+                   u.FIRST_NAME, u.LAST_NAME, u.EMAIL
+            FROM GUARDIAN.MY_NOTICE_RECIPIENTS nr
+            LEFT JOIN GUARDIAN.USERS u ON nr.USER_ID = u.USER_ID
+            WHERE nr.NOTICE_ID = ${noticeId}
+        `);
+
+        // Get responses
+        const responses = await prisma.$queryRawUnsafe(`
+            SELECT r.RESPONSE_MY_NOTICE_ID, r.RESPONSE_TEXT, r.CREATE_DATE, r.ATTACHMENT_ID,
+                   u.FIRST_NAME, u.USER_ID, u.EMAIL
+            FROM GUARDIAN.RESPONSE_MY_NOTICE r
+            LEFT JOIN GUARDIAN.USERS u ON r.USER_ID = u.USER_ID
+            WHERE r.MY_NOTICE_ID = ${noticeId}
+        `);
+
+        const notice = {
+            ...notices[0],
+            RECIPIENTS: recipients,
+            RECIPIENTS_COUNT: recipients.length,
+            RESPONSES: responses.map(r => ({
+                RESPONSE_MY_NOTICE_ID: r.RESPONSE_MY_NOTICE_ID,
+                RESPONSE_TEXT: r.RESPONSE_TEXT,
+                CREATE_DATE: r.CREATE_DATE,
+                USER: { FIRST_NAME: r.FIRST_NAME, USER_ID: r.USER_ID, EMAIL: r.EMAIL },
+                ATTACHMENT: r.ATTACHMENT_ID ? { ATTACHMENT_ID: r.ATTACHMENT_ID } : null,
+            })),
+            RESPONSES_COUNT: responses.length,
+            TOTAL_ATTACHMENTS: responses.filter(r => r.ATTACHMENT_ID).length,
+        };
+
+        res.json(notice);
     } catch (error) {
         console.error('❌ Error fetching notice:', error);
         res.status(500).json({ error: 'Failed to fetch notice', details: error.message });
+    }
+});
+
+// PUT /api/my-notices/:id — update a draft notice
+app.put('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const noticeId = parseInt(req.params.id, 10);
+        if (Number.isNaN(noticeId)) {
+            return res.status(400).json({ error: 'Invalid notice ID' });
+        }
+        const companyId = parseInt(req.companyId, 10);
+        const { NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, RECIPIENTS = [], SEND_NOTICE } = req.body;
+
+        // Verify notice exists and belongs to company
+        const existing = await prisma.$queryRawUnsafe(`
+            SELECT NOTICE_ID, COMPANY_ID FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${companyId}
+        `);
+        if (!existing || existing.length === 0) {
+            return res.status(404).json({ error: 'Notice not found' });
+        }
+
+        // Update notice
+        await prisma.$queryRawUnsafe(`
+            UPDATE GUARDIAN.MY_NOTICES
+            SET NOTICE_TITLE = '${String(NOTICE_TITLE).replace(/'/g, "''")}',
+                SENSITIVITY_CLASSIFICATION = '${String(SENSITIVITY_CLASSIFICATION).replace(/'/g, "''")}',
+                BUTTON_STATUS = '${String(BUTTON_STATUS).replace(/'/g, "''")}',
+                DISTRIBUTION_TYPE = '${String(DISTRIBUTION_TYPE || '').replace(/'/g, "''")}',
+                NOTICE_BODY = '${String(NOTICE_BODY || '').replace(/'/g, "''")}',
+                UPDATE_USER_ID = ${parseInt(req.userId, 10)},
+                UPDATE_DATE = GETDATE()
+            WHERE NOTICE_ID = ${noticeId}
+        `);
+
+        // Replace recipients: delete old, insert new
+        await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.MY_NOTICE_RECIPIENTS WHERE NOTICE_ID = ${noticeId}`);
+        if (Array.isArray(RECIPIENTS)) {
+            for (const userId of RECIPIENTS) {
+                if (Number.isInteger(userId)) {
+                    await prisma.$queryRawUnsafe(`
+                        INSERT INTO GUARDIAN.MY_NOTICE_RECIPIENTS (NOTICE_ID, USER_ID) VALUES (${noticeId}, ${userId})
+                    `);
+                }
+            }
+        }
+
+        res.json({ message: 'Notice updated successfully', NOTICE_ID: noticeId });
+    } catch (error) {
+        console.error('❌ Error updating notice:', error);
+        res.status(500).json({ error: 'Failed to update notice', details: error.message });
     }
 });
 
@@ -10757,6 +10870,7 @@ app.delete('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) 
         }
         const companyId = parseInt(req.companyId, 10);
 
+        // Check notice exists and belongs to company
         const notices = await prisma.$queryRawUnsafe(`
             SELECT NOTICE_ID, BUTTON_STATUS FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${noticeId} AND COMPANY_ID = ${companyId}
         `);
@@ -10767,6 +10881,7 @@ app.delete('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) 
             return res.status(400).json({ error: 'Cannot delete a sent notice' });
         }
 
+        // Delete recipients, responses, then notice
         await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.MY_NOTICE_RECIPIENTS WHERE NOTICE_ID = ${noticeId}`);
         await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.RESPONSE_MY_NOTICE WHERE MY_NOTICE_ID = ${noticeId}`);
         await prisma.$queryRawUnsafe(`DELETE FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${noticeId}`);
@@ -10804,11 +10919,25 @@ app.patch('/api/my-notices/:id', getAuthenticatedUserCompany, upload.single('att
         // Handle optional attachment
         let attachmentId = null;
         if (req.file) {
-            const attachmentResult = await prisma.$queryRawUnsafe(`
-                INSERT INTO GUARDIAN.ATTACHMENTS (FILE_NAME, FILE_DATA, FILE_TYPE, FILE_SIZE, CREATE_USER_ID, CREATE_DATE)
+            const attachmentResult = await prisma.$queryRaw`
+                INSERT INTO GUARDIAN.ATTACHMENTS (
+                    REQUEST_ID,
+                    FILE_NAME,
+                    ATTACHMENT,
+                    COMPANY_ID,
+                    CREATE_USER_ID,
+                    CREATE_DATE
+                )
                 OUTPUT INSERTED.ATTACHMENT_ID
-                VALUES ('${req.file.originalname.replace(/'/g, "''")}', 0x${req.file.buffer.toString('hex')}, '${req.file.mimetype}', ${req.file.size}, ${userId}, GETDATE())
-            `);
+                VALUES (
+                    ${noticeId},
+                    ${req.file.originalname},
+                    ${req.file.buffer},
+                    ${companyId},
+                    ${userId},
+                    GETDATE()
+                )
+            `;
             attachmentId = attachmentResult[0]?.ATTACHMENT_ID;
         }
 
@@ -13707,8 +13836,7 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
-// === NO CATCH-ALL ROUTE ===
-// IIS handles SPA routing via web.config
+// === SPA ROUTING HANDLED BY EXPRESS STATIC SERVING SECTION BELOW ===
 
 // ========================================
 // WORKSPACE MANAGEMENT ENDPOINTS
@@ -13749,27 +13877,28 @@ const checkJafarRole = async (req, res, next) => {
 };
 
 const normalizeDeleteCount = (value) => {
+    if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
-    const numeric = Number(value || 0);
-    return Number.isNaN(numeric) ? 0 : numeric;
+    if (typeof value === 'number') return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const sqlQuote = (value) => `'${String(value || '').replace(/'/g, "''")}'`;
-const joinIds = (ids) => ids.join(', ');
-const uniqueIds = (values) => Array.from(new Set(
-    (values || [])
-        .map(value => Number(value))
-        .filter(value => Number.isInteger(value) && value > 0)
-));
+const sqlQuote = (value) => `'${String(value).replace(/'/g, "''")}'`;
+const joinIds = (ids) => ids.map(id => Number(id)).filter(id => Number.isFinite(id)).join(', ');
+const uniqueIds = (rows, key) => [...new Set(rows.map(row => normalizeDeleteCount(row[key])).filter(Boolean))];
 
 const countRaw = async (sql) => {
     const rows = await prisma.$queryRawUnsafe(sql);
-    return normalizeDeleteCount(rows?.[0]?.count);
+    const firstRow = Array.isArray(rows) ? rows[0] : rows;
+    if (!firstRow) return 0;
+    const firstKey = Object.keys(firstRow)[0];
+    return normalizeDeleteCount(firstRow[firstKey]);
 };
 
-const idRaw = async (sql, column) => {
+const idRaw = async (sql, key) => {
     const rows = await prisma.$queryRawUnsafe(sql);
-    return uniqueIds(rows.map(row => row[column]));
+    return uniqueIds(rows, key);
 };
 
 const getJafarUserById = async (userId) => {
@@ -13780,7 +13909,6 @@ const getJafarUserById = async (userId) => {
             u.LAST_NAME,
             u.EMAIL,
             TRY_CONVERT(INT, u.COMPANY_ID) AS COMPANY_ID,
-            u.STATUS,
             c.NAME AS COMPANY_NAME
         FROM GUARDIAN.USERS u
         LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, u.COMPANY_ID)
@@ -13801,7 +13929,7 @@ const getJafarCompanyById = async (companyId) => {
 };
 
 const getJafarUserRequestIds = async (userId) => idRaw(`
-    SELECT REQUEST_ID
+    SELECT DISTINCT REQUEST_ID
     FROM GUARDIAN.REQUESTS
     WHERE REQUESTOR_ID = ${userId}
        OR ASSIGNED_ID = ${userId}
@@ -13810,58 +13938,88 @@ const getJafarUserRequestIds = async (userId) => idRaw(`
        OR UPDATE_USER_ID = ${userId}
 `, 'REQUEST_ID');
 
-const getJafarCompanyRequestIds = async (companyId) => idRaw(`
-    SELECT REQUEST_ID
-    FROM GUARDIAN.REQUESTS
-    WHERE TRY_CONVERT(INT, COMPANY_ID) = ${companyId}
-`, 'REQUEST_ID');
+const getJafarCompanyRequestIds = async (companyId, userIds) => {
+    const clauses = [`TRY_CONVERT(INT, COMPANY_ID) = ${companyId}`];
+    if (userIds.length > 0) {
+        const idList = joinIds(userIds);
+        clauses.push(`CREATE_USER_ID IN (${idList})`);
+        clauses.push(`ASSIGNED_ID IN (${idList})`);
+        clauses.push(`UPDATE_USER_ID IN (${idList})`);
+        clauses.push(`REQUESTOR_ID IN (${idList})`);
+        clauses.push(`CANCELLED_BY IN (${idList})`);
+    }
+
+    return idRaw(`
+        SELECT DISTINCT REQUEST_ID
+        FROM GUARDIAN.REQUESTS
+        WHERE ${clauses.join(' OR ')}
+    `, 'REQUEST_ID');
+};
 
 const getJafarUserAttachmentIds = async (userId, requestIds) => {
-    const requestFilter = requestIds.length > 0 ? ` OR REQUEST_ID IN (${joinIds(requestIds)})` : '';
+    const clauses = [`CREATE_USER_ID = ${userId}`, `UPDATE_USER_ID = ${userId}`];
+    if (requestIds.length > 0) clauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
     return idRaw(`
-        SELECT ATTACHMENT_ID
+        SELECT DISTINCT ATTACHMENT_ID
         FROM GUARDIAN.ATTACHMENTS
-        WHERE CREATE_USER_ID = ${userId}
-           OR UPDATE_USER_ID = ${userId}
-           ${requestFilter}
+        WHERE ${clauses.join(' OR ')}
     `, 'ATTACHMENT_ID');
 };
 
-const getJafarCompanyAttachmentIds = async (companyId, requestIds) => {
-    const requestFilter = requestIds.length > 0 ? ` OR REQUEST_ID IN (${joinIds(requestIds)})` : '';
+const getJafarCompanyAttachmentIds = async (companyId, userIds, requestIds) => {
+    const clauses = [`COMPANY_ID = ${companyId}`];
+    if (userIds.length > 0) {
+        const idList = joinIds(userIds);
+        clauses.push(`CREATE_USER_ID IN (${idList})`);
+        clauses.push(`UPDATE_USER_ID IN (${idList})`);
+    }
+    if (requestIds.length > 0) clauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+
     return idRaw(`
-        SELECT ATTACHMENT_ID
+        SELECT DISTINCT ATTACHMENT_ID
         FROM GUARDIAN.ATTACHMENTS
-        WHERE COMPANY_ID = ${companyId}
-           ${requestFilter}
+        WHERE ${clauses.join(' OR ')}
     `, 'ATTACHMENT_ID');
 };
 
 const getJafarUserNoticeIds = async (userId) => idRaw(`
-    SELECT NOTICE_ID
+    SELECT DISTINCT NOTICE_ID
     FROM GUARDIAN.NOTICES
     WHERE ISSUED_BY_USER_ID = ${userId}
 `, 'NOTICE_ID');
 
-const getJafarCompanyNoticeIds = async (companyId) => idRaw(`
-    SELECT NOTICE_ID
-    FROM GUARDIAN.NOTICES
-    WHERE COMPANY_ID = ${companyId}
-`, 'NOTICE_ID');
+const getJafarCompanyNoticeIds = async (companyId, userIds) => {
+    const clauses = [`COMPANY_ID = ${companyId}`];
+    if (userIds.length > 0) {
+        const idList = joinIds(userIds);
+        clauses.push(`ISSUED_BY_USER_ID IN (${idList})`);
+    }
+
+    return idRaw(`
+        SELECT DISTINCT NOTICE_ID
+        FROM GUARDIAN.NOTICES
+        WHERE ${clauses.join(' OR ')}
+    `, 'NOTICE_ID');
+};
 
 const getJafarUserFormInstanceIds = async (userId) => idRaw(`
-    SELECT FORM_INSTANCE_ID
+    SELECT DISTINCT FORM_INSTANCE_ID
     FROM GUARDIAN.FORMS_INSTANCE
     WHERE ASSIGNED_ID = ${userId}
        OR CREATE_USER_ID = ${userId}
        OR UPDATE_USER_ID = ${userId}
 `, 'FORM_INSTANCE_ID');
 
-const getJafarCompanyFormInstanceIds = async (companyId) => idRaw(`
-    SELECT FORM_INSTANCE_ID
-    FROM GUARDIAN.FORMS_INSTANCE
-    WHERE COMPANY_ID = ${companyId}
-`, 'FORM_INSTANCE_ID');
+const getJafarCompanyFormInstanceIds = async (companyId, requestIds) => {
+    const clauses = [`COMPANY_ID = ${companyId}`];
+    if (requestIds.length > 0) clauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
+
+    return idRaw(`
+        SELECT DISTINCT FORM_INSTANCE_ID
+        FROM GUARDIAN.FORMS_INSTANCE
+        WHERE ${clauses.join(' OR ')}
+    `, 'FORM_INSTANCE_ID');
+};
 
 const getJafarCompanyWorkspaceIds = async (companyId) => idRaw(`
     SELECT WORKSPACE_ID
@@ -13882,153 +14040,185 @@ const getJafarCompanyUserIds = async (companyId) => idRaw(`
 `, 'USER_ID');
 
 const createEmptyJafarCounts = () => ({
-    userRoles: 0,
-    userWorkspaces: 0,
-    companyInfo: 0,
-    notifications: 0,
-    invites: 0,
+    attachments: 0,
+    requests: 0,
+    tasks: 0,
+    workProgress: 0,
+    milestones: 0,
     noticesIssued: 0,
     noticeRecipients: 0,
     noticeReadStatus: 0,
-    workProgress: 0,
-    attachments: 0,
-    tasks: 0,
-    requests: 0,
-    formInstances: 0,
-    formInstanceValues: 0,
-    milestones: 0,
+    notifications: 0,
+    invites: 0,
+    companyInfo: 0,
+    userRoles: 0,
+    userWorkspaces: 0,
     workspaces: 0,
+    users: 0,
+    company: 0,
     forms: 0,
     formFields: 0,
-    users: 0,
-    company: 0
+    formInstances: 0,
+    formInstanceValues: 0
 });
 
 const buildJafarUserPreview = async (userId, actorUserId) => {
     const user = await getJafarUserById(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Target user not found');
+
+    const counts = createEmptyJafarCounts();
+    const blockers = [];
+
+    if (userId === actorUserId) {
+        blockers.push('You cannot purge your own active JAFAR account.');
+    }
 
     const requestIds = await getJafarUserRequestIds(userId);
     const attachmentIds = await getJafarUserAttachmentIds(userId, requestIds);
     const noticeIds = await getJafarUserNoticeIds(userId);
     const formInstanceIds = await getJafarUserFormInstanceIds(userId);
-    const counts = createEmptyJafarCounts();
-    const blockers = [];
 
-    if (actorUserId && actorUserId === userId) blockers.push('You cannot purge your own JAFAR account.');
+    counts.requests = requestIds.length;
+    counts.attachments = attachmentIds.length;
+    counts.noticesIssued = noticeIds.length;
+    counts.formInstances = formInstanceIds.length;
 
+    counts.tasks = requestIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`)
+        : 0;
+    counts.formInstanceValues = formInstanceIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`)
+        : 0;
     counts.userRoles = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${userId}`);
     counts.userWorkspaces = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
     counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE USER_ID = ${userId}`);
     counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE USER_ID = ${userId}`);
-    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(user.EMAIL)}`);
-    counts.noticeRecipients = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
-    counts.noticeReadStatus = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
-    counts.noticesIssued = noticeIds.length;
-    counts.formInstances = formInstanceIds.length;
-    counts.formInstanceValues = formInstanceIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`) : 0;
-    counts.attachments = attachmentIds.length;
+    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(user.EMAIL || '')}`);
     counts.workProgress = await countRaw(`
         SELECT COUNT(*) AS count
         FROM GUARDIAN.WORK_PROGRESS
         WHERE USER_ID = ${userId}
-           ${requestIds.length > 0 ? `OR REQUEST_ID IN (${joinIds(requestIds)})` : ''}
-           ${attachmentIds.length > 0 ? `OR RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : ''}
+           OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+           OR ${attachmentIds.length > 0 ? `RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : '1 = 0'}
     `);
+    counts.milestones = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
+    counts.noticeRecipients = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
+    counts.noticeReadStatus = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
     counts.tasks = await countRaw(`
         SELECT COUNT(*) AS count
         FROM GUARDIAN.TASKS
         WHERE ASSIGNED_USER_ID = ${userId}
            OR CREATE_USER_ID = ${userId}
            OR UPDATE_USER_ID = ${userId}
-           ${requestIds.length > 0 ? `OR REQUEST_ID IN (${joinIds(requestIds)})` : ''}
+           OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
     `);
-    counts.requests = requestIds.length;
-    counts.milestones = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
     counts.users = 1;
 
     return {
-        target: {
-            userId: user.USER_ID,
-            fullName: `${user.FIRST_NAME || ''} ${user.LAST_NAME || ''}`.trim() || user.EMAIL,
-            email: user.EMAIL,
-            companyId: user.COMPANY_ID,
-            companyName: user.COMPANY_NAME || null,
-            status: user.STATUS
-        },
         scope: 'user',
         allowed: blockers.length === 0,
         blockers,
+        target: {
+            id: normalizeDeleteCount(user.USER_ID),
+            email: user.EMAIL || '',
+            firstName: user.FIRST_NAME || '',
+            lastName: user.LAST_NAME || '',
+            companyId: normalizeDeleteCount(user.COMPANY_ID),
+            companyName: user.COMPANY_NAME || ''
+        },
         counts
     };
 };
 
 const buildJafarCompanyPreview = async (companyId, actorUserId) => {
     const company = await getJafarCompanyById(companyId);
-    if (!company) throw new Error('Company not found');
+    if (!company) throw new Error('Target company not found');
 
-    const userIds = await getJafarCompanyUserIds(companyId);
-    const requestIds = await getJafarCompanyRequestIds(companyId);
-    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, requestIds);
-    const noticeIds = await getJafarCompanyNoticeIds(companyId);
-    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId);
-    const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
-    const formIds = await getJafarCompanyFormIds(companyId);
     const counts = createEmptyJafarCounts();
     const blockers = [];
 
-    if (actorUserId && userIds.includes(actorUserId)) blockers.push('You cannot wipe a company that contains your active JAFAR account.');
+    const userIds = await getJafarCompanyUserIds(companyId);
+    if (userIds.includes(actorUserId)) {
+        blockers.push('You cannot wipe the company that contains your active JAFAR account.');
+    }
+
+    const requestIds = await getJafarCompanyRequestIds(companyId, userIds);
+    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, userIds, requestIds);
+    const noticeIds = await getJafarCompanyNoticeIds(companyId, userIds);
+    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId, requestIds);
+    const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
+    const formIds = await getJafarCompanyFormIds(companyId);
 
     counts.users = userIds.length;
-    counts.company = 1;
-    counts.userRoles = userIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID IN (${joinIds(userIds)})`) : 0;
-    counts.userWorkspaces = workspaceIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`) : 0;
-    counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE COMPANY_ID = ${companyId}`);
-    counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE COMPANY_ID = ${companyId}`);
-    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE COMPANY_ID = ${companyId}`);
-    counts.noticeRecipients = noticeIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`) : 0;
-    counts.noticeReadStatus = noticeIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`) : 0;
+    counts.requests = requestIds.length;
+    counts.attachments = attachmentIds.length;
     counts.noticesIssued = noticeIds.length;
     counts.formInstances = formInstanceIds.length;
-    counts.formInstanceValues = formInstanceIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`) : 0;
-    counts.attachments = attachmentIds.length;
+    counts.workspaces = workspaceIds.length;
+    counts.forms = formIds.length;
+
+    counts.tasks = requestIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`)
+        : 0;
+    counts.formInstanceValues = formInstanceIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`)
+        : 0;
     counts.workProgress = await countRaw(`
         SELECT COUNT(*) AS count
         FROM GUARDIAN.WORK_PROGRESS
         WHERE COMPANY_ID = ${companyId}
-           ${requestIds.length > 0 ? `OR REQUEST_ID IN (${joinIds(requestIds)})` : ''}
-           ${userIds.length > 0 ? `OR USER_ID IN (${joinIds(userIds)})` : ''}
-           ${attachmentIds.length > 0 ? `OR RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : ''}
+           OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+           OR ${attachmentIds.length > 0 ? `RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})` : '1 = 0'}
     `);
-    counts.tasks = requestIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`) : 0;
-    counts.requests = requestIds.length;
-    counts.milestones = userIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID IN (${joinIds(userIds)})`) : 0;
-    counts.workspaces = workspaceIds.length;
-    counts.forms = formIds.length;
-    counts.formFields = formIds.length > 0 ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`) : 0;
+    counts.milestones = userIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID IN (${joinIds(userIds)})`)
+        : 0;
+    counts.noticeRecipients = noticeIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_RECIPIENTS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`)
+        : 0;
+    counts.noticeReadStatus = noticeIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTICE_READ_STATUS WHERE NOTICE_ID IN (${joinIds(noticeIds)}) OR COMPANY_ID = ${companyId}`)
+        : 0;
+    counts.notifications = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.NOTIFICATIONS WHERE COMPANY_ID = ${companyId}`);
+    counts.invites = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.INVITES WHERE COMPANY_ID = ${companyId}`);
+    counts.companyInfo = await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY_INFO WHERE COMPANY_ID = ${companyId}`);
+    counts.userRoles = userIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_ROLES WHERE USER_ID IN (${joinIds(userIds)})`)
+        : 0;
+    counts.userWorkspaces = workspaceIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_WORKSPACES WHERE WORKSPACE_ID IN (${joinIds(workspaceIds)})`)
+        : 0;
+    counts.formFields = formIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`)
+        : 0;
+    counts.company = 1;
 
     return {
-        target: {
-            companyId: company.COMPANY_ID,
-            companyName: company.NAME
-        },
         scope: 'company',
         allowed: blockers.length === 0,
         blockers,
+        target: {
+            id: normalizeDeleteCount(company.COMPANY_ID),
+            name: company.NAME || ''
+        },
         counts
     };
 };
 
 const executeJafarUserPurge = async (userId, actorUserId) => {
     const preview = await buildJafarUserPreview(userId, actorUserId);
-    if (!preview.allowed) throw new Error(preview.blockers[0] || 'User purge is blocked');
+    if (!preview.allowed) {
+        const error = new Error(preview.blockers[0] || 'User purge is blocked');
+        error.statusCode = 400;
+        throw error;
+    }
 
+    const counts = createEmptyJafarCounts();
     const requestIds = await getJafarUserRequestIds(userId);
     const attachmentIds = await getJafarUserAttachmentIds(userId, requestIds);
     const noticeIds = await getJafarUserNoticeIds(userId);
     const formInstanceIds = await getJafarUserFormInstanceIds(userId);
-    const counts = createEmptyJafarCounts();
-    const userEmail = String(preview.target.email || '');
+    const user = await getJafarUserById(userId);
 
     await prisma.$transaction(async (tx) => {
         if (noticeIds.length > 0) {
@@ -14040,7 +14230,7 @@ const executeJafarUserPurge = async (userId, actorUserId) => {
         counts.noticeRecipients += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_RECIPIENTS WHERE RECIPIENT_USER_ID = ${userId}`);
         counts.noticeReadStatus += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTICE_READ_STATUS WHERE USER_ID = ${userId}`);
         counts.notifications += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.NOTIFICATIONS WHERE USER_ID = ${userId}`);
-        counts.invites += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(userEmail)}`);
+        counts.invites += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.INVITES WHERE EMAIL = ${sqlQuote(user?.EMAIL || '')}`);
 
         if (formInstanceIds.length > 0) {
             counts.formInstanceValues += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES WHERE FORM_INSTANCE_ID IN (${joinIds(formInstanceIds)})`);
@@ -14051,24 +14241,16 @@ const executeJafarUserPurge = async (userId, actorUserId) => {
         if (requestIds.length > 0) workProgressClauses.push(`REQUEST_ID IN (${joinIds(requestIds)})`);
         if (attachmentIds.length > 0) workProgressClauses.push(`RELATED_ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
         counts.workProgress += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.WORK_PROGRESS WHERE ${workProgressClauses.join(' OR ')}`);
+
         counts.milestones += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.MILESTONES WHERE EVENT_USER_ID = ${userId}`);
 
-        if (requestIds.length > 0) {
-            counts.tasks += await tx.$executeRawUnsafe(`
-                DELETE FROM GUARDIAN.TASKS
-                WHERE REQUEST_ID IN (${joinIds(requestIds)})
-                   OR ASSIGNED_USER_ID = ${userId}
-                   OR CREATE_USER_ID = ${userId}
-                   OR UPDATE_USER_ID = ${userId}
-            `);
-        } else {
-            counts.tasks += await tx.$executeRawUnsafe(`
-                DELETE FROM GUARDIAN.TASKS
-                WHERE ASSIGNED_USER_ID = ${userId}
-                   OR CREATE_USER_ID = ${userId}
-                   OR UPDATE_USER_ID = ${userId}
-            `);
-        }
+        counts.tasks += await tx.$executeRawUnsafe(`
+            DELETE FROM GUARDIAN.TASKS
+            WHERE ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)}) OR` : ''}
+                  ASSIGNED_USER_ID = ${userId}
+               OR CREATE_USER_ID = ${userId}
+               OR UPDATE_USER_ID = ${userId}
+        `);
 
         if (attachmentIds.length > 0) {
             counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
@@ -14078,11 +14260,10 @@ const executeJafarUserPurge = async (userId, actorUserId) => {
             counts.requests += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.REQUESTS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
         }
 
-        counts.userWorkspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
         counts.companyInfo += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.COMPANY_INFO WHERE USER_ID = ${userId}`);
         counts.userRoles += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${userId}`);
-        await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USERS WHERE USER_ID = ${userId}`);
-        counts.users = 1;
+        counts.userWorkspaces += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_WORKSPACES WHERE USER_ID = ${userId}`);
+        counts.users += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USERS WHERE USER_ID = ${userId}`);
     });
 
     return { success: true, scope: 'user', targetId: userId, deletedCounts: counts };
@@ -14090,16 +14271,20 @@ const executeJafarUserPurge = async (userId, actorUserId) => {
 
 const executeJafarCompanyPurge = async (companyId, actorUserId) => {
     const preview = await buildJafarCompanyPreview(companyId, actorUserId);
-    if (!preview.allowed) throw new Error(preview.blockers[0] || 'Company wipe is blocked');
+    if (!preview.allowed) {
+        const error = new Error(preview.blockers[0] || 'Company purge is blocked');
+        error.statusCode = 400;
+        throw error;
+    }
 
+    const counts = createEmptyJafarCounts();
     const userIds = await getJafarCompanyUserIds(companyId);
-    const requestIds = await getJafarCompanyRequestIds(companyId);
-    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, requestIds);
-    const noticeIds = await getJafarCompanyNoticeIds(companyId);
-    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId);
+    const requestIds = await getJafarCompanyRequestIds(companyId, userIds);
+    const attachmentIds = await getJafarCompanyAttachmentIds(companyId, userIds, requestIds);
+    const noticeIds = await getJafarCompanyNoticeIds(companyId, userIds);
+    const formInstanceIds = await getJafarCompanyFormInstanceIds(companyId, requestIds);
     const workspaceIds = await getJafarCompanyWorkspaceIds(companyId);
     const formIds = await getJafarCompanyFormIds(companyId);
-    const counts = createEmptyJafarCounts();
 
     await prisma.$transaction(async (tx) => {
         if (noticeIds.length > 0) {

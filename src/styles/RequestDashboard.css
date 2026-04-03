@@ -167,8 +167,8 @@
   justify-content: center !important;
 }
 
-/* --- Custom Modal Styles for Stepper Form --- */
-.modal-content {
+/* --- Custom Modal Styles for Stepper Form (react-modal only, not Bootstrap) --- */
+.modal-overlay > .modal-content {
   border: 2px solid #219191 !important;
   border-radius: 16px !important;
   background: #fff !important;
@@ -203,25 +203,25 @@
   border-bottom: 2px solid #219191;
 }
 
-.modal-content h4 {
+.modal-overlay > .modal-content h4 {
   color: #219191;
   font-size: 1.25rem;
   margin-bottom: 1.2rem;
   font-weight: 700;
 }
 
-.modal-content .row {
+.modal-overlay > .modal-content .row {
   display: flex;
   gap: 1rem;
 }
 
-.modal-content .col {
+.modal-overlay > .modal-content .col {
   flex: 1 1 0;
 }
 
-.modal-content input[type="text"],
-.modal-content textarea,
-.modal-content select {
+.modal-overlay > .modal-content input[type="text"],
+.modal-overlay > .modal-content textarea,
+.modal-overlay > .modal-content select {
   border: 1.5px solid #219191;
   border-radius: 6px;
   padding: 0.5rem 0.8rem;
@@ -230,29 +230,29 @@
   transition: border 0.2s;
 }
 
-.modal-content input[type="text"]:focus,
-.modal-content textarea:focus,
-.modal-content select:focus {
+.modal-overlay > .modal-content input[type="text"]:focus,
+.modal-overlay > .modal-content textarea:focus,
+.modal-overlay > .modal-content select:focus {
   border-color: #155e5e;
 }
 
-.modal-content textarea {
+.modal-overlay > .modal-content textarea {
   min-height: 80px;
   resize: vertical;
 }
 
-.modal-content label {
+.modal-overlay > .modal-content label {
   color: #155e5e;
   font-size: 1rem;
   font-weight: 500;
   margin-right: 1.5rem;
 }
 
-.modal-content .d-flex.gap-4 {
+.modal-overlay > .modal-content .d-flex.gap-4 {
   margin: 0.8rem 0 1.2rem 0;
 }
 
-.modal-content .btn-primary {
+.modal-overlay > .modal-content .btn-primary {
   background: #219191;
   color: #fff;
   border: none;
@@ -263,11 +263,11 @@
   transition: background 0.2s;
 }
 
-.modal-content .btn-primary:hover {
+.modal-overlay > .modal-content .btn-primary:hover {
   background: #155e5e;
 }
 
-.modal-content .btn-secondary {
+.modal-overlay > .modal-content .btn-secondary {
   background: #e6f7f7;
   color: #219191;
   border: 1.5px solid #219191;
@@ -278,12 +278,12 @@
   transition: background 0.2s, color 0.2s;
 }
 
-.modal-content .btn-secondary:hover {
+.modal-overlay > .modal-content .btn-secondary:hover {
   background: #219191;
   color: #fff;
 }
 
-.modal-content .btn-outline-secondary {
+.modal-overlay > .modal-content .btn-outline-secondary {
   background: none;
   color: #219191;
   border: 1.5px solid #219191;
@@ -295,11 +295,11 @@
   transition: background 0.2s, color 0.2s;
 }
 
-.modal-content .btn-outline-secondary:hover {
+.modal-overlay > .modal-content .btn-outline-secondary:hover {
   background: #e6f7f7;
 }
 
-.modal-content .table-header {
+.modal-overlay > .modal-content .table-header {
   display: flex;
   gap: 2rem;
   font-weight: 600;
@@ -307,11 +307,11 @@
   margin-bottom: 0.5rem;
 }
 
-.modal-content .d-flex.justify-content-between {
+.modal-overlay > .modal-content .d-flex.justify-content-between {
   margin-top: 2rem;
 }
 
-.modal-content .text-danger {
+.modal-overlay > .modal-content .text-danger {
   color: #e74c3c;
   margin-top: 1rem;
   font-size: 0.98rem;
@@ -378,17 +378,17 @@
 
 /* Responsive modal form */
 @media (max-width: 600px) {
-  .modal-content {
+  .modal-overlay > .modal-content {
     padding: 1.2rem 0.5rem 1.2rem 0.5rem !important;
     max-width: 99vw !important;
   }
 
-  .modal-content .row {
+  .modal-overlay > .modal-content .row {
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .modal-content .d-flex.justify-content-between {
+  .modal-overlay > .modal-content .d-flex.justify-content-between {
     flex-direction: column;
     gap: 1rem;
   }

@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import {
@@ -12,7 +12,11 @@ import {
   Download,
   CheckCircle,
   FileText,
+  Upload,
+  X,
 } from "lucide-react";
+import { OverlayTrigger, Tooltip } from "react-bootstrap";
+import { useDropzone } from "react-dropzone";
 import MyNoticesService, { Notice } from "../services/mynotices";
 import moment from "moment";
 import Swal from "sweetalert2";
@@ -48,6 +52,103 @@ function sensitivityBadgeClass(classification: string): string {
     default:
       return "bg-gray-200 text-gray-700";
   }
+}
+
+/* Dropzone sub-component matching site-wide upload pattern */
+function ResponseDropzone({
+  file,
+  onFileChange,
+  disabled,
+}: {
+  file: File | null;
+  onFileChange: (file: File | null) => void;
+  disabled: boolean;
+}) {
+  const onDrop = useCallback(
+    (accepted: File[]) => {
+      if (accepted.length > 0) onFileChange(accepted[0]);
+    },
+    [onFileChange],
+  );
+
+  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.ms-excel": [".xls"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "text/plain": [".txt"],
+      "text/csv": [".csv"],
+    },
+    maxSize: 10 * 1024 * 1024,
+    multiple: false,
+    disabled,
+  });
+
+  const baseStyle = "border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer mt-4";
+  const zoneClass = disabled
+    ? `${baseStyle} border-gray-200 bg-gray-50 cursor-not-allowed opacity-50`
+    : isDragAccept
+      ? `${baseStyle} border-green-400 bg-green-50 text-green-600`
+      : isDragReject
+        ? `${baseStyle} border-red-400 bg-red-50 text-red-600`
+        : isDragActive
+          ? `${baseStyle} border-blue-400 bg-blue-50 text-blue-600`
+          : `${baseStyle} border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500`;
+
+  return (
+    <div>
+      <div {...getRootProps()} className={zoneClass}>
+        <input {...getInputProps()} />
+        <div className="py-1">
+          {isDragActive ? (
+            isDragAccept ? (
+              <>
+                <Upload size={24} className="mx-auto mb-1 text-green-500" />
+                <p className="text-sm font-medium text-green-600">Drop file here</p>
+              </>
+            ) : (
+              <>
+                <X size={24} className="mx-auto mb-1 text-red-500" />
+                <p className="text-sm font-medium text-red-600">File type not supported</p>
+              </>
+            )
+          ) : (
+            <>
+              <Upload size={24} className="mx-auto mb-1" />
+              <p className="text-sm font-medium">Drag & drop a file here, or click to browse</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                PDF, DOC/DOCX, XLS/XLSX, TXT, Images — Max 10MB
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Selected file preview */}
+      {file && (
+        <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mt-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <FileText size={16} className="text-gray-500 flex-shrink-0" />
+            <span className="text-sm text-gray-700 truncate">{file.name}</span>
+            <span className="text-xs text-gray-400 flex-shrink-0">
+              {(file.size / 1024).toFixed(0)} KB
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onFileChange(null); }}
+            className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface ViewNoticeProps {
@@ -230,48 +331,61 @@ export default function ViewNotice({
         )}
 
         {/* NOTICE CARD */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {notice.NOTICE_TITLE}
-              </h2>
-
-              <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
-                <span className="flex items-center gap-1">
-                  <User size={12} />
-                  {notice.CREATE_USER_NAME} (Processor)
-                </span>
-
-                <span className="flex items-center gap-1">
-                  <Clock size={12} />
-                  Sent: {moment(notice.CREATE_DATE).format("YYYY-MM-DD HH:mm")}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-3">
+          {/* Header row: title + sensitivity + KPIs */}
+          <div className="flex justify-between items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-gray-900 truncate">
+                  {notice.NOTICE_TITLE}
+                </h2>
+                <span
+                  className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${sensitivityBadgeClass(
+                    notice.SENSITIVITY_CLASSIFICATION,
+                  )}`}
+                >
+                  <AlertTriangle size={10} />
+                  {notice.SENSITIVITY_CLASSIFICATION}
                 </span>
               </div>
+              <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5">
+                <span className="flex items-center gap-1"><User size={10} />{notice.CREATE_USER_NAME}</span>
+                <span className="flex items-center gap-1"><Clock size={10} />{moment(notice.CREATE_DATE).format("YYYY-MM-DD HH:mm")}</span>
+              </div>
             </div>
-
-            <span
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${sensitivityBadgeClass(
-                notice.SENSITIVITY_CLASSIFICATION,
-              )}`}
-            >
-              <AlertTriangle size={12} />
-              {notice.SENSITIVITY_CLASSIFICATION}
-            </span>
+            {/* KPI pills */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <OverlayTrigger placement="bottom" overlay={<Tooltip>Total Recipients</Tooltip>}>
+                <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-2 py-1 cursor-default">
+                  <User size={11} className="text-gray-400" />
+                  <span className="text-xs font-semibold text-gray-700">{notice.RECIPIENTS_COUNT ?? 0}</span>
+                </div>
+              </OverlayTrigger>
+              <OverlayTrigger placement="bottom" overlay={<Tooltip>Responses Received</Tooltip>}>
+                <div className="flex items-center gap-1 bg-blue-50 border border-blue-100 rounded-md px-2 py-1 cursor-default">
+                  <MessageSquare size={11} className="text-blue-500" />
+                  <span className="text-xs font-semibold text-blue-700">{notice.RESPONSES_COUNT ?? 0}</span>
+                </div>
+              </OverlayTrigger>
+              <OverlayTrigger placement="bottom" overlay={<Tooltip>Total Attachments</Tooltip>}>
+                <div className="flex items-center gap-1 bg-purple-50 border border-purple-100 rounded-md px-2 py-1 cursor-default">
+                  <Paperclip size={11} className="text-purple-500" />
+                  <span className="text-xs font-semibold text-purple-700">{notice.TOTAL_ATTACHMENTS ?? 0}</span>
+                </div>
+              </OverlayTrigger>
+            </div>
           </div>
 
-          {/* WARNING – shown when sensitivity is High or CJIS, text from API */}
+          {/* WARNING – shown when sensitivity is High or CJIS */}
           {(notice.SENSITIVITY_CLASSIFICATION === "High" ||
             notice.SENSITIVITY_CLASSIFICATION === "CJIS") && (
-            <div className="border border-red-300 bg-red-50 rounded-lg p-4 mb-4 flex gap-2">
-              <AlertTriangle className="text-red-600" size={18} />
-
+            <div className="border border-red-300 bg-red-50 rounded-lg p-3 mb-3 flex gap-2">
+              <AlertTriangle className="text-red-600 flex-shrink-0" size={16} />
               <div>
                 <p className="text-red-700 text-sm font-medium">
                   Classified Content Warning
                 </p>
-
-                <p className="text-red-600 text-sm">
+                <p className="text-red-600 text-xs">
                   This notice contains {notice.SENSITIVITY_CLASSIFICATION}{" "}
                   sensitivity information. All access is logged. Do not share or
                   distribute without proper authorization.
@@ -281,207 +395,151 @@ export default function ViewNotice({
           )}
 
           {/* NOTICE BODY */}
-          <div className="bg-gray-100 border rounded-lg p-4 text-sm text-gray-700">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700">
             <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notice.NOTICE_BODY) }} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 border-t pt-6 mt-6">
-            {/* Total Recipients – from API */}
-            <div className="flex flex-col items-center sm:items-start">
-              <p className="text-xs text-gray-500">Total Recipients</p>
-              <p className="text-xl font-semibold">
-                {notice.RECIPIENTS_COUNT ?? 0}
-              </p>
-            </div>
+          {/* RECIPIENT RESPONSES – inside notice card, below body */}
+          <div className="border-t border-gray-200 mt-4 pt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <MessageSquare size={14} className="text-blue-500" />
+              Responses ({notice.RESPONSES_COUNT ?? notice.RESPONSES?.length ?? 0})
+            </h3>
 
-            {/* Responses Received – from API */}
-            <div className="flex flex-col items-center sm:items-start">
-              <p className="text-xs text-gray-500">Responses Received</p>
-              <p className="text-xl font-semibold text-blue-600">
-                {notice.RESPONSES_COUNT ?? 0}
-              </p>
-            </div>
+            {(notice.RESPONSES?.length ?? 0) === 0 ? (
+              <p className="text-xs text-gray-400 py-2">No responses yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {(notice.RESPONSES ?? []).map((resp) => (
+                  <div
+                    key={resp.RESPONSE_MY_NOTICE_ID}
+                    className="border border-gray-200 rounded-lg p-3 bg-gray-50"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                          <User size={14} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium leading-tight">
+                            {resp.USER?.FIRST_NAME ?? "—"}
+                          </p>
+                          <p className="text-[11px] text-gray-400">
+                            {resp.USER?.EMAIL ?? "—"} &middot; {resp.CREATE_DATE
+                              ? moment(resp.CREATE_DATE).format("YYYY-MM-DD HH:mm")
+                              : "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="flex items-center gap-1 text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                        <CheckCircle size={12} />
+                        Acknowledged
+                      </span>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-md p-2.5 text-sm text-gray-700 mt-2">
+                      {resp.RESPONSE_TEXT ?? "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* Total Attachments – static UI */}
-            <div className="flex flex-col items-center sm:items-start">
-              <p className="text-xs text-gray-500">Total Attachments</p>
-              <p className="text-xl font-semibold text-purple-600">
-                {notice.TOTAL_ATTACHMENTS ?? 0}
-              </p>
-              <p className="text-xs text-gray-400">from responses</p>
-            </div>
+            {/* SUBMIT RESPONSE – inline below responses */}
+            <form onSubmit={responseForm.handleSubmit} className="mt-4">
+              <textarea
+                name="response"
+                rows={3}
+                placeholder="Enter your response (at least 10 characters)..."
+                value={responseForm.values.response}
+                onChange={responseForm.handleChange}
+                onBlur={responseForm.handleBlur}
+                className={`w-full border rounded-md p-3 text-sm ${
+                  (responseForm.touched.response ||
+                    responseForm.submitCount > 0) &&
+                  responseForm.errors.response
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300"
+                }`}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <div>
+                  {(responseForm.touched.response || responseForm.submitCount > 0) &&
+                    responseForm.errors.response && (
+                      <p className="text-xs text-red-600" role="alert">
+                        {responseForm.errors.response}
+                      </p>
+                    )}
+                </div>
+                <span className={`text-xs ${
+                  (responseForm.values.response ?? '').trim().length < 10
+                    ? 'text-red-500'
+                    : (responseForm.values.response ?? '').trim().length > 4500
+                      ? 'text-yellow-600'
+                      : 'text-gray-400'
+                }`}>
+                  {(responseForm.values.response ?? '').length} / 5,000 {(responseForm.values.response ?? '').trim().length < 10 && '(min 10)'}
+                </span>
+              </div>
+              <button
+                type="submit"
+                disabled={responseForm.isSubmitting}
+                className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <MessageSquare size={14} />
+                {responseForm.isSubmitting ? "Submitting…" : "Submit Response"}
+              </button>
+            </form>
           </div>
         </div>
 
-        {/* RECIPIENT RESPONSES – list from API; Attachments block static per card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Recipient Responses (
-            {notice.RESPONSES_COUNT ?? notice.RESPONSES?.length ?? 0})
-          </h2>
+        {/* ATTACHMENTS & UPLOAD – combined container */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <Paperclip size={14} className="text-purple-500" />
+            Attachments
+          </h3>
 
-          {(notice.RESPONSES?.length ?? 0) === 0 ? (
-            <p className="text-sm text-gray-500 py-4">No responses yet.</p>
-          ) : (
-            <div className="space-y-6">
-              {(notice.RESPONSES ?? []).map((resp) => (
-                <div
-                  key={resp.RESPONSE_MY_NOTICE_ID}
-                  className="border rounded-xl p-4 sm:p-5 bg-gray-50"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                        <User size={18} />
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {resp.USER?.FIRST_NAME ?? "—"}
-                        </p>
-
-                        <p className="text-xs text-gray-500">
-                          {resp.USER?.EMAIL ?? "—"}
-                        </p>
-
-                        <p className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                          <Clock size={12} />
-                          {resp.CREATE_DATE
-                            ? moment(resp.CREATE_DATE).format(
-                                "YYYY-MM-DD HH:mm",
-                              )
-                            : "—"}
+          {/* Existing attachments from responses */}
+          {(() => {
+            const allAttachments = (notice.RESPONSES ?? [])
+              .filter((r) => r.ATTACHMENT)
+              .map((r) => ({ attachment: r.ATTACHMENT!, userName: r.USER?.FIRST_NAME ?? "—", date: r.CREATE_DATE }));
+            return allAttachments.length > 0 ? (
+              <div className="space-y-2 mb-4">
+                {allAttachments.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between border border-purple-200 bg-purple-50 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText size={16} className="text-purple-600 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{item.attachment.FILE_NAME}</p>
+                        <p className="text-[11px] text-gray-400">
+                          {item.userName} &middot; {item.date ? moment(item.date).format("YYYY-MM-DD HH:mm") : "—"}
                         </p>
                       </div>
                     </div>
-
-                    <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
-                      <CheckCircle size={14} />
-                      Acknowledged
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => MyNoticesService.handleAttachmentDownload(item.attachment)}
+                      className="border border-gray-300 rounded-md p-1.5 bg-white hover:bg-gray-100 flex-shrink-0 ml-2"
+                      title="Download"
+                    >
+                      <Download size={14} />
+                    </button>
                   </div>
-
-                  <div className="bg-gray-200 rounded-md p-3 text-sm text-gray-700 mt-4">
-                    {resp.RESPONSE_TEXT ?? "—"}
-                  </div>
-
-                  {/* Attachments section – from API */}
-                  <div className="mt-4">
-                    <p className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                      <Paperclip size={14} />
-                      Attachments ({resp.ATTACHMENT ? 1 : 0})
-                    </p>
-
-                    {resp.ATTACHMENT && (
-                      <div className="flex items-center justify-between border border-purple-300 bg-purple-50 rounded-lg px-3 py-3 w-full sm:w-1/2">
-                        <div className="flex items-center gap-3">
-                          <div className="text-purple-600">
-                            <FileText size={18} />
-                          </div>
-
-                          <div>
-                            <p className="text-sm font-medium">
-                              {resp.ATTACHMENT.FILE_NAME}
-                            </p>
-
-                            <p className="text-xs text-gray-500">
-                              {resp.CREATE_DATE
-                                ? moment(resp.CREATE_DATE).format(
-                                    "YYYY-MM-DD HH:mm",
-                                  )
-                                : "—"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            MyNoticesService.handleAttachmentDownload(
-                              resp.ATTACHMENT!,
-                            )
-                          }
-                          className="border border-gray-300 rounded-md p-2 bg-white hover:bg-gray-100"
-                          title="Download"
-                        >
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* SUBMIT RESPONSE */}
-        <form
-          className="bg-white rounded-lg border border-gray-300 shadow-sm p-6"
-          onSubmit={responseForm.handleSubmit}
-        >
-          <h3 className="text-lg font-semibold flex gap-2 items-center mb-4">
-            <MessageSquare size={18} />
-            Submit Response
-          </h3>
-
-          <div>
-            <textarea
-              name="response"
-              rows={4}
-              placeholder="Enter your response (at least 10 characters)..."
-              value={responseForm.values.response}
-              onChange={responseForm.handleChange}
-              onBlur={responseForm.handleBlur}
-              className={`w-full border rounded-md p-3 text-sm ${
-                (responseForm.touched.response ||
-                  responseForm.submitCount > 0) &&
-                responseForm.errors.response
-                  ? "border-red-500 focus:ring-red-500"
-                  : "border-gray-300"
-              }`}
-            />
-            <div className="flex justify-between items-center mt-1">
-              <div>
-                {(responseForm.touched.response || responseForm.submitCount > 0) &&
-                  responseForm.errors.response && (
-                    <p className="text-sm text-red-600" role="alert">
-                      {responseForm.errors.response}
-                    </p>
-                  )}
+                ))}
               </div>
-              <span className={`text-xs ${
-                (responseForm.values.response ?? '').trim().length < 10
-                  ? 'text-red-500'
-                  : (responseForm.values.response ?? '').trim().length > 4500
-                    ? 'text-yellow-600'
-                    : 'text-gray-400'
-              }`}>
-                {(responseForm.values.response ?? '').length} / 5,000 {(responseForm.values.response ?? '').trim().length < 10 && '(min 10)'}
-              </span>
-            </div>
-          </div>
+            ) : (
+              <p className="text-xs text-gray-400 mb-3">No attachments yet.</p>
+            );
+          })()}
 
-          <input
-            type="file"
-            className="mt-4"
-            onChange={(e) =>
-              responseForm.setFieldValue(
-                "attachment",
-                e.target.files?.[0] ?? null,
-              )
-            }
-          />
-
-          <button
-            type="submit"
+          {/* Dropzone upload */}
+          <ResponseDropzone
+            file={responseForm.values.attachment}
+            onFileChange={(file) => responseForm.setFieldValue("attachment", file)}
             disabled={responseForm.isSubmitting}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <MessageSquare size={16} />
-            {responseForm.isSubmitting ? "Submitting…" : "Submit Response"}
-          </button>
-        </form>
+          />
+        </div>
       </div>
     </div>
   );

@@ -12,8 +12,10 @@ steps:
   displayName: 'Install Node.js'
 
 - script: |
-    echo "Installing dependencies..."
-    npm install
+    echo "Installing dependencies (skipping postinstall to avoid double build)..."
+    npm install --ignore-scripts
+    echo "Generating Prisma client..."
+    npx prisma generate
     echo "Cleaning previous builds..."
     rm -rf dist dist-server
     echo "Building frontend..."
@@ -41,8 +43,6 @@ steps:
     cp -r dist/* deployment/
     echo "Copying server.js to deployment root"
     cp server.js deployment/
-    echo "Copying optimized web.config for IIS configuration"
-    cp web.config deployment/ || echo "No web.config found - will use pipeline-generated one"
     echo "Deployment directory contents:"
     ls -la deployment
     echo "Asset verification details:"
@@ -119,67 +119,18 @@ steps:
   displayName: 'Copy Prisma files'
 
 - script: |
+    echo "Copying web.config for IIS Node.js startup"
+    cp web.config deployment/web.config
+    echo "web.config copied to deployment"
+  displayName: 'Copy web.config'
+
+- script: |
     cd deployment
-    echo "Configuring hybrid IIS + Node.js deployment"
+    echo "Configuring Node.js deployment"
     echo '[config]
     SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
-    echo "Creating web.config for static assets + Node.js API routing"
-    cat > web.config << 'EOF'
-    <?xml version="1.0" encoding="utf-8"?>
-    <configuration>
-      <system.webServer>
-        <handlers>
-          <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
-        </handlers>
-        <staticContent>
-          <mimeMap fileExtension=".js" mimeType="application/javascript" />
-          <mimeMap fileExtension=".mjs" mimeType="application/javascript" />
-          <mimeMap fileExtension=".css" mimeType="text/css" />
-          <mimeMap fileExtension=".json" mimeType="application/json" />
-          <mimeMap fileExtension=".woff" mimeType="font/woff" />
-          <mimeMap fileExtension=".woff2" mimeType="font/woff2" />
-          <mimeMap fileExtension=".svg" mimeType="image/svg+xml" />
-        </staticContent>
-        <rewrite>
-          <rules>
-            <!-- API routes go to Node.js -->
-            <rule name="API Routes" stopProcessing="true">
-              <match url="^api/(.*)" />
-              <action type="Rewrite" url="server.js"/>
-            </rule>
-            <!-- Static assets served directly by IIS -->
-            <rule name="Static Assets" stopProcessing="true">
-              <match url="^assets/(.*)" />
-              <action type="None"/>
-            </rule>
-            <!-- Other static files served directly by IIS -->
-            <rule name="Static Files" stopProcessing="true">
-              <match url="^.*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json)$" />
-              <action type="None"/>
-            </rule>
-            <!-- SPA routing - send all other requests to index.html for React Router -->
-            <rule name="React Router SPA" stopProcessing="true">
-              <match url=".*" />
-              <conditions logicalGrouping="MatchAll">
-                <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-                <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
-              </conditions>
-              <action type="Rewrite" url="/index.html" />
-            </rule>
-          </rules>
-        </rewrite>
-        <defaultDocument>
-          <files>
-            <clear />
-            <add value="index.html" />
-          </files>
-        </defaultDocument>
-      </system.webServer>
-    </configuration>
-    EOF
-    echo "Configuration complete - static assets served by IIS, API routes by Node.js"
-  displayName: 'Configure hybrid IIS + Node.js deployment'
+    echo "Configuration complete - Node.js serves static assets + API + SPA routing"
+  displayName: 'Configure Node.js deployment'
 
 - script: |
     cd deployment
@@ -213,61 +164,36 @@ steps:
     appName: 'GUARDIAN-MVP'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
-  displayName: 'Deploy to Azure Web App'
+  displayName: 'Deploy to Production (GUARDIAN-MVP)'
 
 - script: |
-    echo "🔍 Post-deployment verification starting..."
+    echo "Post-deployment verification starting..."
     echo "Waiting 30 seconds for deployment to stabilize..."
     sleep 30
-    
-    # Define the production URL
-    PROD_URL="https://Guardian-ep-dev.azurewebsites.net"
-    
-    echo "Testing basic connectivity..."
+
+    PROD_URL="https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
+
+    echo "===== Production ($PROD_URL) ====="
+
     if curl -f -s --max-time 30 "$PROD_URL/api/health" > /dev/null; then
-      echo "✅ API health check passed"
+      echo "  API health check PASSED"
     else
-      echo "❌ API health check failed - server may still be starting"
+      echo "  API health check FAILED - server may still be starting"
     fi
-    
-    echo "Testing asset verification endpoint..."
-    if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > assets_check.json; then
-      echo "✅ Asset verification endpoint accessible"
-      echo "📊 Asset verification results:"
-      cat assets_check.json | jq '.' 2>/dev/null || cat assets_check.json
+
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > /dev/null; then
+      echo "  Asset verification PASSED"
     else
-      echo "❌ Asset verification endpoint failed"
+      echo "  Asset verification FAILED"
     fi
-    
-    echo "Testing deployment info endpoint..."
-    if curl -f -s --max-time 30 "$PROD_URL/api/debug/deployment" > deployment_info.json; then
-      echo "✅ Deployment info endpoint accessible"
-      echo "📊 Deployment info results:"
-      cat deployment_info.json | jq '.server_info' 2>/dev/null || echo "JQ not available, showing raw output:"
-      cat deployment_info.json
+
+    if curl -f -s --max-time 30 "$PROD_URL" > /dev/null; then
+      echo "  Main page PASSED"
     else
-      echo "❌ Deployment info endpoint failed"
+      echo "  Main page FAILED"
     fi
-    
-    echo "Testing static asset accessibility..."
-    # Try to fetch the main page first to see what assets it references
-    if curl -f -s --max-time 30 "$PROD_URL" > index.html; then
-      echo "✅ Main page accessible"
-      # Extract asset references from the HTML
-      if grep -o '/assets/[^"]*' index.html | head -5; then
-        echo "📄 Found asset references in HTML"
-      else
-        echo "⚠️ No asset references found in HTML"
-      fi
-    else
-      echo "❌ Main page not accessible"
-    fi
-    
-    echo "🏁 Post-deployment verification complete"
-    echo "🔗 Production URL: $PROD_URL"
-    echo "🔧 Debug endpoints:"
-    echo "   - Health: $PROD_URL/api/health"
-    echo "   - Assets: $PROD_URL/api/debug/assets" 
-    echo "   - Deployment: $PROD_URL/api/debug/deployment"
-    
+
+    echo ""
+    echo "Deployment complete"
+    echo "  Production: $PROD_URL"
   displayName: 'Post-deployment verification'

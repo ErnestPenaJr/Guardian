@@ -681,7 +681,7 @@ function Home() {
     },
     {
       icon: <FileText className="w-6 h-6" />,
-      label: 'My Requests',
+      label: 'Requests',
       onClick: () => setSelectedSection('workorder'),
       active: selectedSection === 'workorder',
     },
@@ -2124,7 +2124,7 @@ function Home() {
       />
       
       {/* View Notice Modal */}
-      <Modal show={viewNoticeId !== null} onHide={() => setViewNoticeId(null)} size="xl" scrollable centered>
+      <Modal show={viewNoticeId !== null} onHide={() => setViewNoticeId(null)} size="lg" scrollable centered>
         <Modal.Header closeButton>
           <Modal.Title>Notice Details & Responses</Modal.Title>
         </Modal.Header>

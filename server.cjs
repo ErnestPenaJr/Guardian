@@ -470,7 +470,8 @@ try {
             console.log(`📧 Sending invite email to: ${email}`);
             
             // Create invite acceptance URL
-            const inviteUrl = `${process.env.FRONTEND_URL || 'https://Guardian-ep-dev.azurewebsites.net'}/invite/accept?token=${token}`;
+            if (!process.env.FRONTEND_URL) console.warn('⚠️ FRONTEND_URL not set - invite links may be incorrect');
+            const inviteUrl = `${process.env.FRONTEND_URL || `https://${req.get('host')}`}/invite/accept?token=${token}`;
             
             const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
@@ -1520,10 +1521,12 @@ app.post('/api/login', async (req, res) => {
         const normalizedEmail = emailValidation.email;
 
         // Query the database using raw SQL for GUARDIAN schema with normalized email
+        // Order by COMPANY_ID DESC to prioritize users with a company assigned, then by USER_ID DESC for most recent
         const users = await prisma.$queryRaw`
             SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, COMPANY_ID, ACCOUNT_CREATOR_INVITE_COMPLETED
-            FROM GUARDIAN.USERS 
+            FROM GUARDIAN.USERS
             WHERE LOWER(TRIM(EMAIL)) = LOWER(TRIM(${normalizedEmail}))
+            ORDER BY CASE WHEN COMPANY_ID IS NOT NULL THEN 0 ELSE 1 END, USER_ID DESC
         `;
 
         console.log(`🔍 Login database query result for ${email}:`, users.length > 0 ? users[0] : 'NO USERS FOUND');
@@ -1549,6 +1552,14 @@ app.post('/api/login', async (req, res) => {
             console.log(`❌ User not active: ${email}`);
             return res.status(401).json({
                 error: 'Account is not active. Please contact support.'
+            });
+        }
+
+        // Check if user has a company assigned
+        if (!user.COMPANY_ID) {
+            console.log(`❌ User has no company assigned: ${email} (User ID: ${user.USER_ID})`);
+            return res.status(403).json({
+                error: 'Your account is not associated with a company. Please contact your administrator.'
             });
         }
 
@@ -2204,22 +2215,21 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const startTime = Date.now();
-        console.log(`📋 Fetching requests for company ID: ${req.companyId}`);
+        console.log(`📋 Fetching requests for company ID: ${req.companyId}, user ID: ${req.userId}`);
 
-        // Get user's active workspace
         const userWorkspace = await prisma.$queryRaw`
-            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS 
+            SELECT ACTIVE_WORKSPACE_ID FROM GUARDIAN.USERS
             WHERE USER_ID = ${req.userId}
         `;
-        
+
         const activeWorkspaceId = userWorkspace[0]?.ACTIVE_WORKSPACE_ID;
-        
+
         console.log(`🏢 User ${req.userId} active workspace: ${activeWorkspaceId || 'None'}`);
 
-        // OPTIMIZED: Single query with proper JOINs, timeout handling, and workspace filtering
+        // All users only see requests they created or that are assigned to them
         const requests = await Promise.race([
             prisma.$queryRaw`
-                SELECT 
+                SELECT
                     r.REQUEST_ID,
                     r.REQUEST_NAME,
                     r.REQUEST_DESCRIPTION,
@@ -2256,6 +2266,7 @@ app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
                 LEFT JOIN GUARDIAN.WORKSPACES w ON r.WORKSPACE_ID = w.WORKSPACE_ID
                 WHERE r.COMPANY_ID = ${req.companyId}
                   AND (r.WORKSPACE_ID = ${activeWorkspaceId || null} OR r.WORKSPACE_ID IS NULL)
+                  AND (r.CREATE_USER_ID = ${req.userId} OR r.REQUESTOR_ID = ${req.userId} OR r.ASSIGNED_ID = ${req.userId})
                 ORDER BY r.CREATE_DATE DESC
             `,
             new Promise((_, reject) => 
@@ -10908,11 +10919,25 @@ app.patch('/api/my-notices/:id', getAuthenticatedUserCompany, upload.single('att
         // Handle optional attachment
         let attachmentId = null;
         if (req.file) {
-            const attachmentResult = await prisma.$queryRawUnsafe(`
-                INSERT INTO GUARDIAN.ATTACHMENTS (FILE_NAME, FILE_DATA, FILE_TYPE, FILE_SIZE, CREATE_USER_ID, CREATE_DATE)
+            const attachmentResult = await prisma.$queryRaw`
+                INSERT INTO GUARDIAN.ATTACHMENTS (
+                    REQUEST_ID,
+                    FILE_NAME,
+                    ATTACHMENT,
+                    COMPANY_ID,
+                    CREATE_USER_ID,
+                    CREATE_DATE
+                )
                 OUTPUT INSERTED.ATTACHMENT_ID
-                VALUES ('${req.file.originalname.replace(/'/g, "''")}', 0x${req.file.buffer.toString('hex')}, '${req.file.mimetype}', ${req.file.size}, ${userId}, GETDATE())
-            `);
+                VALUES (
+                    ${noticeId},
+                    ${req.file.originalname},
+                    ${req.file.buffer},
+                    ${companyId},
+                    ${userId},
+                    GETDATE()
+                )
+            `;
             attachmentId = attachmentResult[0]?.ATTACHMENT_ID;
         }
 
@@ -13811,8 +13836,7 @@ app.put('/api/updates/:updateId/visibility', getAuthenticatedUserCompany, async 
     }
 });
 
-// === NO CATCH-ALL ROUTE ===
-// IIS handles SPA routing via web.config
+// === SPA ROUTING HANDLED BY EXPRESS STATIC SERVING SECTION BELOW ===
 
 // ========================================
 // WORKSPACE MANAGEMENT ENDPOINTS
