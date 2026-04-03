@@ -288,6 +288,76 @@ function groupFieldTypes(dbTypes: UiFieldType[]): PaletteGroup[] {
 }
 
 /* ------------------------------------------------------------------ */
+/*  PreviewMode — renders fields as end-users would see them           */
+/* ------------------------------------------------------------------ */
+
+function PreviewMode({ fields: previewFields }: { fields: FormField[] }) {
+  if (previewFields.length === 0) {
+    return <p className="fb-pfempty">No fields to preview. Add some fields first.</p>;
+  }
+
+  return (
+    <div className="fb-prvform">
+      {previewFields.map((f) => {
+        const opts = (f.options || '').split(',').map((o) => o.trim()).filter(Boolean);
+
+        if (f.fieldType === 'header') {
+          return <div key={f.id} className="fb-fh3">{f.fieldName}</div>;
+        }
+        if (f.fieldType === 'divider') {
+          return <hr key={f.id} className="fb-fhr" />;
+        }
+
+        return (
+          <div key={f.id} className="fb-pgrp">
+            <label className="fb-pfl">
+              {f.fieldName}
+              {f.required && <span className="fb-ast">*</span>}
+            </label>
+
+            {f.fieldType === 'textarea' && (
+              <textarea className="fb-pfinp" style={{ minHeight: 80, resize: 'vertical' }} placeholder={f.placeholder || ''} />
+            )}
+            {(f.fieldType === 'dropdown' || f.fieldType === 'select') && (
+              <select className="fb-pfinp">
+                <option>{f.placeholder || 'Select...'}</option>
+                {opts.map((o) => <option key={o}>{o}</option>)}
+              </select>
+            )}
+            {(f.fieldType === 'checkbox' || f.fieldType === 'checkboxes') && (
+              <div className="fb-fopts">
+                {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
+                  <label key={o} className="fb-fopt"><input type="checkbox" />{o}</label>
+                ))}
+              </div>
+            )}
+            {f.fieldType === 'radio' && (
+              <div className="fb-fopts">
+                {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
+                  <label key={o} className="fb-fopt"><input type="radio" name={`prev_${f.id}`} />{o}</label>
+                ))}
+              </div>
+            )}
+            {(f.fieldType === 'file' || f.fieldType === 'file_upload') && (
+              <div className="fb-ffile">Upload file</div>
+            )}
+            {f.fieldType === 'date' && <input className="fb-pfinp" type="date" />}
+            {f.fieldType === 'time' && <input className="fb-pfinp" type="time" />}
+            {(f.fieldType === 'datetime' || f.fieldType === 'date_time') && <input className="fb-pfinp" type="datetime-local" />}
+            {!['textarea', 'dropdown', 'select', 'checkbox', 'checkboxes', 'radio', 'file', 'file_upload', 'date', 'time', 'datetime', 'date_time'].includes(f.fieldType) && (
+              <input className="fb-pfinp" type="text" placeholder={f.placeholder || ''} />
+            )}
+
+            {f.helpText && <p className="fb-pfhelp">{f.helpText}</p>}
+          </div>
+        );
+      })}
+      <button className="fb-pfsub" type="button">Submit</button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  PropsPanel — right panel properties editor                         */
 /* ------------------------------------------------------------------ */
 
@@ -925,6 +995,68 @@ export default function FormBuilder({
               >
                 + Add field
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Preview view */}
+        {view === 'preview' && (
+          <div className="fb-preview">
+            <div className="fb-pcard">
+              <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{name || 'Untitled form'}</h2>
+              {description && <p style={{ color: 'var(--fb-t2)', fontSize: 14, marginBottom: 20 }}>{description}</p>}
+              <PreviewMode fields={fields} />
+            </div>
+          </div>
+        )}
+
+        {/* Code view */}
+        {view === 'code' && (
+          <div className="fb-code">
+            <div className="fb-ccard">
+              <div className="fb-chdr">
+                <span className="fb-ctitle">JSON Schema</span>
+                <button
+                  className="fb-copybtn"
+                  style={{ width: 'auto', padding: '6px 14px' }}
+                  onClick={() => {
+                    const schema = fields.map((f) => {
+                      const entry: Record<string, unknown> = {
+                        fieldName: f.fieldName,
+                        fieldType: f.fieldType,
+                        required: f.required,
+                      };
+                      if (f.placeholder) entry.placeholder = f.placeholder;
+                      if (f.helpText) entry.helpText = f.helpText;
+                      if (f.options) entry.options = f.options;
+                      if (f.validation) entry.validation = f.validation;
+                      return entry;
+                    });
+                    navigator.clipboard.writeText(JSON.stringify(schema, null, 2));
+                    toast.success('Copied to clipboard');
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+              <pre className="fb-cjson">
+                {JSON.stringify(
+                  fields.map((f) => {
+                    const entry: Record<string, unknown> = {
+                      fieldName: f.fieldName,
+                      fieldType: f.fieldType,
+                      required: f.required,
+                    };
+                    if (f.placeholder) entry.placeholder = f.placeholder;
+                    if (f.helpText) entry.helpText = f.helpText;
+                    if (f.options) entry.options = f.options;
+                    if (f.validation) entry.validation = f.validation;
+                    return entry;
+                  }),
+                  null,
+                  2,
+                )}
+              </pre>
             </div>
           </div>
         )}
