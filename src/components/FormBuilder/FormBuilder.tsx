@@ -121,17 +121,16 @@ const GLOBAL_CSS = `
 .fb-tname{font-size:13px;color:var(--fb-t);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fb-tdot{width:6px;height:6px;border-radius:50%;background:var(--fb-danger);flex-shrink:0}
 .fb-canvas{flex:1;overflow-y:auto;padding:24px 32px}
-.fb-ci{max-width:660px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.fb-ci .fb-full{grid-column:span 3}
-.fb-ci .fb-dz-wrap{grid-column:span 3;height:14px;margin:-3px 0;position:relative;z-index:4;cursor:default}
-.fb-colbtns{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);display:none;gap:2px;
-  background:var(--fb-panel);border:1.5px solid var(--fb-border);border-radius:6px;padding:2px;
-  box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:10}
-.fb-card.selected .fb-colbtns{display:flex}
-.fb-colbtn{padding:2px 8px;border:1px solid transparent;border-radius:4px;background:none;
-  cursor:pointer;font-size:10px;font-weight:600;color:var(--fb-t3);font-family:inherit;white-space:nowrap}
-.fb-colbtn:hover{background:var(--fb-al);color:var(--fb-accent)}
-.fb-colbtn.active{background:var(--fb-accent);color:#fff;border-color:var(--fb-accent)}
+.fb-form-rows{display:flex;flex-direction:column;gap:0}
+.fb-hzone{height:12px;display:flex;align-items:center;cursor:default}
+.fb-hzone-bar{height:3px;width:100%;border-radius:2px;background:transparent;transition:background .15s}
+.fb-hzone.active .fb-hzone-bar{background:var(--fb-accent);height:4px}
+.fb-form-row{display:flex;align-items:stretch;gap:0;min-height:72px}
+.fb-vzone{width:12px;flex-shrink:0;display:flex;justify-content:center;align-items:stretch;cursor:default}
+.fb-vzone-bar{width:3px;border-radius:2px;background:transparent;transition:background .15s;align-self:stretch;min-height:40px}
+.fb-vzone.active .fb-vzone-bar{background:var(--fb-accent);width:4px}
+.fb-row-cell{flex:1;min-width:0;padding:3px}
+.fb-row-cell .fb-card{height:100%}
 .fb-titlerow{margin-bottom:20px;display:flex;align-items:center;gap:12px}
 .fb-titleinp{font-size:20px;font-weight:600;color:var(--fb-t);border:none;background:none;outline:none;font-family:inherit;flex:1}
 .fb-draftbadge{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--fb-sec);color:var(--fb-t3);border:1.5px solid var(--fb-border);flex-shrink:0}
@@ -301,69 +300,73 @@ function groupFieldTypes(dbTypes: UiFieldType[]): PaletteGroup[] {
 /*  PreviewMode — renders fields as end-users would see them           */
 /* ------------------------------------------------------------------ */
 
-function PreviewMode({ fields: previewFields, fieldMeta }: { fields: FormField[]; fieldMeta: Record<string, { columns: number }> }) {
-  if (previewFields.length === 0) {
+function PreviewMode({ rows: previewRows }: { rows: FormField[][] }) {
+  const flat = previewRows.flat();
+  if (flat.length === 0) {
     return <p className="fb-pfempty">No fields to preview. Add some fields first.</p>;
   }
 
   return (
-    <div className="fb-prvform" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px 12px' }}>
-      {previewFields.map((f) => {
-        const cols = fieldMeta[f.id]?.columns ?? 3;
-        const opts = (f.options || '').split(',').map((o) => o.trim()).filter(Boolean);
+    <div className="fb-prvform">
+      {previewRows.map((row, ri) => (
+        <div key={ri} style={{ display: 'flex', gap: 12 }}>
+          {row.map((f) => {
+            const opts = (f.options || '').split(',').map((o) => o.trim()).filter(Boolean);
 
-        if (f.fieldType === 'header') {
-          return <div key={f.id} className="fb-fh3" style={{ gridColumn: 'span 3' }}>{f.fieldName}</div>;
-        }
-        if (f.fieldType === 'divider') {
-          return <hr key={f.id} className="fb-fhr" style={{ gridColumn: 'span 3' }} />;
-        }
+            if (f.fieldType === 'header') {
+              return <div key={f.id} className="fb-fh3" style={{ flex: 1, minWidth: 0 }}>{f.fieldName}</div>;
+            }
+            if (f.fieldType === 'divider') {
+              return <hr key={f.id} className="fb-fhr" style={{ flex: 1, minWidth: 0 }} />;
+            }
 
-        return (
-          <div key={f.id} className="fb-pgrp" style={{ gridColumn: `span ${cols}` }}>
-            <label className="fb-pfl">
-              {f.fieldName}
-              {f.required && <span className="fb-ast">*</span>}
-            </label>
+            return (
+              <div key={f.id} className="fb-pgrp" style={{ flex: 1, minWidth: 0 }}>
+                <label className="fb-pfl">
+                  {f.fieldName}
+                  {f.required && <span className="fb-ast">*</span>}
+                </label>
 
-            {f.fieldType === 'textarea' && (
-              <textarea className="fb-pfinp" style={{ minHeight: 80, resize: 'vertical' }} placeholder={f.placeholder || ''} />
-            )}
-            {(f.fieldType === 'dropdown' || f.fieldType === 'select') && (
-              <select className="fb-pfinp">
-                <option>{f.placeholder || 'Select...'}</option>
-                {opts.map((o) => <option key={o}>{o}</option>)}
-              </select>
-            )}
-            {(f.fieldType === 'checkbox' || f.fieldType === 'checkboxes') && (
-              <div className="fb-fopts">
-                {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
-                  <label key={o} className="fb-fopt"><input type="checkbox" />{o}</label>
-                ))}
+                {f.fieldType === 'textarea' && (
+                  <textarea className="fb-pfinp" style={{ minHeight: 80, resize: 'vertical' }} placeholder={f.placeholder || ''} />
+                )}
+                {(f.fieldType === 'dropdown' || f.fieldType === 'select') && (
+                  <select className="fb-pfinp">
+                    <option>{f.placeholder || 'Select...'}</option>
+                    {opts.map((o) => <option key={o}>{o}</option>)}
+                  </select>
+                )}
+                {(f.fieldType === 'checkbox' || f.fieldType === 'checkboxes') && (
+                  <div className="fb-fopts">
+                    {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
+                      <label key={o} className="fb-fopt"><input type="checkbox" />{o}</label>
+                    ))}
+                  </div>
+                )}
+                {f.fieldType === 'radio' && (
+                  <div className="fb-fopts">
+                    {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
+                      <label key={o} className="fb-fopt"><input type="radio" name={`prev_${f.id}`} />{o}</label>
+                    ))}
+                  </div>
+                )}
+                {(f.fieldType === 'file' || f.fieldType === 'file_upload') && (
+                  <div className="fb-ffile">Upload file</div>
+                )}
+                {f.fieldType === 'date' && <input className="fb-pfinp" type="date" />}
+                {f.fieldType === 'time' && <input className="fb-pfinp" type="time" />}
+                {(f.fieldType === 'datetime' || f.fieldType === 'date_time') && <input className="fb-pfinp" type="datetime-local" />}
+                {!['textarea', 'dropdown', 'select', 'checkbox', 'checkboxes', 'radio', 'file', 'file_upload', 'date', 'time', 'datetime', 'date_time'].includes(f.fieldType) && (
+                  <input className="fb-pfinp" type="text" placeholder={f.placeholder || ''} />
+                )}
+
+                {f.helpText && <p className="fb-pfhelp">{f.helpText}</p>}
               </div>
-            )}
-            {f.fieldType === 'radio' && (
-              <div className="fb-fopts">
-                {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
-                  <label key={o} className="fb-fopt"><input type="radio" name={`prev_${f.id}`} />{o}</label>
-                ))}
-              </div>
-            )}
-            {(f.fieldType === 'file' || f.fieldType === 'file_upload') && (
-              <div className="fb-ffile">Upload file</div>
-            )}
-            {f.fieldType === 'date' && <input className="fb-pfinp" type="date" />}
-            {f.fieldType === 'time' && <input className="fb-pfinp" type="time" />}
-            {(f.fieldType === 'datetime' || f.fieldType === 'date_time') && <input className="fb-pfinp" type="datetime-local" />}
-            {!['textarea', 'dropdown', 'select', 'checkbox', 'checkboxes', 'radio', 'file', 'file_upload', 'date', 'time', 'datetime', 'date_time'].includes(f.fieldType) && (
-              <input className="fb-pfinp" type="text" placeholder={f.placeholder || ''} />
-            )}
-
-            {f.helpText && <p className="fb-pfhelp">{f.helpText}</p>}
-          </div>
-        );
-      })}
-      <button className="fb-pfsub" type="button" style={{ gridColumn: 'span 3' }}>Submit</button>
+            );
+          })}
+        </div>
+      ))}
+      <button className="fb-pfsub" type="button" style={{ alignSelf: 'flex-start' }}>Submit</button>
     </div>
   );
 }
@@ -380,15 +383,11 @@ function PropsPanel({
   subTab,
   setSubTab,
   onChange,
-  columns,
-  onColumnsChange,
 }: {
   field: FormField;
   subTab: SubTab;
   setSubTab: (t: SubTab) => void;
   onChange: (f: FormField) => void;
-  columns: number;
-  onColumnsChange: (cols: number) => void;
 }) {
   const opts = (field.options || '').split(',').map((o) => o.trim()).filter(Boolean);
   const valRules = (field.validation || '').split(',').map((v) => v.trim()).filter(Boolean);
@@ -503,25 +502,9 @@ function PropsPanel({
         {subTab === 'layout' && (
           <>
             <div className="fb-prow">
-              <label className="fb-plbl2">Column span</label>
-              <div className="fb-segs">
-                {([
-                  { value: 1, label: '1/3' },
-                  { value: 2, label: '2/3' },
-                  { value: 3, label: 'Full' },
-                ] as const).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`fb-seg ${columns === value ? 'active' : ''}`}
-                    onClick={() => onColumnsChange(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
               <p className="fb-muted" style={{ marginTop: 8 }}>
-                Use 1/3 or 2/3 to place fields side by side
+                Fields placed in the same row auto-size equally. Drag a field onto
+                a vertical drop zone to place it side by side with another field.
               </p>
             </div>
           </>
@@ -622,7 +605,9 @@ export default function FormBuilder({
   isEditing,
 }: FormBuilderProps) {
   /* -- state -- */
-  const [fields, setFields] = useState<FormField[]>(initialFields);
+  const [rows, setRows] = useState<FormField[][]>(() =>
+    initialFields.length > 0 ? initialFields.map((f) => [f]) : []
+  );
   const [name, setName] = useState(formName);
   const [description, setDescription] = useState(formDescription);
   const [formType, setFormType] = useState(formTypeProp);
@@ -631,18 +616,22 @@ export default function FormBuilder({
   const [leftTab, setLeftTab] = useState<LeftTab>('elements');
   const [subTab, setSubTab] = useState<SubTab>('properties');
   const [search, setSearch] = useState('');
-  const [history, setHistory] = useState<FormField[][]>([]);
+  const [history, setHistory] = useState<FormField[][][]>([]);
   const [saving, setSaving] = useState(false);
   const [formStatus, setFormStatus] = useState<'draft' | 'saved'>('draft');
-  const [dropOver, setDropOver] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ type: 'h' | 'v'; rowIdx: number; colIdx?: number } | null>(null);
   const [accentColor, setAccentColor] = useState('#3B6EF0');
-  // Per-field cosmetic metadata (column span) — not persisted to DB
-  const [fieldMeta, setFieldMeta] = useState<Record<string, { columns: number }>>({});
 
-  const drag = useRef<{ type: 'palette' | 'canvas' | null; payload: string | null }>({
-    type: null,
-    payload: null,
-  });
+  /* -- derived flat fields helper -- */
+  const flatFields = rows.flat();
+  const fieldCount = flatFields.filter((f) => !LAYOUT_TYPES.includes(f.fieldType)).length;
+
+  const drag = useRef<{
+    src: 'palette' | 'canvas' | null;
+    payload: string | null;
+    rowIdx?: number;
+    colIdx?: number;
+  } | null>(null);
 
   /* -- inject CSS -- */
   useEffect(() => {
@@ -660,9 +649,9 @@ export default function FormBuilder({
   }, []);
 
   /* -- helpers -- */
-  const pushHistory = useCallback((snapshot: FormField[]) => {
+  const pushHistory = useCallback((snapshot: FormField[][]) => {
     setHistory((prev) => {
-      const next = [...prev, JSON.parse(JSON.stringify(snapshot)) as FormField[]];
+      const next = [...prev, JSON.parse(JSON.stringify(snapshot)) as FormField[][]];
       if (next.length > 30) next.shift();
       return next;
     });
@@ -673,7 +662,7 @@ export default function FormBuilder({
       if (prev.length === 0) return prev;
       const next = [...prev];
       const last = next.pop()!;
-      setFields(last);
+      setRows(last);
       setSelectedId(null);
       return next;
     });
@@ -686,10 +675,10 @@ export default function FormBuilder({
       { confirmText: 'Clear', dangerousAction: true },
     );
     if (!confirmed) return;
-    pushHistory(fields);
-    setFields([]);
+    pushHistory(rows);
+    setRows([]);
     setSelectedId(null);
-  }, [fields, pushHistory]);
+  }, [rows, pushHistory]);
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
@@ -698,7 +687,8 @@ export default function FormBuilder({
     }
     setSaving(true);
     try {
-      await onSave({ name, description, type: formType, fields });
+      const flat = rows.flat().map((f, i) => ({ ...f, sequence: i }));
+      await onSave({ name, description, type: formType, fields: flat });
       setFormStatus('saved');
       toast.success('Form saved successfully');
       setTimeout(() => setFormStatus('draft'), 3000);
@@ -707,67 +697,92 @@ export default function FormBuilder({
     } finally {
       setSaving(false);
     }
-  }, [name, description, formType, fields, onSave]);
+  }, [name, description, formType, rows, onSave]);
 
   /* -- field CRUD -- */
   const addField = useCallback((type: string, dbFieldTypeId?: number) => {
-    pushHistory(fields);
+    pushHistory(rows);
     const f = mkField(type, dbFieldTypeId);
-    f.sequence = fields.length;
-    setFields((prev) => [...prev, f]);
+    setRows((prev) => [...prev, [f]]);
     setSelectedId(f.id);
-  }, [fields, pushHistory]);
+  }, [rows, pushHistory]);
 
   const updateField = useCallback((updated: FormField) => {
-    pushHistory(fields);
-    setFields((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
-  }, [fields, pushHistory]);
+    pushHistory(rows);
+    setRows((prev) => prev.map((row) => row.map((f) => (f.id === updated.id ? updated : f))));
+  }, [rows, pushHistory]);
 
   const deleteField = useCallback((id: string) => {
-    pushHistory(fields);
-    setFields((prev) => prev.filter((f) => f.id !== id));
+    pushHistory(rows);
+    setRows((prev) => {
+      const next = prev.map((row) => row.filter((f) => f.id !== id)).filter((row) => row.length > 0);
+      return next;
+    });
     setSelectedId((prev) => (prev === id ? null : prev));
-  }, [fields, pushHistory]);
+  }, [rows, pushHistory]);
 
   /* -- palette groups -- */
   const paletteGroups = groupFieldTypes(fieldTypes);
 
   /* -- drag-and-drop -- */
-  const handleDrop = useCallback((insertAt: number) => {
-    setDropOver(null);
+  const handleDrop = useCallback((target: { type: 'h' | 'v'; rowIdx: number; colIdx?: number }) => {
+    setDropTarget(null);
     const d = drag.current;
-    if (!d.type || !d.payload) return;
+    if (!d || !d.src || !d.payload) return;
 
-    if (d.type === 'palette') {
-      // New field from palette
+    if (d.src === 'palette') {
       const match = fieldTypes.find((ft) => ft.type === d.payload);
-      const layoutMatch = LAYOUT_FIELD_DEFS.find((ld) => ld.type === d.payload);
-      const f = mkField(d.payload, match?.dbFieldTypeId);
-      if (layoutMatch) f.fieldName = layoutMatch.label;
-      pushHistory(fields);
-      const next = [...fields];
-      next.splice(insertAt, 0, f);
-      next.forEach((fld, i) => { fld.sequence = i; });
-      setFields(next);
+      const f = mkField(d.payload!, match?.dbFieldTypeId);
+      pushHistory(rows);
+
+      if (target.type === 'h') {
+        const next = [...rows];
+        next.splice(target.rowIdx, 0, [f]);
+        setRows(next);
+      } else {
+        const next = rows.map((r) => [...r]);
+        if (next[target.rowIdx]) {
+          next[target.rowIdx].splice(target.colIdx ?? next[target.rowIdx].length, 0, f);
+        } else {
+          next.push([f]);
+        }
+        setRows(next);
+      }
       setSelectedId(f.id);
-    } else if (d.type === 'canvas') {
-      // Reorder existing field
-      const fromIdx = fields.findIndex((f) => f.id === d.payload);
-      if (fromIdx === -1) return;
-      pushHistory(fields);
-      const next = [...fields];
-      const [moved] = next.splice(fromIdx, 1);
-      const adjustedIdx = insertAt > fromIdx ? insertAt - 1 : insertAt;
-      next.splice(adjustedIdx, 0, moved);
-      next.forEach((fld, i) => { fld.sequence = i; });
-      setFields(next);
+    } else if (d.src === 'canvas') {
+      const srcRowIdx = d.rowIdx!;
+      const srcColIdx = d.colIdx!;
+      const field = rows[srcRowIdx]?.[srcColIdx];
+      if (!field) return;
+      pushHistory(rows);
+
+      let next = rows.map((r) => [...r]);
+      next[srcRowIdx].splice(srcColIdx, 1);
+      next = next.filter((r) => r.length > 0);
+
+      if (target.type === 'h') {
+        let ri = target.rowIdx;
+        if (srcRowIdx < ri) ri--;
+        ri = Math.max(0, Math.min(ri, next.length));
+        next.splice(ri, 0, [field]);
+      } else {
+        let ri = target.rowIdx;
+        if (srcRowIdx < ri) ri--;
+        ri = Math.max(0, Math.min(ri, next.length - 1));
+        if (ri < 0 || !next[ri]) {
+          next.push([field]);
+        } else {
+          let ci = target.colIdx ?? next[ri].length;
+          if (srcRowIdx === ri && srcColIdx < ci) ci--;
+          ci = Math.max(0, Math.min(ci, next[ri].length));
+          next[ri].splice(ci, 0, field);
+        }
+      }
+      setRows(next);
     }
 
-    drag.current = { type: null, payload: null };
-  }, [fields, fieldTypes, pushHistory]);
-
-  /* -- derived -- */
-  const fieldCount = fields.filter((f) => !LAYOUT_TYPES.includes(f.fieldType)).length;
+    drag.current = null;
+  }, [rows, fieldTypes, pushHistory]);
 
   /* -- render -- */
   return (
@@ -810,7 +825,7 @@ export default function FormBuilder({
         <button className="fb-btn" disabled={history.length === 0} onClick={undo}>
           Undo
         </button>
-        <button className="fb-btn" disabled={fields.length === 0} onClick={handleClear}>
+        <button className="fb-btn" disabled={rows.length === 0} onClick={handleClear}>
           Clear
         </button>
         <button className="fb-btn" onClick={onCancel}>
@@ -868,13 +883,13 @@ export default function FormBuilder({
                               className="fb-pitem"
                               draggable
                               onDragStart={(e) => {
-                                drag.current = { type: 'palette', payload: it.type };
+                                drag.current = { src: 'palette', payload: it.type };
                                 e.dataTransfer.setData('text/plain', it.type);
                                 (e.currentTarget as HTMLElement).classList.add('dragging');
                               }}
                               onDragEnd={(e) => {
                                 (e.currentTarget as HTMLElement).classList.remove('dragging');
-                                drag.current = { type: null, payload: null };
+                                drag.current = null;
                               }}
                               onClick={() => addField(it.type, it.dbFieldTypeId)}
                             >
@@ -889,12 +904,12 @@ export default function FormBuilder({
                 </>
               ) : (
                 <div className="fb-tree">
-                  {fields.length === 0 && (
+                  {flatFields.length === 0 && (
                     <p style={{ textAlign: 'center', color: 'var(--fb-t3)', fontSize: 13 }}>
                       No fields yet
                     </p>
                   )}
-                  {fields.map((f, i) => (
+                  {flatFields.map((f, i) => (
                     <div
                       key={f.id}
                       className={`fb-titem ${selectedId === f.id ? 'active' : ''}`}
@@ -915,9 +930,9 @@ export default function FormBuilder({
         {/* Canvas */}
         {view === 'editor' && (
           <div className="fb-canvas">
-            <div className="fb-ci">
+            <div style={{ maxWidth: 660, margin: '0 auto' }}>
               {/* Title row */}
-              <div className="fb-titlerow fb-full">
+              <div className="fb-titlerow">
                 <input
                   className="fb-titleinp"
                   value={name}
@@ -928,7 +943,7 @@ export default function FormBuilder({
               </div>
 
               {/* Description */}
-              <div className="fb-full" style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 20 }}>
                 <input
                   className="fb-fi"
                   value={description}
@@ -937,13 +952,12 @@ export default function FormBuilder({
                 />
               </div>
 
-              {/* Empty state */}
-              {fields.length === 0 ? (
+              {rows.length === 0 ? (
                 <div
-                  className={`fb-empty fb-full ${dropOver === 0 ? 'over' : ''}`}
-                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropOver(0); }}
-                  onDragLeave={() => setDropOver(null)}
-                  onDrop={() => handleDrop(0)}
+                  className={`fb-empty ${dropTarget?.type === 'h' && dropTarget.rowIdx === 0 ? 'over' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'h', rowIdx: 0 }); }}
+                  onDragLeave={() => setDropTarget(null)}
+                  onDrop={(e) => { e.preventDefault(); handleDrop({ type: 'h', rowIdx: 0 }); }}
                 >
                   <div>
                     <div className="fb-ei">+</div>
@@ -952,100 +966,85 @@ export default function FormBuilder({
                   </div>
                 </div>
               ) : (
-                <>
-                  {/* DropZone(0) */}
-                  <div
-                    className="fb-dz fb-full"
-                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropOver(0); }}
-                    onDragLeave={() => setDropOver(null)}
-                    onDrop={() => handleDrop(0)}
-                  >
-                    <div className={`fb-dl ${dropOver === 0 ? 'over' : ''}`} />
-                  </div>
-
-                  {fields.map((f, i) => (
-                    <React.Fragment key={f.id}>
-                      {/* Card */}
+                <div className="fb-form-rows">
+                  {rows.map((row, ri) => (
+                    <React.Fragment key={ri}>
+                      {/* Horizontal drop zone before this row */}
                       <div
-                        style={{ gridColumn: `span ${fieldMeta[f.id]?.columns ?? 3}` }}
+                        className={`fb-hzone ${dropTarget?.type === 'h' && dropTarget.rowIdx === ri ? 'active' : ''}`}
+                        onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'h', rowIdx: ri }); }}
+                        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null); }}
+                        onDrop={(e) => { e.preventDefault(); handleDrop({ type: 'h', rowIdx: ri }); }}
                       >
-                        <div
-                          className={`fb-card ${selectedId === f.id ? 'selected' : ''}`}
-                          draggable
-                          onClick={() => setSelectedId(f.id)}
-                          onDragStart={(e) => {
-                            drag.current = { type: 'canvas', payload: f.id };
-                            e.dataTransfer.setData('text/plain', f.id);
-                            (e.currentTarget as HTMLElement).classList.add('dragging');
-                          }}
-                          onDragEnd={(e) => {
-                            (e.currentTarget as HTMLElement).classList.remove('dragging');
-                            drag.current = { type: null, payload: null };
-                            setDropOver(null);
-                          }}
-                        >
-                          <div className="fb-handle">&#x2807;</div>
-                          <button className="fb-del" onClick={(e) => { e.stopPropagation(); deleteField(f.id); }}>
-                            &times;
-                          </button>
-                          <div className="fb-cmeta">
-                            <span className="fb-ctype">{f.fieldType}</span>
-                            {f.required && <span className="fb-creq">Required</span>}
-                          </div>
-                          <span className="fb-clbl">
-                            {f.fieldName}
-                            {f.required && <span className="fb-ast">*</span>}
-                          </span>
-                          <FieldPreview field={f} />
-                          {f.helpText && <p className="fb-cdesc">{f.helpText}</p>}
-
-                          {/* Column size buttons — visible when selected */}
-                          <div className="fb-colbtns" onClick={(e) => e.stopPropagation()}>
-                            {([
-                              { cols: 1, label: '1/3' },
-                              { cols: 2, label: '1/2' },
-                              { cols: 3, label: 'Full' },
-                            ] as const).map(({ cols, label }) => (
-                              <button
-                                key={cols}
-                                type="button"
-                                className={`fb-colbtn ${(fieldMeta[f.id]?.columns ?? 3) === cols ? 'active' : ''}`}
-                                onClick={() => setFieldMeta((prev) => ({ ...prev, [f.id]: { columns: cols } }))}
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <div className="fb-hzone-bar" />
                       </div>
 
-                      {/* DropZone — only show between rows, not between side-by-side fields */}
-                      {(() => {
-                        const curCols = fieldMeta[f.id]?.columns ?? 3;
-                        const nextField = fields[i + 1];
-                        const nextCols = nextField ? (fieldMeta[nextField.id]?.columns ?? 3) : 3;
-                        // Show drop zone if current field is full-width, or next field starts a new row,
-                        // or this is the last field
-                        const isRowBreak = curCols === 3 || !nextField || nextCols === 3 || curCols + nextCols > 3;
-                        return isRowBreak ? (
-                          <div
-                            className="fb-dz-wrap"
-                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropOver(i + 1); }}
-                            onDragLeave={() => setDropOver(null)}
-                            onDrop={() => handleDrop(i + 1)}
-                          >
-                            <div className={`fb-dl ${dropOver === i + 1 ? 'over' : ''}`} />
-                          </div>
-                        ) : null;
-                      })()}
+                      {/* Row */}
+                      <div className="fb-form-row">
+                        {/* Vertical drop zone before first field */}
+                        <div
+                          className={`fb-vzone ${dropTarget?.type === 'v' && dropTarget.rowIdx === ri && dropTarget.colIdx === 0 ? 'active' : ''}`}
+                          onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'v', rowIdx: ri, colIdx: 0 }); }}
+                          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null); }}
+                          onDrop={(e) => { e.preventDefault(); handleDrop({ type: 'v', rowIdx: ri, colIdx: 0 }); }}
+                        >
+                          <div className="fb-vzone-bar" />
+                        </div>
+
+                        {row.map((f, ci) => (
+                          <React.Fragment key={f.id}>
+                            <div className="fb-row-cell">
+                              <div
+                                className={`fb-card ${selectedId === f.id ? 'selected' : ''}`}
+                                draggable
+                                onClick={() => setSelectedId(f.id)}
+                                onDragStart={(e) => {
+                                  drag.current = { src: 'canvas', payload: f.id, rowIdx: ri, colIdx: ci };
+                                  e.dataTransfer.setData('text/plain', f.id);
+                                }}
+                                onDragEnd={() => { drag.current = null; setDropTarget(null); }}
+                              >
+                                <div className="fb-handle">&#x2807;</div>
+                                <button className="fb-del" onClick={(e) => { e.stopPropagation(); deleteField(f.id); }}>&times;</button>
+                                <div className="fb-cmeta">
+                                  <span className="fb-ctype">{f.fieldType}</span>
+                                  {f.required && <span className="fb-creq">Required</span>}
+                                </div>
+                                <span className="fb-clbl">{f.fieldName}{f.required && <span className="fb-ast">*</span>}</span>
+                                <FieldPreview field={f} />
+                                {f.helpText && <p className="fb-cdesc">{f.helpText}</p>}
+                              </div>
+                            </div>
+
+                            {/* Vertical drop zone after each field */}
+                            <div
+                              className={`fb-vzone ${dropTarget?.type === 'v' && dropTarget.rowIdx === ri && dropTarget.colIdx === ci + 1 ? 'active' : ''}`}
+                              onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'v', rowIdx: ri, colIdx: ci + 1 }); }}
+                              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null); }}
+                              onDrop={(e) => { e.preventDefault(); handleDrop({ type: 'v', rowIdx: ri, colIdx: ci + 1 }); }}
+                            >
+                              <div className="fb-vzone-bar" />
+                            </div>
+                          </React.Fragment>
+                        ))}
+                      </div>
                     </React.Fragment>
                   ))}
-                </>
+
+                  {/* Final horizontal drop zone after last row */}
+                  <div
+                    className={`fb-hzone ${dropTarget?.type === 'h' && dropTarget.rowIdx === rows.length ? 'active' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'h', rowIdx: rows.length }); }}
+                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null); }}
+                    onDrop={(e) => { e.preventDefault(); handleDrop({ type: 'h', rowIdx: rows.length }); }}
+                  >
+                    <div className="fb-hzone-bar" />
+                  </div>
+                </div>
               )}
 
-              {/* Add field button */}
               <button
-                className="fb-addbtn fb-full"
+                className="fb-addbtn"
                 onClick={() => addField('text_input', fieldTypes.find((ft) => ft.type === 'text_input')?.dbFieldTypeId)}
               >
                 + Add field
@@ -1060,7 +1059,7 @@ export default function FormBuilder({
             <div className="fb-pcard">
               <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{name || 'Untitled form'}</h2>
               {description && <p style={{ color: 'var(--fb-t2)', fontSize: 14, marginBottom: 20 }}>{description}</p>}
-              <PreviewMode fields={fields} fieldMeta={fieldMeta} />
+              <PreviewMode rows={rows} />
             </div>
           </div>
         )}
@@ -1075,7 +1074,7 @@ export default function FormBuilder({
                   className="fb-copybtn"
                   style={{ width: 'auto', padding: '6px 14px' }}
                   onClick={() => {
-                    const schema = fields.map((f) => {
+                    const schema = flatFields.map((f) => {
                       const entry: Record<string, unknown> = {
                         fieldName: f.fieldName,
                         fieldType: f.fieldType,
@@ -1096,7 +1095,7 @@ export default function FormBuilder({
               </div>
               <pre className="fb-cjson">
                 {JSON.stringify(
-                  fields.map((f) => {
+                  flatFields.map((f) => {
                     const entry: Record<string, unknown> = {
                       fieldName: f.fieldName,
                       fieldType: f.fieldType,
@@ -1120,16 +1119,12 @@ export default function FormBuilder({
         {view === 'editor' && (
           <div className="fb-right">
             <div className="fb-rscroll">
-              {selectedId && fields.find((f) => f.id === selectedId) ? (
+              {selectedId && flatFields.find((f) => f.id === selectedId) ? (
                 <PropsPanel
-                  field={fields.find((f) => f.id === selectedId)!}
+                  field={flatFields.find((f) => f.id === selectedId)!}
                   subTab={subTab}
                   setSubTab={setSubTab}
                   onChange={updateField}
-                  columns={fieldMeta[selectedId!]?.columns ?? 3}
-                  onColumnsChange={(cols) =>
-                    setFieldMeta((prev) => ({ ...prev, [selectedId!]: { columns: cols } }))
-                  }
                 />
               ) : (
                 <div className="fb-rempty">
