@@ -19,7 +19,7 @@ interface FormBuilderProps {
   isEditing: boolean;
 }
 
-type View = 'editor' | 'preview' | 'code';
+type View = 'editor' | 'preview';
 type LeftTab = 'elements' | 'tree';
 type SubTab = 'properties' | 'data' | 'layout' | 'validation' | 'conditions';
 
@@ -811,7 +811,7 @@ export default function FormBuilder({
         <span className="fb-count">{fieldCount} field{fieldCount !== 1 ? 's' : ''}</span>
 
         <div className="fb-vtoggle">
-          {(['editor', 'preview', 'code'] as View[]).map((v) => (
+          {(['editor', 'preview'] as View[]).map((v) => (
             <button
               key={v}
               className={`fb-vbtn ${view === v ? 'active' : ''}`}
@@ -930,7 +930,7 @@ export default function FormBuilder({
         {/* Canvas */}
         {view === 'editor' && (
           <div className="fb-canvas">
-            <div style={{ maxWidth: 660, margin: '0 auto' }}>
+            <div style={{ margin: '0 auto', padding: '0 4px' }}>
               {/* Title row */}
               <div className="fb-titlerow">
                 <input
@@ -1060,57 +1060,6 @@ export default function FormBuilder({
               <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{name || 'Untitled form'}</h2>
               {description && <p style={{ color: 'var(--fb-t2)', fontSize: 14, marginBottom: 20 }}>{description}</p>}
               <PreviewMode rows={rows} />
-            </div>
-          </div>
-        )}
-
-        {/* Code view */}
-        {view === 'code' && (
-          <div className="fb-code">
-            <div className="fb-ccard">
-              <div className="fb-chdr">
-                <span className="fb-ctitle">JSON Schema</span>
-                <button
-                  className="fb-copybtn"
-                  style={{ width: 'auto', padding: '6px 14px' }}
-                  onClick={() => {
-                    const schema = flatFields.map((f) => {
-                      const entry: Record<string, unknown> = {
-                        fieldName: f.fieldName,
-                        fieldType: f.fieldType,
-                        required: f.required,
-                      };
-                      if (f.placeholder) entry.placeholder = f.placeholder;
-                      if (f.helpText) entry.helpText = f.helpText;
-                      if (f.options) entry.options = f.options;
-                      if (f.validation) entry.validation = f.validation;
-                      return entry;
-                    });
-                    navigator.clipboard.writeText(JSON.stringify(schema, null, 2));
-                    toast.success('Copied to clipboard');
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-              <pre className="fb-cjson">
-                {JSON.stringify(
-                  flatFields.map((f) => {
-                    const entry: Record<string, unknown> = {
-                      fieldName: f.fieldName,
-                      fieldType: f.fieldType,
-                      required: f.required,
-                    };
-                    if (f.placeholder) entry.placeholder = f.placeholder;
-                    if (f.helpText) entry.helpText = f.helpText;
-                    if (f.options) entry.options = f.options;
-                    if (f.validation) entry.validation = f.validation;
-                    return entry;
-                  }),
-                  null,
-                  2,
-                )}
-              </pre>
             </div>
           </div>
         )}
