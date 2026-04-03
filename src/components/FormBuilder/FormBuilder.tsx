@@ -227,6 +227,67 @@ const GLOBAL_CSS = `
 `;
 
 /* ------------------------------------------------------------------ */
+/*  Group field types into palette categories                          */
+/* ------------------------------------------------------------------ */
+
+const iconMap: Record<string, string> = {
+  text_input: 'T', text: 'T', textarea: '¶', number: '#', email: '@', phone: '☎',
+  dropdown: '▾', select: '▾', radio: '◎', checkbox: '✓', checkboxes: '✓',
+  date: '▦', time: '◷', datetime: '▦◷', date_time: '▦◷',
+  file: '↑', file_upload: '↑', image: '▣',
+  ssn: '***', dob: '▦', account_number: '#', address: '⌂',
+};
+
+interface PaletteGroup {
+  label: string;
+  items: { type: string; label: string; icon: string; dbFieldTypeId?: number }[];
+}
+
+function groupFieldTypes(dbTypes: UiFieldType[]): PaletteGroup[] {
+  const basic = ['text_input', 'text', 'textarea', 'number', 'email', 'phone'];
+  const selection = ['dropdown', 'select', 'radio', 'checkbox', 'checkboxes'];
+  const dateTime = ['date', 'time', 'datetime', 'date_time'];
+  const fileTypes = ['file', 'file_upload'];
+
+  const groups: PaletteGroup[] = [
+    { label: 'Basic', items: [] },
+    { label: 'Selection', items: [] },
+    { label: 'Date & Time', items: [] },
+    { label: 'Specialized', items: [] },
+    { label: 'File', items: [] },
+    { label: 'Layout', items: LAYOUT_FIELD_DEFS.map((d) => ({ ...d, dbFieldTypeId: undefined })) },
+  ];
+
+  for (const ft of dbTypes) {
+    const entry = { type: ft.type, label: ft.label, icon: iconMap[ft.type] || ft.icon || '?', dbFieldTypeId: ft.dbFieldTypeId };
+    if (basic.includes(ft.type)) groups[0].items.push(entry);
+    else if (selection.includes(ft.type)) groups[1].items.push(entry);
+    else if (dateTime.includes(ft.type)) groups[2].items.push(entry);
+    else if (fileTypes.includes(ft.type)) groups[3].items.push(entry); // intentionally file bucket, index 4
+    else groups[3].items.push(entry); // specialized
+  }
+  // fix: file bucket is index 4
+  // Re-sort file items into the correct bucket – the loop above puts file types in index 3 (specialized)
+  // Let's redo cleanly:
+  groups[0].items = [];
+  groups[1].items = [];
+  groups[2].items = [];
+  groups[3].items = [];
+  groups[4].items = [];
+
+  for (const ft of dbTypes) {
+    const entry = { type: ft.type, label: ft.label, icon: iconMap[ft.type] || ft.icon || '?', dbFieldTypeId: ft.dbFieldTypeId };
+    if (basic.includes(ft.type)) groups[0].items.push(entry);
+    else if (selection.includes(ft.type)) groups[1].items.push(entry);
+    else if (dateTime.includes(ft.type)) groups[2].items.push(entry);
+    else if (fileTypes.includes(ft.type)) groups[4].items.push(entry);
+    else groups[3].items.push(entry);
+  }
+
+  return groups.filter((g) => g.items.length > 0);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -326,6 +387,29 @@ export default function FormBuilder({
     }
   }, [name, description, formType, fields, onSave]);
 
+  /* -- field CRUD -- */
+  const addField = useCallback((type: string, dbFieldTypeId?: number) => {
+    pushHistory(fields);
+    const f = mkField(type, dbFieldTypeId);
+    f.sequence = fields.length;
+    setFields((prev) => [...prev, f]);
+    setSelectedId(f.id);
+  }, [fields, pushHistory]);
+
+  const updateField = useCallback((updated: FormField) => {
+    pushHistory(fields);
+    setFields((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+  }, [fields, pushHistory]);
+
+  const deleteField = useCallback((id: string) => {
+    pushHistory(fields);
+    setFields((prev) => prev.filter((f) => f.id !== id));
+    setSelectedId((prev) => (prev === id ? null : prev));
+  }, [fields, pushHistory]);
+
+  /* -- palette groups -- */
+  const paletteGroups = groupFieldTypes(fieldTypes);
+
   /* -- derived -- */
   const fieldCount = fields.filter((f) => !LAYOUT_TYPES.includes(f.fieldType)).length;
 
@@ -383,10 +467,92 @@ export default function FormBuilder({
 
       {/* ---- Body ---- */}
       <div className="fb-body">
-        {/* Left panel placeholder */}
+        {/* Left panel */}
         {view === 'editor' && (
           <div className="fb-left">
-            <p style={{ padding: 16, color: 'var(--fb-t3)' }}>Palette (Task 3)</p>
+            <div className="fb-ptabs">
+              {(['elements', 'tree'] as LeftTab[]).map((t) => (
+                <button
+                  key={t}
+                  className={`fb-ptab ${leftTab === t ? 'active' : ''}`}
+                  onClick={() => setLeftTab(t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div className="fb-pbody">
+              {leftTab === 'elements' ? (
+                <>
+                  <div className="fb-srchwrap">
+                    <input
+                      className="fb-srch"
+                      placeholder="Search fields..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
+                  <p className="fb-hint">Drag or click to add fields</p>
+                  {paletteGroups.map((g) => {
+                    const filtered = g.items.filter(
+                      (it) =>
+                        !search ||
+                        it.label.toLowerCase().includes(search.toLowerCase()) ||
+                        it.type.toLowerCase().includes(search.toLowerCase()),
+                    );
+                    if (filtered.length === 0) return null;
+                    return (
+                      <div className="fb-grp" key={g.label}>
+                        <p className="fb-glbl">{g.label}</p>
+                        <div className="fb-pgrid">
+                          {filtered.map((it) => (
+                            <div
+                              key={it.type}
+                              className="fb-pitem"
+                              draggable
+                              onDragStart={(e) => {
+                                drag.current = { type: 'palette', payload: it.type };
+                                e.dataTransfer.setData('text/plain', it.type);
+                                (e.currentTarget as HTMLElement).classList.add('dragging');
+                              }}
+                              onDragEnd={(e) => {
+                                (e.currentTarget as HTMLElement).classList.remove('dragging');
+                                drag.current = { type: null, payload: null };
+                              }}
+                              onClick={() => addField(it.type, it.dbFieldTypeId)}
+                            >
+                              <span className="fb-picon">{iconMap[it.type] || it.icon || '?'}</span>
+                              <span className="fb-plbl">{it.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div className="fb-tree">
+                  {fields.length === 0 && (
+                    <p style={{ textAlign: 'center', color: 'var(--fb-t3)', fontSize: 13 }}>
+                      No fields yet
+                    </p>
+                  )}
+                  {fields.map((f, i) => (
+                    <div
+                      key={f.id}
+                      className={`fb-titem ${selectedId === f.id ? 'active' : ''}`}
+                      onClick={() => setSelectedId(f.id)}
+                    >
+                      <span className="fb-tnum">{i + 1}</span>
+                      <span className="fb-ttype">{f.fieldType}</span>
+                      <span className="fb-tname">{f.fieldName}</span>
+                      {f.required && <span className="fb-tdot" />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
