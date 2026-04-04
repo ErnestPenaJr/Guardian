@@ -145,15 +145,18 @@ export default function CreateNotice({
   return (
     <div className={modalMode ? "" : "min-h-screen bg-gray-100 flex justify-center p-6"}>
       <div className={modalMode ? "" : "w-full max-w-4xl bg-white rounded-2xl shadow-sm border border-gray-200 p-8"}>
-        <h1 className="text-xl font-semibold text-gray-800">
-          {isEditMode ? "Edit Notice" : "Create New Notice"}
-        </h1>
-
-        <p className="text-sm text-gray-500 mt-1">
-          {isEditMode
-            ? "Update the notice and save or send."
-            : "Draft and distribute notices to workspace members with CJS compliance"}
-        </p>
+        {!modalMode && (
+          <>
+            <h1 className="text-xl font-semibold text-gray-800">
+              {isEditMode ? "Edit Notice" : "Create New Notice"}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {isEditMode
+                ? "Update the notice and save or send."
+                : "Draft and distribute notices to workspace members with CJS compliance"}
+            </p>
+          </>
+        )}
 
         {isEditMode && loadingNotice ? (
           <p className="text-sm text-gray-500 mt-2">Loading notice...</p>
@@ -231,7 +234,7 @@ export default function CreateNotice({
             }}
           >
             {({ values, setFieldValue }) => (
-              <Form className="mt-6 space-y-6">
+              <Form className="mt-4 space-y-4">
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -252,45 +255,43 @@ export default function CreateNotice({
                   />
                 </div>
 
-                {/* Classification */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sensitivity Classification *
-                  </label>
+                {/* Classification + Distribution - side by side */}
+                <div className="d-flex gap-3" style={{ flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 0', minWidth: '200px' }}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Sensitivity Classification *
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Field
+                        as="select"
+                        name="classification"
+                        className="h-10 w-full border border-gray-300 rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                        <option>CJIS</option>
+                      </Field>
+                      <span className="h-10 flex items-center px-3 text-xs font-medium rounded-full bg-gray-200 text-gray-700 whitespace-nowrap">
+                        {values.classification.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
 
-                  <div className="flex gap-3">
+                  <div style={{ flex: '1 1 0', minWidth: '200px' }}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Distribution Type *
+                    </label>
                     <Field
                       as="select"
-                      name="classification"
-                      className="h-10 w-56 border border-gray-300 rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      name="distribution"
+                      className="h-10 w-full border border-gray-300 rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option>Low</option>
-                      <option>Medium</option>
-                      <option>High</option>
-                      <option>CJIS</option>
+                      <option>Internal Only</option>
+                      <option>External Only</option>
+                      <option>Mixed (Internal + External)</option>
                     </Field>
-
-                    <span className="h-10 flex items-center px-3 text-xs font-medium rounded-full bg-gray-200 text-gray-700">
-                      {values.classification.toUpperCase()}
-                    </span>
                   </div>
-                </div>
-
-                {/* Distribution */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Distribution Type *
-                  </label>
-
-                  <Field
-                    as="select"
-                    name="distribution"
-                    className="h-10 w-56 border border-gray-300 rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option>Internal Only</option>
-                    <option>External Only</option>
-                    <option>Mixed (Internal + External)</option>
-                  </Field>
                 </div>
 
                 {/* Recipients */}
@@ -362,7 +363,7 @@ export default function CreateNotice({
                 </div>
 
                 {/* Footer */}
-                <div className="mt-6 flex flex-col gap-4 lg:flex-row md:justify-between md:items-center">
+                <div className="mt-4 flex flex-col gap-3 lg:flex-row md:justify-between md:items-center">
                   <div className="text-xs text-gray-500 md:flex md:flex-col">
                     <p>* Required fields</p>
                     <p>All actions are logged for CJS audit compliance</p>

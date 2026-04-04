@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { Modal } from "react-bootstrap";
+import DataTable, { TableColumn } from "react-data-table-component";
 
 import moment from "moment";
 import MyNoticesService, {
@@ -19,7 +20,6 @@ import MyNoticesService, {
   SensitivityLevel,
 } from "../services/mynotices";
 
-import PaginationPage from "../components/NoticeManagementSystem/Pagination";
 import CreateNotice from "./CreateNotice";
 import ViewNotice from "./ViewNotice";
 
@@ -42,7 +42,7 @@ export default function AllNotices() {
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  // ⭐ Pagination states
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -81,7 +81,7 @@ export default function AllNotices() {
   // Fetch when page or rowsPerPage changes (including initial load)
   useEffect(() => {
     fetchNotices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchNotices uses currentPage/rowsPerPage from closure; we only want to re-run when these change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, rowsPerPage]);
 
   // Debounced filters: reset to page 1 and refetch with current filters
@@ -97,7 +97,7 @@ export default function AllNotices() {
     }, 400);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally debounced; fetchNotices(1, rowsPerPage) uses current filter state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, sensitivityFilter]);
 
   const handleDelete = async (noticeId: number, title: string) => {
@@ -121,234 +121,241 @@ export default function AllNotices() {
     }
   };
 
-  // Server-side pagination: API returns current page only
-  const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
-  const paginatedNotices = notices;
-
   const sensitivityStyle = (level: SensitivityLevel): string => {
     switch (level) {
       case "CJIS":
-        return "bg-red-500 text-white";
+        return "badge bg-danger";
       case "Medium":
-        return "bg-blue-700 text-white";
+        return "badge bg-primary";
       case "High":
-        return "bg-yellow-100 text-yellow-700";
+        return "badge bg-warning text-dark";
       case "Low":
-        return "bg-gray-200 text-gray-700";
+        return "badge bg-secondary";
       default:
-        return "bg-gray-200 text-gray-700";
+        return "badge bg-secondary";
     }
   };
 
   const statusStyle = (status: NoticeStatus): string =>
     status === "Sent"
-      ? "bg-green-100 text-green-700"
-      : "bg-gray-200 text-gray-700";
+      ? "badge bg-success"
+      : "badge bg-info";
+
+  // DataTable columns definition
+  const columns: TableColumn<Notice>[] = [
+    {
+      name: "Title",
+      selector: (row) => row.NOTICE_TITLE,
+      sortable: true,
+      grow: 2,
+      cell: (row) => (
+        <span style={{ fontWeight: 500 }}>{row.NOTICE_TITLE}</span>
+      ),
+    },
+    {
+      name: "Sensitivity",
+      selector: (row) => row.SENSITIVITY_CLASSIFICATION || "",
+      sortable: true,
+      width: "140px",
+      cell: (row) => (
+        <span className={sensitivityStyle(row.SENSITIVITY_CLASSIFICATION as SensitivityLevel)} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>
+          {row.SENSITIVITY_CLASSIFICATION}
+        </span>
+      ),
+    },
+    {
+      name: "Status",
+      selector: (row) => row.BUTTON_STATUS || "",
+      sortable: true,
+      width: "120px",
+      cell: (row) => (
+        <span className={statusStyle(row.BUTTON_STATUS as NoticeStatus)} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>
+          {row.BUTTON_STATUS}
+        </span>
+      ),
+    },
+    {
+      name: "Type",
+      selector: (row) => row.DISTRIBUTION_TYPE || "",
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Created By",
+      selector: (row) => row.CREATE_USER_NAME || "",
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "Created",
+      selector: (row) => row.CREATE_DATE || "",
+      sortable: true,
+      width: "160px",
+      cell: (row) => moment(row.CREATE_DATE).format("YYYY-MM-DD HH:mm"),
+    },
+    {
+      name: "Recipients",
+      selector: (row) => row.RECIPIENTS_COUNT || 0,
+      sortable: true,
+      width: "110px",
+      center: true,
+      cell: (row) => (
+        <span style={{ fontWeight: 600 }}>{row.RECIPIENTS_COUNT}</span>
+      ),
+    },
+    {
+      name: "Actions",
+      sortable: false,
+      width: "200px",
+      cell: (row) => (
+        <div className="d-flex align-items-center gap-1">
+          {row.BUTTON_STATUS === "Sent" ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); openViewNotice(row.NOTICE_ID); }}
+              className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+            >
+              <Eye size={14} />
+              View
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); editNotice(row.NOTICE_ID); }}
+                className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+              >
+                <SquarePen size={14} />
+                Edit
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelete(row.NOTICE_ID, row.NOTICE_TITLE); }}
+                className="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1"
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-[16px] md:p-5">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
+    <div className="container">
+      {/* Page Title - matches Request Dashboard */}
+      <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Notices Dashboard</h1>
+
+      {/* Section Header with divider bar */}
+      <div className="mb-3">
+        <div className="d-flex align-items-center">
+          <div className="bg-secondary" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">
-              Notice Management
-            </h1>
-            <p className="text-gray-500 mt-1">
+            <h3 className="mb-1" style={{ fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+              All Notices
+            </h3>
+            <p className="mb-0 text-muted" style={{ fontSize: '13px' }}>
               Create, manage, and track notices with compliance
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Toolbar - matches Request Dashboard layout */}
+      <div className="request-dashboard-header mb-3 d-flex align-items-center justify-content-between">
+        <div className="d-flex align-items-center gap-2">
+          <button
+            className="btn btn-outline-secondary"
+            style={{
+              minWidth: 100,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              whiteSpace: 'nowrap'
+            }}
+            onClick={() => fetchNotices()}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-arrow-clockwise me-1" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+            </svg>
+            Refresh
+          </button>
 
           <button
             onClick={openCreateNotice}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+            className="btn bg-warning text-dark ms-2"
+            style={{ minWidth: 140 }}
           >
-            <Plus size={16} />
             Create Notice
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Search notices..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as NoticeStatus | "All")
-            }
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="All">All Status</option>
-            <option value="Sent">Sent</option>
-            <option value="Draft">Draft</option>
-          </select>
-
-          <select
-            value={sensitivityFilter}
-            onChange={(e) =>
-              setSensitivityFilter(e.target.value as SensitivityLevel | "All")
-            }
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="All">All Sensitivity Levels</option>
-            <option value="CJIS">CJIS</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Low">Low</option>
-          </select>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6">
-            Notices ({totalCount})
-          </h2>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-gray-600 border-b">
-                <tr>
-                  <th className="pb-4">Title</th>
-                  <th className="pb-4">Sensitivity</th>
-                  <th className="pb-4 text-center">Status</th>
-                  <th className="pb-4 text-center">Type</th>
-                  <th className="pb-4 text-center whitespace-nowrap">
-                    Created By
-                  </th>
-                  <th className="pb-4 text-center">Created</th>
-                  <th className="pb-4 text-center">Recipients</th>
-                  <th className="pb-4 text-center">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-100">
-                {!loading && paginatedNotices.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-gray-500">
-                      No notices found
-                    </td>
-                  </tr>
-                )}
-
-                {!loading &&
-                  paginatedNotices.map((notice) => (
-                    <tr
-                      key={notice.NOTICE_ID}
-                      className="hover:bg-gray-50 whitespace-nowrap"
-                    >
-                      <td className="py-4 font-medium text-gray-800">
-                        {notice.NOTICE_TITLE}
-                      </td>
-
-                      <td>
-                        <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full font-medium  ${sensitivityStyle(
-                            notice.SENSITIVITY_CLASSIFICATION as SensitivityLevel,
-                          )}`}
-                        >
-                          {(notice.SENSITIVITY_CLASSIFICATION === "CJIS" ||
-                            notice.SENSITIVITY_CLASSIFICATION === "High") && (
-                            <AlertTriangle size={12} />
-                          )}
-                          {notice.SENSITIVITY_CLASSIFICATION}
-                        </span>
-                      </td>
-
-                      <td>
-                        <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full font-medium text-center ${statusStyle(
-                            notice.BUTTON_STATUS as NoticeStatus,
-                          )}`}
-                        >
-                          {notice.BUTTON_STATUS === "Sent" ? (
-                            <Send size={12} />
-                          ) : (
-                            <SquarePen size={12} />
-                          )}
-                          {notice.BUTTON_STATUS}
-                        </span>
-                      </td>
-
-                      <td className="text-center ">
-                        {notice.DISTRIBUTION_TYPE}
-                      </td>
-                      <td className="text-center px-0 sm:px-2">
-                        {notice.CREATE_USER_NAME}
-                      </td>
-
-                      <td className="text-center px-0 sm:px-2">
-                        {moment(notice.CREATE_DATE).format("YYYY-MM-DD HH:mm")}
-                      </td>
-
-                      <td className="font-semibold text-center">
-                        {notice.RECIPIENTS_COUNT}
-                      </td>
-
-                      <td className="text-center">
-                        <div className="inline-flex items-center gap-2">
-                          {notice.BUTTON_STATUS === "Sent" ? (
-                            <button
-                              onClick={() => openViewNotice(notice.NOTICE_ID)}
-                              className="inline-flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50"
-                            >
-                              <Eye size={14} />
-                              View
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => editNotice(notice.NOTICE_ID)}
-                                className="inline-flex items-center gap-2 border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50"
-                              >
-                                <SquarePen size={14} />
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDelete(notice.NOTICE_ID, notice.NOTICE_TITLE)}
-                                className="inline-flex items-center gap-2 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-sm hover:bg-red-50"
-                              >
-                                <Trash2 size={14} />
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-          {/* Pagination */}
-          <PaginationPage
-            totalPages={totalPages}
-            rowsPerPage={rowsPerPage}
-            currentPage={currentPage}
-            totalRows={totalCount}
-            selectedRows={0}
-            handlePageChange={(page) => setCurrentPage(page)}
-            handleRowsPerPageChange={(rows) => {
-              setRowsPerPage(rows);
-              setCurrentPage(1);
-            }}
+        {/* Search Input */}
+        <div className="d-flex align-items-center">
+          <input
+            type="text"
+            className="form-control"
+            style={{ maxWidth: 260 }}
+            placeholder="Search notices..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="mt-6 bg-blue-50 border border-blue-300 rounded-lg p-4 flex items-start gap-3">
+      {/* DataTable - sortable columns, matches Request Dashboard */}
+      <DataTable
+        columns={columns}
+        data={notices}
+        pagination
+        paginationServer
+        paginationTotalRows={totalCount}
+        paginationPerPage={rowsPerPage}
+        paginationDefaultPage={currentPage}
+        onChangePage={(page) => setCurrentPage(page)}
+        onChangeRowsPerPage={(perPage) => {
+          setRowsPerPage(perPage);
+          setCurrentPage(1);
+        }}
+        progressPending={loading}
+        persistTableHead
+        highlightOnHover
+        pointerOnHover
+        responsive
+        striped
+        defaultSortFieldId={1}
+        defaultSortAsc={false}
+        customStyles={{
+          table: {
+            style: {
+              width: '100%',
+            },
+          },
+          cells: {
+            style: {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              overflow: 'visible',
+              whiteSpace: 'normal',
+            },
+          },
+          headCells: {
+            style: {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+              fontWeight: 'bold',
+            },
+          },
+        }}
+        noDataComponent={
+          <div className="p-4 text-center">
+            No notices found
+          </div>
+        }
+      />
+
+      {/* Info Footer */}
+      <div className="mt-4 bg-blue-50 border border-blue-300 rounded-lg p-4 flex items-start gap-3">
         <CheckCircle className="text-blue-600 w-5 h-5 mt-1" />
         <div>
           <h4 className="text-blue-800 font-semibold text-sm">
@@ -364,8 +371,8 @@ export default function AllNotices() {
       <Modal show={modalType !== null} onHide={closeModal} size="lg" scrollable centered>
         <Modal.Header closeButton>
           <Modal.Title>
-            {modalType === 'create' && 'Create New Notice'}
-            {modalType === 'edit' && 'Edit Notice'}
+            {modalType === 'create' && 'Create Notice - Save as draft or send.'}
+            {modalType === 'edit' && 'Edit Notice - Save as draft or send.'}
             {modalType === 'view' && 'Notice Details & Responses'}
           </Modal.Title>
         </Modal.Header>

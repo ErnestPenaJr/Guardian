@@ -319,12 +319,12 @@ const RequestDashboard: React.FC = () => {
 
   // Define table columns
   const columns: TableColumn<Request>[] = [
-    { 
-      name: 'Tracking ID', 
+    {
+      name: 'Tracking ID',
       selector: row => row.TRACKINGID || `REQ-${row.REQUEST_ID}`,
       sortable: true,
-      width: '300px', // Use width instead of minWidth/maxWidth
-      wrap: true, // Enable text wrapping
+      grow: 2,
+      wrap: true,
       cell: row => {
         const trackingId = row.TRACKINGID || `REQ-${row.REQUEST_ID}`;
         return (
@@ -334,11 +334,11 @@ const RequestDashboard: React.FC = () => {
         );
       }
     },
-    { 
-      name: 'Request Name', 
+    {
+      name: 'Request Name',
       selector: row => row.REQUEST_NAME,
       sortable: true,
-      width: '250px'
+      grow: 2,
     },
     { 
       name: 'Status', 
@@ -395,20 +395,21 @@ const RequestDashboard: React.FC = () => {
             statusText = row.STATUS;
         }
         
-        return <span className={`badge ${statusClass}`}>{statusText}</span>;
+        return <span className={`badge ${statusClass}`} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>{statusText}</span>;
       },
       width: '130px'
     },
-    { 
-      name: 'Submitted', 
+    {
+      name: 'Submitted',
       selector: row => row.SUBMITTED_DATE || '',
       sortable: true,
-      width: '150px'
+      grow: 1,
     },
-    { 
-      name: 'Requestor', 
+    {
+      name: 'Requestor',
       selector: row => row.requestorName || '',
       sortable: true,
+      grow: 1,
       cell: row => {
         if (row.requestor) {
           return `${row.requestor.FIRST_NAME} ${row.requestor.LAST_NAME}`;
@@ -418,12 +419,12 @@ const RequestDashboard: React.FC = () => {
           return 'Unknown';
         }
       },
-      width: '150px'
     },
-    { 
-      name: 'Assigned To', 
+    {
+      name: 'Assigned To',
       selector: row => row.assignedName || '',
       sortable: true,
+      grow: 1,
       cell: row => {
         if (row.assigned) {
           return `${row.assigned.FIRST_NAME} ${row.assigned.LAST_NAME}`;
@@ -431,7 +432,6 @@ const RequestDashboard: React.FC = () => {
           return 'Unassigned';
         }
       },
-      width: '150px'
     },
     {
       name: 'Actions',
@@ -484,7 +484,7 @@ const RequestDashboard: React.FC = () => {
 
         </div>
       ),
-      width: '220px',
+      width: '80px',
       ignoreRowClick: true,
       sortable: false,
       selector: _ => ''
@@ -576,7 +576,7 @@ const RequestDashboard: React.FC = () => {
         }
         
         return (
-          <span className={badgeClass} style={{ fontSize: '11px' }}>
+          <span className={badgeClass} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>
             {statusText}
           </span>
         );
@@ -1060,7 +1060,7 @@ const RequestDashboard: React.FC = () => {
             type="text"
             className="form-control"
             style={{ maxWidth: 260 }}
-            placeholder="Search..."
+            placeholder="Search Requests..."
             value={quickFilter}
             onChange={e => setQuickFilter(e.target.value)}
           />
