@@ -59,20 +59,24 @@ export default function FormBuilderPage() {
       (f) => !LAYOUT_TYPES.includes(f.fieldType)
     );
 
-    const dbForm: DbForm = {
-      FORM_NAME: data.name,
-      FORM_DESCRIPTION: data.description,
-      IS_PUBLIC: false,
-      IS_ACTIVE: true,
-      IS_DELETED: false,
-    };
-
-    const dbFields = formService.convertFormFieldsToDbFields(savableFields);
-
     if (numericFormId) {
-      await formService.updateForm(numericFormId, dbForm, dbFields);
+      // Server PUT expects { name, description, formFields } with camelCase field objects
+      // (fieldName, fieldTypeId, dbFieldId, required)
+      await formService.updateFormTemplate(numericFormId, {
+        name: data.name,
+        description: data.description,
+        formFields: savableFields,
+      });
       toast.success('Form updated successfully');
     } else {
+      const dbForm: DbForm = {
+        FORM_NAME: data.name,
+        FORM_DESCRIPTION: data.description,
+        IS_PUBLIC: false,
+        IS_ACTIVE: true,
+        IS_DELETED: false,
+      };
+      const dbFields = formService.convertFormFieldsToDbFields(savableFields);
       const result = await formService.createForm(dbForm, dbFields);
       if (result.form.FORM_ID) {
         setNumericFormId(result.form.FORM_ID);
