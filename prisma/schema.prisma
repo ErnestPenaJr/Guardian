@@ -447,7 +447,8 @@ model NOTIFICATIONS {
   IS_READ         Boolean   @default(false)
   CREATED_DATE    DateTime  @default(now()) @db.DateTime
   READ_DATE       DateTime? @db.DateTime
-  
+
+  @@index([USER_ID, COMPANY_ID, IS_READ, CREATED_DATE], map: "IX_NOTIFICATIONS_USER_UNREAD")
   @@schema("GUARDIAN")
 }
 

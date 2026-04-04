@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, Trash2, MailOpen } from 'lucide-react';
 import notificationService, { Notification } from '../services/notificationService';
 import { toast } from 'react-toastify';
 
@@ -34,6 +34,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isJuggling, setIsJuggling] = useState(false);
+  const prevUnreadCount = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,18 +42,25 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
     const token = localStorage.getItem('token');
     if (token) {
       fetchNotificationCount();
-      // Poll for notifications every 30 seconds
-      const interval = setInterval(fetchNotificationCount, 30000);
+      // Poll for notifications every 15 seconds
+      const interval = setInterval(fetchNotificationCount, 15000);
       return () => clearInterval(interval);
     }
   }, []);
 
   useEffect(() => {
-    // Juggle bell animation every 15 seconds only if there are unread notifications
+    // Trigger animation immediately when new notifications arrive
+    if (unreadCount > prevUnreadCount.current && unreadCount > 0) {
+      setIsJuggling(true);
+      setTimeout(() => setIsJuggling(false), 1000);
+    }
+    prevUnreadCount.current = unreadCount;
+
+    // Also repeat animation every 15 seconds as a reminder
     const juggleInterval = setInterval(() => {
       if (unreadCount > 0) {
         setIsJuggling(true);
-        setTimeout(() => setIsJuggling(false), 1000); // Animation lasts 1 second
+        setTimeout(() => setIsJuggling(false), 1000);
       }
     }, 15000);
     return () => clearInterval(juggleInterval);
@@ -80,8 +88,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
       
       const response = await notificationService.getNotificationCount();
       setUnreadCount(response.unreadCount);
-    } catch (error) {
-      // Only log error if it's not an authentication issue
+    } catch (error: any) {
       if (error?.response?.status !== 401) {
         console.error('Error fetching notification count:', error);
       }
@@ -101,8 +108,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
       setLoading(true);
       const response = await notificationService.getNotifications({ limit: 20 });
       setNotifications(response.data);
-    } catch (error) {
-      // Only show error toast and log if it's not an authentication issue
+    } catch (error: any) {
       if (error?.response?.status !== 401) {
         console.error('Error fetching notifications:', error);
         toast.error('Failed to load notifications');
@@ -125,6 +131,19 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
     }
   };
 
+  const markAsUnread = async (notificationId: number) => {
+    try {
+      await notificationService.markAsUnread(notificationId);
+      setNotifications(prev =>
+        prev.map(n => n.NOTIFICATION_ID === notificationId ? { ...n, IS_READ: false } : n)
+      );
+      setUnreadCount(prev => prev + 1);
+    } catch (error) {
+      console.error('Error marking notification as unread:', error);
+      toast.error('Failed to mark notification as unread');
+    }
+  };
+
   const markAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
@@ -134,6 +153,19 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       toast.error('Failed to mark all notifications as read');
+    }
+  };
+
+  const dismissNotification = async (notificationId: number, wasUnread: boolean) => {
+    try {
+      await notificationService.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(n => n.NOTIFICATION_ID !== notificationId));
+      if (wasUnread) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Error dismissing notification:', error);
+      toast.error('Failed to dismiss notification');
     }
   };
 
@@ -264,18 +296,41 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ className =
                               {formatDate(notification.CREATED_DATE)}
                             </p>
                           </div>
-                          {!notification.IS_READ && (
+                          <div className="flex flex-shrink-0 gap-1">
+                            {!notification.IS_READ ? (
+                              <button
+                                onClick={() => markAsRead(notification.NOTIFICATION_ID)}
+                                className="p-1 text-blue-600 hover:text-blue-800 rounded"
+                                style={{ backgroundColor: 'transparent' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                title="Mark as read"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => markAsUnread(notification.NOTIFICATION_ID)}
+                                className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                style={{ backgroundColor: 'transparent' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                title="Mark as unread"
+                              >
+                                <MailOpen className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
-                              onClick={() => markAsRead(notification.NOTIFICATION_ID)}
-                              className="flex-shrink-0 p-1 text-blue-600 hover:text-blue-800 rounded"
+                              onClick={() => dismissNotification(notification.NOTIFICATION_ID, !notification.IS_READ)}
+                              className="p-1 text-gray-400 hover:text-red-600 rounded"
                               style={{ backgroundColor: 'transparent' }}
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              title="Mark as read"
+                              title="Dismiss"
                             >
-                              <Check className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </div>

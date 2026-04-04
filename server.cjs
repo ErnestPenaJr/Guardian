@@ -1464,6 +1464,42 @@ app.put('/api/notifications/:notificationId/read', getAuthenticatedUserCompany, 
     }
 });
 
+// Mark a notification as unread
+app.put('/api/notifications/:notificationId/unread', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const notificationId = parseInt(req.params.notificationId);
+        const userId = req.userId;
+
+        console.log(`📬 Marking notification ${notificationId} as unread for user ${userId}`);
+
+        if (!notificationId || isNaN(notificationId)) {
+            return res.status(400).json({ error: 'Valid notification ID is required' });
+        }
+
+        const result = await prisma.$executeRaw`
+            UPDATE GUARDIAN.NOTIFICATIONS
+            SET IS_READ = 0, READ_DATE = NULL
+            WHERE NOTIFICATION_ID = ${notificationId}
+            AND USER_ID = ${userId}
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (result === 0) {
+            return res.status(404).json({ error: 'Notification not found or access denied' });
+        }
+
+        console.log(`✅ Notification ${notificationId} marked as unread`);
+        res.json({ success: true, message: 'Notification marked as unread' });
+
+    } catch (error) {
+        console.error('❌ Error marking notification as unread:', error);
+        res.status(500).json({
+            error: 'Failed to mark notification as unread',
+            message: error.message
+        });
+    }
+});
+
 // Mark all notifications as read
 app.put('/api/notifications/read-all', getAuthenticatedUserCompany, async (req, res) => {
     try {
@@ -1491,6 +1527,41 @@ app.put('/api/notifications/read-all', getAuthenticatedUserCompany, async (req, 
         console.error('❌ Error marking all notifications as read:', error);
         res.status(500).json({
             error: 'Failed to mark notifications as read',
+            message: error.message
+        });
+    }
+});
+
+// Delete a notification
+app.delete('/api/notifications/:notificationId', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const notificationId = parseInt(req.params.notificationId);
+
+        if (isNaN(notificationId)) {
+            return res.status(400).json({ error: 'Invalid notification ID' });
+        }
+
+        console.log(`🗑️ Deleting notification ${notificationId} for user ${userId}`);
+
+        const result = await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.NOTIFICATIONS
+            WHERE NOTIFICATION_ID = ${notificationId}
+            AND USER_ID = ${userId}
+            AND COMPANY_ID = ${req.companyId}
+        `;
+
+        if (result === 0) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+
+        console.log(`✅ Notification ${notificationId} deleted`);
+        res.json({ success: true, message: 'Notification deleted' });
+
+    } catch (error) {
+        console.error('❌ Error deleting notification:', error);
+        res.status(500).json({
+            error: 'Failed to delete notification',
             message: error.message
         });
     }

@@ -50,8 +50,18 @@ class NotificationService {
     return response.data;
   }
 
+  async markAsUnread(notificationId: number): Promise<{ success: boolean; message: string }> {
+    const response = await api.put(`/api/notifications/${notificationId}/unread`);
+    return response.data;
+  }
+
   async markAllAsRead(): Promise<{ success: boolean; message: string; updatedCount: number }> {
     const response = await api.put('/api/notifications/read-all');
+    return response.data;
+  }
+
+  async deleteNotification(notificationId: number): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete(`/api/notifications/${notificationId}`);
     return response.data;
   }
 }
