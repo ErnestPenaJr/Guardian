@@ -261,21 +261,16 @@ export default function CreateNotice({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Sensitivity Classification *
                     </label>
-                    <div className="flex items-center gap-2">
-                      <Field
-                        as="select"
-                        name="classification"
-                        className="h-10 w-full border border-gray-300 rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                        <option>CJIS</option>
-                      </Field>
-                      <span className="h-10 flex items-center px-3 text-xs font-medium rounded-full bg-gray-200 text-gray-700 whitespace-nowrap">
-                        {values.classification.toUpperCase()}
-                      </span>
-                    </div>
+                    <Field
+                      as="select"
+                      name="classification"
+                      className="h-10 w-full border border-gray-300 rounded-lg px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option>Low</option>
+                      <option>Medium</option>
+                      <option>High</option>
+                      <option>CJIS</option>
+                    </Field>
                   </div>
 
                   <div style={{ flex: '1 1 0', minWidth: '200px' }}>

@@ -354,19 +354,6 @@ export default function AllNotices() {
         }
       />
 
-      {/* Info Footer */}
-      <div className="mt-4 bg-blue-50 border border-blue-300 rounded-lg p-4 flex items-start gap-3">
-        <CheckCircle className="text-blue-600 w-5 h-5 mt-1" />
-        <div>
-          <h4 className="text-blue-800 font-semibold text-sm">
-            Role-Based Access Active
-          </h4>
-          <p className="text-blue-700 text-sm mt-1">
-            All actions are logged for compliance.
-          </p>
-        </div>
-      </div>
-
       {/* Notice Modal (Create / Edit / View) */}
       <Modal show={modalType !== null} onHide={closeModal} size="lg" scrollable centered>
         <Modal.Header closeButton>

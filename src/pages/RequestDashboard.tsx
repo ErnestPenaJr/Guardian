@@ -437,18 +437,17 @@ const RequestDashboard: React.FC = () => {
       name: 'Actions',
       cell: row => (
         <div className="d-flex gap-2">
-          <button 
+          <button
             className="btn btn-sm btn-outline-primary"
-            style={{ display: 'none' }}
-            onClick={() => {
-              // View request details in modal
+            onClick={(e) => {
+              e.stopPropagation();
               setSelectedRequest(row);
               setShowRequestModal(true);
             }}
           >
             View
           </button>
-          <button 
+          <button
             className="btn btn-sm btn-outline-danger"
             onClick={async () => {
               // Show confirmation dialog
@@ -484,7 +483,7 @@ const RequestDashboard: React.FC = () => {
 
         </div>
       ),
-      width: '80px',
+      width: '140px',
       ignoreRowClick: true,
       sortable: false,
       selector: _ => ''
@@ -1082,8 +1081,6 @@ const RequestDashboard: React.FC = () => {
         progressPending={loading}
         persistTableHead
         highlightOnHover
-        pointerOnHover
-        onRowClicked={handleViewRequest}
         responsive
         striped
         defaultSortFieldId={1}
@@ -1186,8 +1183,6 @@ const RequestDashboard: React.FC = () => {
             progressPending={assignedRequestsLoading}
             persistTableHead
             highlightOnHover
-            pointerOnHover
-            onRowClicked={handleViewRequest}
             responsive
             striped
             defaultSortFieldId={1}

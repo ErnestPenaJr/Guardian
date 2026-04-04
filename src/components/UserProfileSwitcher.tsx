@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Shield } from 'lucide-react';
+import { ChevronDown, ShieldCheck, UserCog, ClipboardList, Users, Crown, User as UserIcon, type LucideIcon } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -133,6 +133,16 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
            null;
   };
 
+  const getRoleStyle = (roleId: number | null, roleName?: string): { icon: LucideIcon; bg: string; activeBg: string } => {
+    const name = (roleName || '').toLowerCase();
+    if (roleId === 6 || name.includes('super')) return { icon: Crown, bg: 'bg-amber-100 text-amber-700', activeBg: 'bg-amber-500 text-white' };
+    if (roleId === 1 || name.includes('admin')) return { icon: ShieldCheck, bg: 'bg-purple-100 text-purple-700', activeBg: 'bg-purple-500 text-white' };
+    if (roleId === 4 || name.includes('manager')) return { icon: Users, bg: 'bg-teal-100 text-teal-700', activeBg: 'bg-teal-500 text-white' };
+    if (roleId === 3 || name.includes('processor')) return { icon: ClipboardList, bg: 'bg-blue-100 text-blue-700', activeBg: 'bg-blue-500 text-white' };
+    if (roleId === 2 || name.includes('approver')) return { icon: UserCog, bg: 'bg-indigo-100 text-indigo-700', activeBg: 'bg-indigo-500 text-white' };
+    return { icon: UserIcon, bg: 'bg-gray-100 text-gray-700', activeBg: 'bg-gray-500 text-white' };
+  };
+
   const roleDisplay = getCurrentUserDisplay();
   const currentRoleId = getCurrentRoleId();
 
@@ -145,9 +155,11 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
         aria-haspopup="true"
         aria-expanded={isDropdownOpen}
       >
-        <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-          <Shield size={16} />
-        </div>
+        {(() => { const { icon: Icon, activeBg } = getRoleStyle(currentRoleId, roleDisplay); return (
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${activeBg}`}>
+            <Icon size={18} />
+          </div>
+        ); })()}
         
         <div className="flex flex-col items-start text-sm">
           <div className="flex items-center gap-2">
@@ -197,11 +209,13 @@ const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ className = '' }) => {
                       isCurrentRole ? 'bg-blue-50 border-l-4 border-blue-500' : ''
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      isCurrentRole ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
-                    }`}>
-                      <Shield size={14} />
-                    </div>
+                    {(() => { const { icon: RoleIcon, bg, activeBg } = getRoleStyle(role.ROLE_ID, role.ROLE_NAME); return (
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        isCurrentRole ? activeBg : bg
+                      }`}>
+                        <RoleIcon size={22} />
+                      </div>
+                    ); })()}
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">

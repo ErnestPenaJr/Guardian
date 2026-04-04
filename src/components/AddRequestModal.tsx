@@ -1067,29 +1067,35 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         </div>
 
         {/* Footer - consistent placement for both steps */}
-        <div className="modal-footer">
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={step === 1 ? onClose : handleCancel}
-            disabled={isSubmitting}
-            style={{ borderColor: '#2EBCBC', color: '#2EBCBC' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = '#2EBCBC'; e.currentTarget.style.color = '#fff'; } }}
-            onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#2EBCBC'; } }}
-          >
-            {step === 1 ? 'Cancel' : (isSubmitting ? 'Cancelling...' : 'Cancel')}
-          </button>
-          <button
-            type={step === 1 ? 'submit' : 'button'}
-            className="btn btn-primary"
-            disabled={step === 1 ? (isSubmitting || formTemplates.length === 0 || !selectedTemplate) : isSubmitting}
-            onClick={step === 2 ? handleStart : undefined}
-            style={{ backgroundColor: '#032424', borderColor: '#032424' }}
-            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
-            onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
-          >
-            {step === 1 ? 'Next' : (isSubmitting ? 'Submitting...' : 'Submit')}
-          </button>
+        <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="text-xs text-gray-500">
+            <p className="mb-0">* Required fields</p>
+            <p className="mb-0">All actions are logged for compliance</p>
+          </div>
+          <div className="d-flex gap-3">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={step === 1 ? onClose : handleCancel}
+              disabled={isSubmitting}
+              style={{ borderColor: '#2EBCBC', color: '#2EBCBC' }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = '#2EBCBC'; e.currentTarget.style.color = '#fff'; } }}
+              onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#2EBCBC'; } }}
+            >
+              {step === 1 ? 'Cancel' : (isSubmitting ? 'Cancelling...' : 'Cancel')}
+            </button>
+            <button
+              type={step === 1 ? 'submit' : 'button'}
+              className="btn btn-primary"
+              disabled={step === 1 ? (isSubmitting || formTemplates.length === 0 || !selectedTemplate) : isSubmitting}
+              onClick={step === 2 ? handleStart : undefined}
+              style={{ backgroundColor: '#032424', borderColor: '#032424' }}
+              onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#021818')}
+              onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#032424')}
+            >
+              {step === 1 ? 'Next' : (isSubmitting ? 'Submitting...' : 'Submit')}
+            </button>
+          </div>
         </div>
       </form>
     </Modal>
