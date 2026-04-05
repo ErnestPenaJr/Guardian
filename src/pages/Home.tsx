@@ -1534,12 +1534,12 @@ function Home() {
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container max-w-full">
-            <h1 className="text-2xl font-bold uppercase fs-2 mb-4 sm:mb-8">HOME</h1>
+            <h1 className="font-display font-bold text-[28px] text-[#032424] mb-6">Dashboard</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
               {/* Request Overview Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">
-                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-center flex-shrink-0">Request Overview</h2>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1`} data-component-name="Home">
+                <h2 className="text-[16px] font-semibold text-[#032424] mb-3 sm:mb-4 text-center flex-shrink-0">Request Overview</h2>
                 <div className="flex flex-col items-center justify-center flex-1 min-h-0">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center relative flex-shrink-0" data-component-name="Home">
                     {loading ? (
@@ -1596,8 +1596,8 @@ function Home() {
                 </div>
               </section>
               {/* Request Queue Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 w-full md:col-span-3 border border-gray-200`} data-component-name="Home">
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Queue</h2>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 w-full md:col-span-3`} data-component-name="Home">
+                <h2 className="text-[16px] font-semibold text-[#032424] mb-3 md:mb-4">Request Queue</h2>
                 
                 {error ? (
                   <div className="text-red-600 p-4 rounded bg-red-50">{error}</div>
@@ -1610,7 +1610,7 @@ function Home() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                       <div className="flex items-center">
                         <button
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
+                          className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-3 py-2 text-sm font-medium flex items-center"
                           onClick={() => {
                             setIsRefreshing(true);
                             fetchRequests(true).finally(() => {
@@ -1633,7 +1633,7 @@ function Home() {
                           type="text"
                           placeholder="Search requests..."
                           value={requestSearchTerm}
-                          className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 bg-gray-50"
+                          className="w-full py-2 px-3 border-[1.5px] border-[#e8eaed] rounded-[10px] text-[14px] text-[#032424] placeholder:text-[#aaaaaa] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none"
                           onChange={(e) => {
                             const term = e.target.value;
                             setRequestSearchTerm(term);
@@ -1661,7 +1661,7 @@ function Home() {
                       <>
                         <div className="overflow-x-auto mb-4">
                           <table className="w-full text-sm text-left">
-                            <thead className="text-gray-600 border-b uppercase text-xs tracking-wider">
+                            <thead className="text-[10px] font-semibold text-[#888888] uppercase tracking-wider border-b border-[#f0f0f0]">
                               <tr>
                                 <th className="pb-3 font-semibold">REQUEST ID</th>
                                 <th className="pb-3 font-semibold">REQUEST NAME</th>
@@ -1676,13 +1676,13 @@ function Home() {
                             <tbody className="divide-y divide-gray-100">
                               {(filteredRequests || requests).slice((requestsPage - 1) * requestsPerPage, requestsPage * requestsPerPage).map((row) => {
                                 const statusColor: Record<string, string> = {
-                                  'P': 'bg-yellow-200 text-yellow-800',
-                                  'A': 'bg-blue-200 text-blue-800',
-                                  'D': 'bg-green-200 text-green-800',
-                                  'I': 'bg-cyan-200 text-cyan-800',
-                                  'X': 'bg-orange-200 text-orange-800',
-                                  'H': 'bg-purple-200 text-purple-800',
-                                  'R': 'bg-red-200 text-red-800',
+                                  'P': 'bg-[#fff8e6] text-[#92680a]',
+                                  'A': 'bg-[#eef4fd] text-[#1d5cbf]',
+                                  'D': 'bg-[#eafaf1] text-[#1a7a42]',
+                                  'I': 'bg-[#eef4fd] text-[#1d5cbf]',
+                                  'X': 'bg-[#fef2f2] text-[#991b1b]',
+                                  'H': 'bg-[#f3e8ff] text-[#6b21a8]',
+                                  'R': 'bg-[#fef2f2] text-[#991b1b]',
                                 };
                                 const statusText: Record<string, string> = {
                                   'P': 'Pending', 'A': 'Active', 'D': 'Complete', 'I': 'In Progress',
@@ -1691,13 +1691,13 @@ function Home() {
                                 return (
                                   <tr
                                     key={row.REQUEST_ID}
-                                    className="hover:bg-gray-50 cursor-pointer"
+                                    className="hover:bg-[#f8fafb] cursor-pointer"
                                     onClick={() => handleViewRequest(row)}
                                   >
                                     <td className="py-3 text-xs sm:text-sm text-gray-800">{row.TRACKINGID || 'N/A'}</td>
                                     <td className="py-3 font-medium text-gray-800 text-xs sm:text-sm">{row.REQUEST_NAME || 'N/A'}</td>
                                     <td className="py-3 text-center">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor[row.STATUS] || 'bg-gray-200 text-gray-800'}`}>
+                                      <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${statusColor[row.STATUS] || 'bg-gray-200 text-gray-800'}`}>
                                         {statusText[row.STATUS] || 'Unknown'}
                                       </span>
                                     </td>
@@ -1726,24 +1726,24 @@ function Home() {
                           const startRow = (requestsPage - 1) * requestsPerPage + 1;
                           const endRow = Math.min(requestsPage * requestsPerPage, data.length);
                           return (
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gray-200 pt-3 text-sm text-gray-600">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[#f0f0f0] pt-3 text-sm text-gray-600">
                               <div className="flex items-center gap-2">
                                 <span>Records per page:</span>
                                 <select
                                   value={requestsPerPage}
                                   onChange={(e) => { setRequestsPerPage(Number(e.target.value)); setRequestsPage(1); }}
-                                  className="border border-gray-200 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                  className="rounded-[8px] border border-[#e8eaed] px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#2EBCBC]"
                                 >
                                   {[5, 10, 15, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
                                 <span className="ml-2">{startRow}-{endRow} of {data.length}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <button onClick={() => setRequestsPage(1)} disabled={requestsPage === 1} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&laquo;</button>
-                                <button onClick={() => setRequestsPage(p => Math.max(1, p - 1))} disabled={requestsPage === 1} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&lsaquo;</button>
+                                <button onClick={() => setRequestsPage(1)} disabled={requestsPage === 1} className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed">&laquo;</button>
+                                <button onClick={() => setRequestsPage(p => Math.max(1, p - 1))} disabled={requestsPage === 1} className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed">&lsaquo;</button>
                                 <span className="px-3 py-1 text-sm">Page {requestsPage} of {totalPages}</span>
-                                <button onClick={() => setRequestsPage(p => Math.min(totalPages, p + 1))} disabled={requestsPage === totalPages} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&rsaquo;</button>
-                                <button onClick={() => setRequestsPage(totalPages)} disabled={requestsPage === totalPages} className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">&raquo;</button>
+                                <button onClick={() => setRequestsPage(p => Math.min(totalPages, p + 1))} disabled={requestsPage === totalPages} className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed">&rsaquo;</button>
+                                <button onClick={() => setRequestsPage(totalPages)} disabled={requestsPage === totalPages} className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed">&raquo;</button>
                               </div>
                             </div>
                           );
@@ -1755,8 +1755,8 @@ function Home() {
               </section>
 
               {/* Notices Overview Chart */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">
-                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-center flex-shrink-0">Notices Overview</h2>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1`} data-component-name="Home">
+                <h2 className="text-[16px] font-semibold text-[#032424] mb-3 sm:mb-4 text-center flex-shrink-0">Notices Overview</h2>
                 <div className="flex flex-col items-center justify-center flex-1 min-h-0">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex items-center justify-center relative flex-shrink-0" data-component-name="Home">
                     {noticeStatusData.length === 0 ? (
@@ -1810,13 +1810,13 @@ function Home() {
               </section>
 
               {/* Notices Card */}
-              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 w-full md:col-span-3 border border-gray-200`} data-component-name="Home">
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Notices Queue</h2>
+              <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 w-full md:col-span-3`} data-component-name="Home">
+                <h2 className="text-[16px] font-semibold text-[#032424] mb-3 md:mb-4">Notices Queue</h2>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
                   <div className="flex items-center">
                     <button
-                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center"
+                      className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-3 py-2 text-sm font-medium flex items-center"
                       onClick={() => {
                         setIsRefreshingNotices(true);
                         fetchNotices().finally(() => setIsRefreshingNotices(false));
@@ -1834,7 +1834,7 @@ function Home() {
                       type="text"
                       placeholder="Search notices..."
                       value={noticeSearchTerm}
-                      className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-700 placeholder-gray-400 bg-gray-50"
+                      className="w-full py-2 px-3 border-[1.5px] border-[#e8eaed] rounded-[10px] text-[14px] text-[#032424] placeholder:text-[#aaaaaa] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none"
                       onChange={(e) => {
                         const term = e.target.value;
                         setNoticeSearchTerm(term);
@@ -1865,7 +1865,7 @@ function Home() {
                   <>
                     <div className="overflow-x-auto mb-4">
                       <table className="w-full text-sm text-left">
-                        <thead className="text-gray-600 border-b uppercase text-xs tracking-wider">
+                        <thead className="text-[10px] font-semibold text-[#888888] uppercase tracking-wider border-b border-[#f0f0f0]">
                           <tr>
                             <th className="pb-3 font-semibold">TITLE</th>
                             <th className="pb-3 font-semibold">SENSITIVITY</th>
@@ -1879,7 +1879,7 @@ function Home() {
                           {filteredNotices.slice((noticesPage - 1) * noticesPerPage, noticesPage * noticesPerPage).map((notice) => (
                             <tr
                               key={notice.NOTICE_ID}
-                              className="hover:bg-gray-50 cursor-pointer"
+                              className="hover:bg-[#f8fafb] cursor-pointer"
                               onClick={() => setViewNoticeId(notice.NOTICE_ID)}
                             >
                               <td className="py-3 font-medium text-gray-800">{notice.NOTICE_TITLE}</td>
@@ -1916,13 +1916,13 @@ function Home() {
                       const startRow = (noticesPage - 1) * noticesPerPage + 1;
                       const endRow = Math.min(noticesPage * noticesPerPage, filteredNotices.length);
                       return (
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gray-200 pt-3 text-sm text-gray-600">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[#f0f0f0] pt-3 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <span>Records per page:</span>
                             <select
                               value={noticesPerPage}
                               onChange={(e) => { setNoticesPerPage(Number(e.target.value)); setNoticesPage(1); }}
-                              className="border border-gray-200 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="rounded-[8px] border border-[#e8eaed] px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#2EBCBC]"
                             >
                               {[5, 10, 15, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
@@ -1932,14 +1932,14 @@ function Home() {
                             <button
                               onClick={() => setNoticesPage(1)}
                               disabled={noticesPage === 1}
-                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               &laquo;
                             </button>
                             <button
                               onClick={() => setNoticesPage(p => Math.max(1, p - 1))}
                               disabled={noticesPage === 1}
-                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               &lsaquo;
                             </button>
@@ -1947,14 +1947,14 @@ function Home() {
                             <button
                               onClick={() => setNoticesPage(p => Math.min(totalPages, p + 1))}
                               disabled={noticesPage === totalPages}
-                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               &rsaquo;
                             </button>
                             <button
                               onClick={() => setNoticesPage(totalPages)}
                               disabled={noticesPage === totalPages}
-                              className="px-2 py-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="px-2 py-1 rounded-[8px] border border-[#e8eaed] hover:bg-[#f8fafb] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               &raquo;
                             </button>
