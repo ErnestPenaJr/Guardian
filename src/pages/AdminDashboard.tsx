@@ -128,28 +128,24 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
 
   return (
     <div className="container">
-      <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
+      <h2 className="font-display font-bold text-[28px] text-[#032424] mb-6">Admin Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Workflow Card */}
-        <div 
-          className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary" 
-          style={{ 
-            borderRadius: '6px',
-            backgroundColor: '#FFFFFF'
-          }}
+        <div
+          className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 flex flex-col items-center transition-colors duration-200 border-t-4 border-t-[#2EBCBC]"
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
         >
-          <FaProjectDiagram className="h-12 w-12 text-secondary mb-4" />
-          <h3 
-            className="text-lg font-semibold mb-2 cursor-pointer hover:text-secondary transition-colors"
+          <FaProjectDiagram className="h-12 w-12 text-[#2EBCBC] mb-4" />
+          <h3
+            className="font-display font-semibold text-[20px] text-[#032424] mb-2 cursor-pointer hover:text-[#2EBCBC] transition-colors"
             onClick={() => setNewRequestModalOpen(true)}
           >
             Workflow
           </h3>
-          <ul className="text-gray-600">
-            <li 
-              className="cursor-pointer hover:text-secondary transition-colors"
+          <ul className="text-[13px] text-[#888888]">
+            <li
+              className="cursor-pointer hover:text-[#2EBCBC] transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 setNewRequestModalOpen(true);
@@ -157,8 +153,8 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
             >
               Create Workflow Templates
             </li>
-            <li 
-              className="cursor-pointer hover:text-secondary transition-colors"
+            <li
+              className="cursor-pointer hover:text-[#2EBCBC] transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 setWorkflowManagementModalOpen(true);
@@ -167,13 +163,12 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
               Manage Workflows
             </li>
             {isJafarUser() && (
-              <li 
-                className="cursor-pointer hover:text-secondary transition-colors font-semibold"
+              <li
+                className="cursor-pointer hover:text-[#2EBCBC] transition-colors font-semibold text-[#2EBCBC]"
                 onClick={(e) => {
                   e.stopPropagation();
                   setCustomTemplateModalOpen(true);
                 }}
-                style={{ color: '#2EBCBC' }}
               >
                 Custom Workflow Templates
               </li>
@@ -185,11 +180,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
         {((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') && (
           <a
             href="#"
-            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary"
-            style={{ 
-              borderRadius: '6px',
-              backgroundColor: '#FFFFFF'
-            }}
+            className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 flex flex-col items-center transition-colors duration-200 border-t-4 border-t-[#2EBCBC]"
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             onClick={e => {
@@ -197,9 +188,9 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
               onShowUserManagement && onShowUserManagement();
             }}
           >
-            <FaUsers className="h-12 w-12 text-secondary mb-4" />
-            <h3 className="text-lg font-semibold mb-2">User Management</h3>
-            <ul className="text-gray-600">
+            <FaUsers className="h-12 w-12 text-[#2EBCBC] mb-4" />
+            <h3 className="font-display font-semibold text-[20px] text-[#032424] mb-2">User Management</h3>
+            <ul className="text-[13px] text-[#888888]">
               <li>View users & invites</li>
               <li>Add, edit, delete users</li>
               <li>Manage invitations</li>
@@ -210,11 +201,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
         {isJafarUser() && (
           <a
             href="#"
-            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-danger"
-            style={{
-              borderRadius: '6px',
-              backgroundColor: '#FFFFFF'
-            }}
+            className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 flex flex-col items-center transition-colors duration-200 border-t-4 border-t-[#C10000]"
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             onClick={e => {
@@ -222,9 +209,9 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
               onShowJafarAdministration && onShowJafarAdministration();
             }}
           >
-            <FaUsers className="h-12 w-12 text-danger mb-4" />
-            <h3 className="text-lg font-semibold mb-2">JAFAR Hard Delete</h3>
-            <ul className="text-gray-600">
+            <FaUsers className="h-12 w-12 text-[#C10000] mb-4" />
+            <h3 className="font-display font-semibold text-[20px] text-[#032424] mb-2">JAFAR Hard Delete</h3>
+            <ul className="text-[13px] text-[#888888]">
               <li>Preview destructive purges</li>
               <li>Hard delete users</li>
               <li>Wipe an entire company</li>
@@ -255,11 +242,7 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
         {/* System Settings Card */}
         <a
           href="#"
-          className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary"
-          style={{ 
-            borderRadius: '6px',
-            backgroundColor: '#FFFFFF'
-          }}
+          className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] p-5 flex flex-col items-center transition-colors duration-200 border-t-4 border-t-[#2EBCBC]"
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
           onClick={e => {
@@ -268,20 +251,20 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
             // navigate('/system-settings');
           }}
         >
-          <FaCog className="h-12 w-12 text-secondary mb-4" />
-          <h3 className="text-lg font-semibold mb-2">System Settings</h3>
-          <ul className="text-gray-600">
+          <FaCog className="h-12 w-12 text-[#2EBCBC] mb-4" />
+          <h3 className="font-display font-semibold text-[20px] text-[#032424] mb-2">System Settings</h3>
+          <ul className="text-[13px] text-[#888888]">
             <li>General settings</li>
             <li>Email templates</li>
             <li>Notification settings</li>
-            <li 
-              className="cursor-pointer hover:text-secondary transition-colors mt-2 border-t border-gray-200 pt-2"
+            <li
+              className="cursor-pointer hover:text-[#2EBCBC] transition-colors mt-2 border-t border-[#f0f0f0] pt-2"
               onClick={(e) => {
                 e.stopPropagation();
                 navigate('/style-guide');
               }}
             >
-              📖 Style Guide
+              Style Guide
             </li>
           </ul>
         </a>

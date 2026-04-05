@@ -1187,21 +1187,21 @@ const AdminUserManagement: React.FC = () => {
       <div className="row justify-content-center">
         <div className="col-12 col-lg-11 col-xl-10">
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="fw-bold text-uppercase fs-2">User Management</h2>
+            <h2 className="font-display font-bold text-[28px] text-[#032424]">User Management</h2>
             <div className="d-flex gap-2">
-              <button className="btn btn-outline-primary d-flex align-items-center gap-2 me-2" onClick={handleExport}>
+              <button className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-2 text-[13px] font-medium transition-colors d-flex align-items-center gap-2 me-2" onClick={handleExport}>
                 <FaFileExport /> Export to Excel
               </button>
-              <button className="btn btn-primary d-flex align-items-center gap-2 me-2" onClick={() => setShowAddUserModal(true)}>
+              <button className="bg-[#032424] text-white hover:bg-[#064a4a] rounded-[10px] px-4 py-2 text-[13px] font-semibold transition-colors d-flex align-items-center gap-2 me-2" onClick={() => setShowAddUserModal(true)}>
                 <FaUserPlus /> Add User
               </button>
             </div>
           </div>
           
           {/* Users Table */}
-          <div className="card shadow-sm mb-4">
-            <div className="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
-              <span>Active Users</span>
+          <div className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] mb-4 overflow-hidden">
+            <div className="bg-[#032424] text-white fw-bold d-flex justify-content-between align-items-center px-4 py-3 rounded-t-[14px]">
+              <span className="text-[14px] font-semibold">Active Users</span>
               <div className="d-flex align-items-center">
                 <div className="input-group me-3">
                   <input
@@ -1375,15 +1375,15 @@ const AdminUserManagement: React.FC = () => {
           {/* Invite User button and Invited Users Table heading */}
           <div className="d-flex justify-content-end align-items-center mb-4 mt-5">
             
-            <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShowInviteUserModal(true)}>
+            <button className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-2 text-[13px] font-medium transition-colors d-flex align-items-center gap-2" onClick={() => setShowInviteUserModal(true)}>
               <FaEnvelope /> Invite User
             </button>
           </div>
           
           {/* Invited Users Table */}
-          <div className="card shadow-sm">
-            <div className="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
-              <span>Invited Users</span>
+          <div className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] overflow-hidden">
+            <div className="bg-[#032424] text-white fw-bold d-flex justify-content-between align-items-center px-4 py-3 rounded-t-[14px]">
+              <span className="text-[14px] font-semibold">Invited Users</span>
               <div className="d-flex align-items-center">
                 <div className="input-group me-3">
                   <input

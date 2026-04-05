@@ -114,8 +114,8 @@ const AccountSettings = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading account settings...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2EBCBC] mx-auto"></div>
+          <p className="mt-4 text-[13px] text-[#888888]">Loading account settings...</p>
         </div>
       </div>
     );
@@ -124,20 +124,20 @@ const AccountSettings = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b border-[#f0f0f0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <button
                 onClick={handleBackClick}
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
+                className="flex items-center text-[#555555] hover:text-[#032424] transition-colors mr-4 text-[13px] font-medium"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
                 Back to Dashboard
               </button>
               <div className="flex items-center">
-                <Settings className="w-6 h-6 text-blue-600 mr-3" />
-                <h1 className="text-xl font-semibold text-gray-900">Account Settings</h1>
+                <Settings className="w-6 h-6 text-[#2EBCBC] mr-3" />
+                <h1 className="font-display font-bold text-[28px] text-[#032424]">Account Settings</h1>
               </div>
             </div>
           </div>
@@ -147,10 +147,10 @@ const AccountSettings = () => {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Account Information Card */}
-        <div className="bg-white rounded-lg shadow-sm border mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <User className="w-5 h-5 mr-2 text-blue-600" />
+        <div className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0] mb-8">
+          <div className="px-6 py-4 border-b border-[#f0f0f0]">
+            <h2 className="font-display font-semibold text-[20px] text-[#032424] flex items-center">
+              <User className="w-5 h-5 mr-2 text-[#2EBCBC]" />
               Account Information
             </h2>
           </div>
@@ -158,28 +158,28 @@ const AccountSettings = () => {
             {accountInfo ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-[#888888] mb-2">
                     Full Name
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <User className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.fullName}</span>
+                  <div className="flex items-center px-3.5 py-2 border-[1.5px] border-[#e8eaed] rounded-[10px] bg-gray-50">
+                    <User className="w-4 h-4 text-[#2EBCBC] mr-2" />
+                    <span className="text-[14px] text-[#032424]">{accountInfo.fullName}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-[#888888] mb-2">
                     Email Address
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.email}</span>
+                  <div className="flex items-center px-3.5 py-2 border-[1.5px] border-[#e8eaed] rounded-[10px] bg-gray-50">
+                    <Mail className="w-4 h-4 text-[#2EBCBC] mr-2" />
+                    <span className="text-[14px] text-[#032424]">{accountInfo.email}</span>
                     {accountInfo.emailValidated ? (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      <span className="ml-2 inline-flex items-center bg-[#eafaf1] text-[#1a7a42] rounded-full px-3 py-1 text-[11px] font-medium">
                         Verified
                       </span>
                     ) : (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <span className="ml-2 inline-flex items-center bg-[#fff8e6] text-[#92680a] rounded-full px-3 py-1 text-[11px] font-medium">
                         Unverified
                       </span>
                     )}
@@ -187,60 +187,60 @@ const AccountSettings = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-[#888888] mb-2">
                     Organization
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <Building2 className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.companyName}</span>
+                  <div className="flex items-center px-3.5 py-2 border-[1.5px] border-[#e8eaed] rounded-[10px] bg-gray-50">
+                    <Building2 className="w-4 h-4 text-[#2EBCBC] mr-2" />
+                    <span className="text-[14px] text-[#032424]">{accountInfo.companyName}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-[#888888] mb-2">
                     Role
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <Shield className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.roles}</span>
+                  <div className="flex items-center px-3.5 py-2 border-[1.5px] border-[#e8eaed] rounded-[10px] bg-gray-50">
+                    <Shield className="w-4 h-4 text-[#2EBCBC] mr-2" />
+                    <span className="text-[14px] text-[#032424]">{accountInfo.roles}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-[#888888] mb-2">
                     Account Status
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <Monitor className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.statusDisplay}</span>
+                  <div className="flex items-center px-3.5 py-2 border-[1.5px] border-[#e8eaed] rounded-[10px] bg-gray-50">
+                    <Monitor className="w-4 h-4 text-[#2EBCBC] mr-2" />
+                    <span className="text-[14px] text-[#032424]">{accountInfo.statusDisplay}</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-[13px] font-medium text-[#888888] mb-2">
                     Member Since
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <span className="text-gray-900">{formatDate(accountInfo.createDate)}</span>
+                  <div className="flex items-center px-3.5 py-2 border-[1.5px] border-[#e8eaed] rounded-[10px] bg-gray-50">
+                    <span className="text-[14px] text-[#032424]">{formatDate(accountInfo.createDate)}</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500">Failed to load account information</p>
+              <p className="text-[13px] text-[#888888]">Failed to load account information</p>
             )}
           </div>
         </div>
 
         {/* Quick Actions Card */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Quick Actions</h2>
+        <div className="bg-white rounded-[14px] shadow-sm border border-[#f0f0f0]">
+          <div className="px-6 py-4 border-b border-[#f0f0f0]">
+            <h2 className="font-display font-semibold text-[20px] text-[#032424]">Quick Actions</h2>
           </div>
           <div className="px-6 py-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <button
                 onClick={() => navigate('/update-profile')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                className="flex flex-col items-center p-4 border-[1.5px] border-[#e8eaed] rounded-[14px] transition-colors group"
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -251,18 +251,18 @@ const AccountSettings = () => {
                   e.currentTarget.style.borderColor = '#E0E0E0';
                 }}
               >
-                <User className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                <User className="w-8 h-8 text-[#888888] group-hover:text-[#2EBCBC] mb-2" />
+                <span className="text-[13px] font-semibold text-[#032424] group-hover:text-[#2EBCBC]">
                   Update Profile
                 </span>
-                <span className="text-xs text-gray-500 mt-1 text-center">
+                <span className="text-[11px] text-[#888888] mt-1 text-center">
                   Change name and contact info
                 </span>
               </button>
 
               <button
                 onClick={() => navigate('/change-password')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                className="flex flex-col items-center p-4 border-[1.5px] border-[#e8eaed] rounded-[14px] transition-colors group"
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -273,18 +273,18 @@ const AccountSettings = () => {
                   e.currentTarget.style.borderColor = '#E0E0E0';
                 }}
               >
-                <Key className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                <Key className="w-8 h-8 text-[#888888] group-hover:text-[#2EBCBC] mb-2" />
+                <span className="text-[13px] font-semibold text-[#032424] group-hover:text-[#2EBCBC]">
                   Change Password
                 </span>
-                <span className="text-xs text-gray-500 mt-1 text-center">
+                <span className="text-[11px] text-[#888888] mt-1 text-center">
                   Update account security
                 </span>
               </button>
 
               <button
                 onClick={() => navigate('/notification-preferences')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                className="flex flex-col items-center p-4 border-[1.5px] border-[#e8eaed] rounded-[14px] transition-colors group"
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -295,18 +295,18 @@ const AccountSettings = () => {
                   e.currentTarget.style.borderColor = '#E0E0E0';
                 }}
               >
-                <Bell className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                <Bell className="w-8 h-8 text-[#888888] group-hover:text-[#2EBCBC] mb-2" />
+                <span className="text-[13px] font-semibold text-[#032424] group-hover:text-[#2EBCBC]">
                   Notifications
                 </span>
-                <span className="text-xs text-gray-500 mt-1 text-center">
+                <span className="text-[11px] text-[#888888] mt-1 text-center">
                   Manage preferences
                 </span>
               </button>
 
               <button
                 onClick={() => navigate('/home')}
-                className="flex flex-col items-center p-4 border border-gray-200 rounded-lg transition-colors group"
+                className="flex flex-col items-center p-4 border-[1.5px] border-[#e8eaed] rounded-[14px] transition-colors group"
                 style={{ backgroundColor: '#FFFFFF', borderColor: '#E0E0E0' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -317,11 +317,11 @@ const AccountSettings = () => {
                   e.currentTarget.style.borderColor = '#E0E0E0';
                 }}
               >
-                <Monitor className="w-8 h-8 text-gray-400 group-hover:text-blue-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                <Monitor className="w-8 h-8 text-[#888888] group-hover:text-[#2EBCBC] mb-2" />
+                <span className="text-[13px] font-semibold text-[#032424] group-hover:text-[#2EBCBC]">
                   Dashboard
                 </span>
-                <span className="text-xs text-gray-500 mt-1 text-center">
+                <span className="text-[11px] text-[#888888] mt-1 text-center">
                   Return to main view
                 </span>
               </button>
