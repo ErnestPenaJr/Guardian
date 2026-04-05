@@ -163,129 +163,141 @@ function Register() {
   };
 
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4"
-      style={{
-        backgroundImage: 'url("/images/background.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-          <span className="text-h4 font-display font-bold text-black">Guardian</span>
-        </div>
-
-        <h1 className="text-h5 font-display font-bold text-center mb-1">Welcome to Guardian</h1>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label htmlFor="email" className="block text-body-sm font-medium text-gray-1 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="JohnSmith@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-4 py-3 border ${emailError ? 'border-error' : 'border-gray-5'} focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
-              style={{ borderRadius: '6px' }}
-              disabled={isValidatingEmail || isLoading}
-            />
-            {emailError && (
-              <p className="text-error text-body-sm mt-1">
-                {emailError}
-              </p>
-            )}
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand Panel */}
+      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-10 h-10" />
+            <span className="font-display font-extrabold text-[24px] text-secondary">Guardian</span>
           </div>
-          
-
-
-          <p className="text-center text-body-sm mb-6">
-            By proceeding you agree to the{' '}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setLegalModalType('terms');
-                setLegalModalOpen(true);
-              }}
-              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
-            >
-              Terms of Service
-            </button>
-            {' '}and{' '}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setLegalModalType('privacy');
-                setLegalModalOpen(true);
-              }}
-              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
-            >
-              Privacy Policy
-            </button>
+          <p className="text-[15px] text-white/70 leading-relaxed mb-8 max-w-[320px]">
+            Create your account in a few simple steps.
           </p>
-          
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 text-error mb-6" style={{ borderRadius: '6px' }}>
-              {error}
+
+          {/* Step progress indicator */}
+          <div className="space-y-0">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-[#2EBCBC] text-[#032424] flex items-center justify-center text-[12px] font-bold">1</div>
+              <div>
+                <div className="text-[12px] font-medium text-white">Verify Email</div>
+                <div className="text-[10px] text-white/40">You are here</div>
+              </div>
             </div>
-          )}
-          
-          <button
-            type="submit"
-            className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: '#2EBCBC'
-            }}
-            disabled={isValidatingEmail || isLoading}
-            onMouseEnter={(e) => {
-              if (!isValidatingEmail && !isLoading) {
-                e.currentTarget.style.backgroundColor = '#2F8CED';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isValidatingEmail && !isLoading) {
-                e.currentTarget.style.backgroundColor = '#2EBCBC';
-              }
-            }}
-          >
-            {isValidatingEmail ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Validating Email...
+            <div className="w-px h-4 bg-white/15 ml-3.5"></div>
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-white/10 text-white/30 flex items-center justify-center text-[12px] font-semibold">2</div>
+              <div className="text-[12px] text-white/30">Account Details</div>
+            </div>
+            <div className="w-px h-4 bg-white/15 ml-3.5"></div>
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-white/10 text-white/30 flex items-center justify-center text-[12px] font-semibold">3</div>
+              <div className="text-[12px] text-white/30">Set Password</div>
+            </div>
+          </div>
+        </div>
+        {/* Powered by */}
+        <div className="relative z-10 mt-auto pt-12">
+          <p className="text-white/30 text-[11px]">Powered by</p>
+          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[180px] mt-1 opacity-60" />
+        </div>
+      </div>
+
+      {/* Form Panel */}
+      <div className="flex-1 bg-white flex items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-[420px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-2.5 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+            <span className="font-display font-bold text-[20px] text-[#032424]">Guardian</span>
+          </div>
+
+          <h1 className="font-display font-bold text-[30px] text-[#032424]">Create your account</h1>
+          <p className="text-[15px] text-gray-500 mt-1 mb-8">Enter your email to get started</p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="block text-[14px] font-medium text-gray-600 mb-1.5">
+                Email address <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all ${
+                  emailError
+                    ? 'border-red-400 focus:border-red-400 focus:ring-[3px] focus:ring-red-400/10'
+                    : 'border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10'
+                }`}
+                disabled={isValidatingEmail || isLoading}
+              />
+              {emailError && (
+                <p className="mt-1.5 text-[11px] text-red-500">{emailError}</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 text-[12px] rounded-[10px] border border-red-100">
+                {error}
               </div>
-            ) : isLoading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Sending Verification Code...
-              </div>
-            ) : (
-              'Continue'
             )}
-          </button>
-        </form>
-        
-        <div className="mt-8 text-center">
-          <p className="text-body-sm text-gray-2">
-            Already have an account?{' '}
-            <Link to="/login" className="text-secondary font-medium hover:underline">
-              Sign in
-            </Link>
-          </p>
+
+            <p className="text-[13px] text-gray-400 text-center">
+              By proceeding you agree to the{' '}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); setLegalModalOpen(true); }}
+                className="text-[#2EBCBC] hover:underline cursor-pointer bg-transparent border-none p-0 text-[11px]"
+              >
+                Terms of Service
+              </button>
+              {' '}and{' '}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); setLegalModalOpen(true); }}
+                className="text-[#2EBCBC] hover:underline cursor-pointer bg-transparent border-none p-0 text-[11px]"
+              >
+                Privacy Policy
+              </button>
+            </p>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-[10px] text-white font-semibold text-[16px] flex items-center justify-center gap-2 transition-all bg-[#032424] hover:bg-[#064a4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isValidatingEmail || isLoading}
+            >
+              {isValidatingEmail ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Validating Email...
+                </div>
+              ) : isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sending Verification Code...
+                </div>
+              ) : (
+                'Send Verification Code'
+              )}
+            </button>
+
+            <p className="text-center text-[15px] text-gray-500 mt-4">
+              Already have an account?{' '}
+              <Link to="/login" className="text-[#2EBCBC] font-medium hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </form>
         </div>
       </div>
 

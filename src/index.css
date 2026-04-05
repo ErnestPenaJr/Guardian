@@ -1,6 +1,56 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ===== GUARDIAN THEME TOKENS ===== */
+:root {
+  --color-primary: #032424;
+  --color-primary-light: #064a4a;
+  --color-secondary: #2EBCBC;
+  --color-secondary-light: #f0fafa;
+  --color-info: #2F8CED;
+  --color-info-light: #eef4fd;
+  --color-success: #27AE60;
+  --color-success-light: #eafaf1;
+  --color-warning: #E2B93B;
+  --color-warning-light: #fff8e6;
+  --color-error: #C10000;
+  --color-error-light: #fef2f2;
+  --color-surface-base: #f8fafb;
+  --color-surface-card: #ffffff;
+  --color-surface-hover: #f0fafa;
+  --color-surface-sidebar: #032424;
+  --color-text-primary: #032424;
+  --color-text-secondary: #555555;
+  --color-text-muted: #888888;
+  --color-text-placeholder: #aaaaaa;
+  --color-border: #e8eaed;
+  --color-border-light: #f0f0f0;
+}
+
+[data-theme="dark"] {
+  --color-primary: #e8eaed;
+  --color-primary-light: #0e4a4a;
+  --color-secondary-light: rgba(46, 188, 188, 0.12);
+  --color-info: #5BA3F0;
+  --color-info-light: rgba(47, 140, 237, 0.15);
+  --color-success: #4ADE80;
+  --color-success-light: rgba(39, 174, 96, 0.15);
+  --color-warning: #FBBF24;
+  --color-warning-light: rgba(226, 185, 59, 0.15);
+  --color-error: #F87171;
+  --color-error-light: rgba(193, 0, 0, 0.15);
+  --color-surface-base: #0f1419;
+  --color-surface-card: #151c22;
+  --color-surface-hover: #1a2330;
+  --color-surface-sidebar: #0a0f12;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #6b7a8d;
+  --color-text-placeholder: #4a5568;
+  --color-border: #1e2830;
+  --color-border-light: #1a2330;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

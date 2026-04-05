@@ -372,147 +372,143 @@ function Login() {
   };
 
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4"
-      style={{
-        backgroundImage: 'url("/images/background.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-            <span className="text-h4 font-display font-bold text-black">Guardian</span>
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand Panel — hidden on mobile */}
+      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center relative overflow-hidden">
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-10 h-10" />
+            <span className="font-display font-extrabold text-[24px] text-secondary">Guardian</span>
           </div>
-          <h1 className="text-h5 font-display font-bold mb-1">Welcome Back</h1>
+          <p className="text-[15px] text-white/70 leading-relaxed mb-8 max-w-[320px]">
+            Secure request management for modern teams.
+          </p>
+          <div className="space-y-4">
+            {['Company-isolated data security', 'Role-based access control', 'End-to-end workflow tracking'].map((text) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center text-[11px] text-secondary flex-shrink-0">&#10003;</div>
+                <span className="text-[13px] text-white/60">{text}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <div className="relative">
-              <input
-                id="email"
-                type="email"
-                placeholder="Email"
-                value={credentials.email}
-                onChange={handleChange}
-                name="email"
-                maxLength={125}
-                className={`w-full px-4 py-3 border ${
-                  validation.email.touched
-                    ? validation.email.valid
-                      ? 'border-green-500 focus:ring-green-500'
-                      : 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-secondary'
-                } focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-10`}
-                style={{ borderRadius: '6px' }}
-                disabled={isLoading}
-              />
-              {validation.email.touched && (
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  {validation.email.valid ? (
-                    <span className="text-green-500">✓</span>
-                  ) : (
-                    <span className="text-red-500">✗</span>
-                  )}
-                </div>
+        {/* Powered by */}
+        <div className="relative z-10 mt-auto pt-12">
+          <p className="text-white/30 text-[11px]">Powered by</p>
+          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[180px] mt-1 opacity-60" />
+        </div>
+      </div>
+
+      {/* Form Panel */}
+      <div className="flex-1 bg-white flex items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-[420px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-2.5 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+            <span className="font-display font-bold text-[20px] text-[#032424]">Guardian</span>
+          </div>
+
+          <h1 className="font-display font-bold text-[30px] text-[#032424]">Welcome back</h1>
+          <p className="text-[15px] text-gray-500 mt-1 mb-8">Sign in to your account</p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email field */}
+            <div>
+              <label htmlFor="email" className="block text-[14px] font-medium text-gray-600 mb-1.5">
+                Email address
+              </label>
+              <div className="relative">
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="user@company.com"
+                  value={credentials.email}
+                  onChange={handleChange}
+                  name="email"
+                  maxLength={125}
+                  className={`w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all ${
+                    validation.email.touched
+                      ? validation.email.valid
+                        ? 'border-green-400 focus:border-green-400 focus:ring-[3px] focus:ring-green-400/10'
+                        : 'border-red-400 focus:border-red-400 focus:ring-[3px] focus:ring-red-400/10'
+                      : 'border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10'
+                  }`}
+                  disabled={isLoading}
+                />
+                {validation.email.touched && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
+                    {validation.email.valid ? (
+                      <span className="text-green-500 text-[14px]">&#10003;</span>
+                    ) : (
+                      <span className="text-red-400 text-[14px]">&#10007;</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {validation.email.touched && !validation.email.valid && (
+                <p className="mt-1.5 text-[11px] text-red-500">{validation.email.message}</p>
               )}
             </div>
-            {validation.email.touched && !validation.email.valid && (
-              <p className="mt-1 text-sm text-red-600">
-                {validation.email.message}
-              </p>
-            )}
-            {validation.email.touched && validation.email.valid && (
-              <p className="mt-1 text-sm text-green-600">
-                Looks good!
-              </p>
-            )}
-          </div>
-          
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={credentials.password}
-                onChange={handleChange}
-                name="password"
-                className={`w-full px-4 py-3 border ${
-                  validation.password.touched
-                    ? validation.password.valid
-                      ? 'border-green-500 focus:ring-green-500'
-                      : 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-secondary'
-                } focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-10`}
-                style={{ borderRadius: '6px' }}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-                tabIndex={-1}
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
-              {validation.password.touched && (
-                <div className="absolute inset-y-0 right-8 flex items-center pr-3 pointer-events-none">
-                  {validation.password.valid ? (
-                    <span className="text-green-500">✓</span>
-                  ) : (
-                    <span className="text-red-500">✗</span>
+
+            {/* Password field */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label htmlFor="password" className="block text-[14px] font-medium text-gray-600">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-[13px] text-[#2EBCBC] hover:underline">
+                  Forgot?
+                </Link>
+              </div>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={credentials.password}
+                  onChange={handleChange}
+                  name="password"
+                  className={`w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all pr-20 ${
+                    validation.password.touched
+                      ? validation.password.valid
+                        ? 'border-green-400 focus:border-green-400 focus:ring-[3px] focus:ring-green-400/10'
+                        : 'border-red-400 focus:border-red-400 focus:ring-[3px] focus:ring-red-400/10'
+                      : 'border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10'
+                  }`}
+                  disabled={isLoading}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-3.5">
+                  {validation.password.touched && (
+                    <span className="pointer-events-none">
+                      {validation.password.valid ? (
+                        <span className="text-green-500 text-[14px]">&#10003;</span>
+                      ) : (
+                        <span className="text-red-400 text-[14px]">&#10007;</span>
+                      )}
+                    </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-gray-600 focus:outline-none ml-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <FaEyeSlash size={15} /> : <FaEye size={15} />}
+                  </button>
                 </div>
+              </div>
+              {validation.password.touched && !validation.password.valid && (
+                <p className="mt-1.5 text-[11px] text-red-500">{validation.password.message}</p>
               )}
             </div>
-            {validation.password.touched && !validation.password.valid && (
-              <p className="mt-1 text-sm text-red-600">
-                {validation.password.message}
-              </p>
-            )}
-            {validation.password.touched && validation.password.valid && (
-              <p className="mt-1 text-sm text-green-600">
-                Looks good!
-              </p>
-            )}
-          </div>
-          
-          <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-sm text-secondary hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          
-          <div>
+
+            {/* Submit button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer bg-secondary hover:!bg-info hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:!bg-secondary disabled:hover:shadow-none"
-              data-component-name="Login"
+              className="w-full py-3.5 rounded-[10px] text-white font-semibold text-[16px] flex items-center justify-center gap-2 transition-all bg-[#032424] hover:bg-[#064a4a] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               disabled={isLoading}
-              style={{
-                background: isLoading ? undefined : '#2EBCBC'
-              }}
-              onMouseEnter={(e) => {
-                if (!isLoading) {
-                  e.currentTarget.style.backgroundColor = '#2F8CED';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isLoading) {
-                  e.currentTarget.style.backgroundColor = '#2EBCBC';
-                }
-              }}
             >
               {isLoading ? (
                 <>
@@ -520,58 +516,39 @@ function Login() {
                   Verifying credentials...
                 </>
               ) : (
-                'Sign In'
+                'Sign in'
               )}
             </button>
-          </div>
-          
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <span className="text-gray-3 text-body-sm">Don't have an account?</span>
-            <Link
-              to="/register"
-              className="text-secondary text-body-sm font-semibold hover:text-secondary/80 transition-colors"
-            >
-              Create New Account
-            </Link>
-          </div>
 
-          <p className="text-center text-body-sm mt-6">
-            By signing in you agree to the{' '}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setLegalModalType('terms');
-                setLegalModalOpen(true);
-              }}
-              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
-            >
-              Terms of Service
-            </button>
-            {' '}and{' '}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setLegalModalType('privacy');
-                setLegalModalOpen(true);
-              }}
-              className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
-            >
-              Privacy Policy
-            </button>
-          </p>
-        </form>
-      </div>
-      
-      <div className="mt-8 text-center">
-        <p className="text-white text-body-sm font-semibold drop-shadow-md">
-          Powered by <br></br>
-          <img src="/images/shieldlytics.png" alt="Shieldlytics" width={300} />
-        </p>
-        <p className="text-white/30 text-xs mt-2" title={`Build: ${__BUILD_NUMBER__} | Commit: ${__GIT_HASH__} | ${__BUILD_TIME__}`}>
-          {__BUILD_NUMBER__!== 'local' ? __BUILD_NUMBER__ : __GIT_HASH__}
-        </p>
+            {/* Register link */}
+            <p className="text-center text-[15px] text-gray-500 mt-4">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-[#2EBCBC] font-medium hover:underline">
+                Register
+              </Link>
+            </p>
+
+            {/* Legal links */}
+            <p className="text-center text-[13px] text-gray-400 mt-4">
+              By signing in you agree to the{' '}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setLegalModalType('terms'); setLegalModalOpen(true); }}
+                className="text-[#2EBCBC] hover:underline cursor-pointer bg-transparent border-none p-0 text-[11px]"
+              >
+                Terms of Service
+              </button>
+              {' '}and{' '}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setLegalModalType('privacy'); setLegalModalOpen(true); }}
+                className="text-[#2EBCBC] hover:underline cursor-pointer bg-transparent border-none p-0 text-[11px]"
+              >
+                Privacy Policy
+              </button>
+            </p>
+          </form>
+        </div>
       </div>
 
       <LegalModal

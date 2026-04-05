@@ -210,109 +210,117 @@ function ForgotPassword() {
   };
 
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4"
-      style={{
-        backgroundImage: 'url("/images/background.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-          <span className="text-h4 font-display font-bold text-black">Guardian</span>
-        </div>
-
-        <h1 className="text-h5 font-display font-bold text-center mb-1">Forgot Password</h1>
-        <p className="text-center text-gray-2 mb-8">Enter your email address and we'll send you a verification code to reset your password.</p>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label htmlFor="email" className="block text-body-sm font-medium text-gray-1 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="JohnSmith@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-4 py-3 border ${emailError ? 'border-error' : 'border-gray-5'} focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
-              style={{ borderRadius: '6px' }}
-              disabled={isValidatingEmail || isLoading}
-            />
-            {emailError && (
-              <p className="text-error text-body-sm mt-1">
-                {emailError}
-              </p>
-            )}
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand Panel */}
+      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-10 h-10" />
+            <span className="font-display font-extrabold text-[24px] text-secondary">Guardian</span>
           </div>
-          
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 text-error mb-6" style={{ borderRadius: '6px' }}>
-              {error}
-            </div>
-          )}
-          
-          <button
-            type="submit"
-            className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: '#2EBCBC'
-            }}
-            onMouseEnter={(e) => {
-              if (!isValidatingEmail && !isLoading) {
-                e.currentTarget.style.backgroundColor = '#2F8CED';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isValidatingEmail && !isLoading) {
-                e.currentTarget.style.backgroundColor = '#2EBCBC';
-              }
-            }}
-            disabled={isValidatingEmail || isLoading}
-          >
-            {isValidatingEmail ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Validating Email...
-              </div>
-            ) : isLoading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Sending Verification Code...
-              </div>
-            ) : (
-              'Send Verification Code'
-            )}
-          </button>
-        </form>
-        
-        <div className="mt-8 text-center">
-          <p className="text-body-sm text-gray-2">
-            Remember your password?{' '}
-            <Link to="/login" className="text-secondary font-medium hover:underline">
-              Sign in
-            </Link>
+          <p className="text-[15px] text-white/70 leading-relaxed mb-8 max-w-[320px]">
+            Secure password reset process.
           </p>
+
+          {/* Reset flow info */}
+          <div className="space-y-4">
+            {[
+              { step: '1', text: 'Enter your email address', active: true },
+              { step: '2', text: 'Receive verification code' },
+              { step: '3', text: 'Create new password' },
+            ].map((item) => (
+              <div key={item.step} className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold ${
+                  item.active ? 'bg-[#2EBCBC] text-[#032424]' : 'bg-white/10 text-white/30'
+                }`}>{item.step}</div>
+                <span className={`text-[13px] ${item.active ? 'text-white font-medium' : 'text-white/30'}`}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-10 mt-auto pt-12">
+          <p className="text-white/30 text-[11px]">Powered by</p>
+          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[180px] mt-1 opacity-60" />
         </div>
       </div>
 
-      <div className="mt-8 text-center">
-        <p className="text-white text-body-sm font-semibold drop-shadow-md">
-          Powered by <br></br>
-          <img src="/images/shieldlytics.png" alt="Shieldlytics" width={300} />
-        </p>
+      {/* Form Panel */}
+      <div className="flex-1 bg-white flex items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-[420px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-2.5 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+            <span className="font-display font-bold text-[20px] text-[#032424]">Guardian</span>
+          </div>
+
+          <h1 className="font-display font-bold text-[30px] text-[#032424]">Forgot password?</h1>
+          <p className="text-[15px] text-gray-500 mt-1 mb-8">Enter your email and we'll send you a verification code to reset your password.</p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="block text-[14px] font-medium text-gray-600 mb-1.5">
+                Email address
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all ${
+                  emailError
+                    ? 'border-red-400 focus:border-red-400 focus:ring-[3px] focus:ring-red-400/10'
+                    : 'border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10'
+                }`}
+                disabled={isValidatingEmail || isLoading}
+              />
+              {emailError && (
+                <p className="mt-1.5 text-[12px] text-red-500">{emailError}</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 text-[13px] rounded-[10px] border border-red-100">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-[10px] text-white font-semibold text-[16px] flex items-center justify-center gap-2 transition-all bg-[#032424] hover:bg-[#064a4a] disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isValidatingEmail || isLoading}
+            >
+              {isValidatingEmail ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Validating Email...
+                </div>
+              ) : isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sending Verification Code...
+                </div>
+              ) : (
+                'Send Verification Code'
+              )}
+            </button>
+
+            <p className="text-center text-[15px] text-gray-500 mt-4">
+              Remember your password?{' '}
+              <Link to="/login" className="text-[#2EBCBC] font-medium hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );

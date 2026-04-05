@@ -6,27 +6,50 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
-        // Brand Colors
+        // Brand Colors (hardcoded for backward compat)
         primary: '#032424',
         secondary: '#2EBCBC',
-        
-        // State Colors
+
+        // State Colors (hardcoded for backward compat)
         info: '#2F8CED',
         success: '#27AE60',
         warning: '#E2B93B',
         error: '#C10000',
-        
-        // Black Colors
+
+        // Semantic tokens via CSS custom properties (for new components)
+        'primary-light': 'var(--color-primary-light)',
+        'secondary-light': 'var(--color-secondary-light)',
+        'info-light': 'var(--color-info-light)',
+        'success-light': 'var(--color-success-light)',
+        'warning-light': 'var(--color-warning-light)',
+        'error-light': 'var(--color-error-light)',
+        surface: {
+          base: 'var(--color-surface-base)',
+          card: 'var(--color-surface-card)',
+          hover: 'var(--color-surface-hover)',
+          sidebar: 'var(--color-surface-sidebar)',
+        },
+        text: {
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
+          muted: 'var(--color-text-muted)',
+          placeholder: 'var(--color-text-placeholder)',
+        },
+        border: {
+          DEFAULT: 'var(--color-border)',
+          light: 'var(--color-border-light)',
+        },
+
+        // Legacy Colors (backward compat)
         black: {
           1: '#000000',
           2: '#1D1D1D',
           3: '#282828',
         },
-        
-        // Grey Colors
         gray: {
           1: '#333333',
           2: '#4F4F4F',

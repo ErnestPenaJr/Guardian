@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorTestingComponent from './components/ErrorTestingComponent';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
@@ -38,6 +39,7 @@ import DeliveryDashboard from './pages/DeliveryDashboard';
 
 function App() {
   return (
+    <ThemeProvider>
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover />
@@ -87,6 +89,7 @@ function App() {
         <ErrorTestingComponent />
       </div>
     </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 
