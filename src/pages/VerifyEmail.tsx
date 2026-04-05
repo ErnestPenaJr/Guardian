@@ -18,10 +18,10 @@ const generateCallSign = (): string => {
     'VIPER', 'HAWK', 'RAVEN', 'WOLF', 'BEAR', 'LION', 'KNIGHT', 'SABER',
     'GHOST', 'SHADOW', 'RANGER', 'SCOUT', 'HUNTER', 'ARCHER', 'SNIPER'
   ];
-  
+
   const randomPrefix = callSignPrefixes[Math.floor(Math.random() * callSignPrefixes.length)];
   const randomNumber = Math.floor(Math.random() * 90) + 10; // Generate 2-digit number (10-99)
-  
+
   return `${randomPrefix}-${randomNumber}`;
 };
 
@@ -29,7 +29,7 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { email } = location.state || {};
-  
+
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,12 +38,12 @@ const VerifyEmail = () => {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [verificationComplete, setVerificationComplete] = useState(false);
   const [registrationStep, setRegistrationStep] = useState(1); // Step 1: Personal info, Step 2: Role and team info
-  
+
   // Create refs for the verification code inputs
   const inputRefs = Array(6).fill(0).map(() => React.useRef<HTMLInputElement>(null));
 
   //get first name from fullname
-  
+
   // Form data for after verification
   const [formData, setFormData] = useState({
     fullName: '',
@@ -65,25 +65,25 @@ const VerifyEmail = () => {
   useEffect(() => {
     // Check if there's a pending registration
     const registrationData = localStorage.getItem('registrationData');
-    
+
     if (!registrationData) {
       // No pending registration, redirect to register page
       navigate('/register');
       return;
     }
-    
+
     try {
       const data = JSON.parse(registrationData);
-      
+
       // Calculate time left for verification code expiration
       if (data.expiryTime) {
         const expiryTime = new Date(data.expiryTime).getTime();
         const currentTime = Date.now();
         const timeRemaining = Math.max(0, expiryTime - currentTime);
-        
+
         setTimeLeft(Math.floor(timeRemaining / 1000));
       }
-      
+
       // Auto-fill verification code in development mode
       if (data.verificationCode && process.env.NODE_ENV === 'development') {
         console.log('%c Development Mode - Auto-filling verification code:', 'background: #FF9800; color: #fff; font-size: 14px;', data.verificationCode);
@@ -106,7 +106,7 @@ const VerifyEmail = () => {
   // Timer for code expiration
   useEffect(() => {
     if (timeLeft <= 0) return;
-    
+
     const timer = setInterval(() => {
       setTimeLeft(prevTime => {
         if (prevTime <= 1) {
@@ -116,7 +116,7 @@ const VerifyEmail = () => {
         return prevTime - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [timeLeft]);
 
@@ -126,7 +126,7 @@ const VerifyEmail = () => {
       setIsResendDisabled(false);
       return;
     }
-    
+
     const timer = setInterval(() => {
       setResendCountdown(prevTime => {
         if (prevTime <= 1) {
@@ -137,7 +137,7 @@ const VerifyEmail = () => {
         return prevTime - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [resendCountdown]);
 
@@ -160,7 +160,7 @@ const VerifyEmail = () => {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const password = e.target.value;
     setFormData({ ...formData, password });
-    
+
     if (!validatePassword(password)) {
       setPasswordError('Password must be at least 12 characters and include at least one uppercase letter, one lowercase letter, one number, and one symbol');
     } else {
@@ -181,7 +181,7 @@ const VerifyEmail = () => {
       if (response.data.success) {
         showToast.success('Email verified successfully!');
         setVerificationComplete(true);
-        
+
         // Pre-populate workspace field with generated call sign when verification is complete
         if (!formData.workspace) {
           const generatedCallSign = generateCallSign();
@@ -290,10 +290,10 @@ const VerifyEmail = () => {
         // Show simple success toast and redirect to login
         const callSign = response.data.callSign || 'GUARDIAN-XX';
         showToast.success(`Registration completed! Welcome to ${callSign}. Please sign in to continue.`);
-        
+
         // Clear registration data from localStorage
         localStorage.removeItem('registrationData');
-        
+
         // Redirect to login page
         navigate('/login');
       } else {
@@ -333,7 +333,7 @@ const VerifyEmail = () => {
       if (!validatePassword(formData.password)) {
         return;
       }
-      
+
       // Move to next step
       setRegistrationStep(2);
       setError('');
@@ -347,13 +347,13 @@ const VerifyEmail = () => {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // If on step 1, move to step 2
     if (registrationStep === 1) {
       handleNextStep();
       return;
     }
-    
+
     // Otherwise, complete registration
     handleCompleteRegistration(e);
   };
@@ -362,22 +362,22 @@ const VerifyEmail = () => {
     if (value.length > 1) {
       value = value.slice(-1);
     }
-    
+
     if (!/^\d*$/.test(value)) {
       return;
     }
-    
+
     const newCode = verificationCode.split('');
     newCode[index] = value;
     const updatedCode = newCode.join('');
     setVerificationCode(updatedCode);
-    
+
     // Auto-focus next input if a digit was entered
     if (value && index < 5) {
       inputRefs[index + 1].current?.focus();
     }
   };
-  
+
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
       // Move to previous input when backspace is pressed on an empty input
@@ -390,63 +390,62 @@ const VerifyEmail = () => {
       inputRefs[index + 1].current?.focus();
     }
   };
-  
+
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text');
     const digits = pastedData.replace(/\D/g, '').slice(0, 6);
-    
+
     if (digits) {
       setVerificationCode(digits);
-      
+
       // Fill in the inputs with the pasted digits
       digits.split('').forEach((digit, index) => {
         if (inputRefs[index] && inputRefs[index].current) {
           inputRefs[index].current.value = digit;
         }
       });
-      
+
       // Focus the next empty input or the last input
       const nextEmptyIndex = digits.length < 6 ? digits.length : 5;
       inputRefs[nextEmptyIndex].current?.focus();
     }
   };
 
+  // Determine which step is active for the brand panel indicator
+  const getCurrentStep = () => {
+    if (!verificationComplete) return 1;
+    if (registrationStep === 1) return 2;
+    return 3;
+  };
+
   const renderVerificationForm = () => (
     <>
-      <div className="flex items-center justify-center gap-3 mb-8">
-        <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-        <span className="text-h4 font-display font-bold text-black">Guardian</span>
-      </div>
-      
-      <h1 className="text-h5 font-display font-bold text-center mb-1">Verify Your Email</h1>
-      
-      <p className="text-body-md text-gray-1 mb-6 text-center">
-        We've sent a 6-digit verification code to <span className="font-medium">{email}</span>
+      <h1 className="font-display font-bold text-[30px] text-[#032424]">Verify your email</h1>
+      <p className="text-[15px] text-gray-500 mt-1 mb-8">
+        We've sent a 6-digit code to <span className="font-medium text-[#032424]">{email}</span>
       </p>
-      
+
       {timeLeft > 0 && (
-        <div className="mb-6 text-center">
-          <p className="text-body-sm text-gray-2 mb-2">
-            Code expires in:
-          </p>
-          <p className="text-heading-sm font-medium text-primary">{formatTime(timeLeft)}</p>
+        <div className="mb-6">
+          <p className="text-[13px] text-gray-400">Code expires in</p>
+          <p className="text-[16px] font-semibold text-[#032424]">{formatTime(timeLeft)}</p>
         </div>
       )}
-      
+
       {timeLeft === 0 && (
-        <div className="mb-6 text-center">
-          <p className="text-body-sm text-error">Verification code has expired</p>
-          <p className="text-body-sm text-gray-2">Please request a new code</p>
+        <div className="mb-6">
+          <p className="text-[13px] text-red-500">Verification code has expired</p>
+          <p className="text-[13px] text-gray-400">Please request a new code</p>
         </div>
       )}
-      
-      <form onSubmit={handleVerify} className="space-y-6">
+
+      <form onSubmit={handleVerify} className="space-y-5">
         <div>
-          <label htmlFor="verificationCode" className="block text-body-sm font-medium text-gray-1 mb-2">
+          <label htmlFor="verificationCode" className="block text-[14px] font-medium text-gray-600 mb-2">
             Verification Code
           </label>
-          <div className="flex justify-between gap-2 mb-6">
+          <div className="flex justify-between gap-2.5 mb-1">
             {Array(6).fill(0).map((_, index) => (
               <input
                 key={index}
@@ -457,41 +456,27 @@ const VerifyEmail = () => {
                 onChange={(e) => handleCodeChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={index === 0 ? handlePaste : undefined}
-                className="w-full aspect-square text-center text-lg font-medium border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-                style={{ borderRadius: '6px' }}
+                className="w-12 h-14 text-center text-[20px] font-semibold rounded-[10px] border-[1.5px] border-gray-200 focus:outline-none focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 transition-all"
+                disabled={isLoading}
               />
             ))}
           </div>
         </div>
-        
+
         {error && (
-          <div className="p-3 bg-red-50 text-error mb-6" style={{ borderRadius: '6px' }}>
+          <div className="p-3 bg-red-50 text-red-600 text-[13px] rounded-[10px] border border-red-100">
             {error}
           </div>
         )}
-        
+
         <button
           type="submit"
           disabled={isLoading || verificationCode.length !== 6 || timeLeft === 0}
-          className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          style={{
-            borderRadius: '8px',
-            backgroundColor: '#2EBCBC'
-          }}
-          onMouseEnter={(e) => {
-            if (!isLoading && verificationCode.length === 6 && timeLeft > 0) {
-              e.currentTarget.style.backgroundColor = '#2F8CED';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading && verificationCode.length === 6 && timeLeft > 0) {
-              e.currentTarget.style.backgroundColor = '#2EBCBC';
-            }
-          }}
+          className="w-full py-3.5 rounded-[10px] text-white font-semibold text-[16px] flex items-center justify-center gap-2 transition-all bg-[#032424] hover:bg-[#064a4a] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <div className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -502,18 +487,17 @@ const VerifyEmail = () => {
           )}
         </button>
       </form>
-      
-      <div className="mt-8 text-center">
-        <p className="text-body-sm text-gray-2 mb-2">
+
+      <div className="mt-6 text-center">
+        <p className="text-[13px] text-gray-400 mb-1">
           Didn't receive the code?
         </p>
         <button
           onClick={handleResendCode}
           disabled={isResendDisabled || isLoading}
-          className={`text-secondary font-medium ${
-            isResendDisabled || isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:underline'
+          className={`text-[15px] text-[#2EBCBC] font-medium ${
+            isResendDisabled || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:underline'
           }`}
-          style={{ borderRadius: '6px' }}
         >
           {isResendDisabled ? `Resend code (${resendCountdown}s)` : 'Resend code'}
         </button>
@@ -523,16 +507,12 @@ const VerifyEmail = () => {
 
   const renderPersonalInfoForm = () => (
     <>
-      <div className="flex items-center justify-center gap-3 mb-8">
-        <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-        <span className="text-h4 font-display font-bold text-black">Guardian</span>
-      </div>
+      <h1 className="font-display font-bold text-[30px] text-[#032424]">Complete your profile</h1>
+      <p className="text-[15px] text-gray-500 mt-1 mb-8">Set up your account details to get started.</p>
 
-      <h1 className="text-h5 font-display font-bold text-center mb-1">Complete Your Registration</h1>
-      
-      <form onSubmit={handleFormSubmit} className="space-y-6">
+      <form onSubmit={handleFormSubmit} className="space-y-5">
         <div>
-          <label htmlFor="fullName" className="block text-body-sm font-medium text-gray-1 mb-2">
+          <label htmlFor="fullName" className="block text-[14px] font-medium text-gray-600 mb-1.5">
             Full Name
           </label>
           <input
@@ -541,13 +521,12 @@ const VerifyEmail = () => {
             value={formData.fullName}
             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
             placeholder="John Smith"
-            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-            style={{ borderRadius: '6px' }}
+            className="w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10"
           />
         </div>
-        
+
         <div>
-          <label htmlFor="password" className="block text-body-sm font-medium text-gray-1 mb-2">
+          <label htmlFor="password" className="block text-[14px] font-medium text-gray-600 mb-1.5">
             Password
           </label>
           <div className="relative">
@@ -557,13 +536,14 @@ const VerifyEmail = () => {
               value={formData.password}
               onChange={handlePasswordChange}
               placeholder="Create a strong password"
-              className={`w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
-              style={{ borderRadius: '6px' }}
+              className={`w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all pr-12 ${
+                passwordError ? 'border-red-400 focus:border-red-400 focus:ring-[3px] focus:ring-red-400/10' : 'border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10'
+              }`}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-2"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600"
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -578,14 +558,12 @@ const VerifyEmail = () => {
             </button>
           </div>
           {passwordError && (
-            <p className="text-error text-body-sm mt-1">
-              {passwordError}
-            </p>
+            <p className="text-[12px] text-red-500 mt-1">{passwordError}</p>
           )}
         </div>
-        
+
         <div>
-          <label htmlFor="confirmPassword" className="block text-body-sm font-medium text-gray-1 mb-2">
+          <label htmlFor="confirmPassword" className="block text-[14px] font-medium text-gray-600 mb-1.5">
             Confirm Password
           </label>
           <div className="relative">
@@ -602,13 +580,16 @@ const VerifyEmail = () => {
                 }
               }}
               placeholder="Confirm your password"
-              className={`w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all`}
-              style={{ borderRadius: '6px' }}
+              className={`w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all pr-12 ${
+                formData.confirmPassword && formData.password !== formData.confirmPassword
+                  ? 'border-red-400 focus:border-red-400 focus:ring-[3px] focus:ring-red-400/10'
+                  : 'border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10'
+              }`}
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-2"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600"
             >
               {showConfirmPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -622,10 +603,13 @@ const VerifyEmail = () => {
               )}
             </button>
           </div>
+          {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+            <p className="text-[12px] text-red-500 mt-1">Passwords do not match</p>
+          )}
         </div>
-        
+
         <div>
-          <label htmlFor="workspace" className="block text-body-sm font-medium text-gray-1 mb-2">
+          <label htmlFor="workspace" className="block text-[14px] font-medium text-gray-600 mb-1.5">
             Workspace
           </label>
           <input
@@ -634,44 +618,29 @@ const VerifyEmail = () => {
             value={formData.workspace}
             onChange={(e) => setFormData({ ...formData, workspace: e.target.value })}
             placeholder="Your organization/workspace name"
-            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-            style={{ borderRadius: '6px' }}
+            className="w-full px-4 py-3.5 border-[1.5px] rounded-[10px] text-[16px] text-[#032424] placeholder:text-gray-400 outline-none transition-all border-gray-200 focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10"
           />
-          <p className="text-gray-2 text-body-sm mt-1">
-            {formData.workspace && formData.workspace.match(/^[A-Z]+-\d{2}$/) 
-              ? 'Pre-generated call sign - you can modify this or use as-is (changeable later in settings)' 
+          <p className="text-[13px] text-gray-400 mt-1.5">
+            {formData.workspace && formData.workspace.match(/^[A-Z]+-\d{2}$/)
+              ? 'Pre-generated call sign - you can modify this or use as-is (changeable later in settings)'
               : 'Enter a unique name for your workspace (you can change this later in settings)'}
           </p>
         </div>
-        
+
         {error && (
-          <div className="p-3 bg-red-50 text-error" style={{ borderRadius: '6px' }}>
+          <div className="p-3 bg-red-50 text-red-600 text-[13px] rounded-[10px] border border-red-100">
             {error}
           </div>
         )}
-        
+
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          style={{
-            borderRadius: '8px',
-            backgroundColor: '#2EBCBC'
-          }}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.backgroundColor = '#2F8CED';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.backgroundColor = '#2EBCBC';
-            }
-          }}
+          className="w-full py-3.5 rounded-[10px] text-white font-semibold text-[16px] flex items-center justify-center gap-2 transition-all bg-[#032424] hover:bg-[#064a4a] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <div className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -684,29 +653,24 @@ const VerifyEmail = () => {
       </form>
     </>
   );
-  
+
   const renderRoleAndTeamForm = () => (
     <>
-      <div className="flex items-center justify-center gap-3 mb-8">
-        <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
-        <span className="text-h4 font-display font-bold text-black">Guardian</span>
-      </div>
+      <h1 className="font-display font-bold text-[30px] text-[#032424]">About your team</h1>
+      <p className="text-[15px] text-gray-500 mt-1 mb-8">Help us personalize your experience.</p>
 
-      <h1 className="text-h5 font-display font-bold text-center mb-1">Create your account</h1>
-      
       <form onSubmit={handleFormSubmit} className="space-y-6">
-        <div className="mb-6">
-          <p className="text-body-md font-medium text-gray-1 mb-3">What best describes your <span className="font-semibold">current role</span>?</p>
+        <div>
+          <p className="text-[15px] font-medium text-gray-600 mb-3">What best describes your <span className="font-semibold text-[#032424]">current role</span>?</p>
           <div className="flex flex-wrap gap-2">
             {['Executive', 'Supervisor', 'Investigator', 'Officer', 'Analyst', 'Support', 'Other'].map((role) => (
-              <label 
-                key={role} 
-                className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer transition-all ${
-                  formData.role === role 
-                    ? 'border-secondary bg-secondary/10' 
-                    : 'border-gray-5 hover:border-gray-4'
+              <label
+                key={role}
+                className={`flex items-center gap-2 px-4 py-2.5 border-[1.5px] rounded-[10px] cursor-pointer transition-all text-[14px] ${
+                  formData.role === role
+                    ? 'border-[#2EBCBC] bg-[#2EBCBC]/5 text-[#032424] font-medium'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
-                style={{ borderRadius: '6px' }}
               >
                 <input
                   type="radio"
@@ -714,26 +678,25 @@ const VerifyEmail = () => {
                   value={role}
                   checked={formData.role === role}
                   onChange={() => setFormData({ ...formData, role })}
-                  className="h-4 w-4 text-secondary border-gray-5 focus:ring-secondary"
+                  className="h-4 w-4 text-[#2EBCBC] border-gray-300 focus:ring-[#2EBCBC]"
                 />
                 {role}
               </label>
             ))}
           </div>
         </div>
-        
-        <div className="mb-6">
-          <p className="text-body-md font-medium text-gray-1 mb-3">How many people are on your <span className="font-semibold">team</span>?</p>
+
+        <div>
+          <p className="text-[15px] font-medium text-gray-600 mb-3">How many people are on your <span className="font-semibold text-[#032424]">team</span>?</p>
           <div className="flex flex-wrap gap-2">
             {['Only me', '2-5', '6-10', '11-15', '16-24', '25-50', '51-100', '101-500'].map((size) => (
-              <label 
-                key={size} 
-                className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer transition-all ${
-                  formData.teamSize === size 
-                    ? 'border-secondary bg-secondary/10' 
-                    : 'border-gray-5 hover:border-gray-4'
+              <label
+                key={size}
+                className={`flex items-center gap-2 px-4 py-2.5 border-[1.5px] rounded-[10px] cursor-pointer transition-all text-[14px] ${
+                  formData.teamSize === size
+                    ? 'border-[#2EBCBC] bg-[#2EBCBC]/5 text-[#032424] font-medium'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
-                style={{ borderRadius: '6px' }}
               >
                 <input
                   type="radio"
@@ -741,26 +704,25 @@ const VerifyEmail = () => {
                   value={size}
                   checked={formData.teamSize === size}
                   onChange={() => setFormData({ ...formData, teamSize: size })}
-                  className="h-4 w-4 text-secondary border-gray-5 focus:ring-secondary"
+                  className="h-4 w-4 text-[#2EBCBC] border-gray-300 focus:ring-[#2EBCBC]"
                 />
                 {size}
               </label>
             ))}
           </div>
         </div>
-        
-        <div className="mb-6">
-          <p className="text-body-md font-medium text-gray-1 mb-3">How many people work at your <span className="font-semibold">company</span>?</p>
+
+        <div>
+          <p className="text-[15px] font-medium text-gray-600 mb-3">How many people work at your <span className="font-semibold text-[#032424]">company</span>?</p>
           <div className="flex flex-wrap gap-2">
             {['1-19', '20-49', '50-99', '100-250', '251-500', '501-1500', '1500+'].map((size) => (
-              <label 
-                key={size} 
-                className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer transition-all ${
-                  formData.companySize === size 
-                    ? 'border-secondary bg-secondary/10' 
-                    : 'border-gray-5 hover:border-gray-4'
+              <label
+                key={size}
+                className={`flex items-center gap-2 px-4 py-2.5 border-[1.5px] rounded-[10px] cursor-pointer transition-all text-[14px] ${
+                  formData.companySize === size
+                    ? 'border-[#2EBCBC] bg-[#2EBCBC]/5 text-[#032424] font-medium'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
-                style={{ borderRadius: '6px' }}
               >
                 <input
                   type="radio"
@@ -768,66 +730,49 @@ const VerifyEmail = () => {
                   value={size}
                   checked={formData.companySize === size}
                   onChange={() => setFormData({ ...formData, companySize: size })}
-                  className="h-4 w-4 text-secondary border-gray-5 focus:ring-secondary"
+                  className="h-4 w-4 text-[#2EBCBC] border-gray-300 focus:ring-[#2EBCBC]"
                 />
                 {size}
               </label>
             ))}
           </div>
         </div>
-        
+
         {error && (
-          <div className="p-3 bg-red-50 text-error" style={{ borderRadius: '6px' }}>
+          <div className="p-3 bg-red-50 text-red-600 text-[13px] rounded-[10px] border border-red-100">
             {error}
           </div>
         )}
-        
-        <div className="flex gap-4">
+
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={handlePrevStep}
-            className="w-1/3 bg-white border border-gray-5 text-gray-1 font-semibold py-3 px-4 transition-colors"
-            style={{ backgroundColor: '#FFFFFF' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+            className="w-1/3 py-3.5 rounded-[10px] border-[1.5px] border-gray-200 text-gray-600 font-semibold text-[16px] transition-all hover:bg-gray-50"
           >
             Back
           </button>
-          
+
           <button
             type="submit"
             disabled={isLoading}
-            className="w-2/3 py-3 px-4 text-white font-medium flex items-center justify-center gap-2 transition-colors duration-300 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: '#2EBCBC'
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.backgroundColor = '#2F8CED';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.backgroundColor = '#2EBCBC';
-              }
-            }}
+            className="w-2/3 py-3.5 rounded-[10px] text-white font-semibold text-[16px] flex items-center justify-center gap-2 transition-all bg-[#032424] hover:bg-[#064a4a] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Completing Registration...
               </div>
             ) : (
-              'Continue'
+              'Complete Registration'
             )}
           </button>
         </div>
 
-        <p className="text-center text-body-sm mt-6">
+        <p className="text-center text-[13px] text-gray-400 mt-4">
           By proceeding you agree to the{' '}
           <button
             type="button"
@@ -836,7 +781,7 @@ const VerifyEmail = () => {
               setLegalModalType('terms');
               setLegalModalOpen(true);
             }}
-            className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+            className="text-[#2EBCBC] hover:underline cursor-pointer bg-transparent border-none p-0 text-[13px]"
           >
             Terms of Service
           </button>
@@ -848,7 +793,7 @@ const VerifyEmail = () => {
               setLegalModalType('privacy');
               setLegalModalOpen(true);
             }}
-            className="text-secondary hover:underline cursor-pointer bg-transparent border-none p-0"
+            className="text-[#2EBCBC] hover:underline cursor-pointer bg-transparent border-none p-0 text-[13px]"
           >
             Privacy Policy
           </button>
@@ -861,18 +806,57 @@ const VerifyEmail = () => {
     return registrationStep === 1 ? renderPersonalInfoForm() : renderRoleAndTeamForm();
   };
 
+  const currentStep = getCurrentStep();
+
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4"
-      style={{
-        backgroundImage: 'url("/images/background.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        {verificationComplete ? renderRegistrationForm() : renderVerificationForm()}
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand Panel */}
+      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-10 h-10" />
+            <span className="font-display font-extrabold text-[24px] text-secondary">Guardian</span>
+          </div>
+          <p className="text-[15px] text-white/70 leading-relaxed mb-8 max-w-[320px]">
+            Complete your account setup to get started with Guardian.
+          </p>
+
+          {/* Step progress indicator */}
+          <div className="space-y-4">
+            {[
+              { step: '1', text: 'Verify your email', active: currentStep === 1, done: currentStep > 1 },
+              { step: '2', text: 'Set up your profile', active: currentStep === 2, done: currentStep > 2 },
+              { step: '3', text: 'About your team', active: currentStep === 3, done: false },
+            ].map((item) => (
+              <div key={item.step} className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold ${
+                  item.active ? 'bg-[#2EBCBC] text-[#032424]' : item.done ? 'bg-[#2EBCBC]/30 text-[#2EBCBC]' : 'bg-white/10 text-white/30'
+                }`}>
+                  {item.done ? '\u2713' : item.step}
+                </div>
+                <span className={`text-[13px] ${item.active ? 'text-white font-medium' : item.done ? 'text-white/50' : 'text-white/30'}`}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-10 mt-auto pt-12">
+          <p className="text-white/30 text-[11px]">Powered by</p>
+          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[180px] mt-1 opacity-60" />
+        </div>
+      </div>
+
+      {/* Form Panel */}
+      <div className="flex-1 bg-white flex items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-[420px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-2.5 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-8 h-8" />
+            <span className="font-display font-bold text-[20px] text-[#032424]">Guardian</span>
+          </div>
+
+          {verificationComplete ? renderRegistrationForm() : renderVerificationForm()}
+        </div>
       </div>
 
       <LegalModal
