@@ -165,42 +165,42 @@ function Register() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Brand Panel */}
-      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center relative overflow-hidden">
+      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-10 h-10" />
-            <span className="font-display font-extrabold text-[24px] text-secondary">Guardian</span>
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="flex items-center gap-4 mb-6">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-16 h-16" />
+            <span className="font-display font-extrabold text-[36px] text-secondary">Guardian</span>
           </div>
-          <p className="text-[15px] text-white/70 leading-relaxed mb-8 max-w-[320px]">
+          <p className="text-[17px] text-white/70 leading-relaxed mb-10 max-w-[340px]">
             Create your account in a few simple steps.
           </p>
 
           {/* Step progress indicator */}
-          <div className="space-y-0">
+          <div className="space-y-0 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-[#2EBCBC] text-[#032424] flex items-center justify-center text-[12px] font-bold">1</div>
+              <div className="w-8 h-8 rounded-full bg-[#2EBCBC] text-[#032424] flex items-center justify-center text-[14px] font-bold">1</div>
               <div>
-                <div className="text-[12px] font-medium text-white">Verify Email</div>
-                <div className="text-[10px] text-white/40">You are here</div>
+                <div className="text-[14px] font-medium text-white">Verify Email</div>
+                <div className="text-[12px] text-white/40">You are here</div>
               </div>
             </div>
-            <div className="w-px h-4 bg-white/15 ml-3.5"></div>
+            <div className="w-px h-4 bg-white/15 ml-4"></div>
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-white/10 text-white/30 flex items-center justify-center text-[12px] font-semibold">2</div>
-              <div className="text-[12px] text-white/30">Account Details</div>
+              <div className="w-8 h-8 rounded-full bg-white/10 text-white/30 flex items-center justify-center text-[14px] font-semibold">2</div>
+              <div className="text-[14px] text-white/30">Account Details</div>
             </div>
-            <div className="w-px h-4 bg-white/15 ml-3.5"></div>
+            <div className="w-px h-4 bg-white/15 ml-4"></div>
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-white/10 text-white/30 flex items-center justify-center text-[12px] font-semibold">3</div>
-              <div className="text-[12px] text-white/30">Set Password</div>
+              <div className="w-8 h-8 rounded-full bg-white/10 text-white/30 flex items-center justify-center text-[14px] font-semibold">3</div>
+              <div className="text-[14px] text-white/30">Set Password</div>
             </div>
           </div>
         </div>
         {/* Powered by */}
-        <div className="relative z-10 mt-auto pt-12">
-          <p className="text-white/30 text-[11px]">Powered by</p>
-          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[180px] mt-1 opacity-60" />
+        <div className="relative z-10 mt-auto pt-12 text-center">
+          <p className="text-white/30 text-[12px]">Powered by</p>
+          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[200px] mt-1 opacity-60 mx-auto" />
         </div>
       </div>
 
