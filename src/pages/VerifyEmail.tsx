@@ -811,38 +811,38 @@ const VerifyEmail = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Brand Panel */}
-      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center relative overflow-hidden">
+      <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#032424] to-[#064a4a] text-white p-10 flex-col justify-center items-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-10 h-10" />
-            <span className="font-display font-extrabold text-[24px] text-secondary">Guardian</span>
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="flex items-center gap-4 mb-8">
+            <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="w-16 h-16" />
+            <span className="font-display font-extrabold text-[36px] text-secondary">Guardian</span>
           </div>
-          <p className="text-[15px] text-white/70 leading-relaxed mb-8 max-w-[320px]">
+          <p className="text-[17px] text-white/70 leading-relaxed mb-10 max-w-[340px]">
             Complete your account setup to get started with Guardian.
           </p>
 
           {/* Step progress indicator */}
-          <div className="space-y-4">
+          <div className="space-y-4 text-left">
             {[
               { step: '1', text: 'Verify your email', active: currentStep === 1, done: currentStep > 1 },
               { step: '2', text: 'Set up your profile', active: currentStep === 2, done: currentStep > 2 },
               { step: '3', text: 'About your team', active: currentStep === 3, done: false },
             ].map((item) => (
               <div key={item.step} className="flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold ${
                   item.active ? 'bg-[#2EBCBC] text-[#032424]' : item.done ? 'bg-[#2EBCBC]/30 text-[#2EBCBC]' : 'bg-white/10 text-white/30'
                 }`}>
                   {item.done ? '\u2713' : item.step}
                 </div>
-                <span className={`text-[13px] ${item.active ? 'text-white font-medium' : item.done ? 'text-white/50' : 'text-white/30'}`}>{item.text}</span>
+                <span className={`text-[14px] ${item.active ? 'text-white font-medium' : item.done ? 'text-white/50' : 'text-white/30'}`}>{item.text}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="relative z-10 mt-auto pt-12">
-          <p className="text-white/30 text-[11px]">Powered by</p>
-          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[180px] mt-1 opacity-60" />
+        <div className="relative z-10 mt-auto pt-12 text-center">
+          <p className="text-white/30 text-[12px]">Powered by</p>
+          <img src="/images/shieldlytics.png" alt="Shieldlytics" className="w-[200px] mt-1 opacity-60 mx-auto" />
         </div>
       </div>
 
