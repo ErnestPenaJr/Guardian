@@ -1248,12 +1248,12 @@ function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Top Bar */}
-      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-md border-b-2 border-teal-500 flex items-center justify-between px-4 md:px-8 z-40">
+      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm border-b border-[#f0f0f0] flex items-center justify-between px-4 md:px-8 z-40">
         <div className="flex items-center gap-2 md:gap-3">
           <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="h-8 w-auto" />
           <span className="font-bold text-lg md:text-2xl text-gray-700 hidden sm:inline">Guardian</span>
         </div>
-        <div className="flex-1 flex justify-center max-w-xs md:max-w-md">
+        <div className="flex-1 flex justify-center max-w-xs md:max-w-md hidden">
           <div className="relative w-64">
             <input
               type="text"
@@ -1328,9 +1328,9 @@ function Home() {
             </button>
           {/* Dropdown Menu */}
           {profileMenuOpen && (
-            <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-lg shadow-sm border-t-4 border-t-secondary py-2 z-50 border border-gray-100 animate-fade-in">
+            <div className="absolute right-0 top-12 mt-2 w-56 bg-white rounded-[14px] shadow-md py-2 z-50 border border-[#f0f0f0] animate-fade-in">
               <button 
-                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-[#f8fafb] text-[#555555] text-[13px]"
                 onClick={() => {
                   setProfileMenuOpen(false);
                   setShowAccountSettings(true);
@@ -1339,7 +1339,7 @@ function Home() {
                 <Settings size={16} /> Account Settings
               </button>
               <button 
-                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-[#f8fafb] text-[#555555] text-[13px]"
                 onClick={() => {
                   setProfileMenuOpen(false);
                   setShowUpdateProfile(true);
@@ -1348,7 +1348,7 @@ function Home() {
                 <User size={16} /> Update Profile
               </button>
               <button 
-                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-[#f8fafb] text-[#555555] text-[13px]"
                 onClick={() => {
                   setProfileMenuOpen(false);
                   setShowChangePassword(true);
@@ -1357,7 +1357,7 @@ function Home() {
                 <KeyRound size={16} /> Change Password
               </button>
               <button 
-                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm" 
+                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-[#f8fafb] text-[#555555] text-[13px]"
                 onClick={() => {
                   setProfileMenuOpen(false);
                   setShowNotificationPreferences(true);
@@ -1376,7 +1376,7 @@ function Home() {
                         key={themeOption}
                         className={`w-full text-left px-2 py-1 rounded text-xs ${
                           theme === themeOption 
-                            ? 'bg-blue-100 text-blue-800' 
+                            ? 'bg-[#f0fafa] text-[#2EBCBC]' 
                             : 'hover:bg-gray-100 text-gray-600'
                         }`}
                         onClick={() => {
@@ -1391,7 +1391,7 @@ function Home() {
                 </div>
               </div>
               <div className="border-t my-2" />
-              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-red-600 text-sm" onClick={handleLogout}>
+              <button className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-[#f8fafb] text-red-600 text-[13px]" onClick={handleLogout}>
                 <LogOut size={16} /> Logout
               </button>
             </div>
@@ -1403,7 +1403,7 @@ function Home() {
         aria-label="Main navigation" 
         role="navigation"
         className={`hidden sm:flex flex-col ${isNavExpanded ? 'w-64' : 'w-16'} min-w-[64px]
-          bg-white border-r border-gray-200
+          bg-[#032424] border-r border-[#2EBCBC]/10
           h-[calc(100vh-4rem)] fixed top-16 left-0 z-50
           transition-all duration-300 ease-in-out`}
       >
@@ -1411,9 +1411,9 @@ function Home() {
         <div className={`flex items-center px-3 py-3 ${isNavExpanded ? 'justify-end' : 'justify-center'}`}>
           <button
             onClick={() => setIsNavExpanded(!isNavExpanded)}
-            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-3
-              hover:text-primary hover:bg-gray-5/60 transition-colors duration-200
-              focus:outline-none focus:ring-2 focus:ring-secondary/40"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-white/40
+              hover:text-[#2EBCBC] hover:bg-white/[0.06] transition-colors duration-200
+              focus:outline-none focus:ring-2 focus:ring-[#2EBCBC]/40"
             aria-label={isNavExpanded ? "Collapse sidebar" : "Expand sidebar"}
           >
             {isNavExpanded ? (
@@ -1453,10 +1453,10 @@ function Home() {
                 rounded-lg transition-colors duration-150
                 focus:outline-none focus:ring-2 focus:ring-secondary/40
                 ${item.disabled
-                  ? 'opacity-40 cursor-not-allowed text-gray-400'
+                  ? 'opacity-40 cursor-not-allowed text-white/20'
                   : item.active
-                    ? 'bg-secondary/10 text-primary font-semibold'
-                    : 'text-gray-2 hover:text-primary hover:bg-gray-100'
+                    ? 'bg-[#2EBCBC]/[0.12] text-[#2EBCBC] font-semibold'
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/[0.06]'
                 }`}
               aria-label={item.label}
               aria-current={item.active ? 'page' : undefined}
@@ -1467,7 +1467,7 @@ function Home() {
               style={(item.label === 'Invites' || item.label === 'Assignments') ? { display: 'none' } : undefined}
             >
               {item.active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-secondary rounded-r-full"></div>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#2EBCBC] rounded-r-full"></div>
               )}
               
               <div className="flex items-center justify-center w-8 h-8" aria-hidden="true">
@@ -1475,7 +1475,7 @@ function Home() {
               </div>
               
               {isNavExpanded && (
-                <span className="ml-3 text-sm">
+                <span className="ml-3 text-[13px]">
                   {item.label}
                 </span>
               )}
@@ -1495,13 +1495,13 @@ function Home() {
         </div>
 
         {/* Logout */}
-        <div className="px-3 py-4 border-t border-gray-200">
+        <div className="px-3 py-4 border-t border-white/[0.08]">
           <button
             className={`group flex items-center w-full h-11
               ${isNavExpanded ? 'px-3' : 'justify-center px-0'}
               rounded-lg transition-colors duration-150
-              text-gray-3 hover:text-error hover:bg-red-50
-              focus:outline-none focus:ring-2 focus:ring-error/30`}
+              text-white/40 hover:text-[#F87171] hover:bg-[#F87171]/10
+              focus:outline-none focus:ring-2 focus:ring-[#F87171]/30`}
             onClick={handleLogout}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -1530,7 +1530,7 @@ function Home() {
         />
       </nav>
       {/* Main Content: Switchable Dashboard */}
-      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 pb-20 sm:pb-8 gap-4 sm:gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'sm:ml-64' : 'sm:ml-16'} transition-all duration-500 ease-out bg-gray-50 min-h-[calc(100vh-64px)]`}>
+      <main className={`flex-1 flex flex-col mt-16 px-2 sm:px-4 md:px-8 py-4 md:py-8 pb-20 sm:pb-8 gap-4 sm:gap-6 md:gap-8 overflow-y-auto ${isNavExpanded ? 'sm:ml-64' : 'sm:ml-16'} transition-all duration-500 ease-out bg-[#f8fafb] min-h-[calc(100vh-64px)]`}>
         {mobileNav === 'dashboard' && selectedSection === 'dashboard' ? (
           // Dashboard Overview
           <div className="container max-w-full">
