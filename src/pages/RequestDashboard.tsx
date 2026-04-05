@@ -982,17 +982,17 @@ const RequestDashboard: React.FC = () => {
 
   return (
     <div className="container">
-      <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Request Dashboard</h1>
+      <h1 className="font-display font-bold text-[28px] text-[#032424] mb-6">Requests</h1>
       
       {/* Main Requests Section Header */}
       <div className="mb-3">
         <div className="d-flex align-items-center">
-          <div className="bg-secondary" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
+          <div className="bg-[#2EBCBC]" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
           <div>
-            <h3 className="mb-1" style={{ fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+            <h3 className="font-display font-semibold text-[20px] text-[#032424] mb-0.5">
               All Requests
             </h3>
-            <p className="mb-0 text-muted" style={{ fontSize: '13px' }}>
+            <p className="text-[13px] text-[#888888] mb-0">
               View and manage all requests in the system (excluding your assigned requests)
             </p>
           </div>
@@ -1003,12 +1003,9 @@ const RequestDashboard: React.FC = () => {
         <div className="d-flex align-items-center gap-2">
           {hasCreateRequestAccess && (
             <button
-            className="btn btn-outline-secondary ms-2"
+            className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-2 text-[13px] font-medium transition-colors ms-2 inline-flex items-center gap-1.5"
             style={{
               minWidth: 100,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
               whiteSpace: 'nowrap'
             }}
             onClick={async () => {
@@ -1039,8 +1036,8 @@ const RequestDashboard: React.FC = () => {
 
         {hasCreateRequestAccess && (
           <button 
-            className="btn bg-warning text-dark ms-2" 
-            style={{ minWidth: 140 }} 
+            className="bg-[#032424] text-white hover:bg-[#064a4a] rounded-[10px] px-4 py-2 text-[13px] font-semibold transition-colors ms-2"
+            style={{ minWidth: 140 }}
             onClick={() => {
               // Open the Add Request modal
               setShowAddRequestModal(true);
@@ -1057,7 +1054,7 @@ const RequestDashboard: React.FC = () => {
         <div className="d-flex align-items-center">
           <input
             type="text"
-            className="form-control"
+            className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3.5 py-2 text-[14px] text-[#032424] placeholder:text-[#aaaaaa] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all"
             style={{ maxWidth: 260 }}
             placeholder="Search Requests..."
             value={quickFilter}
@@ -1068,7 +1065,7 @@ const RequestDashboard: React.FC = () => {
       
       {/* Requests Table */}
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div className="bg-[#fef2f2] text-[#991b1b] border border-red-200 rounded-[10px] p-3 text-[13px]" role="alert">
           {error}
         </div>
       )}
@@ -1124,12 +1121,12 @@ const RequestDashboard: React.FC = () => {
           {/* Section Header */}
           <div className="d-flex align-items-center justify-content-between mb-4">
             <div className="d-flex align-items-center">
-              <div className="bg-primary" style={{ width: '4px', height: '24px', marginRight: '12px' }}></div>
+              <div className="bg-[#032424]" style={{ width: '4px', height: '24px', marginRight: '12px' }}></div>
               <div>
-                <h2 className="mb-1" style={{ fontSize: '24px', fontWeight: '600', color: '#2c3e50' }}>
+                <h2 className="font-display font-semibold text-[20px] text-[#032424] mb-0.5">
                   My Assigned Requests
                 </h2>
-                <p className="mb-0 text-muted" style={{ fontSize: '14px' }}>
+                <p className="text-[13px] text-[#888888] mb-0">
                   Manage and track your assigned requests efficiently
                 </p>
               </div>
@@ -1139,8 +1136,8 @@ const RequestDashboard: React.FC = () => {
             <div className="d-flex align-items-center gap-3">
               {/* Status Filter */}
               <select
-                className="form-select"
-                style={{ width: '140px', fontSize: '14px' }}
+                className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3 py-2 text-[14px] text-[#032424] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all bg-white"
+                style={{ width: '140px' }}
                 value={assignedRequestsFilter}
                 onChange={(e) => setAssignedRequestsFilter(e.target.value)}
               >
@@ -1152,8 +1149,7 @@ const RequestDashboard: React.FC = () => {
               
               {/* Clear Filters */}
               <button
-                className="btn btn-outline-secondary"
-                style={{ fontSize: '14px', padding: '6px 16px' }}
+                className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-1.5 text-[13px] font-medium transition-colors"
                 onClick={() => {
                   setAssignedRequestsFilter('all');
                   setAssignedRequestsSearch('');
@@ -1166,8 +1162,8 @@ const RequestDashboard: React.FC = () => {
               {/* Search */}
               <input
                 type="text"
-                className="form-control"
-                style={{ width: '200px', fontSize: '14px' }}
+                className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3.5 py-2 text-[14px] text-[#032424] placeholder:text-[#aaaaaa] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all"
+                style={{ width: '200px' }}
                 placeholder="Search..."
                 value={assignedRequestsSearch}
                 onChange={(e) => setAssignedRequestsSearch(e.target.value)}

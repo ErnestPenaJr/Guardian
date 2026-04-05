@@ -399,7 +399,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
 
   return (
     <div className="container">
-      <h1 className="text-2xl font-bold uppercase fs-2 mb-4">Notice Dashboard</h1>
+      <h1 className="font-display font-bold text-[28px] text-[#032424] mb-6">Notices</h1>
       
       {/* Tab Navigation */}
       <div className="mb-4">
@@ -430,12 +430,12 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
       {/* Section Header */}
       <div className="mb-3">
         <div className="d-flex align-items-center">
-          <div className="bg-primary" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
+          <div className="bg-[#2EBCBC]" style={{ width: '4px', height: '20px', marginRight: '12px' }}></div>
           <div>
-            <h3 className="mb-1" style={{ fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
+            <h3 className="font-display font-semibold text-[20px] text-[#032424] mb-0.5">
               {activeTab === 'my-notices' ? 'My Notices' : 'All Notices'}
             </h3>
-            <p className="mb-0 text-muted" style={{ fontSize: '13px' }}>
+            <p className="text-[13px] text-[#888888] mb-0">
               {activeTab === 'my-notices' 
                 ? 'Notices issued to you by your organization'
                 : 'All notices within your organization (management view)'
@@ -450,7 +450,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
         <div className="d-flex align-items-center gap-2">
           {/* Refresh Button */}
           <button
-            className="btn btn-outline-secondary d-flex align-items-center"
+            className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-2 text-[13px] font-medium transition-colors inline-flex items-center gap-1.5"
             style={{ minWidth: 100 }}
             onClick={() => {
               setLoading(true);
@@ -468,8 +468,8 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
           {/* New Notice Button */}
           {hasCreateNoticeAccess && (
             <button 
-              className="btn bg-warning text-dark d-flex align-items-center" 
-              style={{ minWidth: 140 }} 
+              className="bg-[#032424] text-white hover:bg-[#064a4a] rounded-[10px] px-4 py-2 text-[13px] font-semibold transition-colors d-flex align-items-center"
+              style={{ minWidth: 140 }}
               onClick={() => setShowCreateModal(true)}
             >
               <Plus size={16} className="me-1" />
@@ -479,7 +479,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
 
           {/* Filter Toggle */}
           <button
-            className="btn btn-outline-secondary d-flex align-items-center"
+            className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-2 text-[13px] font-medium transition-colors d-flex align-items-center"
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter size={16} className="me-1" />
@@ -493,7 +493,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
             <Search size={16} className="position-absolute" style={{ left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#6c757d' }} />
             <input
               type="text"
-              className="form-control"
+              className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3.5 py-2 text-[14px] text-[#032424] placeholder:text-[#aaaaaa] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all"
               style={{ maxWidth: 260, paddingLeft: '32px' }}
               placeholder="Search notices..."
               value={searchTerm}
@@ -511,7 +511,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
               <div className="col-md-3">
                 <label className="form-label">Status</label>
                 <select
-                  className="form-select"
+                  className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3 py-2 text-[14px] text-[#032424] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all bg-white"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -525,7 +525,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
               <div className="col-md-3">
                 <label className="form-label">Notice Type</label>
                 <select
-                  className="form-select"
+                  className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3 py-2 text-[14px] text-[#032424] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all bg-white"
                   value={noticeTypeFilter}
                   onChange={(e) => setNoticeTypeFilter(e.target.value)}
                 >
@@ -541,7 +541,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
                 <label className="form-label">Date From</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3.5 py-2 text-[14px] text-[#032424] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all"
                   value={dateFromFilter}
                   onChange={(e) => setDateFromFilter(e.target.value)}
                 />
@@ -551,7 +551,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
                 <label className="form-label">Date To</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className="border-[1.5px] border-[#e8eaed] rounded-[10px] px-3.5 py-2 text-[14px] text-[#032424] focus:border-[#2EBCBC] focus:ring-[3px] focus:ring-[#2EBCBC]/10 outline-none transition-all"
                   value={dateToFilter}
                   onChange={(e) => setDateToFilter(e.target.value)}
                 />
@@ -573,7 +573,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
                     </label>
                   </div>
                   <button
-                    className="btn btn-sm btn-outline-secondary"
+                    className="border border-[#e8eaed] text-[#555555] hover:border-[#2EBCBC]/50 rounded-[10px] px-4 py-1.5 text-[13px] font-medium transition-colors"
                     onClick={clearFilters}
                   >
                     Clear All
@@ -587,7 +587,7 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div className="bg-[#fef2f2] text-[#991b1b] border border-red-200 rounded-[10px] p-3 text-[13px]" role="alert">
           {error}
         </div>
       )}
