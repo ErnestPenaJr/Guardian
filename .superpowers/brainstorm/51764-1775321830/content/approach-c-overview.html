@@ -1,0 +1,201 @@
+<h2>Approach C: Page-by-Page Visual Overhaul</h2>
+<p class="subtitle">Redesign each page individually, starting with highest-traffic flows. Fast visual wins, but risk of drift between early and late pages.</p>
+
+<!-- KEY DIFFERENCE CALLOUT -->
+<div style="background:linear-gradient(135deg,#032424,#064a4a);border-radius:14px;padding:20px 24px;margin-bottom:28px;font-family:Inter,sans-serif;">
+  <div style="font-size:13px;font-weight:600;color:#2EBCBC;margin-bottom:8px;">How Approach C Differs</div>
+  <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.6;">
+    Each page is treated as its own mini-project. You pick the most important page, redesign it completely (new layout, new styling, new interactions), ship it, then move to the next. <strong style="color:#fff;">No shared infrastructure changes upfront.</strong> Bootstrap stays until a page is individually converted. Colors, components, and patterns are decided per-page and may diverge.
+  </div>
+</div>
+
+<!-- ROLLOUT TIMELINE -->
+<div class="section">
+  <h3>Rollout Order — One Page at a Time</h3>
+  <div class="mockup">
+    <div class="mockup-header">Sprint-by-Sprint Delivery</div>
+    <div class="mockup-body" style="padding:24px;font-family:Inter,sans-serif;font-size:12px;">
+      <div style="display:flex;gap:0;margin-bottom:20px;">
+        <!-- Sprint 1 -->
+        <div style="flex:1;text-align:center;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#27AE60;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin:0 auto 8px;">1</div>
+          <div style="font-size:11px;font-weight:600;color:#032424;">Login + Register</div>
+          <div style="font-size:10px;color:#888;margin-top:2px;">First impression</div>
+        </div>
+        <div style="width:60px;display:flex;align-items:center;justify-content:center;padding-bottom:30px;">
+          <div style="height:2px;width:100%;background:#e0e0e0;"></div>
+        </div>
+        <!-- Sprint 2 -->
+        <div style="flex:1;text-align:center;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#2EBCBC;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin:0 auto 8px;">2</div>
+          <div style="font-size:11px;font-weight:600;color:#032424;">Dashboard</div>
+          <div style="font-size:10px;color:#888;margin-top:2px;">Daily landing page</div>
+        </div>
+        <div style="width:60px;display:flex;align-items:center;justify-content:center;padding-bottom:30px;">
+          <div style="height:2px;width:100%;background:#e0e0e0;"></div>
+        </div>
+        <!-- Sprint 3 -->
+        <div style="flex:1;text-align:center;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#2F8CED;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin:0 auto 8px;">3</div>
+          <div style="font-size:11px;font-weight:600;color:#032424;">Requests</div>
+          <div style="font-size:10px;color:#888;margin-top:2px;">Core workflow</div>
+        </div>
+        <div style="width:60px;display:flex;align-items:center;justify-content:center;padding-bottom:30px;">
+          <div style="height:2px;width:100%;background:#e0e0e0;"></div>
+        </div>
+        <!-- Sprint 4 -->
+        <div style="flex:1;text-align:center;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#E2B93B;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin:0 auto 8px;">4</div>
+          <div style="font-size:11px;font-weight:600;color:#032424;">Everything Else</div>
+          <div style="font-size:10px;color:#888;margin-top:2px;">Admin, Notices, Forms</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THE PROBLEM: INCONSISTENCY -->
+<div class="section">
+  <h3>The Consistency Risk — What Users See During Rollout</h3>
+  <p class="subtitle">After Sprint 2, the Dashboard is polished but Requests still looks old. The user transitions between two different apps.</p>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Dashboard (Redesigned in Sprint 2) &#10003;</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="display:flex;height:240px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+          <!-- Modern sidebar -->
+          <div style="width:56px;background:#032424;padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+            <div style="width:30px;height:30px;background:#2EBCBC;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:12px;color:#032424;">G</div>
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(46,188,188,0.15);margin-bottom:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:12px;height:12px;border-radius:3px;border:1.5px solid #2EBCBC;"></div>
+            </div>
+          </div>
+          <div style="flex:1;padding:18px;">
+            <div style="font-family:Montserrat;font-weight:700;font-size:16px;color:#032424;margin-bottom:14px;">Good morning, Ernest</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+              <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Open</div>
+                <div style="font-size:22px;font-weight:700;color:#032424;margin-top:4px;">12</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Pending</div>
+                <div style="font-size:22px;font-weight:700;color:#E2B93B;margin-top:4px;">8</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Done</div>
+                <div style="font-size:22px;font-weight:700;color:#27AE60;margin-top:4px;">34</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Requests Page (Still old — not yet redesigned) &#9888;</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="height:240px;font-family:Inter,sans-serif;font-size:12px;background:#f3f4f6;">
+          <!-- Old nav style still present -->
+          <div style="background:#fff;border-bottom:1px solid #dee2e6;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:14px;font-weight:600;color:#333;">Requests Dashboard</div>
+            <div style="background:#007bff;color:#fff;padding:6px 14px;border-radius:4px;font-size:11px;">+ New Request</div>
+          </div>
+          <div style="padding:16px;">
+            <!-- Old Bootstrap-style table -->
+            <div style="background:#fff;border:1px solid #dee2e6;border-radius:4px;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:80px 1fr 100px 80px;padding:8px 12px;background:#f8f9fa;font-size:10px;font-weight:600;color:#495057;border-bottom:1px solid #dee2e6;">
+                <div>ID</div><div>Subject</div><div>Status</div><div>Date</div>
+              </div>
+              <div style="display:grid;grid-template-columns:80px 1fr 100px 80px;padding:8px 12px;font-size:11px;border-bottom:1px solid #dee2e6;">
+                <div style="color:#007bff;">REQ-42</div>
+                <div>Equipment access</div>
+                <div><span style="background:#ffc107;color:#333;padding:2px 8px;border-radius:4px;font-size:10px;">Pending</span></div>
+                <div style="color:#6c757d;">Apr 3</div>
+              </div>
+              <div style="display:grid;grid-template-columns:80px 1fr 100px 80px;padding:8px 12px;font-size:11px;">
+                <div style="color:#007bff;">REQ-41</div>
+                <div>Security clearance</div>
+                <div><span style="background:#17a2b8;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;">Active</span></div>
+                <div style="color:#6c757d;">Apr 2</div>
+              </div>
+            </div>
+            <!-- Visual clash annotation -->
+            <div style="margin-top:12px;background:#fef2f2;border:1px dashed #C10000;border-radius:6px;padding:8px 12px;font-size:10px;color:#991b1b;">
+              <strong>Notice the clash:</strong> Bootstrap blue (#007bff), Bootstrap badges, squared corners, gray header — this feels like a different app from the Dashboard.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT THE END STATE LOOKS LIKE -->
+<div class="section">
+  <h3>End State (After All Sprints) — Same as Approach A</h3>
+  <p class="subtitle">Once all pages are done, the final result is visually the same. But the journey is bumpier and you may need a cleanup pass.</p>
+  <div class="mockup">
+    <div class="mockup-header">Final Result — After Sprint 4 complete</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:260px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+        <div style="width:56px;background:#032424;padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:30px;height:30px;background:#2EBCBC;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:12px;color:#032424;">G</div>
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(46,188,188,0.15);margin-bottom:4px;display:flex;align-items:center;justify-content:center;"><div style="width:12px;height:12px;border-radius:3px;border:1.5px solid #2EBCBC;"></div></div>
+          <div style="width:36px;height:36px;border-radius:8px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;"><div style="width:12px;height:12px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div></div>
+        </div>
+        <div style="flex:1;padding:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-family:Montserrat;font-weight:700;font-size:16px;color:#032424;">Requests</div>
+            <div style="background:#032424;color:#fff;padding:8px 16px;border-radius:10px;font-size:11px;font-weight:600;">+ New Request</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;overflow:hidden;">
+            <div style="display:grid;grid-template-columns:80px 1fr 100px 80px;padding:10px 14px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #f0f0f0;">
+              <div>ID</div><div>Subject</div><div>Status</div><div>Date</div>
+            </div>
+            <div style="display:grid;grid-template-columns:80px 1fr 100px 80px;padding:10px 14px;font-size:12px;border-bottom:1px solid #f8f8f8;align-items:center;">
+              <div style="color:#2EBCBC;font-weight:500;">REQ-42</div>
+              <div style="color:#333;">Equipment access</div>
+              <div><span style="background:#fff8e6;color:#b8860b;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Pending</span></div>
+              <div style="color:#888;">Apr 3</div>
+            </div>
+            <div style="display:grid;grid-template-columns:80px 1fr 100px 80px;padding:10px 14px;font-size:12px;align-items:center;">
+              <div style="color:#2EBCBC;font-weight:500;">REQ-41</div>
+              <div style="color:#333;">Security clearance</div>
+              <div><span style="background:#eef4fd;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">In Progress</span></div>
+              <div style="color:#888;">Apr 2</div>
+            </div>
+          </div>
+          <!-- Note -->
+          <div style="margin-top:12px;background:#eafaf1;border:1px dashed #27AE60;border-radius:8px;padding:8px 12px;font-size:10px;color:#1a7a42;">
+            <strong>End result matches Approach A</strong> — but Bootstrap remnants may linger in untouched corners. A cleanup pass is usually needed.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE-OFFS -->
+<div class="section">
+  <h3>Approach C Trade-offs</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Pros</h4>
+      <ul>
+        <li><strong>Fastest first impression</strong> — Login looks great in Sprint 1</li>
+        <li><strong>Incremental delivery</strong> — each sprint ships a polished page</li>
+        <li><strong>Lower risk per sprint</strong> — only touching one area at a time</li>
+        <li><strong>Easy to pause</strong> — can stop after any sprint with a partially improved app</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Cons</h4>
+      <ul>
+        <li><strong>Jarring transitions</strong> — new pages next to old pages feel broken</li>
+        <li><strong>Style drift</strong> — decisions made in Sprint 1 may not match Sprint 4</li>
+        <li><strong>Bootstrap persists longer</strong> — dual system until every page is converted</li>
+        <li><strong>Cleanup pass needed</strong> — inconsistencies accumulate between pages</li>
+        <li><strong>More total work</strong> — fixing drift and doing cleanup adds overhead</li>
+      </ul>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,35 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - img "Guardian Logo" [ref=e8]
+          - generic [ref=e9]: Guardian
+        - heading "Welcome Back" [level=1] [ref=e10]
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: Email
+          - textbox "Email" [ref=e15]
+        - generic [ref=e16]:
+          - generic [ref=e17]: Password
+          - generic [ref=e18]:
+            - textbox "Password" [ref=e19]
+            - button [ref=e20] [cursor=pointer]:
+              - img [ref=e21]
+        - link "Forgot password?" [ref=e24] [cursor=pointer]:
+          - /url: /forgot-password
+        - button "Sign In" [ref=e26] [cursor=pointer]
+        - generic [ref=e27]:
+          - generic [ref=e28]: Don't have an account?
+          - link "Create New Account" [ref=e29] [cursor=pointer]:
+            - /url: /register
+        - paragraph [ref=e30]:
+          - text: By signing in you agree to the
+          - button "Terms of Service" [ref=e31] [cursor=pointer]
+          - text: and
+          - button "Privacy Policy" [ref=e32] [cursor=pointer]
+    - paragraph [ref=e34]:
+      - text: Powered by
+      - img "Shieldlytics" [ref=e35]
+  - button "🚨 Error Testing Suite" [ref=e37] [cursor=pointer]

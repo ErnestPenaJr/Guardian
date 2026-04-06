@@ -1,0 +1,394 @@
+<h2>Section 2: Navigation & Layout</h2>
+<p class="subtitle">Collapsible sidebar for desktop/tablet, bottom navigation for mobile. Consistent page structure across all views.</p>
+
+<!-- DESKTOP SIDEBAR -->
+<div class="section">
+  <h3>Desktop: Collapsible Sidebar</h3>
+  <div class="mockup">
+    <div class="mockup-header">Collapsed (default) — 60px wide, expands to 240px on hover</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:440px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+
+        <!-- COLLAPSED STATE -->
+        <div style="width:60px;background:#032424;padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;border-right:1px solid rgba(46,188,188,0.1);">
+          <!-- Logo -->
+          <div style="width:34px;height:34px;background:#2EBCBC;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:15px;color:#032424;">G</div>
+
+          <!-- Nav items -->
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(46,188,188,0.12);display:flex;align-items:center;justify-content:center;position:relative;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <div style="position:absolute;left:0;top:9px;width:3px;height:24px;background:#2EBCBC;border-radius:0 4px 4px 0;"></div>
+          </div>
+          <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div style="position:absolute;top:6px;right:6px;width:8px;height:8px;background:#C10000;border-radius:50%;border:2px solid #032424;"></div>
+          </div>
+          <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+
+          <!-- Separator -->
+          <div style="width:24px;height:1px;background:rgba(255,255,255,0.08);margin:8px 0;"></div>
+
+          <!-- Admin section (role-based) -->
+          <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+          <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          </div>
+
+          <!-- Bottom: settings + avatar -->
+          <div style="margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#2EBCBC;border:2px solid rgba(46,188,188,0.3);">EP</div>
+          </div>
+        </div>
+
+        <!-- EXPANDED OVERLAY (shown on hover) -->
+        <div style="width:200px;background:rgba(3,36,36,0.98);backdrop-filter:blur(12px);padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid rgba(46,188,188,0.1);position:relative;">
+          <div style="position:absolute;top:6px;right:8px;font-size:8px;color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;">on hover</div>
+
+          <div style="padding:4px 16px 24px;font-family:Montserrat,sans-serif;font-weight:700;font-size:16px;color:#2EBCBC;">Guardian</div>
+
+          <!-- Active -->
+          <div style="padding:10px 16px;background:rgba(46,188,188,0.1);border-left:3px solid #2EBCBC;color:#2EBCBC;font-weight:500;display:flex;align-items:center;gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Dashboard
+          </div>
+          <div style="padding:10px 16px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            Requests
+          </div>
+          <div style="padding:10px 16px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:10px;position:relative;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+            Notices
+            <span style="background:#C10000;color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:auto;">3</span>
+          </div>
+          <div style="padding:10px 16px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Users
+          </div>
+
+          <div style="width:calc(100% - 32px);height:1px;background:rgba(255,255,255,0.06);margin:10px 16px;"></div>
+
+          <div style="padding:6px 16px 4px;font-size:9px;font-weight:600;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:0.5px;">Admin</div>
+          <div style="padding:10px 16px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Forms & Fields
+          </div>
+          <div style="padding:10px 16px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            Workspaces
+          </div>
+
+          <div style="margin-top:auto;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#2EBCBC;">EP</div>
+            <div>
+              <div style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.8);">Ernest Pena</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.35);">Admin</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE CONTENT -->
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <!-- Top bar -->
+          <div style="background:#fff;border-bottom:1px solid #f0f0f0;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+              <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:18px;color:#032424;">Dashboard</div>
+              <div style="font-size:11px;color:#888;margin-top:1px;">Welcome back, Ernest</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <!-- Search -->
+              <div style="border:1.5px solid #e8eaed;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;width:200px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span style="font-size:12px;color:#aaa;">Search...</span>
+              </div>
+              <!-- Notification bell -->
+              <div style="position:relative;width:38px;height:38px;border-radius:10px;background:#fff;border:1.5px solid #e8eaed;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                <div style="position:absolute;top:-3px;right:-3px;width:16px;height:16px;background:#C10000;border-radius:50%;border:2px solid #fff;font-size:9px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;">3</div>
+              </div>
+              <!-- Primary CTA -->
+              <div style="background:#032424;color:#fff;padding:8px 18px;border-radius:10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                <span style="font-size:15px;font-weight:300;">+</span> New Request
+              </div>
+            </div>
+          </div>
+
+          <!-- Scrollable content area -->
+          <div style="flex:1;padding:24px;overflow:auto;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;">
+              <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Open</div>
+                <div style="font-size:26px;font-weight:700;color:#032424;margin-top:6px;">12</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Pending</div>
+                <div style="font-size:26px;font-weight:700;color:#E2B93B;margin-top:6px;">8</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Completed</div>
+                <div style="font-size:26px;font-weight:700;color:#27AE60;margin-top:6px;">34</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Notices</div>
+                <div style="font-size:26px;font-weight:700;color:#2F8CED;margin-top:6px;">3</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE STRUCTURE -->
+<div class="section">
+  <h3>Standard Page Structure</h3>
+  <p class="subtitle">Every page follows the same anatomy. Consistent placement means users always know where to look.</p>
+  <div class="mockup">
+    <div class="mockup-header">Page Anatomy — Applied to every view</div>
+    <div class="mockup-body" style="padding:20px;font-family:Inter,sans-serif;font-size:11px;background:#f8fafb;">
+      <div style="display:flex;gap:12px;height:280px;">
+        <!-- Sidebar placeholder -->
+        <div style="width:50px;background:#032424;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <div style="writing-mode:vertical-lr;transform:rotate(180deg);font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:1px;">SIDEBAR</div>
+        </div>
+        <!-- Page area -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:0;">
+          <!-- Top bar -->
+          <div style="background:#fff;border-radius:10px 10px 0 0;padding:14px 18px;border:1px solid #e8eaed;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="font-weight:600;color:#032424;font-size:14px;">Page Title</div>
+                <div style="background:#f0fafa;color:#2EBCBC;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:500;">12 items</div>
+              </div>
+              <div style="font-size:10px;color:#888;margin-top:2px;">Breadcrumb or subtitle</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="border:1.5px solid #e8eaed;border-radius:8px;padding:6px 12px;font-size:10px;color:#555;">Filter</div>
+              <div style="background:#032424;color:#fff;padding:6px 14px;border-radius:8px;font-size:10px;font-weight:600;">+ Action</div>
+            </div>
+          </div>
+          <!-- Content area -->
+          <div style="flex:1;background:#fff;border:1px solid #e8eaed;border-top:none;border-radius:0 0 10px 10px;padding:18px;position:relative;">
+            <!-- Annotated zones -->
+            <div style="border:2px dashed #2EBCBC;border-radius:8px;padding:12px;margin-bottom:12px;">
+              <div style="font-size:9px;font-weight:600;color:#2EBCBC;text-transform:uppercase;margin-bottom:6px;">Content Zone</div>
+              <div style="display:flex;gap:8px;">
+                <div style="flex:1;height:24px;background:#f0f0f0;border-radius:4px;"></div>
+                <div style="flex:1;height:24px;background:#f0f0f0;border-radius:4px;"></div>
+                <div style="flex:1;height:24px;background:#f0f0f0;border-radius:4px;"></div>
+              </div>
+              <div style="font-size:9px;color:#888;margin-top:6px;">Tables, cards, forms — whatever the page needs</div>
+            </div>
+            <div style="border:2px dashed #E2B93B;border-radius:8px;padding:12px;">
+              <div style="font-size:9px;font-weight:600;color:#E2B93B;text-transform:uppercase;margin-bottom:6px;">Pagination / Footer Zone</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:10px;color:#888;">Showing 1-10 of 42</div>
+                <div style="display:flex;gap:4px;">
+                  <div style="width:28px;height:28px;border:1px solid #e0e0e0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#888;">&lt;</div>
+                  <div style="width:28px;height:28px;background:#032424;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">1</div>
+                  <div style="width:28px;height:28px;border:1px solid #e0e0e0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#888;">2</div>
+                  <div style="width:28px;height:28px;border:1px solid #e0e0e0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#888;">&gt;</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE -->
+<div class="section">
+  <h3>Mobile: Bottom Navigation + Responsive Layout</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Mobile Navigation (< 768px)</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;background:#f8fafb;">
+        <div style="width:320px;margin:0 auto;font-family:Inter,sans-serif;font-size:12px;min-height:320px;position:relative;">
+          <!-- Top bar (replaces sidebar) -->
+          <div style="background:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0f0;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:30px;height:30px;background:#2EBCBC;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:13px;color:#032424;">G</div>
+              <div style="font-family:Montserrat;font-weight:700;font-size:15px;color:#032424;">Dashboard</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="position:relative;width:32px;height:32px;border-radius:8px;border:1.5px solid #e8eaed;display:flex;align-items:center;justify-content:center;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                <div style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#C10000;border-radius:50%;border:2px solid #fff;"></div>
+              </div>
+              <div style="width:32px;height:32px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#2EBCBC;">EP</div>
+            </div>
+          </div>
+
+          <!-- Content placeholder -->
+          <div style="padding:16px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Open</div>
+                <div style="font-size:22px;font-weight:700;color:#032424;margin-top:4px;">12</div>
+              </div>
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Pending</div>
+                <div style="font-size:22px;font-weight:700;color:#E2B93B;margin-top:4px;">8</div>
+              </div>
+            </div>
+            <div style="background:#032424;color:#fff;text-align:center;padding:12px;border-radius:10px;font-size:13px;font-weight:600;">+ New Request</div>
+          </div>
+
+          <!-- Bottom nav -->
+          <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0f0f0;display:flex;justify-content:space-around;padding:6px 0 14px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <div style="font-size:10px;color:#2EBCBC;font-weight:600;">Home</div>
+              <div style="width:4px;height:4px;background:#2EBCBC;border-radius:50%;"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              <div style="font-size:10px;color:#aaa;">Requests</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+              <div style="font-size:10px;color:#aaa;">Notices</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <div style="font-size:10px;color:#aaa;">Users</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              <div style="font-size:10px;color:#aaa;">More</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Tablet (768px - 1024px)</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;background:#f8fafb;">
+        <div style="display:flex;height:320px;font-family:Inter,sans-serif;font-size:12px;">
+          <!-- Always-collapsed sidebar on tablet -->
+          <div style="width:56px;background:#032424;padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+            <div style="width:30px;height:30px;background:#2EBCBC;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:12px;color:#032424;">G</div>
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(46,188,188,0.12);margin-bottom:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:12px;height:12px;border-radius:3px;border:1.5px solid #2EBCBC;"></div>
+            </div>
+            <div style="width:36px;height:36px;border-radius:8px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:12px;height:12px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div>
+            </div>
+            <div style="width:36px;height:36px;border-radius:8px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:12px;height:12px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div>
+            </div>
+          </div>
+          <!-- Content with adapted grid -->
+          <div style="flex:1;padding:18px;">
+            <div style="font-family:Montserrat;font-weight:700;font-size:16px;color:#032424;margin-bottom:14px;">Dashboard</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Open</div>
+                <div style="font-size:22px;font-weight:700;color:#032424;margin-top:4px;">12</div>
+              </div>
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Pending</div>
+                <div style="font-size:22px;font-weight:700;color:#E2B93B;margin-top:4px;">8</div>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+              <div style="font-size:11px;font-weight:600;color:#032424;margin-bottom:8px;">Recent Requests</div>
+              <div style="height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:6px;"><div style="height:100%;width:70%;background:#f0fafa;border-radius:4px;"></div></div>
+              <div style="height:8px;background:#f0f0f0;border-radius:4px;"><div style="height:100%;width:45%;background:#f0fafa;border-radius:4px;"></div></div>
+            </div>
+            <div style="margin-top:10px;font-size:10px;color:#888;background:#f0fafa;padding:8px 12px;border-radius:6px;">
+              <strong style="color:#0e7a7a;">Tablet:</strong> Sidebar stays collapsed (no hover expand). Grid adapts from 4-col to 2-col. Touch-friendly 44px tap targets.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV ITEMS BY ROLE -->
+<div class="section">
+  <h3>Role-Based Navigation Items</h3>
+  <div class="mockup">
+    <div class="mockup-header">Sidebar items shown/hidden based on user role</div>
+    <div class="mockup-body" style="padding:20px;font-family:Inter,sans-serif;font-size:12px;background:#fff;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid #f0f0f0;">
+            <th style="text-align:left;padding:8px 12px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;">Nav Item</th>
+            <th style="text-align:center;padding:8px 12px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;">General User</th>
+            <th style="text-align:center;padding:8px 12px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;">Processor</th>
+            <th style="text-align:center;padding:8px 12px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;">Manager</th>
+            <th style="text-align:center;padding:8px 12px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;">Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f8f8f8;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Dashboard</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f8f8f8;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Requests</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f8f8f8;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Notices</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f8f8f8;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Users</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f8f8f8;background:#fafafa;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;" colspan="5"><span style="font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;">ADMIN SECTION</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f8f8f8;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Forms & Fields</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f8f8f8;">
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Workspaces</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#d0d0d0;">&#8212;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px;font-weight:500;color:#032424;">Settings</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+            <td style="text-align:center;padding:8px;color:#27AE60;">&#10003;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

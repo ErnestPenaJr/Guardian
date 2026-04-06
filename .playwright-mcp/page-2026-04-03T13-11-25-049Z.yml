@@ -1,0 +1,55 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]:
+            - img [ref=e40]
+            - generic [ref=e9]: Guardian
+          - heading [level=1] [ref=e41]: Welcome Back
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Email
+            - generic [ref=e14]:
+              - textbox [disabled] [ref=e42]:
+                - /placeholder: Email
+                - text: ernest@shieldlytics.com
+              - generic:
+                - generic: ✓
+            - paragraph [ref=e38]: Looks good!
+          - generic [ref=e16]:
+            - generic [ref=e17]: Password
+            - generic [ref=e18]:
+              - textbox [disabled] [ref=e43]:
+                - /placeholder: Password
+                - text: Sh13ldlyt1c$
+              - button [ref=e20] [cursor=pointer]:
+                - img [ref=e21]
+              - generic:
+                - generic: ✓
+            - paragraph [ref=e39]: Looks good!
+          - link [ref=e44] [cursor=pointer]:
+            - /url: /forgot-password
+            - text: Forgot password?
+          - button [disabled] [ref=e45]:
+            - img [ref=e46]
+            - text: Verifying credentials...
+          - generic [ref=e27]:
+            - generic [ref=e28]: Don't have an account?
+            - link [ref=e48] [cursor=pointer]:
+              - /url: /register
+              - text: Create New Account
+          - paragraph [ref=e30]:
+            - text: By signing in you agree to the
+            - button [ref=e49] [cursor=pointer]: Terms of Service
+            - text: and
+            - button [ref=e50] [cursor=pointer]: Privacy Policy
+      - paragraph [ref=e34]:
+        - text: Powered by
+        - img [ref=e51]
+    - button [ref=e52] [cursor=pointer]: 🚨 Error Testing Suite
+  - dialog "Authentication Failed" [ref=e54]:
+    - heading "Authentication Failed" [level=2] [ref=e59]
+    - generic [ref=e60]: Invalid credentials. Please check your email and password and try again.
+    - text: "!"
+    - button "OK" [active] [ref=e62] [cursor=pointer]

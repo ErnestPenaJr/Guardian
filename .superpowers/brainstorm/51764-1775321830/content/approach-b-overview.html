@@ -1,0 +1,232 @@
+<h2>Approach B: Design System First, Pages Second</h2>
+<p class="subtitle">Build a complete component library first, then apply it everywhere. More infrastructure upfront, but highly systematic and future-proof.</p>
+
+<!-- KEY DIFFERENCE CALLOUT -->
+<div style="background:linear-gradient(135deg,#032424,#064a4a);border-radius:14px;padding:20px 24px;margin-bottom:28px;font-family:Inter,sans-serif;">
+  <div style="font-size:13px;font-weight:600;color:#2EBCBC;margin-bottom:8px;">How Approach B Differs</div>
+  <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.6;">
+    Instead of reskinning pages directly, you first build a <strong style="color:#fff;">complete component library</strong> with every primitive (Modal, Sidebar, Table, EmptyState, StatusBadge, ProgressStepper, Tooltip, etc.). Each component is documented in a living StyleGuide. <em>Then</em> pages are rebuilt using only those components — no raw HTML or one-off styles allowed.
+  </div>
+</div>
+
+<!-- PHASE 1: DESIGN SYSTEM -->
+<div class="section">
+  <h3>Phase 1: The Component Library (Built First)</h3>
+  <div class="mockup">
+    <div class="mockup-header">StyleGuide Page — Living Documentation</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:420px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+        <!-- Sidebar nav -->
+        <div style="width:200px;background:#fff;border-right:1px solid #f0f0f0;padding:20px 0;flex-shrink:0;overflow:auto;">
+          <div style="padding:0 16px 16px;font-family:Montserrat,sans-serif;font-weight:700;font-size:14px;color:#032424;">Design System</div>
+          <div style="padding:6px 16px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;">Foundation</div>
+          <div style="padding:8px 16px;font-size:12px;color:#2EBCBC;background:#f0fafa;font-weight:500;">Colors</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Typography</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Spacing</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Shadows</div>
+          <div style="padding:6px 16px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-top:12px;">Components</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Button</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Input</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Select</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Modal</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Card</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Table</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Badge</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">StatusBadge</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">EmptyState</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">ProgressStepper</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Tooltip</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Sidebar</div>
+          <div style="padding:6px 16px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-top:12px;">Patterns</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Form Layout</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Data Table</div>
+          <div style="padding:8px 16px;font-size:12px;color:#555;">Dashboard Card</div>
+        </div>
+        <!-- Content -->
+        <div style="flex:1;padding:24px 32px;overflow:auto;">
+          <div style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:700;color:#032424;margin-bottom:4px;">Colors</div>
+          <div style="font-size:12px;color:#888;margin-bottom:24px;">Guardian brand palette and semantic color tokens</div>
+
+          <!-- Primary colors -->
+          <div style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Brand Colors</div>
+          <div style="display:flex;gap:12px;margin-bottom:24px;">
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#032424;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Primary</div>
+              <div style="font-size:10px;color:#888;">#032424</div>
+            </div>
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#2EBCBC;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Secondary</div>
+              <div style="font-size:10px;color:#888;">#2EBCBC</div>
+            </div>
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#064a4a;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Primary Light</div>
+              <div style="font-size:10px;color:#888;">#064a4a</div>
+            </div>
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#f0fafa;margin-bottom:6px;border:1px solid #e0e0e0;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Secondary BG</div>
+              <div style="font-size:10px;color:#888;">#f0fafa</div>
+            </div>
+          </div>
+
+          <!-- Semantic -->
+          <div style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Semantic Colors</div>
+          <div style="display:flex;gap:12px;margin-bottom:24px;">
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#2F8CED;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Info</div>
+              <div style="font-size:10px;color:#888;">#2F8CED</div>
+            </div>
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#27AE60;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Success</div>
+              <div style="font-size:10px;color:#888;">#27AE60</div>
+            </div>
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#E2B93B;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Warning</div>
+              <div style="font-size:10px;color:#888;">#E2B93B</div>
+            </div>
+            <div>
+              <div style="width:80px;height:60px;border-radius:10px;background:#C10000;margin-bottom:6px;"></div>
+              <div style="font-size:10px;font-weight:600;color:#333;">Error</div>
+              <div style="font-size:10px;color:#888;">#C10000</div>
+            </div>
+          </div>
+
+          <!-- Component preview -->
+          <div style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;margin-top:8px;">Button Variants</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+            <div style="background:#032424;color:#fff;padding:9px 20px;border-radius:10px;font-size:12px;font-weight:600;">Primary</div>
+            <div style="background:#2EBCBC;color:#fff;padding:9px 20px;border-radius:10px;font-size:12px;font-weight:600;">Secondary</div>
+            <div style="border:1.5px solid #e2e5e9;color:#555;padding:9px 20px;border-radius:10px;font-size:12px;font-weight:500;">Outline</div>
+            <div style="background:#f5f5f5;color:#555;padding:9px 20px;border-radius:10px;font-size:12px;font-weight:500;">Ghost</div>
+            <div style="background:#C10000;color:#fff;padding:9px 20px;border-radius:10px;font-size:12px;font-weight:600;">Danger</div>
+          </div>
+
+          <div style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Status Badges</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="background:#fff8e6;color:#b8860b;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;">Pending</span>
+            <span style="background:#eef4fd;color:#2563eb;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;">In Progress</span>
+            <span style="background:#eafaf1;color:#1a7a42;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;">Completed</span>
+            <span style="background:#fef2f2;color:#991b1b;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;">Cancelled</span>
+            <span style="background:#f0fafa;color:#0e7a7a;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;">Assigned</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 2: APPLIED TO PAGES -->
+<div class="section">
+  <h3>Phase 2: Pages Rebuilt Using Only Design System Components</h3>
+  <p class="subtitle">The end result looks identical to Approach A — the difference is HOW you get there. Every element traces back to a documented component.</p>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Dashboard — Same visual result as Approach A</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="display:flex;height:260px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+          <div style="width:56px;background:#032424;padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+            <div style="width:30px;height:30px;background:#2EBCBC;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:12px;color:#032424;">G</div>
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(46,188,188,0.15);margin-bottom:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:12px;height:12px;border-radius:3px;border:1.5px solid #2EBCBC;"></div>
+            </div>
+            <div style="width:36px;height:36px;border-radius:8px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:12px;height:12px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div>
+            </div>
+          </div>
+          <div style="flex:1;padding:18px;">
+            <div style="font-family:Montserrat;font-weight:700;font-size:16px;color:#032424;margin-bottom:14px;">Dashboard</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Open</div>
+                <div style="font-size:22px;font-weight:700;color:#032424;margin-top:4px;">12</div>
+              </div>
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Pending</div>
+                <div style="font-size:22px;font-weight:700;color:#E2B93B;margin-top:4px;">8</div>
+              </div>
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;">Done</div>
+                <div style="font-size:22px;font-weight:700;color:#27AE60;margin-top:4px;">34</div>
+              </div>
+            </div>
+            <!-- Annotation -->
+            <div style="margin-top:14px;background:#f0fafa;border:1px dashed #2EBCBC;border-radius:8px;padding:10px 14px;font-size:10px;color:#0e7a7a;">
+              <strong>Every element here</strong> is a documented component: &lt;StatCard&gt;, &lt;CollapsibleSidebar&gt;, &lt;PageHeader&gt;. No raw HTML or one-off styles.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">New components built in Phase 1</div>
+      <div class="mockup-body" style="padding:20px;font-family:Inter,sans-serif;font-size:12px;background:#fff;">
+        <!-- EmptyState -->
+        <div style="text-align:center;padding:20px;border:1.5px dashed #e2e5e9;border-radius:14px;margin-bottom:16px;">
+          <div style="font-size:28px;margin-bottom:8px;">&#128203;</div>
+          <div style="font-weight:600;color:#032424;font-size:13px;">No tasks yet</div>
+          <div style="font-size:11px;color:#888;margin-top:4px;margin-bottom:12px;">Create your first task to start tracking work</div>
+          <div style="display:inline-block;background:#032424;color:#fff;padding:8px 18px;border-radius:10px;font-size:11px;font-weight:600;">+ Add Task</div>
+        </div>
+        <!-- ProgressStepper -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:10px;">ProgressStepper</div>
+          <div style="display:flex;align-items:center;gap:0;">
+            <div style="display:flex;align-items:center;">
+              <div style="width:24px;height:24px;border-radius:50%;background:#27AE60;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;">&#10003;</div>
+              <div style="font-size:10px;color:#27AE60;margin-left:6px;font-weight:500;">Submit</div>
+            </div>
+            <div style="flex:1;height:2px;background:#27AE60;margin:0 8px;"></div>
+            <div style="display:flex;align-items:center;">
+              <div style="width:24px;height:24px;border-radius:50%;background:#2EBCBC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;">2</div>
+              <div style="font-size:10px;color:#2EBCBC;margin-left:6px;font-weight:500;">Review</div>
+            </div>
+            <div style="flex:1;height:2px;background:#e0e0e0;margin:0 8px;"></div>
+            <div style="display:flex;align-items:center;">
+              <div style="width:24px;height:24px;border-radius:50%;background:#e0e0e0;color:#888;display:flex;align-items:center;justify-content:center;font-size:10px;">3</div>
+              <div style="font-size:10px;color:#888;margin-left:6px;">Complete</div>
+            </div>
+          </div>
+        </div>
+        <!-- Tooltip hint -->
+        <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:10px;">Tooltip</div>
+        <div style="display:inline-block;position:relative;">
+          <div style="background:#032424;color:#fff;padding:6px 12px;border-radius:8px;font-size:11px;position:relative;">
+            Click to assign this request
+            <div style="position:absolute;bottom:-5px;left:20px;width:10px;height:10px;background:#032424;transform:rotate(45deg);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE-OFFS -->
+<div class="section">
+  <h3>Approach B Trade-offs</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Pros</h4>
+      <ul>
+        <li><strong>Highly systematic</strong> — every component documented and reusable</li>
+        <li><strong>Future-proof</strong> — new pages auto-inherit the design system</li>
+        <li><strong>Enforced consistency</strong> — no one-off styles possible</li>
+        <li><strong>Onboarding</strong> — new devs learn from the StyleGuide</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Cons</h4>
+      <ul>
+        <li><strong>Slower visible results</strong> — Phase 1 is infrastructure, no user-facing changes</li>
+        <li><strong>Two-phase rollout</strong> — inconsistency persists during Phase 1</li>
+        <li><strong>Over-engineering risk</strong> — may build components you don't actually need</li>
+        <li><strong>More total effort</strong> — documentation + components + page migration</li>
+      </ul>
+    </div>
+  </div>
+</div>

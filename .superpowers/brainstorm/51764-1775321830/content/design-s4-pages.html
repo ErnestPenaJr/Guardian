@@ -1,0 +1,401 @@
+<h2>Section 4: Page-by-Page Changes</h2>
+<p class="subtitle">What every page gets in the overhaul. Grouped by user flow: Auth, Dashboard, Requests, Notices, Admin, and Settings.</p>
+
+<!-- AUTH FLOW -->
+<div class="section">
+  <h3>Auth Flow (Login, Register, Forgot Password, Verify)</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Login — Split panel with brand messaging</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="display:flex;min-height:300px;font-family:Inter,sans-serif;font-size:12px;">
+          <div style="width:42%;background:linear-gradient(135deg,#032424 0%,#064a4a 100%);color:#fff;padding:28px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-family:Montserrat;font-weight:800;font-size:20px;color:#2EBCBC;margin-bottom:6px;">Guardian</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;margin-bottom:20px;">Secure request management for modern teams.</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:18px;height:18px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:9px;color:#2EBCBC;">&#10003;</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.5);">Company-isolated data</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:18px;height:18px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:9px;color:#2EBCBC;">&#10003;</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.5);">Role-based access</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:18px;height:18px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:9px;color:#2EBCBC;">&#10003;</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.5);">End-to-end tracking</div>
+            </div>
+          </div>
+          <div style="flex:1;background:#fff;padding:28px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-size:18px;font-weight:700;color:#032424;">Welcome back</div>
+            <div style="font-size:11px;color:#888;margin-bottom:20px;">Sign in to your account</div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;font-weight:500;color:#555;margin-bottom:5px;">Email address</div>
+              <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;">user@company.com</div>
+            </div>
+            <div style="margin-bottom:4px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <div style="font-size:10px;font-weight:500;color:#555;">Password</div>
+                <div style="font-size:10px;color:#2EBCBC;">Forgot?</div>
+              </div>
+              <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div>
+            </div>
+            <div style="background:#032424;color:#fff;text-align:center;padding:11px;border-radius:10px;font-size:12px;font-weight:600;margin-top:14px;">Sign in</div>
+            <div style="text-align:center;margin-top:12px;font-size:10px;color:#888;">Don't have an account? <span style="color:#2EBCBC;font-weight:500;">Register</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Register — Step indicator for multi-step flow</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="display:flex;min-height:300px;font-family:Inter,sans-serif;font-size:12px;">
+          <div style="width:42%;background:linear-gradient(135deg,#032424 0%,#064a4a 100%);color:#fff;padding:28px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-family:Montserrat;font-weight:800;font-size:20px;color:#2EBCBC;margin-bottom:10px;">Guardian</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;">Create your account in 3 simple steps.</div>
+            <!-- Steps indicator -->
+            <div style="margin-top:24px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#27AE60;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">&#10003;</div>
+                <div>
+                  <div style="font-size:11px;font-weight:500;color:#27AE60;">Email Verified</div>
+                </div>
+              </div>
+              <div style="width:1px;height:12px;background:rgba(255,255,255,0.15);margin-left:14px;margin-bottom:4px;"></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#2EBCBC;color:#032424;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">2</div>
+                <div>
+                  <div style="font-size:11px;font-weight:500;color:#fff;">Account Details</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.4);">You are here</div>
+                </div>
+              </div>
+              <div style="width:1px;height:12px;background:rgba(255,255,255,0.15);margin-left:14px;margin-bottom:4px;"></div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">3</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.3);">Set Password</div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;background:#fff;padding:28px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-size:18px;font-weight:700;color:#032424;">Account Details</div>
+            <div style="font-size:11px;color:#888;margin-bottom:20px;">Tell us about you and your organization</div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;font-weight:500;color:#555;margin-bottom:5px;">Full Name <span style="color:#C10000;">*</span></div>
+              <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;">Your full name</div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;font-weight:500;color:#555;margin-bottom:5px;">Company Name <span style="color:#C10000;">*</span></div>
+              <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;">Your organization</div>
+            </div>
+            <div style="background:#032424;color:#fff;text-align:center;padding:11px;border-radius:10px;font-size:12px;font-weight:600;margin-top:6px;">Continue</div>
+            <div style="text-align:center;margin-top:12px;font-size:10px;color:#888;">Already have an account? <span style="color:#2EBCBC;font-weight:500;">Sign in</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:12px;margin-top:12px;background:#f0fafa;border-radius:10px;padding:14px 18px;color:#0e7a7a;line-height:1.6;">
+    <strong>Auth flow changes:</strong> Split-panel layout shared across Login, Register, Verify Email, Forgot Password, and Reset Password. Left panel shows brand + contextual progress. Right panel shows the form. Mobile: stacks vertically with a compact brand header.
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="section">
+  <h3>Dashboard (Role-Adaptive)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard adapts content based on user role — same layout, different data</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:380px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+        <div style="width:52px;background:#032424;flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <!-- Top bar -->
+          <div style="background:#fff;border-bottom:1px solid #f0f0f0;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+              <div style="font-family:Montserrat;font-weight:700;font-size:18px;color:#032424;">Good morning, Ernest</div>
+              <div style="font-size:11px;color:#888;margin-top:1px;">Here's what needs your attention</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="width:36px;height:36px;border-radius:10px;border:1.5px solid #e8eaed;display:flex;align-items:center;justify-content:center;position:relative;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                <div style="position:absolute;top:-2px;right:-2px;width:12px;height:12px;background:#C10000;border-radius:50%;border:2px solid #fff;font-size:7px;color:#fff;display:flex;align-items:center;justify-content:center;">3</div>
+              </div>
+              <div style="background:#032424;color:#fff;padding:8px 16px;border-radius:10px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;"><span style="font-size:14px;">+</span> New Request</div>
+            </div>
+          </div>
+          <!-- Content -->
+          <div style="flex:1;padding:18px;overflow:auto;">
+            <!-- Stats -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:18px;">
+              <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Open</div>
+                <div style="font-size:24px;font-weight:700;color:#032424;margin-top:4px;">12</div>
+                <div style="font-size:9px;color:#27AE60;margin-top:4px;">&#9650; 2 new</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">My Tasks</div>
+                <div style="font-size:24px;font-weight:700;color:#E2B93B;margin-top:4px;">8</div>
+                <div style="font-size:9px;color:#E2B93B;margin-top:4px;">3 due today</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Completed</div>
+                <div style="font-size:24px;font-weight:700;color:#27AE60;margin-top:4px;">34</div>
+                <div style="font-size:9px;color:#27AE60;margin-top:4px;">&#9650; 12% this week</div>
+              </div>
+              <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Unread Notices</div>
+                <div style="font-size:24px;font-weight:700;color:#2F8CED;margin-top:4px;">3</div>
+                <div style="font-size:9px;color:#2F8CED;margin-top:4px;">1 urgent</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;">
+              <!-- Recent requests -->
+              <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                  <div style="font-weight:600;font-size:13px;color:#032424;">Recent Requests</div>
+                  <div style="font-size:10px;color:#2EBCBC;font-weight:500;">View all &#8594;</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8f8f8;align-items:center;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="font-size:11px;color:#2EBCBC;font-weight:500;width:70px;">REQ-0042</div>
+                    <div style="font-size:12px;color:#333;">Equipment access</div>
+                  </div>
+                  <span style="background:#fff8e6;color:#92680a;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Pending</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8f8f8;align-items:center;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="font-size:11px;color:#2EBCBC;font-weight:500;width:70px;">REQ-0041</div>
+                    <div style="font-size:12px;color:#333;">Security clearance</div>
+                  </div>
+                  <span style="background:#eef4fd;color:#1d5cbf;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">In Progress</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 0;align-items:center;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="font-size:11px;color:#2EBCBC;font-weight:500;width:70px;">REQ-0040</div>
+                    <div style="font-size:12px;color:#333;">Network access</div>
+                  </div>
+                  <span style="background:#eafaf1;color:#1a7a42;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Completed</span>
+                </div>
+              </div>
+
+              <!-- Quick actions / activity -->
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+                  <div style="font-weight:600;font-size:13px;color:#032424;margin-bottom:12px;">Quick Actions</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="padding:10px 12px;border:1.5px solid #e8eaed;border-radius:10px;font-size:11px;color:#555;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                      Submit Request
+                    </div>
+                    <div style="padding:10px 12px;border:1.5px solid #e8eaed;border-radius:10px;font-size:11px;color:#555;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                      View Notices
+                    </div>
+                    <div style="padding:10px 12px;border:1.5px solid #e8eaed;border-radius:10px;font-size:11px;color:#555;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                      Invite User
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="font-family:Inter,sans-serif;font-size:12px;margin-top:12px;background:#f0fafa;border-radius:10px;padding:14px 18px;color:#0e7a7a;line-height:1.6;">
+    <strong>Role adaptations:</strong> Same layout, different content. <strong>General User</strong> sees "My Requests" + "My Tasks". <strong>Processor</strong> sees "Assigned to Me" + "Pending Review". <strong>Manager</strong> sees team-wide stats + assignments. <strong>Admin</strong> sees everything + quick actions for user management and form setup.
+  </div>
+</div>
+
+<!-- REQUESTS -->
+<div class="section">
+  <h3>Requests Dashboard</h3>
+  <div class="mockup">
+    <div class="mockup-header">Filterable table with status tabs, search, and inline actions</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:360px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+        <div style="width:52px;background:#032424;flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div style="background:#fff;border-bottom:1px solid #f0f0f0;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+              <div style="font-family:Montserrat;font-weight:700;font-size:18px;color:#032424;">Requests</div>
+              <div style="font-size:11px;color:#888;">42 total requests</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="border:1.5px solid #e8eaed;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:6px;width:200px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span style="font-size:11px;color:#aaa;">Search requests...</span>
+              </div>
+              <div style="background:#032424;color:#fff;padding:8px 16px;border-radius:10px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;"><span style="font-size:14px;">+</span> New Request</div>
+            </div>
+          </div>
+          <div style="flex:1;padding:18px;overflow:auto;">
+            <!-- Status tabs -->
+            <div style="display:flex;gap:4px;margin-bottom:16px;">
+              <div style="padding:7px 16px;background:#032424;color:#fff;border-radius:8px;font-size:11px;font-weight:600;">All <span style="background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:4px;margin-left:4px;font-size:10px;">42</span></div>
+              <div style="padding:7px 16px;background:#fff;color:#555;border-radius:8px;font-size:11px;font-weight:500;border:1px solid #e8eaed;">Pending <span style="color:#888;font-size:10px;">12</span></div>
+              <div style="padding:7px 16px;background:#fff;color:#555;border-radius:8px;font-size:11px;font-weight:500;border:1px solid #e8eaed;">In Progress <span style="color:#888;font-size:10px;">8</span></div>
+              <div style="padding:7px 16px;background:#fff;color:#555;border-radius:8px;font-size:11px;font-weight:500;border:1px solid #e8eaed;">Completed <span style="color:#888;font-size:10px;">19</span></div>
+              <div style="padding:7px 16px;background:#fff;color:#555;border-radius:8px;font-size:11px;font-weight:500;border:1px solid #e8eaed;">Cancelled <span style="color:#888;font-size:10px;">3</span></div>
+            </div>
+            <!-- Table -->
+            <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+              <div style="display:grid;grid-template-columns:90px 1fr 120px 100px 80px 60px;padding:10px 16px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #f0f0f0;">
+                <div>ID</div><div>Subject</div><div>Assigned To</div><div>Status</div><div>Date</div><div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:90px 1fr 120px 100px 80px 60px;padding:12px 16px;font-size:12px;align-items:center;border-bottom:1px solid #f8f8f8;">
+                <div style="color:#2EBCBC;font-weight:500;">REQ-0042</div>
+                <div style="color:#333;">Equipment access request</div>
+                <div style="display:flex;align-items:center;gap:6px;"><div style="width:22px;height:22px;border-radius:50%;background:#e8f8f8;font-size:8px;display:flex;align-items:center;justify-content:center;color:#2EBCBC;font-weight:600;">JD</div><span style="color:#555;">John D.</span></div>
+                <div><span style="background:#fff8e6;color:#92680a;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Pending</span></div>
+                <div style="color:#888;">Apr 3</div>
+                <div style="color:#888;cursor:pointer;">&#8943;</div>
+              </div>
+              <div style="display:grid;grid-template-columns:90px 1fr 120px 100px 80px 60px;padding:12px 16px;font-size:12px;align-items:center;border-bottom:1px solid #f8f8f8;">
+                <div style="color:#2EBCBC;font-weight:500;">REQ-0041</div>
+                <div style="color:#333;">Security clearance renewal</div>
+                <div style="display:flex;align-items:center;gap:6px;"><div style="width:22px;height:22px;border-radius:50%;background:#eef4fd;font-size:8px;display:flex;align-items:center;justify-content:center;color:#2F8CED;font-weight:600;">SM</div><span style="color:#555;">Sarah M.</span></div>
+                <div><span style="background:#eef4fd;color:#1d5cbf;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">In Progress</span></div>
+                <div style="color:#888;">Apr 2</div>
+                <div style="color:#888;cursor:pointer;">&#8943;</div>
+              </div>
+              <div style="display:grid;grid-template-columns:90px 1fr 120px 100px 80px 60px;padding:12px 16px;font-size:12px;align-items:center;">
+                <div style="color:#2EBCBC;font-weight:500;">REQ-0040</div>
+                <div style="color:#333;">Network access modification</div>
+                <div style="display:flex;align-items:center;gap:6px;"><div style="width:22px;height:22px;border-radius:50%;background:#eafaf1;font-size:8px;display:flex;align-items:center;justify-content:center;color:#27AE60;font-weight:600;">EP</div><span style="color:#555;">Ernest P.</span></div>
+                <div><span style="background:#eafaf1;color:#1a7a42;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Completed</span></div>
+                <div style="color:#888;">Apr 1</div>
+                <div style="color:#888;cursor:pointer;">&#8943;</div>
+              </div>
+            </div>
+            <!-- Pagination -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+              <div style="font-size:11px;color:#888;">Showing 1-10 of 42</div>
+              <div style="display:flex;gap:4px;">
+                <div style="width:30px;height:30px;border:1px solid #e0e0e0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;">&lt;</div>
+                <div style="width:30px;height:30px;background:#032424;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;">1</div>
+                <div style="width:30px;height:30px;border:1px solid #e0e0e0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;">2</div>
+                <div style="width:30px;height:30px;border:1px solid #e0e0e0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;">3</div>
+                <div style="width:30px;height:30px;border:1px solid #e0e0e0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;">&gt;</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTICES -->
+<div class="section">
+  <h3>Notices</h3>
+  <div class="mockup">
+    <div class="mockup-header">Card-based notice list with type indicators and read status</div>
+    <div class="mockup-body" style="padding:18px;background:#f8fafb;font-family:Inter,sans-serif;font-size:12px;">
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:680px;">
+        <!-- Unread notice -->
+        <div style="background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;border-left:4px solid #2F8CED;display:flex;gap:14px;align-items:start;">
+          <div style="width:36px;height:36px;border-radius:10px;background:#eef4fd;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F8CED" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+              <div style="font-weight:600;color:#032424;font-size:13px;">System Maintenance Scheduled</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#eef4fd;color:#1d5cbf;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:500;">General</span>
+                <div style="width:8px;height:8px;border-radius:50%;background:#2F8CED;"></div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#888;margin-top:4px;line-height:1.5;">The system will undergo maintenance on April 5th from 10 PM to 2 AM EST...</div>
+            <div style="font-size:10px;color:#aaa;margin-top:6px;">2 hours ago &bull; By Admin</div>
+          </div>
+        </div>
+        <!-- Read notice -->
+        <div style="background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;display:flex;gap:14px;align-items:start;opacity:0.75;">
+          <div style="width:36px;height:36px;border-radius:10px;background:#fff8e6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E2B93B" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+              <div style="font-weight:600;color:#032424;font-size:13px;">Policy Update: Remote Access</div>
+              <span style="background:#fff8e6;color:#92680a;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:500;">Urgent</span>
+            </div>
+            <div style="font-size:11px;color:#888;margin-top:4px;line-height:1.5;">New remote access policies will take effect starting next Monday...</div>
+            <div style="font-size:10px;color:#aaa;margin-top:6px;">Yesterday &bull; By Manager</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PAGES -->
+<div class="section">
+  <h3>Admin Pages (Users, Forms, Fields)</h3>
+  <div style="font-family:Inter,sans-serif;font-size:12px;background:#fff;border-radius:14px;padding:18px;border:1px solid #f0f0f0;line-height:1.7;color:#555;">
+    <div style="font-weight:600;color:#032424;font-size:14px;margin-bottom:8px;">Same page structure, same components</div>
+    Admin pages follow the identical layout pattern: sidebar + top bar + content. Key changes:
+    <ul style="margin:8px 0 0 0;padding-left:18px;">
+      <li><strong>User Management</strong> — Table with avatar, name, email, role badge, status. Invite modal uses standard modal pattern. Bulk actions via multi-select.</li>
+      <li><strong>Forms & Fields</strong> — Card grid for form templates (each card shows template name, type badge, field count, last modified). Click to open form builder.</li>
+      <li><strong>Form Builder</strong> — Drag-and-drop field layout with live preview. Uses standard Input, Select, TextArea components in the preview.</li>
+      <li><strong>Field Lookups</strong> — Table with field name, type, validation rules. Edit inline or via modal.</li>
+      <li><strong>Workspaces</strong> — Card-based workspace overview with member avatars and quick actions.</li>
+    </ul>
+    <div style="margin-top:12px;padding:10px 14px;background:#f0fafa;border-radius:8px;color:#0e7a7a;">
+      <strong>Key principle:</strong> Admin pages are not special. They use the exact same components and layout as user-facing pages. No separate "admin theme."
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="section">
+  <h3>Settings (Account, Password, Notifications)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Settings page with section navigation</div>
+    <div class="mockup-body" style="padding:18px;background:#f8fafb;font-family:Inter,sans-serif;font-size:12px;">
+      <div style="display:flex;gap:18px;max-width:720px;">
+        <!-- Section nav -->
+        <div style="width:180px;flex-shrink:0;">
+          <div style="background:#fff;border-radius:14px;padding:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+            <div style="padding:10px 14px;background:#f0fafa;border-radius:8px;color:#2EBCBC;font-weight:500;margin-bottom:2px;">Profile</div>
+            <div style="padding:10px 14px;color:#555;">Password</div>
+            <div style="padding:10px 14px;color:#555;">Notifications</div>
+          </div>
+        </div>
+        <!-- Content -->
+        <div style="flex:1;background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+          <div style="font-weight:600;font-size:15px;color:#032424;margin-bottom:4px;">Profile</div>
+          <div style="font-size:11px;color:#888;margin-bottom:18px;">Manage your personal information</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #f0f0f0;">
+            <div style="width:56px;height:56px;border-radius:50%;background:rgba(46,188,188,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#2EBCBC;">EP</div>
+            <div>
+              <div style="font-weight:600;color:#032424;">Ernest Pena</div>
+              <div style="font-size:11px;color:#888;">epena@company.com</div>
+            </div>
+            <div style="margin-left:auto;border:1.5px solid #e2e5e9;padding:6px 14px;border-radius:8px;font-size:11px;color:#555;font-weight:500;">Edit</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <div style="font-size:10px;font-weight:500;color:#888;margin-bottom:4px;">Full Name</div>
+              <div style="font-size:13px;color:#032424;">Ernest Pena</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:500;color:#888;margin-bottom:4px;">Role</div>
+              <div><span style="background:#032424;color:#fff;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Admin</span></div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:500;color:#888;margin-bottom:4px;">Company</div>
+              <div style="font-size:13px;color:#032424;">Shieldlytics</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:500;color:#888;margin-bottom:4px;">Member Since</div>
+              <div style="font-size:13px;color:#032424;">March 2025</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
