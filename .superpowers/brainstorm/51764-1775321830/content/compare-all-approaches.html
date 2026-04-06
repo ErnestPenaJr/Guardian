@@ -1,0 +1,97 @@
+<h2>Compare All Three Approaches — Pick One</h2>
+<p class="subtitle">Same end-state visual quality, different paths to get there. Click the approach that fits your situation best.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Component-Layer Rewrite <span style="background:#27AE60;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;margin-left:8px;">Recommended</span></h3>
+      <p style="margin-bottom:12px;">Replace the styling layer across all pages in one coordinated push. Remove Bootstrap, consolidate CSS, reskin everything using the existing UI components.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+        <div>
+          <div style="font-weight:600;color:#27AE60;margin-bottom:4px;">Strengths</div>
+          <ul style="margin:0;padding-left:16px;color:#555;line-height:1.7;">
+            <li>Eliminates Bootstrap/Tailwind conflict permanently</li>
+            <li>Every page gets touched = guaranteed consistency</li>
+            <li>Minimal risk to business logic</li>
+            <li>One coordinated push = no jarring transitions</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-weight:600;color:#C10000;margin-bottom:4px;">Weaknesses</div>
+          <ul style="margin:0;padding-left:16px;color:#555;line-height:1.7;">
+            <li>Large diff (~60-80 files)</li>
+            <li>Needs thorough QA across all roles</li>
+            <li>No living style guide documentation</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:8px 12px;background:#f0fafa;border-radius:8px;font-size:11px;color:#0e7a7a;">
+        <strong>Best for:</strong> Teams that want immediate, full consistency and can dedicate a focused sprint to the overhaul.
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Design System First, Pages Second</h3>
+      <p style="margin-bottom:12px;">Build a complete, documented component library first (Phase 1). Then rebuild every page using only those components (Phase 2).</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+        <div>
+          <div style="font-weight:600;color:#27AE60;margin-bottom:4px;">Strengths</div>
+          <ul style="margin:0;padding-left:16px;color:#555;line-height:1.7;">
+            <li>Highly systematic — every component documented</li>
+            <li>Future-proof — new pages auto-inherit system</li>
+            <li>Enforced consistency — no one-off styles possible</li>
+            <li>Great for onboarding new developers</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-weight:600;color:#C10000;margin-bottom:4px;">Weaknesses</div>
+          <ul style="margin:0;padding-left:16px;color:#555;line-height:1.7;">
+            <li>Slower visible results — Phase 1 has no user-facing changes</li>
+            <li>Inconsistency persists during Phase 1</li>
+            <li>Over-engineering risk</li>
+            <li>More total effort (documentation + components + migration)</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:8px 12px;background:#fff8e6;border-radius:8px;font-size:11px;color:#8a6d0b;">
+        <strong>Best for:</strong> Teams growing in size who need a shared design language and are OK with delayed user-facing impact.
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Page-by-Page Visual Overhaul</h3>
+      <p style="margin-bottom:12px;">Redesign each page individually, starting with Login &rarr; Dashboard &rarr; Requests &rarr; everything else. Ship improvements incrementally.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+        <div>
+          <div style="font-weight:600;color:#27AE60;margin-bottom:4px;">Strengths</div>
+          <ul style="margin:0;padding-left:16px;color:#555;line-height:1.7;">
+            <li>Fastest first visual win (Login in Sprint 1)</li>
+            <li>Incremental — each sprint ships something polished</li>
+            <li>Easy to pause at any point</li>
+            <li>Lower risk per individual sprint</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-weight:600;color:#C10000;margin-bottom:4px;">Weaknesses</div>
+          <ul style="margin:0;padding-left:16px;color:#555;line-height:1.7;">
+            <li>Jarring transitions between new and old pages</li>
+            <li>Style drift across sprints</li>
+            <li>Bootstrap stays until every page is converted</li>
+            <li>Cleanup pass usually needed at the end</li>
+            <li>More total work overall</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:8px 12px;background:#fef2f2;border-radius:8px;font-size:11px;color:#991b1b;">
+        <strong>Best for:</strong> Teams that can't dedicate a full sprint to UI work and need to ship incrementally between feature work.
+      </div>
+    </div>
+  </div>
+</div>

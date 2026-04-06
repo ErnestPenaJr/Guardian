@@ -1,0 +1,356 @@
+<h2>Section 3: Component Standardization</h2>
+<p class="subtitle">Every interactive element unified. Removes Bootstrap dependency entirely. One source of truth for buttons, inputs, modals, tables, badges, and cards.</p>
+
+<!-- BUTTONS -->
+<div class="section">
+  <h3>Buttons</h3>
+  <div class="mockup">
+    <div class="mockup-header">5 variants, 3 sizes — replaces all Bootstrap and one-off buttons</div>
+    <div class="mockup-body" style="padding:24px;font-family:Inter,sans-serif;font-size:12px;background:#fff;">
+      <!-- Variants -->
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Variants</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;align-items:center;">
+        <div style="background:#032424;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Primary</div>
+        <div style="background:#2EBCBC;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;">Secondary</div>
+        <div style="border:1.5px solid #e2e5e9;color:#555;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:500;">Outline</div>
+        <div style="background:#f5f5f5;color:#555;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:500;">Ghost</div>
+        <div style="background:#C10000;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;">Danger</div>
+      </div>
+
+      <!-- Sizes -->
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Sizes</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:24px;">
+        <div style="background:#032424;color:#fff;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;">Small</div>
+        <div style="background:#032424;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;">Medium (default)</div>
+        <div style="background:#032424;color:#fff;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:600;">Large</div>
+      </div>
+
+      <!-- States -->
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">States</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:24px;">
+        <div style="background:#032424;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;">Default</div>
+        <div style="background:#064a4a;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 0 0 3px rgba(46,188,188,0.2);">Focused</div>
+        <div style="background:#0a5c5c;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;">Hover</div>
+        <div style="background:#032424;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;opacity:0.5;cursor:not-allowed;">Disabled</div>
+        <div style="background:#032424;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          Loading
+        </div>
+      </div>
+
+      <!-- With icons -->
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">With Icons</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div style="background:#032424;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;">
+          <span style="font-size:16px;font-weight:300;">+</span> New Request
+        </div>
+        <div style="border:1.5px solid #e2e5e9;color:#555;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </div>
+        <div style="background:#C10000;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete
+        </div>
+        <!-- Icon-only -->
+        <div style="width:40px;height:40px;border:1.5px solid #e2e5e9;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INPUTS -->
+<div class="section">
+  <h3>Form Inputs</h3>
+  <div class="mockup">
+    <div class="mockup-header">Unified input styling — replaces Bootstrap form-control and rounded-full inputs</div>
+    <div class="mockup-body" style="padding:24px;font-family:Inter,sans-serif;font-size:12px;background:#fff;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- Text input -->
+        <div>
+          <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">Label <span style="color:#C10000;">*</span></div>
+          <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:13px;color:#333;background:#fff;">John Doe</div>
+          <div style="font-size:10px;color:#888;margin-top:4px;">Helper text goes here</div>
+        </div>
+        <!-- Placeholder -->
+        <div>
+          <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">Email address</div>
+          <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:13px;color:#aaa;background:#fff;">user@company.com</div>
+        </div>
+        <!-- Focus state -->
+        <div>
+          <div style="font-size:11px;font-weight:500;color:#2EBCBC;margin-bottom:6px;">Focused input</div>
+          <div style="border:1.5px solid #2EBCBC;border-radius:10px;padding:10px 14px;font-size:13px;color:#333;background:#fff;box-shadow:0 0 0 3px rgba(46,188,188,0.12);">Typing here...</div>
+        </div>
+        <!-- Error state -->
+        <div>
+          <div style="font-size:11px;font-weight:500;color:#C10000;margin-bottom:6px;">Email</div>
+          <div style="border:1.5px solid #C10000;border-radius:10px;padding:10px 14px;font-size:13px;color:#333;background:#fef2f2;box-shadow:0 0 0 3px rgba(193,0,0,0.08);">invalid-email</div>
+          <div style="font-size:10px;color:#C10000;margin-top:4px;">Please enter a valid email address</div>
+        </div>
+        <!-- Select -->
+        <div>
+          <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">Assigned to</div>
+          <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:13px;color:#333;background:#fff;display:flex;justify-content:space-between;align-items:center;">
+            <span>Select team member...</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <!-- Textarea -->
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-size:11px;font-weight:500;color:#555;">Description</div>
+            <div style="font-size:10px;color:#aaa;">24 / 250</div>
+          </div>
+          <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:13px;color:#333;background:#fff;min-height:64px;">Some description text...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="section">
+  <h3>Modals</h3>
+  <p class="subtitle">One modal component replaces react-bootstrap Modal, react-modal, SweetAlert2, and all custom implementations.</p>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Standard Modal (forms, details)</div>
+      <div class="mockup-body" style="background:rgba(3,36,36,0.4);padding:20px;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.15);font-family:Inter,sans-serif;font-size:12px;overflow:hidden;">
+          <div style="padding:20px 24px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+              <div>
+                <div style="font-family:Montserrat,sans-serif;font-size:16px;font-weight:700;color:#032424;">Modal Title</div>
+                <div style="font-size:11px;color:#888;margin-top:2px;">Subtitle or description</div>
+              </div>
+              <div style="width:28px;height:28px;border-radius:8px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:16px;color:#888;cursor:pointer;">&times;</div>
+            </div>
+          </div>
+          <div style="padding:20px 24px;">
+            <div style="height:40px;background:#f8fafb;border-radius:8px;margin-bottom:12px;"></div>
+            <div style="height:40px;background:#f8fafb;border-radius:8px;"></div>
+          </div>
+          <div style="padding:16px 24px;background:#fafafa;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;">
+            <div style="padding:9px 20px;border:1.5px solid #e2e5e9;border-radius:10px;font-size:12px;color:#555;font-weight:500;">Cancel</div>
+            <div style="padding:9px 20px;background:#032424;color:#fff;border-radius:10px;font-size:12px;font-weight:600;">Save</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Confirmation Modal (delete, status change)</div>
+      <div class="mockup-body" style="background:rgba(3,36,36,0.4);padding:20px;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.15);font-family:Inter,sans-serif;font-size:12px;overflow:hidden;text-align:center;">
+          <div style="padding:28px 24px 16px;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C10000" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div style="font-family:Montserrat,sans-serif;font-size:16px;font-weight:700;color:#032424;">Delete Task?</div>
+            <div style="font-size:12px;color:#888;margin-top:6px;line-height:1.5;">This action cannot be undone. The task and its history will be permanently removed.</div>
+          </div>
+          <div style="padding:16px 24px 20px;display:flex;gap:10px;">
+            <div style="flex:1;padding:10px;border:1.5px solid #e2e5e9;border-radius:10px;font-size:13px;color:#555;font-weight:500;">Cancel</div>
+            <div style="flex:1;padding:10px;background:#C10000;color:#fff;border-radius:10px;font-size:13px;font-weight:600;">Delete</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Mobile modal -->
+  <div class="mockup" style="margin-top:12px;">
+    <div class="mockup-header">Mobile: Bottom sheet pattern (< 768px)</div>
+    <div class="mockup-body" style="background:rgba(3,36,36,0.4);padding:0;display:flex;align-items:flex-end;justify-content:center;min-height:260px;">
+      <div style="background:#fff;border-radius:20px 20px 0 0;width:340px;box-shadow:0 -10px 40px rgba(0,0,0,0.1);font-family:Inter,sans-serif;font-size:12px;">
+        <div style="display:flex;justify-content:center;padding:10px 0 4px;">
+          <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;"></div>
+        </div>
+        <div style="padding:8px 20px 16px;">
+          <div style="font-family:Montserrat;font-size:16px;font-weight:700;color:#032424;">Modal Title</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">Description text</div>
+        </div>
+        <div style="padding:0 20px 16px;">
+          <div style="height:40px;background:#f8fafb;border-radius:8px;margin-bottom:10px;"></div>
+          <div style="height:40px;background:#f8fafb;border-radius:8px;"></div>
+        </div>
+        <div style="padding:16px 20px 28px;display:flex;gap:10px;">
+          <div style="flex:1;padding:12px;border:1.5px solid #e2e5e9;border-radius:12px;font-size:13px;color:#555;font-weight:500;text-align:center;">Cancel</div>
+          <div style="flex:1;padding:12px;background:#032424;color:#fff;border-radius:12px;font-size:13px;font-weight:600;text-align:center;">Save</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BADGES -->
+<div class="section">
+  <h3>Status Badges</h3>
+  <div class="mockup">
+    <div class="mockup-header">Consistent pill badges for all status indicators — replaces Bootstrap badges and inline colors</div>
+    <div class="mockup-body" style="padding:24px;font-family:Inter,sans-serif;font-size:12px;background:#fff;">
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Request Status</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <span style="background:#fff8e6;color:#92680a;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Pending</span>
+        <span style="background:#eef4fd;color:#1d5cbf;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">In Progress</span>
+        <span style="background:#eafaf1;color:#1a7a42;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Completed</span>
+        <span style="background:#fef2f2;color:#991b1b;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Cancelled</span>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Task Status</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <span style="background:#fff8e6;color:#92680a;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Pending</span>
+        <span style="background:#eef4fd;color:#1d5cbf;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">In Progress</span>
+        <span style="background:#eafaf1;color:#1a7a42;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Completed</span>
+        <span style="background:#fef2f2;color:#991b1b;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Cancelled</span>
+        <span style="background:#f0fafa;color:#0e7a7a;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Assigned</span>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Notice Types</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <span style="background:#eef4fd;color:#1d5cbf;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">General</span>
+        <span style="background:#fff8e6;color:#92680a;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Urgent</span>
+        <span style="background:#f0fafa;color:#0e7a7a;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Informational</span>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Roles</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="background:#032424;color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Admin</span>
+        <span style="background:#2EBCBC;color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Manager</span>
+        <span style="background:#2F8CED;color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">Processor</span>
+        <span style="background:#e8eaed;color:#555;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;">User</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CARDS & TABLES -->
+<div class="section">
+  <h3>Cards & Data Tables</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Stat Card</div>
+      <div class="mockup-body" style="padding:20px;background:#f8fafb;font-family:Inter,sans-serif;font-size:12px;">
+        <div style="background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Open Requests</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:#f0fafa;display:flex;align-items:center;justify-content:center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            </div>
+          </div>
+          <div style="font-size:32px;font-weight:700;color:#032424;line-height:1;">12</div>
+          <div style="font-size:11px;color:#27AE60;margin-top:8px;display:flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+            +2 from yesterday
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Data Table Row</div>
+      <div class="mockup-body" style="padding:20px;background:#f8fafb;font-family:Inter,sans-serif;font-size:12px;">
+        <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+          <!-- Header -->
+          <div style="display:grid;grid-template-columns:90px 1fr 110px 90px;padding:10px 16px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #f0f0f0;">
+            <div>ID</div><div>Subject</div><div>Status</div><div>Date</div>
+          </div>
+          <!-- Hover row -->
+          <div style="display:grid;grid-template-columns:90px 1fr 110px 90px;padding:12px 16px;font-size:12px;align-items:center;background:#fafbfc;border-left:3px solid #2EBCBC;">
+            <div style="color:#2EBCBC;font-weight:500;">REQ-0042</div>
+            <div style="color:#333;">Equipment access request</div>
+            <div><span style="background:#fff8e6;color:#92680a;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Pending</span></div>
+            <div style="color:#888;">Apr 3</div>
+          </div>
+          <!-- Normal row -->
+          <div style="display:grid;grid-template-columns:90px 1fr 110px 90px;padding:12px 16px;font-size:12px;align-items:center;border-top:1px solid #f8f8f8;">
+            <div style="color:#2EBCBC;font-weight:500;">REQ-0041</div>
+            <div style="color:#333;">Security clearance renewal</div>
+            <div><span style="background:#eef4fd;color:#1d5cbf;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">In Progress</span></div>
+            <div style="color:#888;">Apr 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EMPTY STATES & LOADING -->
+<div class="section">
+  <h3>Empty States & Loading</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Empty State — guides the user to action</div>
+      <div class="mockup-body" style="padding:24px;background:#fff;font-family:Inter,sans-serif;font-size:12px;">
+        <div style="text-align:center;padding:32px 20px;border:1.5px dashed #e2e5e9;border-radius:14px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:#f0fafa;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div style="font-weight:600;color:#032424;font-size:15px;">No requests yet</div>
+          <div style="font-size:12px;color:#888;margin-top:6px;margin-bottom:18px;max-width:260px;margin-left:auto;margin-right:auto;line-height:1.5;">Create your first request to start tracking work across your team.</div>
+          <div style="display:inline-flex;align-items:center;gap:6px;background:#032424;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;">
+            <span style="font-size:16px;font-weight:300;">+</span> New Request
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Skeleton Loading</div>
+      <div class="mockup-body" style="padding:24px;background:#fff;font-family:Inter,sans-serif;font-size:12px;">
+        <!-- Skeleton stat cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div style="background:#fff;border-radius:14px;padding:18px;border:1px solid #f0f0f0;">
+            <div style="width:60%;height:10px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;margin-bottom:12px;"></div>
+            <div style="width:40%;height:24px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;"></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:18px;border:1px solid #f0f0f0;">
+            <div style="width:50%;height:10px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;margin-bottom:12px;"></div>
+            <div style="width:35%;height:24px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;"></div>
+          </div>
+        </div>
+        <!-- Skeleton table rows -->
+        <div style="background:#fff;border-radius:14px;padding:16px;border:1px solid #f0f0f0;">
+          <div style="display:flex;gap:12px;margin-bottom:14px;align-items:center;">
+            <div style="width:70px;height:12px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;"></div>
+            <div style="flex:1;height:12px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;"></div>
+            <div style="width:60px;height:20px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:10px;"></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div style="width:70px;height:12px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;"></div>
+            <div style="flex:1;height:12px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:4px;"></div>
+            <div style="width:60px;height:20px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);border-radius:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATIONS -->
+<div class="section">
+  <h3>Toast Notifications</h3>
+  <div class="mockup">
+    <div class="mockup-header">Styled to match Guardian palette — replaces default React Toastify theme</div>
+    <div class="mockup-body" style="padding:24px;background:#f8fafb;font-family:Inter,sans-serif;font-size:12px;">
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:360px;">
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);display:flex;align-items:start;gap:12px;border-left:4px solid #27AE60;">
+          <div style="width:24px;height:24px;border-radius:50%;background:#eafaf1;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27AE60" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:600;color:#032424;font-size:13px;">Request created</div>
+            <div style="font-size:11px;color:#888;margin-top:2px;">REQ-0043 has been submitted successfully</div>
+          </div>
+          <div style="color:#aaa;cursor:pointer;font-size:14px;">&times;</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);display:flex;align-items:start;gap:12px;border-left:4px solid #C10000;">
+          <div style="width:24px;height:24px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C10000" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:600;color:#032424;font-size:13px;">Failed to save</div>
+            <div style="font-size:11px;color:#888;margin-top:2px;">Please check your connection and try again</div>
+          </div>
+          <div style="color:#aaa;cursor:pointer;font-size:14px;">&times;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,435 @@
+<h2>Approach A: Component-Layer Rewrite — Key Screens</h2>
+<p class="subtitle">Unified Modern SaaS aesthetic. Collapsible sidebar, consistent modals, guided flows. Same teal palette, polished everywhere.</p>
+
+<!-- LOGIN -->
+<div class="section">
+  <h3>1. Login Page</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Before (Current)</div>
+      <div class="mockup-body" style="background:#f3f4f6;padding:0;">
+        <div style="display:flex;align-items:center;justify-content:center;min-height:320px;font-family:Inter,sans-serif;font-size:12px;">
+          <div style="background:#fff;border-radius:6px;padding:30px;width:320px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+            <div style="font-size:18px;font-weight:600;color:#333;margin-bottom:4px;">Login</div>
+            <div style="font-size:11px;color:#888;margin-bottom:20px;">Enter your credentials</div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;color:#555;margin-bottom:4px;">Email</div>
+              <div style="border:1px solid #ddd;border-radius:20px;padding:8px 12px;font-size:11px;color:#aaa;">user@email.com</div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <div style="font-size:10px;color:#555;margin-bottom:4px;">Password</div>
+              <div style="border:1px solid #ddd;border-radius:20px;padding:8px 12px;font-size:11px;color:#aaa;">********</div>
+            </div>
+            <div style="background:#2EBCBC;color:#fff;text-align:center;padding:10px;border-radius:20px;font-size:12px;font-weight:600;">Log In</div>
+            <div style="text-align:center;margin-top:12px;font-size:10px;color:#2EBCBC;">Forgot password?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">After (Approach A)</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="display:flex;min-height:320px;font-family:Inter,sans-serif;font-size:12px;">
+          <!-- Left brand panel -->
+          <div style="width:45%;background:linear-gradient(135deg,#032424 0%,#064a4a 100%);color:#fff;padding:32px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:22px;color:#2EBCBC;margin-bottom:8px;">Guardian</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:24px;">Secure request management for modern teams.</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <div style="width:20px;height:20px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;color:#2EBCBC;">&#10003;</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.6);">Company-isolated data</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <div style="width:20px;height:20px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;color:#2EBCBC;">&#10003;</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.6);">Role-based access control</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:20px;height:20px;border-radius:50%;background:rgba(46,188,188,0.2);display:flex;align-items:center;justify-content:center;font-size:10px;color:#2EBCBC;">&#10003;</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.6);">End-to-end workflow tracking</div>
+            </div>
+          </div>
+          <!-- Right form panel -->
+          <div style="flex:1;background:#fff;padding:32px;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-size:18px;font-weight:700;color:#032424;margin-bottom:2px;">Welcome back</div>
+            <div style="font-size:11px;color:#888;margin-bottom:24px;">Sign in to your account</div>
+            <div style="margin-bottom:14px;">
+              <div style="font-size:10px;font-weight:500;color:#555;margin-bottom:5px;">Email address</div>
+              <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;transition:border-color 0.2s;">user@company.com</div>
+            </div>
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <div style="font-size:10px;font-weight:500;color:#555;">Password</div>
+                <div style="font-size:10px;color:#2EBCBC;cursor:pointer;">Forgot?</div>
+              </div>
+              <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div>
+            </div>
+            <div style="background:#032424;color:#fff;text-align:center;padding:11px;border-radius:10px;font-size:12px;font-weight:600;margin-top:16px;cursor:pointer;">Sign in</div>
+            <div style="text-align:center;margin-top:14px;font-size:10px;color:#888;">Don't have an account? <span style="color:#2EBCBC;font-weight:500;">Register</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD WITH COLLAPSIBLE SIDEBAR -->
+<div class="section">
+  <h3>2. Dashboard (Collapsible Sidebar)</h3>
+  <div class="mockup">
+    <div class="mockup-header">After — Sidebar collapsed (default) with hover expansion</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:380px;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;">
+        <!-- Collapsed sidebar -->
+        <div style="width:60px;background:#032424;padding:14px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="width:32px;height:32px;background:#2EBCBC;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:14px;color:#032424;">G</div>
+          <!-- Active -->
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(46,188,188,0.15);display:flex;align-items:center;justify-content:center;position:relative;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <div style="position:absolute;left:0;top:8px;width:3px;height:24px;background:#2EBCBC;border-radius:0 3px 3px 0;"></div>
+          </div>
+          <!-- Requests -->
+          <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <!-- Notices -->
+          <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <!-- Users -->
+          <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <!-- Settings -->
+          <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-top:auto;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </div>
+          <!-- Avatar -->
+          <div style="width:34px;height:34px;border-radius:50%;background:rgba(46,188,188,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#2EBCBC;margin-top:8px;">EP</div>
+        </div>
+
+        <!-- Main content -->
+        <div style="flex:1;padding:24px 28px;overflow:auto;">
+          <!-- Top bar -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <div>
+              <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:20px;color:#032424;">Good morning, Ernest</div>
+              <div style="font-size:12px;color:#888;margin-top:2px;">Here's what needs your attention today</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <div style="position:relative;width:36px;height:36px;border-radius:10px;background:#fff;border:1.5px solid #e8eaed;display:flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                <div style="position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:#e74c3c;border-radius:50%;border:2px solid #f8fafb;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;">3</div>
+              </div>
+              <div style="background:#032424;color:#fff;padding:8px 18px;border-radius:10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;">
+                <span style="font-size:14px;">+</span> New Request
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat cards -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
+            <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+                <div style="font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Open Requests</div>
+                <div style="width:28px;height:28px;border-radius:8px;background:#f0fafa;display:flex;align-items:center;justify-content:center;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                </div>
+              </div>
+              <div style="font-size:28px;font-weight:700;color:#032424;line-height:1;">12</div>
+              <div style="font-size:10px;color:#27AE60;margin-top:6px;">&#9650; 2 new today</div>
+            </div>
+            <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+                <div style="font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Pending Tasks</div>
+                <div style="width:28px;height:28px;border-radius:8px;background:#fff8e6;display:flex;align-items:center;justify-content:center;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E2B93B" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+              </div>
+              <div style="font-size:28px;font-weight:700;color:#032424;line-height:1;">8</div>
+              <div style="font-size:10px;color:#E2B93B;margin-top:6px;">3 due today</div>
+            </div>
+            <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+                <div style="font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Completed</div>
+                <div style="width:28px;height:28px;border-radius:8px;background:#eafaf1;display:flex;align-items:center;justify-content:center;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27AE60" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+              </div>
+              <div style="font-size:28px;font-weight:700;color:#032424;line-height:1;">34</div>
+              <div style="font-size:10px;color:#27AE60;margin-top:6px;">&#9650; 12% this week</div>
+            </div>
+            <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+                <div style="font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Notices</div>
+                <div style="width:28px;height:28px;border-radius:8px;background:#eef4fd;display:flex;align-items:center;justify-content:center;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F8CED" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                </div>
+              </div>
+              <div style="font-size:28px;font-weight:700;color:#032424;line-height:1;">3</div>
+              <div style="font-size:10px;color:#2F8CED;margin-top:6px;">1 unread</div>
+            </div>
+          </div>
+
+          <!-- Recent requests table -->
+          <div style="background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #f0f0f0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div style="font-weight:600;font-size:14px;color:#032424;">Recent Requests</div>
+              <div style="font-size:11px;color:#2EBCBC;font-weight:500;cursor:pointer;">View all &#8594;</div>
+            </div>
+            <!-- Table header -->
+            <div style="display:grid;grid-template-columns:100px 1fr 120px 100px 100px;padding:8px 12px;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #f0f0f0;">
+              <div>ID</div><div>Subject</div><div>Assigned To</div><div>Status</div><div>Date</div>
+            </div>
+            <!-- Row 1 -->
+            <div style="display:grid;grid-template-columns:100px 1fr 120px 100px 100px;padding:12px;font-size:12px;color:#333;border-bottom:1px solid #f8f8f8;align-items:center;">
+              <div style="color:#2EBCBC;font-weight:500;">REQ-0042</div>
+              <div>Equipment access request</div>
+              <div style="display:flex;align-items:center;gap:6px;"><div style="width:22px;height:22px;border-radius:50%;background:#e8f8f8;font-size:9px;display:flex;align-items:center;justify-content:center;color:#2EBCBC;font-weight:600;">JD</div>John D.</div>
+              <div><span style="background:#fff8e6;color:#b8860b;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Pending</span></div>
+              <div style="color:#888;">Apr 3</div>
+            </div>
+            <!-- Row 2 -->
+            <div style="display:grid;grid-template-columns:100px 1fr 120px 100px 100px;padding:12px;font-size:12px;color:#333;border-bottom:1px solid #f8f8f8;align-items:center;">
+              <div style="color:#2EBCBC;font-weight:500;">REQ-0041</div>
+              <div>Security clearance renewal</div>
+              <div style="display:flex;align-items:center;gap:6px;"><div style="width:22px;height:22px;border-radius:50%;background:#eef4fd;font-size:9px;display:flex;align-items:center;justify-content:center;color:#2F8CED;font-weight:600;">SM</div>Sarah M.</div>
+              <div><span style="background:#eef4fd;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">In Progress</span></div>
+              <div style="color:#888;">Apr 2</div>
+            </div>
+            <!-- Row 3 -->
+            <div style="display:grid;grid-template-columns:100px 1fr 120px 100px 100px;padding:12px;font-size:12px;color:#333;align-items:center;">
+              <div style="color:#2EBCBC;font-weight:500;">REQ-0040</div>
+              <div>Network access modification</div>
+              <div style="display:flex;align-items:center;gap:6px;"><div style="width:22px;height:22px;border-radius:50%;background:#eafaf1;font-size:9px;display:flex;align-items:center;justify-content:center;color:#27AE60;font-weight:600;">EP</div>Ernest P.</div>
+              <div><span style="background:#eafaf1;color:#1a7a42;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500;">Completed</span></div>
+              <div style="color:#888;">Apr 1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="section">
+  <h3>3. Improved Modal Pattern</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Before — Bootstrap mixed styling</div>
+      <div class="mockup-body" style="background:#f3f4f6;padding:0;">
+        <div style="display:flex;align-items:center;justify-content:center;min-height:320px;font-family:Inter,sans-serif;font-size:12px;">
+          <div style="background:#fff;border-radius:4px;width:380px;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+            <div style="padding:14px 18px;border-bottom:1px solid #dee2e6;display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-size:14px;font-weight:600;">Add Task</div>
+              <div style="font-size:18px;color:#888;cursor:pointer;">&times;</div>
+            </div>
+            <div style="padding:18px;">
+              <div style="margin-bottom:14px;">
+                <div style="font-size:11px;color:#555;margin-bottom:4px;">Assigned To</div>
+                <select style="width:100%;padding:6px 10px;border:1px solid #ced4da;border-radius:4px;font-size:11px;color:#495057;background:#fff;">
+                  <option>-- UNASSIGNED --</option>
+                </select>
+              </div>
+              <div style="margin-bottom:14px;">
+                <div style="font-size:11px;color:#555;margin-bottom:4px;">Description</div>
+                <textarea style="width:100%;padding:6px 10px;border:1px solid #ced4da;border-radius:4px;font-size:11px;height:60px;resize:none;color:#495057;" placeholder="Enter task description..."></textarea>
+              </div>
+            </div>
+            <div style="padding:12px 18px;border-top:1px solid #dee2e6;display:flex;justify-content:flex-end;gap:8px;">
+              <div style="padding:6px 16px;border:1px solid #ced4da;border-radius:4px;font-size:11px;color:#333;">Cancel</div>
+              <div style="padding:6px 16px;background:#007bff;color:#fff;border-radius:4px;font-size:11px;">Save</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">After — Unified Guardian modal</div>
+      <div class="mockup-body" style="background:rgba(3,36,36,0.4);padding:0;">
+        <div style="display:flex;align-items:center;justify-content:center;min-height:320px;font-family:Inter,sans-serif;font-size:12px;">
+          <div style="background:#fff;border-radius:16px;width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.15);overflow:hidden;">
+            <!-- Header -->
+            <div style="padding:20px 24px 0;">
+              <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div>
+                  <div style="font-family:Montserrat,sans-serif;font-size:16px;font-weight:700;color:#032424;">Add Task</div>
+                  <div style="font-size:11px;color:#888;margin-top:2px;">Assign work to your team</div>
+                </div>
+                <div style="width:28px;height:28px;border-radius:8px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:14px;color:#888;cursor:pointer;">&times;</div>
+              </div>
+            </div>
+            <!-- Body -->
+            <div style="padding:20px 24px;">
+              <div style="margin-bottom:16px;">
+                <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">Assign to</div>
+                <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:12px;color:#aaa;display:flex;justify-content:space-between;align-items:center;">
+                  <span>Select team member...</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div style="margin-bottom:4px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <div style="font-size:11px;font-weight:500;color:#555;">Description</div>
+                  <div style="font-size:10px;color:#bbb;">0 / 250</div>
+                </div>
+                <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:10px 14px;font-size:12px;color:#aaa;height:70px;">What needs to be done...</div>
+              </div>
+            </div>
+            <!-- Footer -->
+            <div style="padding:16px 24px;background:#fafafa;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;">
+              <div style="padding:9px 20px;border:1.5px solid #e2e5e9;border-radius:10px;font-size:12px;color:#555;font-weight:500;">Cancel</div>
+              <div style="padding:9px 20px;background:#032424;color:#fff;border-radius:10px;font-size:12px;font-weight:600;">Create Task</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE -->
+<div class="section">
+  <h3>4. Mobile Experience</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Mobile — Dashboard</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;">
+        <div style="width:320px;margin:0 auto;font-family:Inter,sans-serif;font-size:12px;background:#f8fafb;min-height:340px;position:relative;">
+          <!-- Top bar -->
+          <div style="background:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0f0;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:28px;height:28px;background:#2EBCBC;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:12px;color:#032424;">G</div>
+              <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:14px;color:#032424;">Dashboard</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <div style="position:relative;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                <div style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;background:#e74c3c;border-radius:50%;border:2px solid #fff;font-size:7px;color:#fff;display:flex;align-items:center;justify-content:center;">3</div>
+              </div>
+            </div>
+          </div>
+          <!-- Content -->
+          <div style="padding:16px;">
+            <div style="font-size:15px;font-weight:600;color:#032424;margin-bottom:4px;">Good morning, Ernest</div>
+            <div style="font-size:11px;color:#888;margin-bottom:16px;">3 items need attention</div>
+            <!-- Stat row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Open</div>
+                <div style="font-size:22px;font-weight:700;color:#032424;margin-top:4px;">12</div>
+              </div>
+              <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Pending</div>
+                <div style="font-size:22px;font-weight:700;color:#E2B93B;margin-top:4px;">8</div>
+              </div>
+            </div>
+            <!-- Quick action -->
+            <div style="background:#032424;color:#fff;text-align:center;padding:12px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:14px;">+ New Request</div>
+            <!-- Recent item -->
+            <div style="background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+              <div style="font-size:10px;color:#888;margin-bottom:8px;">Latest Activity</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:12px;font-weight:500;color:#032424;">REQ-0042</div>
+                  <div style="font-size:10px;color:#888;">Equipment access</div>
+                </div>
+                <span style="background:#fff8e6;color:#b8860b;padding:3px 10px;border-radius:20px;font-size:9px;font-weight:500;">Pending</span>
+              </div>
+            </div>
+          </div>
+          <!-- Bottom nav -->
+          <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0f0f0;display:flex;justify-content:space-around;padding:8px 0 12px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2EBCBC" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <div style="font-size:9px;color:#2EBCBC;font-weight:500;">Home</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              <div style="font-size:9px;color:#aaa;">Requests</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+              <div style="font-size:9px;color:#aaa;">Notices</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42"/></svg>
+              <div style="font-size:9px;color:#aaa;">Settings</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Mobile — Modal</div>
+      <div class="mockup-body" style="padding:0;overflow:hidden;background:rgba(3,36,36,0.4);">
+        <div style="width:320px;margin:0 auto;font-family:Inter,sans-serif;font-size:12px;min-height:340px;display:flex;align-items:flex-end;">
+          <!-- Bottom sheet modal -->
+          <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;box-shadow:0 -10px 40px rgba(0,0,0,0.1);">
+            <!-- Handle -->
+            <div style="display:flex;justify-content:center;padding:10px 0 4px;">
+              <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;"></div>
+            </div>
+            <!-- Header -->
+            <div style="padding:8px 20px 16px;">
+              <div style="font-family:Montserrat,sans-serif;font-size:16px;font-weight:700;color:#032424;">Add Task</div>
+              <div style="font-size:11px;color:#888;margin-top:2px;">Assign work to your team</div>
+            </div>
+            <!-- Body -->
+            <div style="padding:0 20px 16px;">
+              <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">Assign to</div>
+                <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:12px 14px;font-size:12px;color:#aaa;">Select team member...</div>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">Description</div>
+                <div style="border:1.5px solid #e2e5e9;border-radius:10px;padding:12px 14px;font-size:12px;color:#aaa;height:60px;">What needs to be done...</div>
+              </div>
+            </div>
+            <!-- Footer -->
+            <div style="padding:16px 20px 24px;display:flex;gap:10px;">
+              <div style="flex:1;padding:12px;border:1.5px solid #e2e5e9;border-radius:12px;font-size:13px;color:#555;font-weight:500;text-align:center;">Cancel</div>
+              <div style="flex:1;padding:12px;background:#032424;color:#fff;border-radius:12px;font-size:13px;font-weight:600;text-align:center;">Create Task</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Design System Highlights</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-family:Inter,sans-serif;font-size:12px;">
+    <div style="background:#1a1a2e;border-radius:12px;padding:20px;color:#fff;">
+      <div style="font-weight:600;margin-bottom:12px;font-size:13px;">Colors (Unified)</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:#032424;" title="#032424"></div>
+        <div style="width:32px;height:32px;border-radius:8px;background:#2EBCBC;" title="#2EBCBC"></div>
+        <div style="width:32px;height:32px;border-radius:8px;background:#2F8CED;" title="#2F8CED"></div>
+        <div style="width:32px;height:32px;border-radius:8px;background:#27AE60;" title="#27AE60"></div>
+        <div style="width:32px;height:32px;border-radius:8px;background:#E2B93B;" title="#E2B93B"></div>
+        <div style="width:32px;height:32px;border-radius:8px;background:#C10000;" title="#C10000"></div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.5);">One teal. No more #219191 or #25c6c6.</div>
+    </div>
+    <div style="background:#1a1a2e;border-radius:12px;padding:20px;color:#fff;">
+      <div style="font-weight:600;margin-bottom:12px;font-size:13px;">Border Radius Scale</div>
+      <div style="display:flex;gap:8px;align-items:end;margin-bottom:8px;">
+        <div style="width:24px;height:24px;border:2px solid #2EBCBC;border-radius:6px;" title="6px - small"></div>
+        <div style="width:28px;height:28px;border:2px solid #2EBCBC;border-radius:10px;" title="10px - inputs"></div>
+        <div style="width:32px;height:32px;border:2px solid #2EBCBC;border-radius:14px;" title="14px - cards"></div>
+        <div style="width:36px;height:36px;border:2px solid #2EBCBC;border-radius:16px;" title="16px - modals"></div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.5);">6 / 10 / 14 / 16px — consistent scale</div>
+    </div>
+    <div style="background:#1a1a2e;border-radius:12px;padding:20px;color:#fff;">
+      <div style="font-weight:600;margin-bottom:12px;font-size:13px;">Shadows</div>
+      <div style="display:flex;gap:8px;align-items:end;margin-bottom:8px;">
+        <div style="width:32px;height:24px;background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.04);" title="sm"></div>
+        <div style="width:32px;height:24px;background:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" title="md"></div>
+        <div style="width:32px;height:24px;background:#fff;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,0.15);" title="lg"></div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.5);">sm / md / lg — cards, dropdowns, modals</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,159 @@
+<h2>Navigation Style — Which feels right for Guardian?</h2>
+<p class="subtitle">Click the layout that best matches the experience you want. Consider how admins, processors, and general users would navigate.</p>
+
+<div class="cards">
+  <!-- Option A: Fixed Sidebar -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:280px;font-family:Inter,system-ui,sans-serif;font-size:12px;background:#f8fafb;">
+        <!-- Sidebar -->
+        <div style="width:220px;background:#032424;color:#fff;padding:20px 0;flex-shrink:0;display:flex;flex-direction:column;">
+          <div style="padding:0 20px 20px;font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;color:#2EBCBC;letter-spacing:-0.3px;">Guardian</div>
+          <div style="padding:10px 20px;background:rgba(46,188,188,0.15);border-left:3px solid #2EBCBC;color:#2EBCBC;font-weight:500;">Dashboard</div>
+          <div style="padding:10px 20px;color:rgba(255,255,255,0.6);">Requests</div>
+          <div style="padding:10px 20px;color:rgba(255,255,255,0.6);">Notices</div>
+          <div style="padding:10px 20px;color:rgba(255,255,255,0.6);">Settings</div>
+          <div style="margin-top:auto;padding:10px 20px;color:rgba(255,255,255,0.4);font-size:11px;border-top:1px solid rgba(255,255,255,0.1);">Ernest P.</div>
+        </div>
+        <!-- Content -->
+        <div style="flex:1;padding:20px;">
+          <div style="font-weight:600;font-size:16px;color:#032424;margin-bottom:16px;">Dashboard</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Open Requests</div>
+              <div style="font-size:20px;font-weight:700;color:#032424;">12</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Pending Tasks</div>
+              <div style="font-size:20px;font-weight:700;color:#2EBCBC;">8</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Notices</div>
+              <div style="font-size:20px;font-weight:700;color:#032424;">3</div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);height:80px;">
+            <div style="font-size:11px;color:#888;margin-bottom:8px;">Recent Activity</div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:6px;"><div style="height:100%;width:70%;background:#e8f8f8;border-radius:4px;"></div></div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;"><div style="height:100%;width:45%;background:#e8f8f8;border-radius:4px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Fixed Sidebar</h3>
+      <p>Always-visible navigation in dark teal. Classic SaaS pattern. Easy to scan, clear hierarchy. Uses horizontal space.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Top Nav -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0;overflow:hidden;">
+      <div style="height:280px;font-family:Inter,system-ui,sans-serif;font-size:12px;background:#f8fafb;display:flex;flex-direction:column;">
+        <!-- Top Nav -->
+        <div style="background:#fff;border-bottom:1px solid #e8eaed;padding:0 24px;display:flex;align-items:center;height:52px;flex-shrink:0;">
+          <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;color:#032424;margin-right:32px;">Guardian</div>
+          <div style="display:flex;gap:4px;flex:1;">
+            <div style="padding:6px 14px;background:#f0fafa;color:#2EBCBC;border-radius:8px;font-weight:500;font-size:12px;">Dashboard</div>
+            <div style="padding:6px 14px;color:#666;font-size:12px;">Requests</div>
+            <div style="padding:6px 14px;color:#666;font-size:12px;">Notices</div>
+            <div style="padding:6px 14px;color:#666;font-size:12px;">Admin</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:18px;height:18px;border-radius:50%;border:1.5px solid #ccc;"></div>
+            <div style="width:28px;height:28px;border-radius:50%;background:#2EBCBC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">EP</div>
+          </div>
+        </div>
+        <!-- Content -->
+        <div style="flex:1;padding:20px 24px;max-width:100%;">
+          <div style="font-weight:600;font-size:16px;color:#032424;margin-bottom:16px;">Dashboard</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Open Requests</div>
+              <div style="font-size:20px;font-weight:700;color:#032424;">12</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Pending Tasks</div>
+              <div style="font-size:20px;font-weight:700;color:#2EBCBC;">8</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Notices</div>
+              <div style="font-size:20px;font-weight:700;color:#032424;">3</div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);height:100px;">
+            <div style="font-size:11px;color:#888;margin-bottom:8px;">Recent Activity</div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:6px;"><div style="height:100%;width:70%;background:#e8f8f8;border-radius:4px;"></div></div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:6px;"><div style="height:100%;width:45%;background:#e8f8f8;border-radius:4px;"></div></div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;"><div style="height:100%;width:60%;background:#e8f8f8;border-radius:4px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Top Navigation Bar</h3>
+      <p>Horizontal nav like Notion/Linear. Maximizes content width. Clean and modern. Dropdowns for sub-pages.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Collapsible Sidebar -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:280px;font-family:Inter,system-ui,sans-serif;font-size:12px;background:#f8fafb;">
+        <!-- Collapsed Sidebar -->
+        <div style="width:56px;background:#032424;color:#fff;padding:16px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:28px;height:28px;background:#2EBCBC;border-radius:8px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;font-family:Montserrat;font-weight:800;font-size:13px;color:#032424;">G</div>
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(46,188,188,0.15);margin-bottom:6px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #2EBCBC;"></div>
+          </div>
+          <div style="width:32px;height:32px;border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div>
+          </div>
+          <div style="width:32px;height:32px;border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div>
+          </div>
+          <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.3);"></div>
+          </div>
+          <div style="margin-top:auto;width:28px;height:28px;border-radius:50%;background:rgba(46,188,188,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#2EBCBC;">EP</div>
+        </div>
+        <!-- Expanded overlay hint -->
+        <div style="width:180px;background:rgba(3,36,36,0.97);color:#fff;padding:16px 0;flex-shrink:0;border-right:1px solid rgba(46,188,188,0.15);position:relative;">
+          <div style="position:absolute;top:4px;right:4px;font-size:9px;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;">hover expanded</div>
+          <div style="padding:0 16px 16px;font-family:Montserrat,sans-serif;font-weight:700;font-size:14px;color:#2EBCBC;margin-top:6px;">Guardian</div>
+          <div style="padding:8px 16px;background:rgba(46,188,188,0.12);border-left:3px solid #2EBCBC;color:#2EBCBC;font-weight:500;font-size:12px;">Dashboard</div>
+          <div style="padding:8px 16px;color:rgba(255,255,255,0.5);font-size:12px;">Requests</div>
+          <div style="padding:8px 16px;color:rgba(255,255,255,0.5);font-size:12px;">Notices</div>
+          <div style="padding:8px 16px;color:rgba(255,255,255,0.5);font-size:12px;">Settings</div>
+        </div>
+        <!-- Content -->
+        <div style="flex:1;padding:20px;">
+          <div style="font-weight:600;font-size:16px;color:#032424;margin-bottom:16px;">Dashboard</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Open Requests</div>
+              <div style="font-size:20px;font-weight:700;color:#032424;">12</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Pending Tasks</div>
+              <div style="font-size:20px;font-weight:700;color:#2EBCBC;">8</div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+              <div style="font-size:10px;color:#888;margin-bottom:4px;">Notices</div>
+              <div style="font-size:20px;font-weight:700;color:#032424;">3</div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);height:80px;">
+            <div style="font-size:11px;color:#888;margin-bottom:8px;">Recent Activity</div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;margin-bottom:6px;"><div style="height:100%;width:70%;background:#e8f8f8;border-radius:4px;"></div></div>
+            <div style="height:8px;background:#f0f0f0;border-radius:4px;"><div style="height:100%;width:45%;background:#e8f8f8;border-radius:4px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Collapsible Sidebar</h3>
+      <p>Icons-only by default, expands on hover. Best of both worlds — persistent nav without eating space. Like VS Code/Discord.</p>
+    </div>
+  </div>
+</div>
