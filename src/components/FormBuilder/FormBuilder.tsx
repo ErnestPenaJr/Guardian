@@ -163,7 +163,7 @@ const GLOBAL_CSS = `
 .fb-fta{height:60px;resize:none}
 .fb-fopts{display:flex;flex-direction:column;gap:6px}
 .fb-fopt{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fb-t2);pointer-events:none}
-.fb-fopt input{accent-color:var(--fb-accent);flex-shrink:0;pointer-events:none}
+.fb-fopt input{accent-color:var(--fb-accent);flex-shrink:0;pointer-events:none;appearance:auto;-webkit-appearance:auto}
 .fb-ftog{display:flex;align-items:center;gap:10px;pointer-events:none}
 .fb-ftogtrack{width:36px;height:20px;border-radius:10px;background:var(--fb-accent);display:inline-flex;align-items:center;padding:0 2px;flex-shrink:0}
 .fb-ftogthumb{width:16px;height:16px;border-radius:50%;background:#fff;margin-left:auto}
@@ -241,7 +241,7 @@ const GLOBAL_CSS = `
 
 const iconMap: Record<string, string> = {
   text_input: 'T', text: 'T', textarea: '¶', number: '#', email: '@', phone: '☎',
-  dropdown: '▾', select: '▾', radio: '◎', checkbox: '✓', checkboxes: '✓',
+  dropdown: '▾', select: '▾', radio: '◎', radio_button: '◎', checkbox: '✓', checkboxes: '✓',
   date: '▦', time: '◷', datetime: '▦◷', date_time: '▦◷',
   file: '↑', file_upload: '↑', image: '▣',
   ssn: '***', dob: '▦', account_number: '#', address: '⌂',
@@ -254,7 +254,7 @@ interface PaletteGroup {
 
 function groupFieldTypes(dbTypes: UiFieldType[]): PaletteGroup[] {
   const basic = ['text_input', 'text', 'textarea', 'number', 'email', 'phone'];
-  const selection = ['dropdown', 'select', 'radio', 'checkbox', 'checkboxes'];
+  const selection = ['dropdown', 'select', 'radio', 'radio_button', 'checkbox', 'checkboxes'];
   const dateTime = ['date', 'time', 'datetime', 'date_time'];
   const fileTypes = ['file', 'file_upload'];
 
@@ -343,7 +343,7 @@ function PreviewMode({ rows: previewRows }: { rows: FormField[][] }) {
                     ))}
                   </div>
                 )}
-                {f.fieldType === 'radio' && (
+                {(f.fieldType === 'radio' || f.fieldType === 'radio_button') && (
                   <div className="fb-fopts">
                     {(opts.length > 0 ? opts : ['Option 1']).map((o) => (
                       <label key={o} className="fb-fopt"><input type="radio" name={`prev_${f.id}`} />{o}</label>
@@ -356,7 +356,7 @@ function PreviewMode({ rows: previewRows }: { rows: FormField[][] }) {
                 {f.fieldType === 'date' && <input className="fb-pfinp" type="date" />}
                 {f.fieldType === 'time' && <input className="fb-pfinp" type="time" />}
                 {(f.fieldType === 'datetime' || f.fieldType === 'date_time') && <input className="fb-pfinp" type="datetime-local" />}
-                {!['textarea', 'dropdown', 'select', 'checkbox', 'checkboxes', 'radio', 'file', 'file_upload', 'date', 'time', 'datetime', 'date_time'].includes(f.fieldType) && (
+                {!['textarea', 'dropdown', 'select', 'checkbox', 'checkboxes', 'radio', 'radio_button', 'file', 'file_upload', 'date', 'time', 'datetime', 'date_time'].includes(f.fieldType) && (
                   <input className="fb-pfinp" type="text" placeholder={f.placeholder || ''} />
                 )}
 
@@ -376,7 +376,7 @@ function PreviewMode({ rows: previewRows }: { rows: FormField[][] }) {
 /* ------------------------------------------------------------------ */
 
 const VALIDATION_RULES = ['required', 'min', 'max', 'email', 'url', 'regex', 'numeric', 'alpha'];
-const OPTION_FIELD_TYPES = ['dropdown', 'select', 'radio', 'checkbox', 'checkboxes'];
+const OPTION_FIELD_TYPES = ['dropdown', 'select', 'radio', 'radio_button', 'checkbox', 'checkboxes'];
 
 function PropsPanel({
   field,
@@ -564,6 +564,7 @@ function FieldPreview({ field }: { field: FormField }) {
         </div>
       );
     case 'radio':
+    case 'radio_button':
       return (
         <div className="fb-fopts">
           {(opts.length > 0 ? opts : ['Option 1']).map((o) => (

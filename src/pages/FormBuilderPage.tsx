@@ -15,7 +15,8 @@ export default function FormBuilderPage() {
   const navigate = useNavigate();
 
   const isNew = !formId || formId === 'new';
-  const returnTo = searchParams.get('returnTo') || '/admin';
+  const returnTo = searchParams.get('returnTo') || '/home';
+  const returnSection = searchParams.get('returnSection') || 'admin';
 
   const [loading, setLoading] = useState(true);
   const [initialFields, setInitialFields] = useState<FormField[]>([]);
@@ -84,11 +85,11 @@ export default function FormBuilderPage() {
       toast.success('Form created successfully');
     }
 
-    navigate(returnTo);
+    navigate(returnTo, { state: { activeSection: returnSection } });
   };
 
   const handleCancel = () => {
-    navigate(returnTo);
+    navigate(returnTo, { state: { activeSection: returnSection } });
   };
 
   if (loading) {

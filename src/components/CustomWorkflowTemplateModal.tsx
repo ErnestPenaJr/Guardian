@@ -188,7 +188,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   // Handle edit template fields — navigate to full-page form builder
   const handleEditTemplate = (template: CustomWorkflowTemplate) => {
     handleModalClose();
-    navigate(`/form-builder/${template.FORM_ID}?returnTo=/admin`);
+    navigate(`/form-builder/${template.FORM_ID}?returnTo=/home&returnSection=admin`);
   };
 
   // Reset all states to initial
@@ -368,7 +368,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                         return;
                       }
                       handleModalClose();
-                      navigate(`/form-builder/new?name=${encodeURIComponent(formData.name.trim())}&type=${encodeURIComponent(formData.formType)}&description=${encodeURIComponent(formData.description.trim())}&returnTo=/admin`);
+                      navigate(`/form-builder/new?name=${encodeURIComponent(formData.name.trim())}&type=${encodeURIComponent(formData.formType)}&description=${encodeURIComponent(formData.description.trim())}&returnTo=/home&returnSection=admin`);
                     }}
                     disabled={!formData.name.trim()}
                   >

@@ -131,55 +131,28 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
       <h2 className="text-2xl font-bold uppercase fs-2 mb-8">Admin Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Workflow Card */}
-        <div 
-          className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary" 
-          style={{ 
+        <a
+          href="#"
+          className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-secondary"
+          style={{
             borderRadius: '6px',
             backgroundColor: '#FFFFFF'
           }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+          onClick={(e) => {
+            e.preventDefault();
+            setCustomTemplateModalOpen(true);
+          }}
         >
           <FaProjectDiagram className="h-12 w-12 text-secondary mb-4" />
-          <h3 
-            className="text-lg font-semibold mb-2 cursor-pointer hover:text-secondary transition-colors"
-            onClick={() => setNewRequestModalOpen(true)}
-          >
-            Workflow
-          </h3>
+          <h3 className="text-lg font-semibold mb-2">Workflow</h3>
           <ul className="text-gray-600">
-            <li 
-              className="cursor-pointer hover:text-secondary transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setNewRequestModalOpen(true);
-              }}
-            >
-              Create Workflow Templates
-            </li>
-            <li 
-              className="cursor-pointer hover:text-secondary transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setWorkflowManagementModalOpen(true);
-              }}
-            >
-              Manage Workflows
-            </li>
-            {isJafarUser() && (
-              <li 
-                className="cursor-pointer hover:text-secondary transition-colors font-semibold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCustomTemplateModalOpen(true);
-                }}
-                style={{ color: '#2EBCBC' }}
-              >
-                Custom Workflow Templates
-              </li>
-            )}
+            <li>Create & manage templates</li>
+            <li>Configure form fields</li>
+            <li>Automate request flows</li>
           </ul>
-        </div>
+        </a>
 
         {/* Users Card - triggers callback to show user management - visible to admin (role 1) and JAFAR (role 6) */}
         {((user.roles && user.roles.some((role: any) => role.id === 1 || role.id === 6)) || user.role === '1' || user.role === '6') && (
