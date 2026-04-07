@@ -377,41 +377,21 @@ const RestrictionCodesLabel: React.FC<RestrictionCodesLabelProps> = ({
     : PLACEHOLDER_RESTRICTION_CODES;
 
   return (
-    <div>
-      <span>Restriction Codes</span>
-      <div className="sw-restriction-panel">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span>Restriction Codes:</span>
+      <div>
         <input
           className="sw-input"
           value={storedCode}
           maxLength={4}
-          placeholder="Code"
-          style={{ textTransform: 'uppercase', width: 70, fontSize: 12 }}
+          placeholder="CODE"
+          style={{ textTransform: 'uppercase', width: 70, fontSize: 12, border: '1px solid #999', borderRadius: 3, padding: '2px 4px' }}
           onChange={e => {
-            const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
             if (codeFieldId) onChange(codeFieldId, v);
-            setFilter(v);
           }}
           readOnly={readOnly}
         />
-        <div className="sw-restriction-list">
-          {filtered.map(c => (
-            <div
-              key={c.code}
-              className="sw-restriction-item"
-              onClick={() => {
-                if (!readOnly && codeFieldId) {
-                  onChange(codeFieldId, c.code);
-                  setFilter('');
-                }
-              }}
-            >
-              <strong>{c.code}</strong> — {c.description}
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <div style={{ padding: '4px 6px', color: '#999', fontStyle: 'italic' }}>No matching codes</div>
-          )}
-        </div>
       </div>
     </div>
   );

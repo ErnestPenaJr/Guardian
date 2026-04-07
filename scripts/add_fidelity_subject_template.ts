@@ -97,99 +97,108 @@ async function addFidelitySubjectTemplate() {
     const fields = [
       // --- HEADER ---
       f('Case #',                         T,  1,  { required: true }),
+      f('Fraud Type',                     DD, 2,  { hasLookup: true }),
+      f('Category',                       DD, 3,  { hasLookup: true }),
+      f('Dollar Loss Amount',             T,  4),
 
       // --- SUBJECT IDENTIFICATION ---
-      f('First Name',                     T,  2,  { required: true }),
-      f('Middle Name',                    T,  3),
-      f('Last Name',                      T,  4,  { required: true }),
-      f('Suffix',                         T,  5),
-      f('AKA(s)',                         T,  6),
-      f('Date of Birth',                  D,  7,  { sensitive: true, required: true, displayFormat: 'MM/DD/YYYY' }),
-      f('Social Security Number',         T,  8,  { sensitive: true, displayFormat: 'XXX-XX-####' }),
-      f("State Driver's License",         T,  9),
-      f('DL Issuing State',               T,  10),
-      f('Account Number',                 T,  11, { sensitive: true }),
-      f('FBI SID Number',                 T,  12),
-      f('Other ID #',                     T,  13),
+      f('First Name',                     T,  5,  { required: true }),
+      f('Middle Name',                    T,  6),
+      f('Last Name',                      T,  7,  { required: true }),
+      f('Suffix',                         T,  8),
+      f('AKA(s)',                         T,  9),
+      f('Date of Birth',                  D,  10, { sensitive: true, required: true, displayFormat: 'MM/DD/YYYY' }),
+      f('Social Security Number',         T,  11, { sensitive: true, displayFormat: 'XXX-XX-####' }),
+      f("State Driver's License",         T,  12),
+      f('DL Issuing State',               T,  13),
+      f('Account Number',                 T,  14, { sensitive: true }),
+      f('FBI SID Number',                 T,  15),
+      f('Other ID #',                     T,  16),
 
       // --- DEMOGRAPHICS ---
-      f('Gender',                         DD, 14, { hasLookup: true }),
-      f('Race',                           DD, 15, { hasLookup: true }),
-      f('Place of Birth (City)',          T,  16),
-      f('Place of Birth (State)',         T,  17),
-      f('Place of Birth (Country)',       T,  18),
-      f('Height',                         T,  19),
-      f('Weight',                         T,  20),
-      f('Eye Color',                      DD, 21, { hasLookup: true }),
-      f('Hair Color',                     DD, 22, { hasLookup: true }),
-      f('Tattoos / Marks',               DD, 23, { hasLookup: true }),
-      f('Special Notes',                  T,  24),
+      f('Gender',                         DD, 17, { hasLookup: true }),
+      f('Race',                           DD, 18, { hasLookup: true }),
+      f('Place of Birth (City)',          T,  19),
+      f('Place of Birth (State)',         T,  20),
+      f('Place of Birth (Country)',       T,  21),
+      f('Height',                         T,  22),
+      f('Weight',                         T,  23),
+      f('Eye Color',                      DD, 24, { hasLookup: true }),
+      f('Hair Color',                     DD, 25, { hasLookup: true }),
+      f('Tattoos / Marks',               DD, 26, { hasLookup: true }),
+      f('Special Notes',                  T,  27),
 
       // --- CONTACT & DIGITAL IDENTIFIERS ---
-      f('Address',                        TA, 25),
-      f('Phone Number',                   PH, 26),
-      f('IP Address',                     T,  27),
-      f('Social Media Platform',          T,  28),
-      f('Social Media Handle',            T,  29),
-      f('Social Media URL',               UR, 30),
+      f('Address',                        TA, 28),
+      f('Phone Number',                   PH, 29),
+      f('IP Address',                     T,  30),
+      f('Device Type',                    DD, 31, { hasLookup: true }),
+      f('Device Type Other',              T,  32),
+      f('Social Media Platform',          T,  33),
+      f('Social Media Handle',            T,  34),
+      f('Social Media URL',               UR, 35),
 
       // --- CRIMINAL HISTORY ---
-      f('Criminal History',               TA, 31, { sensitive: true }),
+      f('Criminal History',               TA, 36, { sensitive: true }),
 
       // --- OTHER SUBJECT NOTES ---
-      f('Other Subject Notes',            TA, 32),
+      f('Other Subject Notes',            TA, 37),
 
       // --- INVESTIGATIVE NOTES ---
-      f('Investigative/Intel Notes',      TA, 33, { sensitive: true }),
+      f('Investigative/Intel Notes',      TA, 38, { sensitive: true }),
 
       // --- MINIMUM COLLECTION CHECKLIST ---
-      f('Account Statements',             RB, 34, { hasLookup: true }),
-      f('FinCEN / SAR',                   RB, 35, { hasLookup: true }),
-      f('Master OBI / TRAP Data',         RB, 36, { hasLookup: true }),
-      f('Address Information',            RB, 37, { hasLookup: true }),
-      f('Phone Numbers / Emails',         RB, 38, { hasLookup: true }),
-      f('Phone Calls',                    RB, 39, { hasLookup: true }),
-      f('Branch Video / Photographs',     RB, 40, { hasLookup: true }),
-      f('Wire / ACH Activity',            RB, 41, { hasLookup: true }),
-      f('Deposit Activity',               RB, 42, { hasLookup: true }),
-      f('Withdrawal Activity',            RB, 43, { hasLookup: true }),
-      f('Crypto Activity',                RB, 44, { hasLookup: true }),
-      f('Securities Activity',            RB, 45, { hasLookup: true }),
-      f('Debit Card / SMS Alerts',        RB, 46, { hasLookup: true }),
-      f('AUTHLOGS / IP Data',             RB, 47, { hasLookup: true }),
-      f('DOC V x2',                       RB, 48, { hasLookup: true }),
-      f('Account Holder Interviewed',     RB, 49, { hasLookup: true }),
-      f('Social Media (Checklist)',       RB, 50, { hasLookup: true }),
-      f('Additional Contact Info',        RB, 51, { hasLookup: true }),
+      f('Account Statements',             RB, 39, { hasLookup: true }),
+      f('FinCEN / SAR',                   RB, 40, { hasLookup: true }),
+      f('Master OBI / TRAP Data',         RB, 41, { hasLookup: true }),
+      f('Address Information',            RB, 42, { hasLookup: true }),
+      f('Phone Numbers / Emails',         RB, 43, { hasLookup: true }),
+      f('Phone Calls',                    RB, 44, { hasLookup: true }),
+      f('Branch Video / Photographs',     RB, 45, { hasLookup: true }),
+      f('Wire / ACH Activity',            RB, 46, { hasLookup: true }),
+      f('Deposit Activity',               RB, 47, { hasLookup: true }),
+      f('Withdrawal Activity',            RB, 48, { hasLookup: true }),
+      f('Crypto Activity',                RB, 49, { hasLookup: true }),
+      f('Securities Activity',            RB, 50, { hasLookup: true }),
+      f('Debit Card / SMS Alerts',        RB, 51, { hasLookup: true }),
+      f('AUTHLOGS / IP Data',             RB, 52, { hasLookup: true }),
+      f('DOC V x2',                       RB, 53, { hasLookup: true }),
+      f('Account Holder Interviewed',     RB, 54, { hasLookup: true }),
+      f('Social Media (Checklist)',       RB, 55, { hasLookup: true }),
+      f('Additional Contact Info',        RB, 56, { hasLookup: true }),
+      f('Standing Instructions',          RB, 57, { hasLookup: true }),
 
       // --- SOURCES: SUBJECT IDENTIFICATION ---
-      f('Flashpoint',                     RB, 52, { hasLookup: true }),
-      f('Photo',                          RB, 53, { hasLookup: true }),
-      f('Vehicle - Plate Number',         T,  54),
-      f('Vehicle - State',                T,  55),
-      f('Vehicle - Description',          T,  56),
+      f('Flashpoint',                     RB, 58, { hasLookup: true }),
+      f('Photo',                          RB, 59, { hasLookup: true }),
+      f('Vehicle - Plate Number',         T,  60),
+      f('Vehicle - State',                T,  61),
+      f('Vehicle - Description',          T,  62),
 
       // --- PROPERTY DATA SOURCES ---
-      f('Map Overlay',                    RB, 57, { hasLookup: true }),
-      f('Street View',                    RB, 58, { hasLookup: true }),
-      f('City / Town Tax Card',           RB, 59, { hasLookup: true }),
+      f('Map Overlay',                    RB, 63, { hasLookup: true }),
+      f('Street View',                    RB, 64, { hasLookup: true }),
+      f('City / Town Tax Card',           RB, 65, { hasLookup: true }),
 
       // --- BACKGROUND DATABASES ---
-      f('CLEAR / Lexis Nexis',            RB, 60, { hasLookup: true }),
+      f('CLEAR / Lexis Nexis',            RB, 66, { hasLookup: true }),
 
       // --- OSINT / SOCMINT ---
-      f('Social Media / CTI',             TA, 61),
-      f('OSINT Notes',                    TA, 62),
+      f('Social Media / CTI',             TA, 67),
+      f('OSINT Notes',                    TA, 68),
+      f('Restriction Codes',              RB, 69, { hasLookup: true }),
+      f('Restriction Code Value',         T,  70),
+      f('Asset Recovery',                 RB, 71, { hasLookup: true }),
 
       // --- ADDITIONAL DATA ---
-      f('Additional Data Notes',          TA, 63),
+      f('Additional Data Notes',          TA, 72),
 
       // --- HEADER ASSIGNMENT ---
-      f('Analyst',                        DD, 64, { hasLookup: true }),
-      f('Investigator',                   DD, 65, { hasLookup: true }),
+      f('Analyst',                        DD, 73, { hasLookup: true }),
+      f('Investigator',                   DD, 74, { hasLookup: true }),
 
       // --- PHOTO ---
-      f('Subject Photo Image',            T,  66),
+      f('Subject Photo Image',            T,  75),
     ];
 
     // ── Insert form with forced ID via IDENTITY_INSERT ──────────────

@@ -644,11 +644,15 @@
 .sw-matrix-radio-cell input[type="radio"] {
   cursor: pointer;
   accent-color: #1a56c4;
+  appearance: auto;
+  -webkit-appearance: auto;
 }
 .sw-matrix-radio-cell input[type="radio"]:disabled { cursor: default; }
 .sw-matrix-radio-cell input[type="checkbox"] {
   cursor: pointer;
   accent-color: #1a56c4;
+  appearance: auto;
+  -webkit-appearance: auto;
   width: 14px;
   height: 14px;
 }
