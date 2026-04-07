@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import formService from '../services/formService';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaFileAlt } from 'react-icons/fa';
 import StandardTemplates from './StandardTemplates';
 import { useAuth } from '../hooks/useAuth';
 
@@ -18,23 +18,23 @@ interface SelectFormModalProps {
 const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSelectForm }) => {
   const [forms, setForms] = useState<DbForm[]>([]);
   const [loading, setLoading] = useState(false);
-  // Removed selectedFormId state since we're not using custom templates anymore
+  const [loadingTemplateId, setLoadingTemplateId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { user } = useAuth();
-  
+
   // Helper function to check if user has manager, admin, or jfar role
   const hasRequiredRole = () => {
     if (!user) return false;
-    
+
     // Check roles array (objects with id property)
     // Admin (1), JFAR (6), Manager (3)
-    const hasRoleInArray = user.roles?.some((role: any) => 
+    const hasRoleInArray = user.roles?.some((role: any) =>
       role.id === 1 || role.id === 6 || role.id === 3
     );
-    
+
     // Check role string property
     const hasRoleAsString = user.role === '1' || user.role === '6' || user.role === '3';
-    
+
     return hasRoleInArray || hasRoleAsString;
   };
 
@@ -58,8 +58,40 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
     }
   };
 
-  // No longer need handleSelectForm since we're only using standard templates now
-  
+  // Handle selection of a custom (database) template
+  const handleSelectCustomTemplate = async (formId: number) => {
+    try {
+      setLoadingTemplateId(formId);
+      const formData = await formService.getFormById(formId);
+
+      if (formData && formData.form && formData.fields) {
+        onClose();
+        onSelectForm(formId, {
+          form: formData.form,
+          fields: formData.fields,
+          templateType: 'custom'
+        });
+      } else {
+        toast.error('Failed to load template fields');
+      }
+    } catch (error) {
+      console.error('Error loading custom template:', error);
+      toast.error('Failed to load form template');
+    } finally {
+      setLoadingTemplateId(null);
+    }
+  };
+
+  // Filter custom templates - company-specific, active, not deleted
+  const customTemplates = forms.filter(form =>
+    form.COMPANY_ID &&
+    form.IS_ACTIVE &&
+    !form.IS_DELETED &&
+    (searchTerm === '' ||
+      form.FORM_NAME?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      form.FORM_DESCRIPTION?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   // Handle selection of a standard template
   const handleSelectTemplate = (templateId: string) => {
     console.log(`SelectFormModal: Processing template selection for ID: ${templateId}`);
@@ -146,8 +178,6 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
     }
   };
 
-  // No longer need to filter forms since we're not displaying custom templates
-
   return (
     <Modal
       isOpen={isOpen}
@@ -187,7 +217,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         <h3 className="modal-title m-0">Select Form Template</h3>
         <button type="button" className="btn-close" onClick={onClose}></button>
       </div>
-      
+
       <div className="mb-3">
         <input
           type="text"
@@ -197,7 +227,7 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      
+
       {loading ? (
         <div className="text-center py-5">
           <FaSpinner className="fa-spin" size={30} />
@@ -205,20 +235,46 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
         </div>
       ) : (
         <>
+          {/* Custom Company Templates Section */}
+          {customTemplates.length > 0 && (
+            <div className="py-3 mb-4">
+              <h4 className="text-center mb-4">Your Workflow Templates</h4>
+              <div className="standard-templates-container">
+                {customTemplates.map((form) => (
+                  <div
+                    key={form.FORM_ID}
+                    className="template-card"
+                    onClick={() => form.FORM_ID && handleSelectCustomTemplate(form.FORM_ID)}
+                    title="Click to use this template"
+                    style={{ opacity: loadingTemplateId === form.FORM_ID ? 0.7 : 1 }}
+                  >
+                    <div className="template-header">
+                      <h3 className="template-title">{form.FORM_NAME}</h3>
+                    </div>
+                    <div className="template-body">
+                      <div className="template-icon">
+                        {loadingTemplateId === form.FORM_ID ? (
+                          <FaSpinner className="fa-spin" size={24} />
+                        ) : (
+                          <FaFileAlt size={24} />
+                        )}
+                      </div>
+                      <div className="template-description">
+                        {form.FORM_DESCRIPTION || 'Custom workflow template'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Standard Templates Section */}
-          <div className="py-4 mb-4">
+          <div className="py-3 mb-4">
             <h4 className="text-center mb-4">Standard Templates</h4>
-            <StandardTemplates 
+            <StandardTemplates
               onSelectTemplate={(templateId) => {
-                // Clear any previously rendered forms
-                if (forms.length > 0) {
-                  console.log('Clearing previously rendered forms');
-                  // We're not modifying the forms array directly, just ensuring a clean state for the new selection
-                }
-                
-                // Create a new form based on the selected template
                 console.log(`SelectFormModal received template ID: ${templateId}`);
-                // Ensure we're passing the correct template ID
                 if (templateId === 'subject' || templateId === 'financial' || templateId === 'address') {
                   handleSelectTemplate(templateId);
                 } else {
@@ -228,12 +284,12 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
               }}
             />
           </div>
-          
+
           {/* Admin Dashboard Link - only visible to manager, admin, and jfar roles */}
           {hasRequiredRole() && (
             <div className="text-center mt-4">
               <p className="text-muted">Need more options? Create custom templates in the Admin Dashboard</p>
-              <button 
+              <button
                 className="btn btn-outline-primary mt-2"
                 onClick={() => window.location.href = '/admin'}
               >
@@ -243,10 +299,10 @@ const SelectFormModal: React.FC<SelectFormModalProps> = ({ isOpen, onClose, onSe
           )}
         </>
       )}
-      
+
       <div className="modal-footer d-flex justify-content-end mt-3">
-        <button 
-          className="btn btn-secondary" 
+        <button
+          className="btn btn-secondary"
           onClick={onClose}
         >
           Cancel
