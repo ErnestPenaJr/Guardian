@@ -10,6 +10,7 @@ import Select from '../components/ui/Select';
 import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/Modal';
+import '../styles/StatusBadge.css';
 import WorkProgressTable from '../components/WorkProgressTable';
 import TaskTable from '../components/TaskTable';
 import { toast } from 'react-toastify';
@@ -333,20 +334,17 @@ const RequestFulfillmentDashboard: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'P':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'A':
-        return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
-      case 'D':
-        return <Badge className="bg-green-100 text-green-800">Complete</Badge>;
-      case 'R':
-        return <Badge className="bg-red-100 text-red-800">Canceled</Badge>;
-      case 'X':
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+    const statusMap: Record<string, { text: string; cls: string }> = {
+      'P': { text: 'Pending', cls: 'status-badge--pending' },
+      'A': { text: 'Active', cls: 'status-badge--active' },
+      'D': { text: 'Complete', cls: 'status-badge--complete' },
+      'I': { text: 'In Progress', cls: 'status-badge--inprogress' },
+      'X': { text: 'Cancelled', cls: 'status-badge--cancelled' },
+      'H': { text: 'On hold', cls: 'status-badge--onhold' },
+      'R': { text: 'Rejected', cls: 'status-badge--rejected' },
+    };
+    const s = statusMap[status] || { text: status, cls: '' };
+    return <span className={`status-badge ${s.cls}`}>{s.text}</span>;
   };
 
   const getPriorityBadge = (priority: 'low' | 'medium' | 'high' | 'urgent') => {
@@ -994,17 +992,11 @@ const RequestFulfillmentDashboard: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-600">Form Status:</span>
                 {formData.formStatus === 'completed' ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    ✓ Completed
-                  </span>
+                  <span className="status-badge status-badge--complete">Complete</span>
                 ) : formData.formStatus === 'in_progress' ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    📝 In Progress
-                  </span>
+                  <span className="status-badge status-badge--inprogress">In Progress</span>
                 ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    📄 New
-                  </span>
+                  <span className="status-badge status-badge--pending">Pending</span>
                 )}
                 {formData.hasExistingData && (
                   <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">

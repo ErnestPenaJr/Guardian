@@ -15,6 +15,7 @@ import RequestModal from '../components/RequestModal';
 import axios from 'axios';
 import 'react-tooltip/dist/react-tooltip.css';
 import '../styles/sidebar.css';
+import '../styles/StatusBadge.css';
 import MobileNavBar from '../components/MobileNavBar';
 import DataTable from 'react-data-table-component';
 import Swal from 'sweetalert2';
@@ -894,31 +895,17 @@ function Home() {
       selector: (row: Request) => row.STATUS,
       sortable: true,
       cell: (row: Request) => {
-        const statusColor = {
-          'P': 'bg-yellow-200 text-yellow-800',
-          'A': 'bg-blue-200 text-blue-800',
-          'D': 'bg-green-200 text-green-800',
-          'I': 'bg-cyan-200 text-cyan-800',
-          'X': 'bg-orange-200 text-orange-800',
-          'H': 'bg-purple-200 text-purple-800',
-          'R': 'bg-red-200 text-red-800'
-        }[row.STATUS] || 'bg-gray-200 text-gray-800';
-        
-        const statusText = {
-          'P': 'Pending',
-          'A': 'Active',
-          'D': 'Complete',
-          'I': 'In Progress',
-          'X': 'Cancelled',
-          'H': 'On Hold',
-          'R': 'Rejected'
-        }[row.STATUS] || 'Unknown';
-
-        return (
-          <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${statusColor} inline-block whitespace-nowrap`}>
-            {statusText}
-          </span>
-        );
+        const statusMap: Record<string, { text: string; cls: string }> = {
+          'P': { text: 'Pending', cls: 'status-badge--pending' },
+          'A': { text: 'Active', cls: 'status-badge--active' },
+          'D': { text: 'Complete', cls: 'status-badge--complete' },
+          'I': { text: 'In Progress', cls: 'status-badge--inprogress' },
+          'X': { text: 'Cancelled', cls: 'status-badge--cancelled' },
+          'H': { text: 'On hold', cls: 'status-badge--onhold' },
+          'R': { text: 'Rejected', cls: 'status-badge--rejected' },
+        };
+        const s = statusMap[row.STATUS] || { text: 'Unknown', cls: '' };
+        return <span className={`status-badge ${s.cls}`}>{s.text}</span>;
       }
     },
     {
@@ -1675,18 +1662,14 @@ function Home() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                               {(filteredRequests || requests).slice((requestsPage - 1) * requestsPerPage, requestsPage * requestsPerPage).map((row) => {
-                                const statusColor: Record<string, string> = {
-                                  'P': 'bg-yellow-200 text-yellow-800',
-                                  'A': 'bg-blue-200 text-blue-800',
-                                  'D': 'bg-green-200 text-green-800',
-                                  'I': 'bg-cyan-200 text-cyan-800',
-                                  'X': 'bg-orange-200 text-orange-800',
-                                  'H': 'bg-purple-200 text-purple-800',
-                                  'R': 'bg-red-200 text-red-800',
-                                };
-                                const statusText: Record<string, string> = {
-                                  'P': 'Pending', 'A': 'Active', 'D': 'Complete', 'I': 'In Progress',
-                                  'X': 'Cancelled', 'H': 'On Hold', 'R': 'Rejected',
+                                const statusMap: Record<string, { text: string; cls: string }> = {
+                                  'P': { text: 'Pending', cls: 'status-badge--pending' },
+                                  'A': { text: 'Active', cls: 'status-badge--active' },
+                                  'D': { text: 'Complete', cls: 'status-badge--complete' },
+                                  'I': { text: 'In Progress', cls: 'status-badge--inprogress' },
+                                  'X': { text: 'Cancelled', cls: 'status-badge--cancelled' },
+                                  'H': { text: 'On hold', cls: 'status-badge--onhold' },
+                                  'R': { text: 'Rejected', cls: 'status-badge--rejected' },
                                 };
                                 return (
                                   <tr
@@ -1697,8 +1680,8 @@ function Home() {
                                     <td className="py-3 text-xs sm:text-sm text-gray-800">{row.TRACKINGID || 'N/A'}</td>
                                     <td className="py-3 font-medium text-gray-800 text-xs sm:text-sm">{row.REQUEST_NAME || 'N/A'}</td>
                                     <td className="py-3 text-center">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor[row.STATUS] || 'bg-gray-200 text-gray-800'}`}>
-                                        {statusText[row.STATUS] || 'Unknown'}
+                                      <span className={`status-badge ${statusMap[row.STATUS]?.cls || ''}`}>
+                                        {statusMap[row.STATUS]?.text || 'Unknown'}
                                       </span>
                                     </td>
                                     <td className="py-3 text-center text-xs whitespace-nowrap text-gray-600">
