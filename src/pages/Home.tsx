@@ -1240,32 +1240,7 @@ function Home() {
           <img src="/images/GuardianLogo.svg" alt="Guardian Logo" className="h-8 w-auto" />
           <span className="font-bold text-lg md:text-2xl text-gray-700 hidden sm:inline">Guardian</span>
         </div>
-        <div className="flex-1 flex justify-center max-w-xs md:max-w-md">
-          <div className="relative w-64">
-            <input
-              type="text"
-              placeholder="Search requests..."
-              className="w-full py-2 px-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 bg-gray-50"
-              onChange={(e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                if (searchTerm) {
-                  const filteredData = requests.filter(item => {
-                    return (
-                      (item.REQUEST_NAME?.toLowerCase().includes(searchTerm)) ||
-                      (item.TRACKINGID?.toLowerCase().includes(searchTerm)) ||
-                      (item.STATUS?.toLowerCase().includes(searchTerm)) ||
-                      (item.requestorName?.toLowerCase().includes(searchTerm)) ||
-                      (item.assignedName?.toLowerCase().includes(searchTerm))
-                    );
-                  });
-                  setFilteredRequests(filteredData);
-                } else {
-                  setFilteredRequests(requests);
-                }
-              }}
-            />
-          </div>
-        </div>
+        <div className="flex-1"></div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
           <NotificationDropdown className="mr-2" />
           
