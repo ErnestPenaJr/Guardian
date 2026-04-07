@@ -107,10 +107,12 @@ const GLOBAL_CSS = `
 .fb-grp{padding:6px 10px 4px}
 .fb-glbl{margin:0 0 5px;font-size:10px;font-weight:600;color:var(--fb-t3);letter-spacing:.08em;text-transform:uppercase}
 .fb-pgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.fb-pitem{display:flex;align-items:center;gap:7px;padding:8px;border:1.5px solid var(--fb-border);border-radius:8px;background:var(--fb-panel);cursor:grab;user-select:none;transition:border-color .1s,background .1s}
-.fb-pitem:hover{border-color:var(--fb-accent);background:var(--fb-al)}
+.fb-pitem{display:flex;align-items:center;gap:7px;padding:8px;border:1.5px solid var(--fb-border);border-radius:8px;background:#E0FBFB;color:#1A1D23;cursor:grab;user-select:none;transition:border-color .1s,background .1s}
+.fb-pitem:hover{border-color:var(--fb-accent);background:#c5f5f5}
 .fb-pitem.dragging{opacity:.35;cursor:grabbing}
-.fb-picon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:var(--fb-sec);font-size:11px;font-weight:700;color:var(--fb-accent);font-family:monospace;flex-shrink:0;pointer-events:none}
+.fb-pitem--layout{background:#E0FBFB;color:#1A1D23}
+.fb-pitem--layout:hover{background:#c5f5f5}
+.fb-picon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:4px;background:transparent;color:inherit;font-size:11px;font-weight:700;font-family:monospace;flex-shrink:0;pointer-events:none}
 .fb-plbl{font-size:12px;font-weight:500;color:var(--fb-t);pointer-events:none}
 .fb-tree{padding:10px}
 .fb-titem{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;margin-bottom:2px;border:1.5px solid transparent}
@@ -239,6 +241,47 @@ const GLOBAL_CSS = `
 /*  Group field types into palette categories                          */
 /* ------------------------------------------------------------------ */
 
+const svgIcon = (d: string, extra?: string) => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />{extra && <path d={extra} />}
+  </svg>
+);
+
+const ICONS: Record<string, React.ReactNode> = {
+  text_input: svgIcon('M4 7V4h16v3', 'M9 20h6 M12 4v16'),
+  text: svgIcon('M4 7V4h16v3', 'M9 20h6 M12 4v16'),
+  textarea: svgIcon('M3 5h18v14H3z', 'M7 9h10 M7 13h7'),
+  number: svgIcon('M4 9h16 M4 15h16', 'M10 3v18 M14 3v18'),
+  email: svgIcon('M3 5h18v14H3z', 'M3 5l9 7 9-7'),
+  phone: svgIcon('M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z'),
+  url: svgIcon('M12 2a10 10 0 100 20 10 10 0 000-20z', 'M2 12h20 M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z'),
+  dropdown: svgIcon('M3 5h18v3H3z M3 10h18v3H3z M3 15h18v3H3z', 'M17 19l3-3-3-3'),
+  select: svgIcon('M3 5h18v3H3z M3 10h18v3H3z M3 15h18v3H3z', 'M17 19l3-3-3-3'),
+  radio: svgIcon('M12 2a10 10 0 100 20 10 10 0 000-20z', 'M12 8a4 4 0 100 8 4 4 0 000-8z'),
+  radio_button: svgIcon('M12 2a10 10 0 100 20 10 10 0 000-20z', 'M12 8a4 4 0 100 8 4 4 0 000-8z'),
+  checkbox: svgIcon('M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z', 'M9 12l2 2 4-4'),
+  checkboxes: svgIcon('M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z', 'M9 12l2 2 4-4'),
+  date: svgIcon('M3 6h18v15H3z M3 6V4h18v2 M8 2v4 M16 2v4', 'M7 11h2 M11 11h2 M15 11h2 M7 15h2 M11 15h2'),
+  time: svgIcon('M12 2a10 10 0 100 20 10 10 0 000-20z', 'M12 6v6l4 2'),
+  datetime: svgIcon('M3 6h14v12H3z M3 6V4h14v2 M7 2v4 M13 2v4', 'M19 12a5 5 0 100 10 5 5 0 000-10z M19 14v3l2 1'),
+  date_time: svgIcon('M3 6h14v12H3z M3 6V4h14v2 M7 2v4 M13 2v4', 'M19 12a5 5 0 100 10 5 5 0 000-10z M19 14v3l2 1'),
+  file: svgIcon('M12 15V3 M7 8l5-5 5 5', 'M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4'),
+  file_upload: svgIcon('M12 15V3 M7 8l5-5 5 5', 'M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4'),
+  image: svgIcon('M3 3h18v18H3z', 'M8 10a2 2 0 100-4 2 2 0 000 4z M21 15l-5-5L5 21'),
+  ssn: svgIcon('M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M14.12 14.12a3 3 0 11-4.24-4.24 M1 1l22 22'),
+  dob: svgIcon('M3 6h18v15H3z M3 6V4h18v2 M8 2v4 M16 2v4', 'M7 11h2 M11 11h2 M15 11h2 M7 15h2 M11 15h2'),
+  account_number: svgIcon('M4 9h16 M4 15h16', 'M10 3v18 M14 3v18'),
+  address: svgIcon('M3 21h18 M5 21V7l7-4 7 4v14', 'M9 21v-6h6v6'),
+  header: svgIcon('M3 12h18', 'M8 8l-4 4 4 4 M16 8l4 4-4 4'),
+  divider: svgIcon('M3 12h18', 'M12 5v2 M12 17v2'),
+  toggle: svgIcon('M8 12a8 8 0 0116 0 8 8 0 01-16 0z', 'M16 12a3 3 0 100-6 3 3 0 000 6z'),
+  rating: svgIcon('M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z'),
+  slider: svgIcon('M3 12h18', 'M8 8v8 M16 8v8 M12 6v12'),
+  signature: svgIcon('M3 17c1-2 3-4 5-4s2 3 4 3 3-2 5-4 2 3 4 3', 'M3 21h18'),
+  hidden: svgIcon('M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M1 1l22 22'),
+};
+
+// Fallback text icons for any types not in the SVG map
 const iconMap: Record<string, string> = {
   text_input: 'T', text: 'T', textarea: '¶', number: '#', email: '@', phone: '☎',
   dropdown: '▾', select: '▾', radio: '◎', radio_button: '◎', checkbox: '✓', checkboxes: '✓',
@@ -881,7 +924,7 @@ export default function FormBuilder({
                           {filtered.map((it) => (
                             <div
                               key={it.type}
-                              className="fb-pitem"
+                              className={`fb-pitem${it.type === 'header' || it.type === 'divider' ? ' fb-pitem--layout' : ''}`}
                               draggable
                               onDragStart={(e) => {
                                 drag.current = { src: 'palette', payload: it.type };
@@ -894,7 +937,7 @@ export default function FormBuilder({
                               }}
                               onClick={() => addField(it.type, it.dbFieldTypeId)}
                             >
-                              <span className="fb-picon">{iconMap[it.type] || it.icon || '?'}</span>
+                              <span className="fb-picon">{ICONS[it.type] || iconMap[it.type] || it.icon || '?'}</span>
                               <span className="fb-plbl">{it.label}</span>
                             </div>
                           ))}
