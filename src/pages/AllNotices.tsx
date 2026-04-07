@@ -12,6 +12,7 @@ import {
 import Swal from "sweetalert2";
 import { Modal } from "react-bootstrap";
 import DataTable, { TableColumn } from "react-data-table-component";
+import "../styles/StatusBadge.css";
 
 import moment from "moment";
 import MyNoticesService, {
@@ -124,22 +125,30 @@ export default function AllNotices() {
   const sensitivityStyle = (level: SensitivityLevel): string => {
     switch (level) {
       case "CJIS":
-        return "badge bg-danger";
-      case "Medium":
-        return "badge bg-primary";
+        return "status-badge status-badge--cancelled";
       case "High":
-        return "badge bg-warning text-dark";
+        return "status-badge status-badge--pending";
+      case "Medium":
+        return "status-badge status-badge--active";
       case "Low":
-        return "badge bg-secondary";
+        return "status-badge status-badge--onhold";
       default:
-        return "badge bg-secondary";
+        return "status-badge";
     }
   };
 
-  const statusStyle = (status: NoticeStatus): string =>
-    status === "Sent"
-      ? "badge bg-success"
-      : "badge bg-info";
+  const statusStyle = (status: NoticeStatus): string => {
+    switch (status) {
+      case "Sent":
+        return "status-badge status-badge--sent";
+      case "Draft":
+        return "status-badge status-badge--draft";
+      case "Published":
+        return "status-badge status-badge--published";
+      default:
+        return "status-badge status-badge--active";
+    }
+  };
 
   // DataTable columns definition
   const columns: TableColumn<Notice>[] = [
@@ -158,7 +167,7 @@ export default function AllNotices() {
       sortable: true,
       width: "140px",
       cell: (row) => (
-        <span className={sensitivityStyle(row.SENSITIVITY_CLASSIFICATION as SensitivityLevel)} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>
+        <span className={sensitivityStyle(row.SENSITIVITY_CLASSIFICATION as SensitivityLevel)}>
           {row.SENSITIVITY_CLASSIFICATION}
         </span>
       ),
@@ -169,7 +178,7 @@ export default function AllNotices() {
       sortable: true,
       width: "120px",
       cell: (row) => (
-        <span className={statusStyle(row.BUTTON_STATUS as NoticeStatus)} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>
+        <span className={statusStyle(row.BUTTON_STATUS as NoticeStatus)}>
           {row.BUTTON_STATUS}
         </span>
       ),
@@ -198,9 +207,8 @@ export default function AllNotices() {
       selector: (row) => row.RECIPIENTS_COUNT || 0,
       sortable: true,
       width: "110px",
-      center: true,
       cell: (row) => (
-        <span style={{ fontWeight: 600 }}>{row.RECIPIENTS_COUNT}</span>
+        <span style={{ fontWeight: 600, display: 'block', textAlign: 'center', width: '100%' }}>{row.RECIPIENTS_COUNT}</span>
       ),
     },
     {

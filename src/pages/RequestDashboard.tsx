@@ -6,6 +6,7 @@ import DataTable, { TableColumn } from 'react-data-table-component';
 import api from '../utils/api';
 import '../styles/RequestDashboard.css';
 import '../styles/FormCreationFlow.css';
+import '../styles/StatusBadge.css';
 import { toast } from 'react-toastify';
 import NewRequestModal from './NewRequestModal';
 import SelectFormModal from '../components/SelectFormModal';
@@ -347,57 +348,20 @@ const RequestDashboard: React.FC = () => {
       selector: row => row.STATUS,
       sortable: true, 
       cell: row => {
-        let statusClass = '';
-        let statusText = '';
-        
-        // Determine badge color and text based on status code
-        switch(row.STATUS) {
-          case 'P':
-            statusClass = 'bg-warning'; // Yellow for Pending
-            statusText = 'Pending';
-            break;
-          case 'A':
-            statusClass = 'bg-primary'; // Blue for Active
-            statusText = 'Active';
-            break;
-          case 'D':
-            statusClass = 'bg-success'; // Green for Complete
-            statusText = 'Complete';
-            break;
-          case 'I':
-            statusClass = 'bg-info'; // Cyan for In Progress
-            statusText = 'In Progress';
-            break;
-          case 'X':
-            statusClass = 'bg-danger'; // Red for Cancelled
-            statusText = 'Cancelled';
-            break;
-          case 'H':
-            statusClass = 'bg-secondary'; // Gray for On Hold
-            statusText = 'On Hold';
-            break;
-          case 'R':
-            statusClass = 'bg-danger'; // Red for Rejected
-            statusText = 'Rejected';
-            break;
-          case 'pending':
-            statusClass = 'bg-warning';
-            statusText = 'Pending';
-            break;
-          case 'approved':
-            statusClass = 'bg-success';
-            statusText = 'Active';
-            break;
-          case 'rejected':
-            statusClass = 'bg-danger';
-            statusText = 'Rejected';
-            break;
-          default:
-            statusClass = 'bg-secondary';
-            statusText = row.STATUS;
-        }
-        
-        return <span className={`badge ${statusClass}`} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>{statusText}</span>;
+        const statusMap: Record<string, { text: string; cls: string }> = {
+          'P': { text: 'Pending', cls: 'status-badge--pending' },
+          'A': { text: 'Active', cls: 'status-badge--active' },
+          'D': { text: 'Complete', cls: 'status-badge--complete' },
+          'I': { text: 'In Progress', cls: 'status-badge--inprogress' },
+          'X': { text: 'Cancelled', cls: 'status-badge--cancelled' },
+          'H': { text: 'On hold', cls: 'status-badge--onhold' },
+          'R': { text: 'Rejected', cls: 'status-badge--rejected' },
+          'pending': { text: 'Pending', cls: 'status-badge--pending' },
+          'approved': { text: 'Active', cls: 'status-badge--active' },
+          'rejected': { text: 'Rejected', cls: 'status-badge--rejected' },
+        };
+        const s = statusMap[row.STATUS] || { text: row.STATUS, cls: '' };
+        return <span className={`status-badge ${s.cls}`}>{s.text}</span>;
       },
       width: '130px'
     },
@@ -539,48 +503,17 @@ const RequestDashboard: React.FC = () => {
       sortable: true,
       width: '110px',
       cell: row => {
-        let badgeClass = '';
-        let statusText = '';
-        
-        switch (row.STATUS) {
-          case 'P':
-            badgeClass = 'badge bg-warning text-dark';
-            statusText = 'Pending';
-            break;
-          case 'A':
-            badgeClass = 'badge bg-primary text-white';
-            statusText = 'Active';
-            break;
-          case 'D':
-            badgeClass = 'badge bg-success text-white';
-            statusText = 'Complete';
-            break;
-          case 'I':
-            badgeClass = 'badge bg-info text-white';
-            statusText = 'In Progress';
-            break;
-          case 'X':
-            badgeClass = 'badge bg-danger text-white';
-            statusText = 'Cancelled';
-            break;
-          case 'H':
-            badgeClass = 'badge bg-secondary text-white';
-            statusText = 'On Hold';
-            break;
-          case 'R':
-            badgeClass = 'badge bg-danger text-white';
-            statusText = 'Rejected';
-            break;
-          default:
-            badgeClass = 'badge bg-secondary text-white';
-            statusText = row.STATUS;
-        }
-        
-        return (
-          <span className={badgeClass} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}>
-            {statusText}
-          </span>
-        );
+        const statusMap: Record<string, { text: string; cls: string }> = {
+          'P': { text: 'Pending', cls: 'status-badge--pending' },
+          'A': { text: 'Active', cls: 'status-badge--active' },
+          'D': { text: 'Complete', cls: 'status-badge--complete' },
+          'I': { text: 'In Progress', cls: 'status-badge--inprogress' },
+          'X': { text: 'Cancelled', cls: 'status-badge--cancelled' },
+          'H': { text: 'On hold', cls: 'status-badge--onhold' },
+          'R': { text: 'Rejected', cls: 'status-badge--rejected' },
+        };
+        const s = statusMap[row.STATUS] || { text: row.STATUS, cls: '' };
+        return <span className={`status-badge ${s.cls}`}>{s.text}</span>;
       }
     },
     {
@@ -620,9 +553,7 @@ const RequestDashboard: React.FC = () => {
               </button>
             )}
             {isCompleted && (
-              <span className="badge bg-success" style={{ fontSize: '11px' }}>
-                Completed
-              </span>
+              <span className="status-badge status-badge--complete">Complete</span>
             )}
             <button
               className="btn btn-sm btn-outline-secondary"

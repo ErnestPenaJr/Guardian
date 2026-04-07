@@ -1,0 +1,27 @@
+/* Status Badge — Guardian Design System
+   See: status_badge_spec.md for rules */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Status variants */
+.status-badge--pending    { background: #FAEEDA; color: #854F0B; }
+.status-badge--active     { background: #E6F1FB; color: #185FA5; }
+.status-badge--inprogress { background: #E6F1FB; color: #185FA5; }
+.status-badge--complete   { background: #EAF3DE; color: #3B6D11; }
+.status-badge--cancelled  { background: #FCEBEB; color: #A32D2D; }
+.status-badge--rejected   { background: #FCEBEB; color: #A32D2D; }
+.status-badge--onhold     { background: #EEEDFE; color: #534AB7; }
+
+/* Notice-specific statuses */
+.status-badge--sent       { background: #EAF3DE; color: #3B6D11; }
+.status-badge--draft      { background: #FAEEDA; color: #854F0B; }
+.status-badge--published  { background: #E6F1FB; color: #185FA5; }
