@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, ColumnApi, GridReadyEvent } from 'ag-grid-community';
 import { Button, Badge, Dropdown } from 'react-bootstrap';
@@ -64,6 +65,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   onTaskUpdate
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [summary, setSummary] = useState<TaskSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -273,19 +275,32 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   // Export tasks data
-  const handleExport = (format: 'csv' | 'excel') => {
-    if (!gridApi) return;
-
-    const params = {
-      fileName: `request-${requestId}-tasks.${format}`,
-      columnKeys: ['TASK_ID', 'DESCRIPTION', 'STATUS', 'assignedUser', 'CREATE_DATE']
-    };
-
-    if (format === 'csv') {
-      gridApi.exportDataAsCsv(params);
-    } else {
-      gridApi.exportDataAsExcel(params);
-    }
+  const handleExport = () => {
+    const exportData = tasks.map((task: any) => ({
+      TASK_ID: task.TASK_ID,
+      DESCRIPTION: task.DESCRIPTION,
+      STATUS: task.STATUS,
+      assignedUser: task.assignedUser?.FULL_NAME || task.assignedUser || 'Unassigned',
+      CREATE_DATE: task.CREATE_DATE,
+    }));
+    const statusCounts = tasks.reduce((acc: Record<string, number>, t: any) => {
+      acc[t.STATUS] = (acc[t.STATUS] || 0) + 1;
+      return acc;
+    }, {});
+    navigate('/export/tasks', {
+      state: {
+        data: exportData,
+        metadata: {
+          requestId: `Request #${requestId}`,
+          totalTasks: String(tasks.length),
+          pendingCount: String(statusCounts['Pending'] || 0),
+          inProgressCount: String(statusCounts['In Progress'] || 0),
+          completedCount: String(statusCounts['Completed'] || 0),
+          exportedBy: 'Current User',
+        },
+        identifier: `request-${requestId}-tasks`,
+      },
+    });
   };
 
   // Apply filters
@@ -597,21 +612,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
               </Dropdown.Menu>
             </Dropdown>
 
-            {/* Export dropdown */}
-            <Dropdown>
-              <Dropdown.Toggle variant="outline-primary" size="sm">
-                <Download size={16} className="me-1" />
-                Export
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                <Dropdown.Item onClick={() => handleExport('csv')}>
-                  Export as CSV
-                </Dropdown.Item>
-                <Dropdown.Item onClick={() => handleExport('excel')}>
-                  Export as Excel
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
+            {/* Export button */}
+            <Button variant="outline-primary" size="sm" onClick={handleExport}>
+              <Download size={16} className="me-1" />
+              Export
+            </Button>
           </div>
         </div>
       </div>
