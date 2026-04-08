@@ -49,13 +49,22 @@ This deliberately breaks Guardian's normal company-isolation rule. That rule is 
 
 ## Architecture
 
+### Codebase reality check (informs decisions below)
+
+The project has consolidated active API routes into the three legacy server files (`server.cjs`, `server-production.js`, `server.js`) — see commit `3d643b1 feat: ... consolidate routing to server.cjs`. The parallel `server/` TypeScript tree (`server/routes/jafar-admin.ts`, `server/services/jafarPurge.ts`, etc.) exists but is not mounted in `server/index.ts`, so adding files there has no runtime effect on the running servers. New Jafar routes therefore go inline in the legacy servers, following the existing pattern at `server.cjs:14427+` which uses the middleware pair `getAuthenticatedUserCompany, checkJafarRole` defined inline at `server.cjs:13917`. The project also has no test runner installed — see Testing section for the implications.
+
 ### New surface
 
-**Backend:**
-- `GET /api/jafar-admin/site-analysis?range=<preset>&refresh=<bool>` — single endpoint returning the full payload. Mounted under the existing `jafar-admin` router, which already applies `requireAuth` + `requireJafar` globally.
-- `server/services/siteAnalysis.ts` — orchestration: resolves the range window, checks the cache, runs aggregation queries in parallel via `Promise.all`, assembles the payload, writes the cache, returns.
-- `server/services/siteAnalysisQueries.ts` — raw SQL query builders, one function per metric. Isolating them makes the queries independently testable and keeps the orchestrator readable.
-- In-memory cache: `Map<RangePreset, { data: SiteAnalysisPayload; cachedAt: number }>` inlined into `siteAnalysis.ts`. 5-minute TTL. `getCached`, `setCached`, `invalidate` helpers. Process-local (no Redis — single-user Jafar dashboard, no horizontal scaling concerns).
+**Backend (inline in all three legacy server files):**
+- `GET /api/jafar-admin/site-analysis?range=<preset>&refresh=<bool>` — single endpoint returning the full payload. Uses existing middleware chain: `getAuthenticatedUserCompany, checkJafarRole`.
+- Helper functions added inline near the existing Jafar routes (around `server.cjs:14427+`):
+  - `resolveSiteAnalysisRange(range)` — maps a preset to `{ rangeStart, rangeEnd }`.
+  - `getCachedSiteAnalysis(range)` / `setCachedSiteAnalysis(range, data)` / `invalidateSiteAnalysisCache(range)` — operate on a module-level `Map` declared near the top of the Jafar section.
+  - `runSiteAnalysisKpiQueries(rangeStart)`, `runSiteAnalysisTrendQueries(rangeStart, rangeEnd)`, `runSiteAnalysisCompanyQueries(rangeStart)` — raw SQL query functions using `prisma.$queryRaw` / `$queryRawUnsafe`.
+  - `getSiteAnalysis(range, { refresh })` — orchestrator that checks cache, runs the three query groups via `Promise.all`, assembles payload, writes cache, returns.
+- In-memory cache: `Map<RangePreset, { data, cachedAt }>` declared at module scope. 5-minute TTL. Process-local (no Redis — single-user Jafar dashboard).
+
+**Why inline, not a shared helper module**: `server.cjs` is CommonJS, `server.js` is loaded as CommonJS via `package.production.json`, but the root `package.json` declares `"type": "module"`. Sharing a helper file across all three servers would require an ESM/CJS interop workaround that is strictly worse than the existing "copy the route into all three files" rule the project already enforces in `CLAUDE.md`. This plan matches the prevailing convention.
 
 **Frontend:**
 - `src/pages/SiteAnalysis.tsx` — page component. Owns `range`, `data`, `loading`, `error` state. Single `useEffect` firing on range change. `handleRefresh()` hits the endpoint with `?refresh=true`.
@@ -104,7 +113,7 @@ model USER_LOGIN_EVENTS {
 - **Why a table, not a `LAST_LOGIN_DATE` column on `USERS`**: the "Logins per day" trend chart needs event history. A single column cannot power a time-series. The table is the minimum data structure that satisfies both the "Recently Active Users" KPI and the logins trend chart.
 - **Indexes**: `LOGIN_AT` for fast range-based aggregation; `(USER_ID, LOGIN_AT)` for per-user lookups (not used in MVP but costs nothing to add now).
 - **Cascade**: `ON DELETE CASCADE` from `USERS` so row cleanup is automatic. The existing `jafarPurge` service also explicitly enumerates this table for its count preview and delete chain.
-- **Migration**: Generated via `prisma migrate dev`, then manually applied to staging and production per the existing SQL Server deployment flow.
+- **Migration**: Hand-written SQL migration file at `prisma/migrations/YYYYMMDD-add-user-login-events.sql`, following the existing convention (see `prisma/migrations/20250428-allow-null-request-relations.sql`). The Prisma schema is also updated so the generated client knows about the new model, but the DDL is applied manually to each environment — the project does not use `prisma migrate dev`.
 
 ## API contract
 
@@ -114,7 +123,7 @@ model USER_LOGIN_EVENTS {
 GET /api/jafar-admin/site-analysis?range=<preset>&refresh=<bool>
 ```
 
-**Auth**: `requireAuth` (valid JWT) + `requireJafar` (role ID 6). Inherited from the parent `jafar-admin` router.
+**Auth**: Middleware chain `getAuthenticatedUserCompany, checkJafarRole` applied directly on the route, matching the existing inline Jafar routes at `server.cjs:14427+`.
 
 **Query params**:
 - `range` (required): one of `"7d"`, `"30d"`, `"90d"`, `"12mo"`, `"all"`
@@ -289,7 +298,7 @@ Default sort: `Requests (range)` DESC. All columns sortable client-side.
 
 All access is gated by role ID 6 (Jafar) at three layers:
 
-1. **Backend route**: `requireAuth` + `requireJafar` middleware (reused from existing `jafar-admin` router; no new middleware needed)
+1. **Backend route**: `getAuthenticatedUserCompany` + `checkJafarRole` middleware, reusing the existing inline helpers at `server.cjs:13917` and nearby. No new middleware needed.
 2. **Frontend route**: New `<RequireJafar>` guard wrapping the `/jafar/site-analysis` route (extracted from existing `JafarAdministration` duplication)
 3. **Frontend nav**: AdminDashboard tile only rendered when `isJafarUser()` returns true
 
@@ -297,57 +306,35 @@ The `<RequireJafar>` extraction is included in MVP scope because we now have two
 
 ## Testing plan
 
-### Backend unit tests
+### Testing reality
 
-**`server/services/siteAnalysis.test.ts`:**
-- `resolveRange('7d')` returns a window 7 days before now
-- `resolveRange('all')` returns epoch-start as `rangeStart`
-- Cache hit returns identical payload with `cached: true`
-- Cache miss computes fresh payload with `cached: false`
-- `invalidate('30d')` forces recomputation on next call
-- Expired cache entry triggers recomputation
-- One failing query causes `Promise.all` to reject with a descriptive error (no partial payloads)
+The project has **no test runner installed**. `package.json` has no `"test"` script, no `vitest`/`jest`/`@testing-library/react` in deps, and no `*.test.ts` files under `server/`. The existing `src/tests/*.test.ts` files are **standalone `ts-node` scripts** — they import code, run it, log pass/fail, and `process.exit(1)` on failure. Introducing a real test framework is out of scope for this feature; the smoke tests below match the existing convention.
 
-**`server/services/siteAnalysisQueries.test.ts`** (against a seeded test DB fixture of 3 companies, ~10 users, ~20 requests, some login events):
-- KPI totals match hand-counted fixture values
-- `requestsInRange` respects the range boundary (events outside the window excluded)
-- Trend queries return one row per day in range (including zero-activity days)
-- Company breakdown sorted DESC by `requestsInRange`
-- `percentOfPlatformRequests` sums to ~100% across all companies (accounting for rounding)
-- Custom templates count excludes `COMPANY_ID IS NULL` global templates
+### Script-style smoke tests
 
-### Backend integration tests
+**`src/tests/site-analysis.smoke.test.ts`** — standalone ts-node script that:
+1. POSTs to `/api/login` with a known Jafar user's credentials (credentials read from env vars, same pattern as the existing sendgrid tests).
+2. Calls `GET /api/jafar-admin/site-analysis?range=30d` with the returned JWT.
+3. Asserts the response is HTTP 200.
+4. Asserts the payload has the expected top-level keys (`range`, `rangeStart`, `rangeEnd`, `generatedAt`, `kpis`, `trends`, `companies`).
+5. Asserts `kpis` contains all 9 expected fields and all are numbers.
+6. Asserts `trends.activityPerDay` and `trends.newAccountsPerDay` are arrays with at least 1 entry containing the expected day-bucket keys.
+7. Asserts `companies` is an array; if non-empty, the first entry has the expected column fields.
+8. Calls the endpoint a second time with `?refresh=true` and asserts `generatedAt` has changed.
+9. Calls the endpoint a third time without `refresh` and asserts `cached: true`.
+10. Attempts the call with an invalid `range=xyz` and asserts HTTP 400.
+11. Attempts the call without a JWT and asserts HTTP 401.
+12. Logs pass/fail counts and `process.exit(1)` if any assertion failed.
 
-**`server/routes/siteAnalysis.test.ts`:**
-- No auth → 401
-- Valid JWT but role ≠ 6 → 403
-- Valid Jafar JWT → 200 with well-formed payload
-- Invalid `range` param → 400 `{ error: "Invalid range preset" }`
-- `refresh=true` bypasses cache (second call has different `generatedAt`)
+**`src/tests/login-tracking.smoke.test.ts`** — separate standalone script:
+1. Counts rows in `GUARDIAN.USER_LOGIN_EVENTS` via `prisma.$queryRaw`.
+2. POSTs to `/api/login` with valid credentials, asserts 200 + valid JWT.
+3. Re-counts the table, asserts the count increased by exactly 1.
+4. Asserts the new row has the correct `USER_ID` and a recent `LOGIN_AT`.
+5. Attempts login with invalid credentials, asserts 401, re-counts table, asserts the count did NOT increase.
+6. Exits 0 on success, 1 on any failure.
 
-**`server/services/jafarPurge.test.ts`** (regression):
-- Previewing a user purge now includes `userLoginEvents` count
-- Executing a user purge deletes their login events
-- Previewing a company purge sums login events across all company users
-- Executing a company purge cascades login events cleanly
-
-**`/api/login` login tracking** (highest-risk change):
-- Successful login creates a `USER_LOGIN_EVENTS` row with correct `USER_ID` and recent `LOGIN_AT`
-- Successful login returns the same JWT shape as before (regression check)
-- **DB insert failure does not block login** — mock insert to throw, verify login still returns 200 with valid token, verify error is logged to console. **Critical test.**
-- Failed password login does NOT create a login event
-
-### Frontend tests
-
-**`src/pages/SiteAnalysis.test.tsx`** (React Testing Library):
-- Loading state renders skeleton while fetch is pending
-- Success state renders all three sections from a mocked payload
-- Error state renders `<ErrorBanner>` with retry; retry re-fires fetch
-- Range switch triggers new fetch with new query param
-- Refresh button hits endpoint with `?refresh=true`
-- Mid-fetch range switch aborts previous fetch; new fetch wins
-- Empty payload renders empty states without crashing
-- Non-Jafar user redirected away (`<RequireJafar>` test)
+The fire-and-forget-on-insert-failure behavior cannot be automated without a test runner that supports mocking — it is explicitly covered in the manual verification checklist below (simulate the failure by temporarily breaking the INSERT SQL in a dev copy).
 
 ### Manual verification checklist (pre-merge)
 
@@ -355,18 +342,22 @@ The `<RequireJafar>` extraction is included in MVP scope because we now have two
 - [ ] Click tile → dashboard loads within ~2 seconds
 - [ ] Toggle through all 5 presets → charts + tables update
 - [ ] Click Refresh → `generatedAt` timestamp updates
-- [ ] Log in as non-Jafar (role 1 admin) → tile invisible, direct URL `/jafar/site-analysis` blocked
+- [ ] Log in as non-Jafar (role 1 admin) → tile invisible, direct URL `/jafar/site-analysis` blocked with 403
 - [ ] Create a new request in another browser tab → click Refresh → counter increments
-- [ ] Log in and log out multiple times → verify `USER_LOGIN_EVENTS` rows appear
+- [ ] Log in and log out multiple times → verify `USER_LOGIN_EVENTS` rows appear via direct DB query
 - [ ] Regression: existing users can still log in normally after `/api/login` change
+- [ ] **Fire-and-forget test**: Temporarily break the login-event INSERT (e.g., misspell the table name in a dev copy). Verify login still succeeds and returns a valid JWT. Verify the error is logged to the console. Revert.
 - [ ] Run Jafar purge preview → confirm login events appear in the count
-- [ ] Run all three server files locally (`server.cjs`, `node server.js`) and verify endpoint works on each
+- [ ] Run Jafar purge on a throwaway test user → verify login events are deleted
+- [ ] Run all three server files locally (`bun server.cjs`, `node server.js`, and the production-test script) → verify endpoint works on each
+- [ ] Run both smoke test scripts → both exit 0
 
 ### What is NOT tested
 
-- No E2E Playwright test — component tests + manual checklist cover the same ground; `design-review-agent` available for deeper visual QA on request
-- No load/performance testing — irrelevant at current data volumes; revisit if slowness reported
-- No fuzz testing of the `range` param — simple allowlist validation is sufficient
+- **No unit tests or component tests** — project has no test runner. Smoke tests + manual checklist are the coverage. Adding Vitest/RTL is its own project, deferred.
+- **No E2E Playwright test** — `design-review-agent` available for deeper visual QA on request.
+- **No load/performance testing** — irrelevant at current data volumes; revisit if slowness is reported.
+- **No fuzz testing of the `range` param** — simple allowlist validation is sufficient.
 
 ## Open follow-ups (explicitly deferred)
 
