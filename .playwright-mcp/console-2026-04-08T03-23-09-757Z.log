@@ -1,5 +1,0 @@
-[     541ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5175/node_modules/.vite/deps/chunk-5MJJNU6A.js?v=e22249a8:21608
-[     543ms] [LOG] Environment: development @ http://localhost:5175/src/utils/api.ts:4
-[     543ms] [LOG] API_URL configured as: / @ http://localhost:5175/src/utils/api.ts:5
-[     543ms] [LOG] Current window location: http://localhost:5175/settings @ http://localhost:5175/src/utils/api.ts:6
-[     578ms] [WARNING] No routes matched location "/settings"  @ http://localhost:5175/node_modules/.vite/deps/react-router-dom.js?v=e22249a8:535
