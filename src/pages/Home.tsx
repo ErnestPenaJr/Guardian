@@ -22,6 +22,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import SendInvitesForm from '../components/SendInvitesForm';
 import NotificationDropdown from '../components/NotificationDropdown';
+import WhatsNewDropdown from '../components/WhatsNewDropdown';
 import RoleSwitcher from '../components/UserProfileSwitcher';
 import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
@@ -1164,6 +1165,7 @@ function Home() {
         </div>
         <div className="flex-1"></div>
         <div className="flex items-center gap-2 md:gap-3 relative" ref={profileMenuRef}>
+          <WhatsNewDropdown className="mr-2" />
           <NotificationDropdown className="mr-2" />
           
           {/* Workspace Selector */}
