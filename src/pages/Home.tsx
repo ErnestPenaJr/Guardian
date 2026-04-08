@@ -358,84 +358,6 @@ function Home() {
     }
   };
   
-  // Debug function to manually trigger template check (for testing)
-  const debugCheckTemplates = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 ===== MANUAL DEBUG TRIGGER =====');
-      setHasCheckedForExistingTemplates(false);
-      checkForExistingTemplates();
-    }
-  };
-  
-  // Debug function to manually show/hide modal (for testing)
-  const debugToggleModal = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 ===== MANUAL MODAL TOGGLE =====');
-      console.log('🔧 Current showFirstTimeWorkflowModal:', showFirstTimeWorkflowModal);
-      console.log('🔧 Current user:', user);
-      setShowFirstTimeWorkflowModal(!showFirstTimeWorkflowModal);
-    }
-  };
-  
-  // Debug function to manually show modal (for testing)
-  const debugShowModal = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 ===== MANUAL MODAL SHOW =====');
-      console.log('🔧 Current showFirstTimeWorkflowModal:', showFirstTimeWorkflowModal);
-      console.log('🔧 Setting to true...');
-      setShowFirstTimeWorkflowModal(true);
-      setTimeout(() => {
-        console.log('🔧 Modal state after setting:', showFirstTimeWorkflowModal);
-      }, 100);
-    }
-  };
-  
-  // Debug function to check current state
-  const debugCurrentState = () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 ===== CURRENT STATE DEBUG =====');
-      console.log('🔧 showFirstTimeWorkflowModal:', showFirstTimeWorkflowModal);
-      console.log('🔧 hasCheckedForExistingTemplates:', hasCheckedForExistingTemplates);
-      console.log('🔧 user:', user);
-      console.log('🔧 isAdmin():', isAdmin());
-      console.log('🔧 user?.companyId:', user?.companyId);
-    }
-  };
-  
-  // Debug function to examine templates data
-  const debugTemplatesData = async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 ===== TEMPLATES DATA DEBUG =====');
-      try {
-        const forms = await formService.getAllForms();
-        console.log('🔧 All forms from API:', forms);
-        console.log('🔧 Forms count:', forms?.length);
-        
-        const companyForms = forms?.filter(form => 
-          form.COMPANY_ID === user?.companyId && 
-          form.IS_ACTIVE && 
-          !form.IS_DELETED
-        ) || [];
-        
-        console.log('🔧 Company-specific forms:', companyForms);
-        console.log('🔧 Company forms count:', companyForms?.length);
-        
-        if (forms && forms.length > 0) {
-          console.log('🔧 First form sample:', forms[0]);
-          console.log('🔧 Available properties:', Object.keys(forms[0]));
-          
-          // Show all forms
-          forms.forEach((form, index) => {
-            console.log(`🔧 Form ${index + 1}: "${form.FORM_NAME}" - ID: ${form.FORM_ID} - Company: ${form.COMPANY_ID}`);
-          });
-        }
-        
-        console.log('🔧 Should show modal?', !companyForms || companyForms.length === 0);
-      } catch (error) {
-        console.error('🔧 Error fetching templates data:', error);
-      }
-    }
-  };
   
   // Handle logout
   const handleLogout = () => {
@@ -1928,53 +1850,6 @@ function Home() {
         ) : mobileNav === 'search' ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl gap-4 mb-6 px-4">
             <div className="text-center">Search (coming soon)</div>
-            {/* Debug buttons - development only */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="flex flex-col gap-2 text-sm">
-              <button 
-                onClick={debugCheckTemplates}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                🔧 Debug: Check Templates
-              </button>
-              <button 
-                onClick={debugToggleModal}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-              >
-                🔧 Debug: Toggle Modal
-              </button>
-              <button 
-                onClick={debugShowModal}
-                className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-              >
-                🔧 Debug: Force Show Modal
-              </button>
-              <button 
-                onClick={debugCurrentState}
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-              >
-                🔧 Debug: Check State
-              </button>
-              <button 
-                onClick={debugTemplatesData}
-                className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
-              >
-                🔧 Debug: Check Templates
-              </button>
-              <div className="text-xs text-gray-600">
-                Modal State: {showFirstTimeWorkflowModal ? 'SHOWING' : 'HIDDEN'}
-              </div>
-              <div className="text-xs text-gray-600">
-                Has Checked Templates: {hasCheckedForExistingTemplates ? 'YES' : 'NO'}
-              </div>
-              <div className="text-xs text-gray-600">
-                User ID: {user?.id || 'N/A'}
-              </div>
-              <div className="text-xs text-gray-600">
-                Is Admin: {isAdmin() ? 'YES' : 'NO'}
-              </div>
-            </div>
-            )}
           </div>
         ) : mobileNav === 'notifications' ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-2xl mb-6 px-4">

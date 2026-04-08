@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { useDropzone } from 'react-dropzone';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
@@ -109,6 +110,7 @@ interface Props {
 
 const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<string>('');
@@ -1372,6 +1374,37 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
 
+  const handleFormExport = () => {
+    const formData = formFieldValues.map((fv: any) => ({
+      fieldName: fv.fieldName || fv.FIELD_NAME || '',
+      fieldValue: fv.fieldValue || fv.FIELD_VALUE || '',
+      section: 'Form Data',
+      required: 'N/A',
+    }));
+    onHide();
+    navigate('/export/forms', {
+      state: {
+        data: formData,
+        metadata: {
+          formTemplate: formTemplate?.name || request.REQUEST_NAME || 'Form',
+          requestId: request.TRACKINGID || `REQ-${request.REQUEST_ID}`,
+          submittedBy: request.requestor
+            ? `${request.requestor.FIRST_NAME} ${request.requestor.LAST_NAME}`
+            : request.requestorName || 'Unknown',
+          submissionDate: request.SUBMITTED_DATE
+            ? new Date(request.SUBMITTED_DATE).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            : 'N/A',
+          status: request.STATUS || 'Unknown',
+          assignedTo: request.assigned
+            ? `${request.assigned.FIRST_NAME} ${request.assigned.LAST_NAME}`
+            : request.assignedName || 'Unassigned',
+        },
+        title: `Export ${formTemplate?.name || 'Form'} Data`,
+        identifier: request.TRACKINGID || `REQ-${request.REQUEST_ID}`,
+      },
+    });
+  };
+
   // Format date for display
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Unknown';
@@ -2098,8 +2131,16 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
       contentClassName={needsExpandedLayout ? "rmi-content-expanded" : "rmi-content-standard"}
     >
       <Modal.Header closeButton className="border-0 pb-2">
-        <Modal.Title className="fw-semibold text-dark" style={{ fontSize: '1.1rem' }}>
+        <Modal.Title className="fw-semibold text-dark d-flex align-items-center gap-2" style={{ fontSize: '1.1rem' }}>
           Request Details: {request.TRACKINGID || `REQ-${request.REQUEST_ID}`}
+          <button
+            className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+            onClick={handleFormExport}
+            title="Export form data"
+          >
+            <Download size={14} />
+            Export
+          </button>
         </Modal.Title>
       </Modal.Header>
       

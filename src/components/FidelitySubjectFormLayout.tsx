@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/FidelitySubjectForm.css';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -867,6 +868,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
   validationErrors,
   requestId,
 }) => {
+  const navigate = useNavigate();
   // Returns extra className when a field name has a validation error
   const errClass = (fieldName: string) =>
     validationErrors?.has(fieldName) ? ' sw-field--error' : '';
@@ -989,6 +991,32 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
       exportHost?.remove();
       setExporting(false);
     }
+  };
+
+  const handleExport = () => {
+    const formData = fields.map((f) => ({
+      fieldName: f.FIELD_NAME,
+      fieldValue: fieldValues[String(f.FIELD_ID)] || '',
+      section: 'Form Data',
+      required: f.IS_REQUIRED ? 'Yes' : 'No',
+    }));
+    const subjectName = val('Subject Name(s)') || val('Subject') || 'Subject Workup';
+    const caseNumber = val('Case #') || '';
+    navigate('/export/forms', {
+      state: {
+        data: formData,
+        metadata: {
+          formTemplate: 'Subject Workup',
+          requestId: requestId ? `REQ-${requestId}` : 'N/A',
+          submittedBy: val('Analyst') || val('Investigator') || 'N/A',
+          submissionDate: val('Date') || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+          status: 'N/A',
+          assignedTo: val('Investigator') || 'N/A',
+        },
+        title: `Export ${subjectName} Data`,
+        identifier: caseNumber || (requestId ? `REQ-${requestId}` : 'subject-workup'),
+      },
+    });
   };
 
   useEffect(() => {
@@ -1499,11 +1527,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
         <button
           type="button"
           className="sw-print-btn no-print"
-          onClick={exportPDF}
-          disabled={exporting}
-          title="Export as PDF"
+          onClick={handleExport}
+          title="Export form data"
         >
-          {exporting ? '⏳ Exporting…' : '⬇ Export PDF'}
+          ⬇ Export
         </button>
       </div>
 

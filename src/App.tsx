@@ -36,6 +36,7 @@ import CreateNotice from './pages/CreateNotice';
 import ViewNotice from './pages/ViewNotice';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 import FormBuilderPage from './pages/FormBuilderPage';
+import ExportPage from './pages/ExportPage';
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
             <Route path="/my-notices/notification-status-dashboard" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
             <Route path="/form-builder/new" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
             <Route path="/form-builder/:formId" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
+            <Route path="/export/:type" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />

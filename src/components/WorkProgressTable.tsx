@@ -16,6 +16,7 @@ import {
   User,
   Calendar
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
@@ -42,6 +43,7 @@ const WorkProgressTable: React.FC<WorkProgressTableProps> = ({
   onProgressUpdate
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [progressEntries, setProgressEntries] = useState<WorkProgressEntry[]>([]);
   const [summary, setSummary] = useState<WorkProgressSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -286,19 +288,30 @@ const WorkProgressTable: React.FC<WorkProgressTableProps> = ({
   };
 
   // Export progress data
-  const handleExport = (format: 'csv' | 'excel') => {
-    if (!gridApi) return;
-
-    const params = {
-      fileName: `request-${requestId}-progress.${format}`,
-      columnKeys: ['PROGRESS_TYPE', 'TITLE', 'DESCRIPTION', 'user.FULL_NAME', 'CREATED_DATE', 'HOURS_WORKED', 'IS_VISIBLE_TO_REQUESTOR']
-    };
-
-    if (format === 'csv') {
-      gridApi.exportDataAsCsv(params);
-    } else {
-      gridApi.exportDataAsExcel(params);
-    }
+  const handleExport = () => {
+    const exportData = progressEntries.map((entry: any) => ({
+      PROGRESS_TYPE: entry.PROGRESS_TYPE,
+      TITLE: entry.TITLE,
+      DESCRIPTION: entry.DESCRIPTION,
+      userName: entry.user?.FULL_NAME || '',
+      CREATED_DATE: entry.CREATED_DATE,
+      HOURS_WORKED: entry.HOURS_WORKED || 0,
+      IS_VISIBLE_TO_REQUESTOR: entry.IS_VISIBLE_TO_REQUESTOR ? 'Yes' : 'No',
+    }));
+    const totalHours = progressEntries.reduce((sum: number, e: any) => sum + (e.HOURS_WORKED || 0), 0);
+    navigate('/export/progress', {
+      state: {
+        data: exportData,
+        metadata: {
+          requestId: `Request #${requestId}`,
+          totalEntries: String(progressEntries.length),
+          totalHours: `${totalHours.toFixed(1)} hours`,
+          exportedBy: 'Current User',
+          exportDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        },
+        identifier: `request-${requestId}-progress`,
+      },
+    });
   };
 
   // Apply filters
@@ -388,21 +401,11 @@ const WorkProgressTable: React.FC<WorkProgressTableProps> = ({
             </Dropdown.Menu>
           </Dropdown>
 
-          {/* Export dropdown */}
-          <Dropdown>
-            <Dropdown.Toggle variant="outline-primary" size="sm">
-              <Download size={16} className="me-1" />
-              Export
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item onClick={() => handleExport('csv')}>
-                Export as CSV
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => handleExport('excel')}>
-                Export as Excel
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
+          {/* Export button */}
+          <Button variant="outline-primary" size="sm" onClick={handleExport}>
+            <Download size={16} className="me-1" />
+            Export
+          </Button>
 
           {/* Add progress button */}
           {canAddProgress && (

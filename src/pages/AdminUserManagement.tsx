@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FaUserPlus, FaFileExport, FaSyncAlt, FaTrashAlt, FaClock, FaEdit, FaEnvelope, FaSearch } from 'react-icons/fa';
@@ -259,6 +260,7 @@ const EditUserModal: React.FC<{
 
 const AdminUserManagement: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [resendingInviteId, setResendingInviteId] = useState<number | null>(null);
@@ -560,45 +562,54 @@ const AdminUserManagement: React.FC = () => {
 
   // Export to Excel
   const handleExport = () => {
-    const exportRows = [
-      ...users.map((user) => ({
-        '#': users.indexOf(user) + 1,
-        'Name': user.name || '',
-        'Email': user.email || '',
-        'Date Created': user.dateCreated && user.dateCreated !== 'Invalid Date' 
-          ? new Date(user.dateCreated).toLocaleDateString() 
-          : 'N/A',
-        'Role': user.roles && Array.isArray(user.roles) && user.roles.length > 0 ? 
-          user.roles.map((role: any) => role.name || role.displayName || 'Unknown').join(', ') : 
-          'No Role',
-        'Status': user.status === 'A' ? 'Active' : user.status === 'S' ? 'Suspended' : 'Inactive',
-        'Type': 'User',
-      })),
-      ...invites.map((invite) => ({
-        '#': users.length + invites.indexOf(invite) + 1,
-        'Name': invite.EMAIL || invite.email || '',
-        'Email': invite.EMAIL || invite.email || '',
-        'Date Created': (invite.CREATED_AT || invite.createdAt) && 
-                       (invite.CREATED_AT !== 'Invalid Date' && invite.createdAt !== 'Invalid Date') ? 
-          new Date(invite.CREATED_AT || invite.createdAt || '').toLocaleDateString() 
-          : 'N/A',
-        'Role': (() => {
-          const roleId = invite.ROLE_ID || invite.roleId;
-          const role = roles.find(r => r.id === roleId);
-          return role ? (role.name || role.displayName || 'Unknown') : 'Unknown';
-        })(),
-        'Status': invite.status ? 
-          (invite.status.charAt(0).toUpperCase() + invite.status.slice(1)) : 
-          (invite.STATUS === 'P' ? 'Pending' : invite.STATUS === 'A' ? 'Accepted' : 'Expired'),
-        'Type': 'Invite',
-      }))
-    ];
-    
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'UserManagement');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'user_management.xlsx');
+    const userData = users.map((user: any) => ({
+      name: user.name || '',
+      email: user.email || '',
+      role: user.roles && Array.isArray(user.roles) && user.roles.length > 0
+        ? user.roles.map((role: any) => role.name || role.displayName || 'Unknown').join(', ')
+        : 'No Role',
+      status: user.status === 'A' ? 'Active' : user.status === 'S' ? 'Suspended' : 'Inactive',
+      dateCreated: user.dateCreated && user.dateCreated !== 'Invalid Date'
+        ? new Date(user.dateCreated).toLocaleDateString()
+        : 'N/A',
+      type: 'User',
+      date: user.dateCreated && user.dateCreated !== 'Invalid Date'
+        ? new Date(user.dateCreated).toLocaleDateString()
+        : 'N/A',
+    }));
+    const inviteData = invites.map((invite: any) => ({
+      name: invite.EMAIL || invite.email || '',
+      email: invite.EMAIL || invite.email || '',
+      role: (() => {
+        const roleId = invite.ROLE_ID || invite.roleId;
+        const role = roles.find((r: any) => r.id === roleId);
+        return role ? (role.name || role.displayName || 'Unknown') : 'Unknown';
+      })(),
+      status: invite.status
+        ? invite.status.charAt(0).toUpperCase() + invite.status.slice(1)
+        : invite.STATUS === 'P' ? 'Pending' : invite.STATUS === 'A' ? 'Accepted' : 'Expired',
+      dateSent: (invite.CREATED_AT || invite.createdAt)
+        ? new Date(invite.CREATED_AT || invite.createdAt).toLocaleDateString()
+        : 'N/A',
+      expires: '',
+      type: 'Invite',
+      date: (invite.CREATED_AT || invite.createdAt)
+        ? new Date(invite.CREATED_AT || invite.createdAt).toLocaleDateString()
+        : 'N/A',
+    }));
+    navigate('/export/users', {
+      state: {
+        data: [...userData, ...inviteData],
+        metadata: {
+          company: 'Current Company',
+          activeUsers: String(users.length),
+          pendingInvites: String(invites.length),
+          exportedBy: 'Current User',
+          exportDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        },
+        identifier: 'user-management',
+      },
+    });
   };
 
   const handleAddUserSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
