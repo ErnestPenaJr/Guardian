@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
 import DataTable, { TableColumn } from 'react-data-table-component';
@@ -115,6 +116,7 @@ interface Request {
 
 const RequestDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { subscribeToRefresh } = useRequestState();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -1037,10 +1039,46 @@ const RequestDashboard: React.FC = () => {
 
 
 
+        {/* Export button */}
+        <button
+          className="btn btn-outline-primary ms-2 d-flex align-items-center gap-2"
+          onClick={() => {
+            const exportData = (requests || []).map((r: any) => ({
+              TRACKINGID: r.TRACKINGID,
+              REQUEST_NAME: r.REQUEST_NAME,
+              STATUS: r.STATUS === 'P' ? 'Pending' : r.STATUS === 'IP' ? 'In Progress' : r.STATUS === 'C' ? 'Completed' : r.STATUS === 'X' ? 'Cancelled' : r.STATUS,
+              SUBMITTED_DATE: r.SUBMITTED_DATE,
+              requestorName: r.requestor ? `${r.requestor.FIRST_NAME} ${r.requestor.LAST_NAME}` : r.requestorName || '',
+              assignedTo: r.assigned ? `${r.assigned.FIRST_NAME} ${r.assigned.LAST_NAME}` : r.assignedName || 'Unassigned',
+            }));
+            navigate('/export/requests', {
+              state: {
+                data: exportData,
+                metadata: {
+                  totalRecords: String(exportData.length),
+                  dateRange: exportData.length > 0 ? `${new Date(exportData[exportData.length - 1].SUBMITTED_DATE).toLocaleDateString()} - ${new Date(exportData[0].SUBMITTED_DATE).toLocaleDateString()}` : 'N/A',
+                  statusFilter: 'All',
+                  exportedBy: user?.fullName || user?.email || 'Unknown',
+                  company: user?.companyName || 'N/A',
+                  exportDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                },
+                identifier: 'all-requests',
+              },
+            });
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export
+        </button>
+
         {hasCreateRequestAccess && (
-          <button 
-            className="btn bg-warning text-dark ms-2" 
-            style={{ minWidth: 140 }} 
+          <button
+            className="btn bg-warning text-dark ms-2"
+            style={{ minWidth: 140 }}
             onClick={() => {
               // Open the Add Request modal
               setShowAddRequestModal(true);
