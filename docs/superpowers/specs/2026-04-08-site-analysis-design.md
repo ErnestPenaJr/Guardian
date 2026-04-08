@@ -101,18 +101,16 @@ model USER_LOGIN_EVENTS {
   USER_ID   Int
   LOGIN_AT  DateTime  @default(now()) @db.DateTime
 
-  USER      USERS     @relation(fields: [USER_ID], references: [USER_ID], onDelete: Cascade)
-
   @@index([LOGIN_AT], map: "IX_USER_LOGIN_EVENTS_LOGIN_AT")
   @@index([USER_ID, LOGIN_AT], map: "IX_USER_LOGIN_EVENTS_USER_LOGIN_AT")
-  @@map("USER_LOGIN_EVENTS")
   @@schema("GUARDIAN")
 }
 ```
 
 - **Why a table, not a `LAST_LOGIN_DATE` column on `USERS`**: the "Logins per day" trend chart needs event history. A single column cannot power a time-series. The table is the minimum data structure that satisfies both the "Recently Active Users" KPI and the logins trend chart.
 - **Indexes**: `LOGIN_AT` for fast range-based aggregation; `(USER_ID, LOGIN_AT)` for per-user lookups (not used in MVP but costs nothing to add now).
-- **Cascade**: `ON DELETE CASCADE` from `USERS` so row cleanup is automatic. The existing `jafarPurge` service also explicitly enumerates this table for its count preview and delete chain.
+- **No FK or cascade**: Matches the prevailing pattern for analytics/history tables in this schema — store `USER_ID` as a plain int, rely on the existing Jafar purge transaction to enumerate and explicitly delete rows. Adding a FK with cascade would bypass the purge counts (the existing `createEmptyJafarCounts` pattern at `server.cjs:14119` requires explicit counts to show Jafar what will be deleted).
+- **Jafar purge integration**: Update `createEmptyJafarCounts()` to include `userLoginEvents: 0`, update `buildJafarUserPreview` and `buildJafarCompanyPreview` to count them, and add explicit `DELETE FROM GUARDIAN.USER_LOGIN_EVENTS` statements inside the existing purge transactions.
 - **Migration**: Hand-written SQL migration file at `prisma/migrations/YYYYMMDD-add-user-login-events.sql`, following the existing convention (see `prisma/migrations/20250428-allow-null-request-relations.sql`). The Prisma schema is also updated so the generated client knows about the new model, but the DDL is applied manually to each environment — the project does not use `prisma migrate dev`.
 
 ## API contract
