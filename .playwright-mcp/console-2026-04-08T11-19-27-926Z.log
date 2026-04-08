@@ -1,0 +1,78 @@
+[     578ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5175/node_modules/.vite/deps/chunk-5MJJNU6A.js?v=e22249a8:21608
+[     586ms] [LOG] Environment: development @ http://localhost:5175/src/utils/api.ts:4
+[     586ms] [LOG] API_URL configured as: / @ http://localhost:5175/src/utils/api.ts:5
+[     586ms] [LOG] Current window location: http://localhost:5175/ @ http://localhost:5175/src/utils/api.ts:6
+[     730ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:5175/:0
+[   14268ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   14275ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   14275ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   14275ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   14275ms] [LOG] 🎯 initialFormData: undefined @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   14275ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   14275ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   14279ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   14288ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   14289ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   14289ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   14289ms] [LOG] Home component mounted, fetching data... @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:347
+[   14289ms] [LOG] Fetching requests... @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:891
+[   14289ms] [LOG] Fetching requests from backend server... @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:897
+[   14290ms] [LOG] 🔄 ===== USE EFFECT FOR ACCOUNT CREATOR AND TEMPLATE CHECKS ===== @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:365
+[   14290ms] [LOG] 🔄 User exists: false @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:366
+[   14290ms] [LOG] 🔄 Not checking - user not loaded @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:375
+[   14291ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/notifications/count, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   14291ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/notifications/count @ http://localhost:5175/src/utils/api.ts:43
+[   14291ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/assigned/me?, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   14291ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/assigned/me? @ http://localhost:5175/src/utils/api.ts:43
+[   14297ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   14297ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   14297ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   14297ms] [LOG] 🎯 initialFormData: undefined @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   14297ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   14297ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   14299ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   14299ms] [LOG] 🔄 ===== USE EFFECT FOR ACCOUNT CREATOR AND TEMPLATE CHECKS ===== @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:365
+[   14299ms] [LOG] 🔄 User exists: true @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:366
+[   14299ms] [LOG] 🔄 Calling checkAccountCreatorInviteModal first... @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:370
+[   14299ms] [LOG] 🔐 ===== CHECKING ADMIN STATUS ===== @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:96
+[   14299ms] [LOG] 🔐 User object: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:97
+[   14299ms] [LOG] 🔐 Checking role: {id: 6, name: JAFAR, displayName: Super Admin, description: I can do ANYTHING!} ID: 6 Is Admin (1)? false Is JAFAR (6)? true @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:107
+[   14299ms] [LOG] 🔐 Roles array: [Object] @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:113
+[   14299ms] [LOG] 🔐 Role string: JAFAR @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:114
+[   14299ms] [LOG] 🔐 hasRoleInArray: true @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:115
+[   14299ms] [LOG] 🔐 hasRoleAsString: false @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:116
+[   14299ms] [LOG] 🔐 Final admin result: true @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:120
+[   14299ms] [LOG] 🎯 User has already completed account creator invite modal @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:146
+[   14299ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/roles/all, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   14300ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/roles/all @ http://localhost:5175/src/utils/api.ts:43
+[   14303ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   14303ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   14303ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   14303ms] [LOG] 🎯 initialFormData: undefined @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   14303ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   14304ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   14424ms] [LOG] API response status: 200 @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:912
+[   14424ms] [LOG] API response headers: AxiosHeaders @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:913
+[   14424ms] [LOG] Requests data type: object @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:917
+[   14424ms] [LOG] Is array? true @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:918
+[   14424ms] [LOG] Successfully received array data, length: 15 @ http://localhost:5175/src/pages/Home.tsx?t=1775620968774:922
+[   14424ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/assigned/me?, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   14424ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/assigned/me? @ http://localhost:5175/src/utils/api.ts:43
+[   14438ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   14438ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   14438ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   14438ms] [LOG] 🎯 initialFormData: undefined @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   14438ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   14438ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   14680ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   14680ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   14680ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   14680ms] [LOG] 🎯 initialFormData: undefined @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   14680ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   14680ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   14740ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   14740ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   14740ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   14740ms] [LOG] 🎯 initialFormData: undefined @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   14740ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   14740ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342

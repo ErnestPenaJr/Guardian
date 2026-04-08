@@ -1339,14 +1339,6 @@ const RequestDashboard: React.FC = () => {
         />
       )}
       
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{position: 'fixed', top: 10, right: 10, background: 'yellow', padding: '10px', zIndex: 9999}}>
-          Modal State: {showFormFulfillmentModal ? 'TRUE' : 'FALSE'}<br/>
-          Form Data: {fulfillmentFormData ? 'EXISTS' : 'NULL'}<br/>
-          Selected Request: {selectedRequest?.REQUEST_ID || 'NONE'}
-        </div>
-      )}
 
       {/* Form Fulfillment Modal */}
       {showFormFulfillmentModal && (

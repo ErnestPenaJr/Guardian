@@ -1,0 +1,116 @@
+[     586ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5175/node_modules/.vite/deps/chunk-5MJJNU6A.js?v=e22249a8:21608
+[     588ms] [LOG] Environment: development @ http://localhost:5175/src/utils/api.ts:4
+[     588ms] [LOG] API_URL configured as: / @ http://localhost:5175/src/utils/api.ts:5
+[     588ms] [LOG] Current window location: http://localhost:5175/requests-dashboard @ http://localhost:5175/src/utils/api.ts:6
+[     637ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[     643ms] [WARNING] styled-components: it looks like an unknown prop "grow" is being sent through to the DOM, which will likely trigger a React console error. If you would like automatic filtering of unknown props, you can opt-into that behavior via `<StyleSheetManager shouldForwardProp={...}>` (connect an API like `@emotion/is-prop-valid`) or consider using transient props (`$` prefix for automatic filtering.) @ http://localhost:5175/node_modules/.vite/deps/react-data-table-component.js?v=e22249a8:1267
+[     644ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[     644ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[     644ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[     644ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[     644ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[     644ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[     686ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[     687ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[     687ms] [LOG] [2026-04-08T03:21:51.199Z] fetchRequests called - refreshing request data @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:141
+[     687ms] [LOG] Current requests state: 0 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:142
+[     687ms] [LOG] [2026-04-08T03:21:51.199Z] Fetching requests from API... @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:146
+[     687ms] [LOG] [2026-04-08T03:21:51.199Z] fetchRequests called - refreshing request data @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:141
+[     687ms] [LOG] Current requests state: 0 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:142
+[     687ms] [LOG] [2026-04-08T03:21:51.199Z] Fetching requests from API... @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:146
+[     687ms] [LOG] [MODAL STATE] showFormFulfillmentModal changed to: false @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:135
+[     687ms] [LOG] [MODAL STATE] fulfillmentFormData: NULL @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:136
+[     687ms] [LOG] [MODAL STATE] selectedRequest: NONE @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:137
+[     689ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[     689ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[     689ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[     690ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[     690ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[     690ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[     692ms] [LOG] [2026-04-08T03:21:51.205Z] fetchRequests called - refreshing request data @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:141
+[     692ms] [LOG] Current requests state: 0 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:142
+[     692ms] [LOG] [2026-04-08T03:21:51.205Z] Fetching requests from API... @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:146
+[     693ms] [LOG] 🔄 Fetching assigned requests for user: 1176 @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:769
+[     693ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     693ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests @ http://localhost:5175/src/utils/api.ts:43
+[     693ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     693ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests @ http://localhost:5175/src/utils/api.ts:43
+[     693ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     693ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests @ http://localhost:5175/src/utils/api.ts:43
+[     693ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/assigned/me, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     693ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/assigned/me @ http://localhost:5175/src/utils/api.ts:43
+[     774ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[     774ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[     774ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[     774ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[     774ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[     774ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[     816ms] [LOG] 📥 Assigned requests response: [Object, Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:771
+[     816ms] [LOG] ✅ Assigned requests loaded successfully: 4 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:779
+[     825ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[     825ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[     825ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[     825ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[     825ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[     825ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[     854ms] [LOG] [2026-04-08T03:21:51.199Z] Requests fetched successfully: 15 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:148
+[     854ms] [LOG] First few requests: [Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:149
+[     854ms] [LOG] [FRONTEND] Request FORM_IDs: [Object, Object, Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:151
+[     854ms] [LOG] [2026-04-08T03:21:51.199Z] Data comparison: {currentRequestCount: 0, newRequestCount: 15, hasNewRequests: true, hasDifferentAssignments: false} @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:166
+[     854ms] [LOG] [2026-04-08T03:21:51.199Z] Setting requests state with new data @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:172
+[     854ms] [LOG] [2026-04-08T03:21:51.199Z] State update queued @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:174
+[     854ms] [LOG] [2026-04-08T03:21:51.199Z] Loading state set to false @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:181
+[     860ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[     860ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[     860ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[     860ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[     860ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[     860ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[     998ms] [LOG] [2026-04-08T03:21:51.199Z] Requests fetched successfully: 15 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:148
+[     998ms] [LOG] First few requests: [Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:149
+[     998ms] [LOG] [FRONTEND] Request FORM_IDs: [Object, Object, Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:151
+[     998ms] [LOG] [2026-04-08T03:21:51.199Z] Data comparison: {currentRequestCount: 0, newRequestCount: 15, hasNewRequests: true, hasDifferentAssignments: false} @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:166
+[     998ms] [LOG] [2026-04-08T03:21:51.199Z] Setting requests state with new data @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:172
+[     998ms] [LOG] [2026-04-08T03:21:51.199Z] State update queued @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:174
+[     998ms] [LOG] [2026-04-08T03:21:51.199Z] Loading state set to false @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:181
+[    1002ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[    1002ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[    1002ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[    1002ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[    1002ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[    1002ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[    1142ms] [LOG] [2026-04-08T03:21:51.205Z] Requests fetched successfully: 15 requests @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:148
+[    1142ms] [LOG] First few requests: [Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:149
+[    1142ms] [LOG] [FRONTEND] Request FORM_IDs: [Object, Object, Object, Object, Object] @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:151
+[    1142ms] [LOG] [2026-04-08T03:21:51.205Z] Data comparison: {currentRequestCount: 0, newRequestCount: 15, hasNewRequests: true, hasDifferentAssignments: false} @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:166
+[    1142ms] [LOG] [2026-04-08T03:21:51.205Z] Setting requests state with new data @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:172
+[    1142ms] [LOG] [2026-04-08T03:21:51.205Z] State update queued @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:174
+[    1142ms] [LOG] [2026-04-08T03:21:51.205Z] Loading state set to false @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:181
+[    1146ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[    1146ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[    1146ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[    1146ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[    1146ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[    1146ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   20540ms] [LOG] 🎯 ===== NewRequestModal RENDER ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:32
+[   20540ms] [LOG] 🎯 isOpen: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:33
+[   20540ms] [LOG] 🎯 isTemplateForm: false @ http://localhost:5175/src/pages/NewRequestModal.tsx:34
+[   20540ms] [LOG] 🎯 initialFormData: null @ http://localhost:5175/src/pages/NewRequestModal.tsx:35
+[   20540ms] [LOG] 🎯 step: 0 @ http://localhost:5175/src/pages/NewRequestModal.tsx:36
+[   20540ms] [LOG] 🎯 ===== MODAL IS CLOSED - NOT RENDERING ===== @ http://localhost:5175/src/pages/NewRequestModal.tsx:342
+[   20547ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[   20547ms] [LOG] [MODAL STATE] showFormFulfillmentModal changed to: false @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:135
+[   20547ms] [LOG] [MODAL STATE] fulfillmentFormData: NULL @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:136
+[   20547ms] [LOG] [MODAL STATE] selectedRequest: 290 @ http://localhost:5175/src/pages/RequestDashboard.tsx?t=1775602670965:137
+[   20549ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/290/form, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   20549ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/290/form @ http://localhost:5175/src/utils/api.ts:43
+[   20549ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/290/tasks, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   20549ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/290/tasks @ http://localhost:5175/src/utils/api.ts:43
+[   20549ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/290/attachments, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   20549ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/290/attachments @ http://localhost:5175/src/utils/api.ts:43
+[   20549ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   20549ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests @ http://localhost:5175/src/utils/api.ts:43
+[   20549ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/requests/290/milestones, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   20549ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/requests/290/milestones @ http://localhost:5175/src/utils/api.ts:43
+[   20562ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/users, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[   20562ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/users @ http://localhost:5175/src/utils/api.ts:43

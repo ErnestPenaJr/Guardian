@@ -1,0 +1,55 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e386]:
+    - heading "Request Dashboard" [level=1] [ref=e387]
+    - generic [ref=e391]:
+      - heading "All Requests" [level=3] [ref=e392]
+      - paragraph [ref=e393]: View and manage all requests in the system (excluding your assigned requests)
+    - generic [ref=e394]:
+      - generic [ref=e395]:
+        - button "Refresh" [ref=e396] [cursor=pointer]
+        - button "Export" [ref=e400] [cursor=pointer]
+        - button "Create Request" [ref=e404] [cursor=pointer]
+      - textbox "Search Requests..." [ref=e406]
+    - table [ref=e409]:
+      - rowgroup [ref=e410]:
+        - row "Tracking ID ▲ Request Name ▲ Status ▲ Submitted ▲ Requestor ▲ Assigned To ▲ Actions" [ref=e411]
+      - rowgroup [ref=e439]:
+        - row "REQ-2026-290 fsd Pending 2026-04-04T12:21:09.776Z Ernest Pena Jr Unassigned View" [ref=e440]
+        - row "REQ-2026-289 df Pending 2026-04-04T12:14:18.966Z Ernest Pena Jr Unassigned View" [ref=e458]
+        - row "REQ-2026-288 sdf Pending 2026-04-04T12:09:41.756Z Ernest Pena Jr Unassigned View" [ref=e476]
+        - row "REQ-2026-261 Subject test 3 Pending 2026-03-14T23:38:38.460Z Ernest Pena Jr Unassigned View" [ref=e494]
+        - row "REQ-2026-260 Subject Text 2 Pending 2026-03-14T23:34:30.440Z Ernest Pena Jr Unassigned View" [ref=e512]
+        - row "REQ-2026-259 subject test Pending 2026-03-14T23:31:15.536Z Ernest Pena Jr Unassigned View" [ref=e530]
+        - row "REQ-2026-258 effd Pending 2026-03-14T23:24:47.236Z Ernest Pena Jr Unassigned View" [ref=e548]
+        - row "REQ-2026-257 hgh Pending 2026-03-14T19:52:09.996Z Ernest Pena Jr Unassigned View" [ref=e566]
+        - row "REQ-2026-249 e Pending 2026-03-12T11:40:13.840Z Ernest Pena Jr Unassigned View" [ref=e584]
+        - row "REQ-2026-247 ggfd Pending 2026-03-11T19:27:06.633Z Ernest Pena Jr Unassigned View" [ref=e602]
+    - navigation [ref=e621]:
+      - generic [ref=e622]: "Rows per page:"
+      - generic [ref=e623]:
+        - combobox "Rows per page:" [ref=e624] [cursor=pointer]
+        - img
+      - generic [ref=e625]: 1-10 of 14
+      - generic [ref=e626]:
+        - button "First Page" [disabled] [ref=e627]
+        - button "Previous Page" [disabled] [ref=e631]
+        - button "Next Page" [ref=e635] [cursor=pointer]
+        - button "Last Page" [ref=e639] [cursor=pointer]
+    - generic [ref=e643]:
+      - generic [ref=e644]:
+        - generic [ref=e647]
+        - generic [ref=e650]
+      - table [ref=e656]:
+        - rowgroup [ref=e657]
+        - rowgroup [ref=e682]
+      - navigation [ref=e743]:
+        - generic [ref=e744]: "Rows per page:"
+        - generic [ref=e745]
+        - generic [ref=e747]: 1-4 of 4
+        - generic [ref=e748]
+    - generic [ref=e765]:
+      - text: "Modal State: FALSE"
+      - text: "Form Data: NULL"
+      - text: "Selected Request: NONE"
+  - button "🚨 Error Testing Suite" [ref=e385] [cursor=pointer]

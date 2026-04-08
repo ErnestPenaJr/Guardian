@@ -1,0 +1,338 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e386]:
+    - heading "Request Dashboard" [level=1] [ref=e387]
+    - generic [ref=e391]:
+      - heading "All Requests" [level=3] [ref=e392]
+      - paragraph [ref=e393]: View and manage all requests in the system (excluding your assigned requests)
+    - generic [ref=e394]:
+      - generic [ref=e395]:
+        - button "Refresh" [ref=e396] [cursor=pointer]:
+          - img [ref=e397]
+          - text: Refresh
+        - button "Export" [ref=e400] [cursor=pointer]:
+          - img [ref=e401]
+          - text: Export
+        - button "Create Request" [ref=e404] [cursor=pointer]
+      - textbox "Search Requests..." [ref=e406]
+    - table [ref=e409]:
+      - rowgroup [ref=e410]:
+        - row "Tracking ID ▲ Request Name ▲ Status ▲ Submitted ▲ Requestor ▲ Assigned To ▲ Actions" [ref=e411]:
+          - columnheader "Tracking ID ▲" [ref=e413] [cursor=pointer]:
+            - generic [ref=e414]: Tracking ID
+            - generic [ref=e415]: ▲
+          - columnheader "Request Name ▲" [ref=e417] [cursor=pointer]:
+            - generic [ref=e418]: Request Name
+            - generic [ref=e419]: ▲
+          - columnheader "Status ▲" [ref=e421] [cursor=pointer]:
+            - generic [ref=e422]: Status
+            - generic [ref=e423]: ▲
+          - columnheader "Submitted ▲" [ref=e425] [cursor=pointer]:
+            - generic [ref=e426]: Submitted
+            - generic [ref=e427]: ▲
+          - columnheader "Requestor ▲" [ref=e429] [cursor=pointer]:
+            - generic [ref=e430]: Requestor
+            - generic [ref=e431]: ▲
+          - columnheader "Assigned To ▲" [ref=e433] [cursor=pointer]:
+            - generic [ref=e434]: Assigned To
+            - generic [ref=e435]: ▲
+          - columnheader "Actions" [ref=e437]:
+            - generic [ref=e438]: Actions
+      - rowgroup [ref=e439]:
+        - row "REQ-2026-290 fsd Pending 2026-04-04T12:21:09.776Z Ernest Pena Jr Unassigned View" [ref=e440]:
+          - cell "REQ-2026-290" [ref=e441]:
+            - generic [ref=e442]: REQ-2026-290
+          - cell "fsd" [ref=e443]:
+            - generic [ref=e444]: fsd
+          - cell "Pending" [ref=e445]:
+            - generic [ref=e446]: Pending
+          - cell "2026-04-04T12:21:09.776Z" [ref=e447]:
+            - generic [ref=e448]: 2026-04-04T12:21:09.776Z
+          - cell "Ernest Pena Jr" [ref=e449]
+          - cell "Unassigned" [ref=e450]
+          - cell "View" [ref=e451]:
+            - generic [ref=e452]:
+              - button "View" [ref=e453] [cursor=pointer]
+              - button "Delete Request" [ref=e454] [cursor=pointer]:
+                - img [ref=e455]
+        - row "REQ-2026-289 df Pending 2026-04-04T12:14:18.966Z Ernest Pena Jr Unassigned View" [ref=e458]:
+          - cell "REQ-2026-289" [ref=e459]:
+            - generic [ref=e460]: REQ-2026-289
+          - cell "df" [ref=e461]:
+            - generic [ref=e462]: df
+          - cell "Pending" [ref=e463]:
+            - generic [ref=e464]: Pending
+          - cell "2026-04-04T12:14:18.966Z" [ref=e465]:
+            - generic [ref=e466]: 2026-04-04T12:14:18.966Z
+          - cell "Ernest Pena Jr" [ref=e467]
+          - cell "Unassigned" [ref=e468]
+          - cell "View" [ref=e469]:
+            - generic [ref=e470]:
+              - button "View" [ref=e471] [cursor=pointer]
+              - button "Delete Request" [ref=e472] [cursor=pointer]:
+                - img [ref=e473]
+        - row "REQ-2026-288 sdf Pending 2026-04-04T12:09:41.756Z Ernest Pena Jr Unassigned View" [ref=e476]:
+          - cell "REQ-2026-288" [ref=e477]:
+            - generic [ref=e478]: REQ-2026-288
+          - cell "sdf" [ref=e479]:
+            - generic [ref=e480]: sdf
+          - cell "Pending" [ref=e481]:
+            - generic [ref=e482]: Pending
+          - cell "2026-04-04T12:09:41.756Z" [ref=e483]:
+            - generic [ref=e484]: 2026-04-04T12:09:41.756Z
+          - cell "Ernest Pena Jr" [ref=e485]
+          - cell "Unassigned" [ref=e486]
+          - cell "View" [ref=e487]:
+            - generic [ref=e488]:
+              - button "View" [ref=e489] [cursor=pointer]
+              - button "Delete Request" [ref=e490] [cursor=pointer]:
+                - img [ref=e491]
+        - row "REQ-2026-261 Subject test 3 Pending 2026-03-14T23:38:38.460Z Ernest Pena Jr Unassigned View" [ref=e494]:
+          - cell "REQ-2026-261" [ref=e495]:
+            - generic [ref=e496]: REQ-2026-261
+          - cell "Subject test 3" [ref=e497]:
+            - generic [ref=e498]: Subject test 3
+          - cell "Pending" [ref=e499]:
+            - generic [ref=e500]: Pending
+          - cell "2026-03-14T23:38:38.460Z" [ref=e501]:
+            - generic [ref=e502]: 2026-03-14T23:38:38.460Z
+          - cell "Ernest Pena Jr" [ref=e503]
+          - cell "Unassigned" [ref=e504]
+          - cell "View" [ref=e505]:
+            - generic [ref=e506]:
+              - button "View" [ref=e507] [cursor=pointer]
+              - button "Delete Request" [ref=e508] [cursor=pointer]:
+                - img [ref=e509]
+        - row "REQ-2026-260 Subject Text 2 Pending 2026-03-14T23:34:30.440Z Ernest Pena Jr Unassigned View" [ref=e512]:
+          - cell "REQ-2026-260" [ref=e513]:
+            - generic [ref=e514]: REQ-2026-260
+          - cell "Subject Text 2" [ref=e515]:
+            - generic [ref=e516]: Subject Text 2
+          - cell "Pending" [ref=e517]:
+            - generic [ref=e518]: Pending
+          - cell "2026-03-14T23:34:30.440Z" [ref=e519]:
+            - generic [ref=e520]: 2026-03-14T23:34:30.440Z
+          - cell "Ernest Pena Jr" [ref=e521]
+          - cell "Unassigned" [ref=e522]
+          - cell "View" [ref=e523]:
+            - generic [ref=e524]:
+              - button "View" [ref=e525] [cursor=pointer]
+              - button "Delete Request" [ref=e526] [cursor=pointer]:
+                - img [ref=e527]
+        - row "REQ-2026-259 subject test Pending 2026-03-14T23:31:15.536Z Ernest Pena Jr Unassigned View" [ref=e530]:
+          - cell "REQ-2026-259" [ref=e531]:
+            - generic [ref=e532]: REQ-2026-259
+          - cell "subject test" [ref=e533]:
+            - generic [ref=e534]: subject test
+          - cell "Pending" [ref=e535]:
+            - generic [ref=e536]: Pending
+          - cell "2026-03-14T23:31:15.536Z" [ref=e537]:
+            - generic [ref=e538]: 2026-03-14T23:31:15.536Z
+          - cell "Ernest Pena Jr" [ref=e539]
+          - cell "Unassigned" [ref=e540]
+          - cell "View" [ref=e541]:
+            - generic [ref=e542]:
+              - button "View" [ref=e543] [cursor=pointer]
+              - button "Delete Request" [ref=e544] [cursor=pointer]:
+                - img [ref=e545]
+        - row "REQ-2026-258 effd Pending 2026-03-14T23:24:47.236Z Ernest Pena Jr Unassigned View" [ref=e548]:
+          - cell "REQ-2026-258" [ref=e549]:
+            - generic [ref=e550]: REQ-2026-258
+          - cell "effd" [ref=e551]:
+            - generic [ref=e552]: effd
+          - cell "Pending" [ref=e553]:
+            - generic [ref=e554]: Pending
+          - cell "2026-03-14T23:24:47.236Z" [ref=e555]:
+            - generic [ref=e556]: 2026-03-14T23:24:47.236Z
+          - cell "Ernest Pena Jr" [ref=e557]
+          - cell "Unassigned" [ref=e558]
+          - cell "View" [ref=e559]:
+            - generic [ref=e560]:
+              - button "View" [ref=e561] [cursor=pointer]
+              - button "Delete Request" [ref=e562] [cursor=pointer]:
+                - img [ref=e563]
+        - row "REQ-2026-257 hgh Pending 2026-03-14T19:52:09.996Z Ernest Pena Jr Unassigned View" [ref=e566]:
+          - cell "REQ-2026-257" [ref=e567]:
+            - generic [ref=e568]: REQ-2026-257
+          - cell "hgh" [ref=e569]:
+            - generic [ref=e570]: hgh
+          - cell "Pending" [ref=e571]:
+            - generic [ref=e572]: Pending
+          - cell "2026-03-14T19:52:09.996Z" [ref=e573]:
+            - generic [ref=e574]: 2026-03-14T19:52:09.996Z
+          - cell "Ernest Pena Jr" [ref=e575]
+          - cell "Unassigned" [ref=e576]
+          - cell "View" [ref=e577]:
+            - generic [ref=e578]:
+              - button "View" [ref=e579] [cursor=pointer]
+              - button "Delete Request" [ref=e580] [cursor=pointer]:
+                - img [ref=e581]
+        - row "REQ-2026-249 e Pending 2026-03-12T11:40:13.840Z Ernest Pena Jr Unassigned View" [ref=e584]:
+          - cell "REQ-2026-249" [ref=e585]:
+            - generic [ref=e586]: REQ-2026-249
+          - cell "e" [ref=e587]:
+            - generic [ref=e588]: e
+          - cell "Pending" [ref=e589]:
+            - generic [ref=e590]: Pending
+          - cell "2026-03-12T11:40:13.840Z" [ref=e591]:
+            - generic [ref=e592]: 2026-03-12T11:40:13.840Z
+          - cell "Ernest Pena Jr" [ref=e593]
+          - cell "Unassigned" [ref=e594]
+          - cell "View" [ref=e595]:
+            - generic [ref=e596]:
+              - button "View" [ref=e597] [cursor=pointer]
+              - button "Delete Request" [ref=e598] [cursor=pointer]:
+                - img [ref=e599]
+        - row "REQ-2026-247 ggfd Pending 2026-03-11T19:27:06.633Z Ernest Pena Jr Unassigned View" [ref=e602]:
+          - cell "REQ-2026-247" [ref=e603]:
+            - generic [ref=e604]: REQ-2026-247
+          - cell "ggfd" [ref=e605]:
+            - generic [ref=e606]: ggfd
+          - cell "Pending" [ref=e607]:
+            - generic [ref=e608]: Pending
+          - cell "2026-03-11T19:27:06.633Z" [ref=e609]:
+            - generic [ref=e610]: 2026-03-11T19:27:06.633Z
+          - cell "Ernest Pena Jr" [ref=e611]
+          - cell "Unassigned" [ref=e612]
+          - cell "View" [ref=e613]:
+            - generic [ref=e614]:
+              - button "View" [ref=e615] [cursor=pointer]
+              - button "Delete Request" [ref=e616] [cursor=pointer]:
+                - img [ref=e617]
+    - navigation [ref=e621]:
+      - generic [ref=e622]: "Rows per page:"
+      - generic [ref=e623]:
+        - combobox "Rows per page:" [ref=e624] [cursor=pointer]:
+          - option "10" [selected]
+          - option "15"
+          - option "20"
+          - option "25"
+          - option "30"
+        - img
+      - generic [ref=e625]: 1-10 of 14
+      - generic [ref=e626]:
+        - button "First Page" [disabled] [ref=e627]:
+          - img [ref=e628]
+        - button "Previous Page" [disabled] [ref=e631]:
+          - img [ref=e632]
+        - button "Next Page" [ref=e635] [cursor=pointer]:
+          - img [ref=e636]
+        - button "Last Page" [ref=e639] [cursor=pointer]:
+          - img [ref=e640]
+    - generic [ref=e643]:
+      - generic [ref=e644]:
+        - generic [ref=e647]:
+          - heading "My Assigned Requests" [level=2] [ref=e648]
+          - paragraph [ref=e649]: Manage and track your assigned requests efficiently
+        - generic [ref=e650]:
+          - combobox [ref=e651]:
+            - option "All Status" [selected]
+            - option "Pending"
+            - option "Active"
+            - option "Completed"
+          - button "Clear Filters" [ref=e652] [cursor=pointer]
+          - textbox "Search..." [ref=e653]
+      - table [ref=e656]:
+        - rowgroup [ref=e657]:
+          - row "Request ID ▲ Request Name ▲ Requestor ▲ Status ▲ Submitted ▲ Actions" [ref=e658]:
+            - columnheader "Request ID ▲" [ref=e660] [cursor=pointer]:
+              - generic [ref=e661]: Request ID
+              - generic [ref=e662]: ▲
+            - columnheader "Request Name ▲" [ref=e664] [cursor=pointer]:
+              - generic [ref=e665]: Request Name
+              - generic [ref=e666]: ▲
+            - columnheader "Requestor ▲" [ref=e668] [cursor=pointer]:
+              - generic [ref=e669]: Requestor
+              - generic [ref=e670]: ▲
+            - columnheader "Status ▲" [ref=e672] [cursor=pointer]:
+              - generic [ref=e673]: Status
+              - generic [ref=e674]: ▲
+            - columnheader "Submitted ▲" [ref=e676] [cursor=pointer]:
+              - generic [ref=e677]: Submitted
+              - generic [ref=e678]: ▲
+            - columnheader "Actions" [ref=e680]:
+              - generic [ref=e681]: Actions
+        - rowgroup [ref=e682]:
+          - row "REQ-2026-249 e Ernest Pena Jr Pending 3/12/2026 Start Work View" [ref=e683]:
+            - cell "REQ-2026-249" [ref=e684]:
+              - generic [ref=e685]: REQ-2026-249
+            - cell "e" [ref=e686]:
+              - generic [ref=e687]: e
+            - cell "Ernest Pena Jr" [ref=e688]:
+              - generic [ref=e689]: Ernest Pena Jr
+            - cell "Pending" [ref=e690]:
+              - generic [ref=e691]: Pending
+            - cell "3/12/2026" [ref=e692]:
+              - generic [ref=e693]: 3/12/2026
+            - cell "Start Work View" [ref=e694]:
+              - generic [ref=e695]:
+                - button "Start Work" [ref=e696] [cursor=pointer]
+                - button "View" [ref=e697] [cursor=pointer]
+          - row "REQ-2026-247 ggfd Ernest Pena Jr Pending 3/11/2026 Start Work View" [ref=e698]:
+            - cell "REQ-2026-247" [ref=e699]:
+              - generic [ref=e700]: REQ-2026-247
+            - cell "ggfd" [ref=e701]:
+              - generic [ref=e702]: ggfd
+            - cell "Ernest Pena Jr" [ref=e703]:
+              - generic [ref=e704]: Ernest Pena Jr
+            - cell "Pending" [ref=e705]:
+              - generic [ref=e706]: Pending
+            - cell "3/11/2026" [ref=e707]:
+              - generic [ref=e708]: 3/11/2026
+            - cell "Start Work View" [ref=e709]:
+              - generic [ref=e710]:
+                - button "Start Work" [ref=e711] [cursor=pointer]
+                - button "View" [ref=e712] [cursor=pointer]
+          - row "REQ-2026-243 eeew Ernest Pena Jr Pending 3/9/2026 Start Work View" [ref=e713]:
+            - cell "REQ-2026-243" [ref=e714]:
+              - generic [ref=e715]: REQ-2026-243
+            - cell "eeew" [ref=e716]:
+              - generic [ref=e717]: eeew
+            - cell "Ernest Pena Jr" [ref=e718]:
+              - generic [ref=e719]: Ernest Pena Jr
+            - cell "Pending" [ref=e720]:
+              - generic [ref=e721]: Pending
+            - cell "3/9/2026" [ref=e722]:
+              - generic [ref=e723]: 3/9/2026
+            - cell "Start Work View" [ref=e724]:
+              - generic [ref=e725]:
+                - button "Start Work" [ref=e726] [cursor=pointer]
+                - button "View" [ref=e727] [cursor=pointer]
+          - row "REQ-2025-173 Subject Test Ernest Pena Jr Cancelled 9/6/2025 View" [ref=e728]:
+            - cell "REQ-2025-173" [ref=e729]:
+              - generic [ref=e730]: REQ-2025-173
+            - cell "Subject Test" [ref=e731]:
+              - generic [ref=e732]: Subject Test
+            - cell "Ernest Pena Jr" [ref=e733]:
+              - generic [ref=e734]: Ernest Pena Jr
+            - cell "Cancelled" [ref=e735]:
+              - generic [ref=e736]: Cancelled
+            - cell "9/6/2025" [ref=e737]:
+              - generic [ref=e738]: 9/6/2025
+            - cell "View" [ref=e739]:
+              - button "View" [ref=e741] [cursor=pointer]
+      - navigation [ref=e743]:
+        - generic [ref=e744]: "Rows per page:"
+        - generic [ref=e745]:
+          - combobox "Rows per page:" [ref=e746] [cursor=pointer]:
+            - option "10" [selected]
+            - option "15"
+            - option "20"
+            - option "25"
+            - option "30"
+          - img
+        - generic [ref=e747]: 1-4 of 4
+        - generic [ref=e748]:
+          - button "First Page" [disabled] [ref=e749]:
+            - img [ref=e750]
+          - button "Previous Page" [disabled] [ref=e753]:
+            - img [ref=e754]
+          - button "Next Page" [disabled] [ref=e757]:
+            - img [ref=e758]
+          - button "Last Page" [disabled] [ref=e761]:
+            - img [ref=e762]
+    - generic [ref=e765]:
+      - text: "Modal State: FALSE"
+      - text: "Form Data: NULL"
+      - text: "Selected Request: NONE"
+  - button "🚨 Error Testing Suite" [ref=e385] [cursor=pointer]

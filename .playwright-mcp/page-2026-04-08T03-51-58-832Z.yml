@@ -1,0 +1,240 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e41]:
+    - banner [ref=e42]:
+      - generic [ref=e43]:
+        - img "Guardian Logo" [ref=e44]
+        - generic [ref=e45]: Guardian
+      - textbox "Search requests..." [ref=e48]
+      - generic [ref=e49]:
+        - button "Notifications" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e55]: "1"
+        - button "Super Admin Role Switcher Testing Mode" [ref=e57] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e61]:
+            - generic [ref=e62]:
+              - generic [ref=e63]: Super Admin
+              - generic [ref=e64]: Role Switcher
+            - generic [ref=e65]: Testing Mode
+          - img [ref=e66]
+        - button "Ernest Pena Jr Super Admin" [ref=e68] [cursor=pointer]:
+          - generic [ref=e69]:
+            - text: Ernest Pena Jr
+            - text: Super Admin
+          - img [ref=e70]
+        - button "Open user menu": EP
+    - navigation "Main navigation" [ref=e72]:
+      - button "Collapse sidebar" [ref=e74] [cursor=pointer]:
+        - img [ref=e75]
+      - menu [ref=e77]:
+        - menuitem "Home" [ref=e78] [cursor=pointer]:
+          - img [ref=e81]
+          - generic [ref=e86]: Home
+        - menuitem "Requests" [ref=e87] [cursor=pointer]:
+          - img [ref=e89]
+          - generic [ref=e92]: Requests
+        - menuitem "Notices" [ref=e93] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e97]: Notices
+        - menuitem "Workspaces" [ref=e98] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e104]: Workspaces
+        - menuitem "AIM-Financial" [ref=e105] [cursor=pointer]:
+          - img [ref=e107]
+          - generic [ref=e109]: AIM-Financial
+        - menuitem "AIM-Wildlife" [ref=e110] [cursor=pointer]:
+          - img [ref=e112]
+          - generic [ref=e115]: AIM-Wildlife
+        - menuitem "API Vendor" [disabled] [ref=e116]:
+          - img [ref=e118]
+          - generic [ref=e123]: API Vendor
+        - menuitem "Settings" [ref=e124] [cursor=pointer]:
+          - img [ref=e126]
+          - generic [ref=e127]: Settings
+      - button "Logout from application" [ref=e129] [cursor=pointer]:
+        - img [ref=e131]
+        - generic [ref=e134]: Logout
+    - main [ref=e135]:
+      - generic [ref=e136]:
+        - heading "HOME" [level=1] [ref=e137]
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - heading "Request Overview" [level=2] [ref=e140]
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - img [ref=e143]
+                - generic:
+                  - generic: "15"
+              - generic [ref=e144]:
+                - generic [ref=e147]: Pending
+                - generic [ref=e150]: Cancelled
+          - generic [ref=e151]:
+            - heading "Request Queue" [level=2] [ref=e152]
+            - generic [ref=e153]:
+              - button "Refresh" [ref=e155] [cursor=pointer]:
+                - img [ref=e156]
+                - text: Refresh
+              - textbox "Search requests..." [ref=e159]
+            - table [ref=e161]:
+              - rowgroup [ref=e162]:
+                - row "REQUEST ID REQUEST NAME STATUS DATE TYPE PRIORITY REQUESTOR ASSIGNED" [ref=e163]:
+                  - columnheader "REQUEST ID" [ref=e164]
+                  - columnheader "REQUEST NAME" [ref=e165]
+                  - columnheader "STATUS" [ref=e166]
+                  - columnheader "DATE" [ref=e167]
+                  - columnheader "TYPE" [ref=e168]
+                  - columnheader "PRIORITY" [ref=e169]
+                  - columnheader "REQUESTOR" [ref=e170]
+                  - columnheader "ASSIGNED" [ref=e171]
+              - rowgroup [ref=e172]:
+                - row "REQ-2026-290 fsd Pending Apr 4, 26 General Ernest Pena Jr Unassigned" [ref=e173] [cursor=pointer]:
+                  - cell "REQ-2026-290" [ref=e174]
+                  - cell "fsd" [ref=e175]
+                  - cell "Pending" [ref=e176]
+                  - cell "Apr 4, 26" [ref=e177]
+                  - cell "General" [ref=e178]
+                  - cell [ref=e179]
+                  - cell "Ernest Pena Jr" [ref=e182]
+                  - cell "Unassigned" [ref=e183]
+                - row "REQ-2026-289 df Pending Apr 4, 26 General Ernest Pena Jr Unassigned" [ref=e184] [cursor=pointer]:
+                  - cell "REQ-2026-289" [ref=e185]
+                  - cell "df" [ref=e186]
+                  - cell "Pending" [ref=e187]
+                  - cell "Apr 4, 26" [ref=e188]
+                  - cell "General" [ref=e189]
+                  - cell [ref=e190]
+                  - cell "Ernest Pena Jr" [ref=e193]
+                  - cell "Unassigned" [ref=e194]
+                - row "REQ-2026-288 sdf Pending Apr 4, 26 General Ernest Pena Jr Unassigned" [ref=e195] [cursor=pointer]:
+                  - cell "REQ-2026-288" [ref=e196]
+                  - cell "sdf" [ref=e197]
+                  - cell "Pending" [ref=e198]
+                  - cell "Apr 4, 26" [ref=e199]
+                  - cell "General" [ref=e200]
+                  - cell [ref=e201]
+                  - cell "Ernest Pena Jr" [ref=e204]
+                  - cell "Unassigned" [ref=e205]
+                - row "REQ-2026-261 Subject test 3 Pending Mar 14, 26 General Ernest Pena Jr Unassigned" [ref=e206] [cursor=pointer]:
+                  - cell "REQ-2026-261" [ref=e207]
+                  - cell "Subject test 3" [ref=e208]
+                  - cell "Pending" [ref=e209]
+                  - cell "Mar 14, 26" [ref=e210]
+                  - cell "General" [ref=e211]
+                  - cell [ref=e212]
+                  - cell "Ernest Pena Jr" [ref=e215]
+                  - cell "Unassigned" [ref=e216]
+                - row "REQ-2026-260 Subject Text 2 Pending Mar 14, 26 General Ernest Pena Jr Unassigned" [ref=e217] [cursor=pointer]:
+                  - cell "REQ-2026-260" [ref=e218]
+                  - cell "Subject Text 2" [ref=e219]
+                  - cell "Pending" [ref=e220]
+                  - cell "Mar 14, 26" [ref=e221]
+                  - cell "General" [ref=e222]
+                  - cell [ref=e223]
+                  - cell "Ernest Pena Jr" [ref=e226]
+                  - cell "Unassigned" [ref=e227]
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e230]: "Records per page:"
+                - combobox [ref=e231]:
+                  - option "5" [selected]
+                  - option "10"
+                  - option "15"
+                  - option "20"
+                  - option "50"
+                - generic [ref=e232]: 1-5 of 15
+              - generic [ref=e233]:
+                - button "«" [disabled] [ref=e234]
+                - button "‹" [disabled] [ref=e235]
+                - generic [ref=e236]: Page 1 of 3
+                - button "›" [ref=e237] [cursor=pointer]
+                - button "»" [ref=e238] [cursor=pointer]
+          - generic [ref=e239]:
+            - heading "Notices Overview" [level=2] [ref=e240]
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - img [ref=e243]
+                - generic:
+                  - generic: "62"
+              - generic [ref=e244]:
+                - generic [ref=e247]: Sent
+                - generic [ref=e250]: Draft
+          - generic [ref=e251]:
+            - heading "Notices Queue" [level=2] [ref=e252]
+            - generic [ref=e253]:
+              - button "Refresh" [ref=e255] [cursor=pointer]:
+                - img [ref=e256]
+                - text: Refresh
+              - textbox "Search notices..." [ref=e259]
+            - table [ref=e261]:
+              - rowgroup [ref=e262]:
+                - row "TITLE SENSITIVITY STATUS TYPE CREATED BY DATE CREATED" [ref=e263]:
+                  - columnheader "TITLE" [ref=e264]
+                  - columnheader "SENSITIVITY" [ref=e265]
+                  - columnheader "STATUS" [ref=e266]
+                  - columnheader "TYPE" [ref=e267]
+                  - columnheader "CREATED BY" [ref=e268]
+                  - columnheader "DATE CREATED" [ref=e269]
+              - rowgroup [ref=e270]:
+                - row "E2E Lifecycle 1774743570637 High Draft Internal Only Ernest 3/28/2026" [ref=e271] [cursor=pointer]:
+                  - cell "E2E Lifecycle 1774743570637" [ref=e272]
+                  - cell "High" [ref=e273]:
+                    - generic [ref=e274]: High
+                  - cell "Draft" [ref=e275]:
+                    - generic [ref=e276]: Draft
+                  - cell "Internal Only" [ref=e277]
+                  - cell "Ernest" [ref=e278]
+                  - cell "3/28/2026" [ref=e279]
+                - row "CRUD Test 1774743495522 Low Sent Internal Only Ernest 3/28/2026" [ref=e280] [cursor=pointer]:
+                  - cell "CRUD Test 1774743495522" [ref=e281]
+                  - cell "Low" [ref=e282]:
+                    - generic [ref=e283]: Low
+                  - cell "Sent" [ref=e284]:
+                    - generic [ref=e285]: Sent
+                  - cell "Internal Only" [ref=e286]
+                  - cell "Ernest" [ref=e287]
+                  - cell "3/28/2026" [ref=e288]
+                - row "E2E Test Notice 1774743471642 Low Draft Internal Only Ernest 3/28/2026" [ref=e289] [cursor=pointer]:
+                  - cell "E2E Test Notice 1774743471642" [ref=e290]
+                  - cell "Low" [ref=e291]:
+                    - generic [ref=e292]: Low
+                  - cell "Draft" [ref=e293]:
+                    - generic [ref=e294]: Draft
+                  - cell "Internal Only" [ref=e295]
+                  - cell "Ernest" [ref=e296]
+                  - cell "3/28/2026" [ref=e297]
+                - row "E2E Test Notice 1774743471642 Low Draft Internal Only Ernest 3/28/2026" [ref=e298] [cursor=pointer]:
+                  - cell "E2E Test Notice 1774743471642" [ref=e299]
+                  - cell "Low" [ref=e300]:
+                    - generic [ref=e301]: Low
+                  - cell "Draft" [ref=e302]:
+                    - generic [ref=e303]: Draft
+                  - cell "Internal Only" [ref=e304]
+                  - cell "Ernest" [ref=e305]
+                  - cell "3/28/2026" [ref=e306]
+                - row "E2E Test Notice 1774743466588 Low Sent Internal Only Ernest 3/28/2026" [ref=e307] [cursor=pointer]:
+                  - cell "E2E Test Notice 1774743466588" [ref=e308]
+                  - cell "Low" [ref=e309]:
+                    - generic [ref=e310]: Low
+                  - cell "Sent" [ref=e311]:
+                    - generic [ref=e312]: Sent
+                  - cell "Internal Only" [ref=e313]
+                  - cell "Ernest" [ref=e314]
+                  - cell "3/28/2026" [ref=e315]
+            - generic [ref=e316]:
+              - generic [ref=e317]:
+                - generic [ref=e318]: "Records per page:"
+                - combobox [ref=e319]:
+                  - option "5" [selected]
+                  - option "10"
+                  - option "15"
+                  - option "20"
+                  - option "50"
+                - generic [ref=e320]: 1-5 of 62
+              - generic [ref=e321]:
+                - button "«" [disabled] [ref=e322]
+                - button "‹" [disabled] [ref=e323]
+                - generic [ref=e324]: Page 1 of 13
+                - button "›" [ref=e325] [cursor=pointer]
+                - button "»" [ref=e326] [cursor=pointer]
+  - button "🚨 Error Testing Suite" [ref=e38] [cursor=pointer]

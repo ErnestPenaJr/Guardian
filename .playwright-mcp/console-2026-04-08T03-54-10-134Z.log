@@ -1,0 +1,18 @@
+[     547ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5175/node_modules/.vite/deps/chunk-5MJJNU6A.js?v=e22249a8:21608
+[     551ms] [LOG] Environment: development @ http://localhost:5175/src/utils/api.ts:4
+[     551ms] [LOG] API_URL configured as: / @ http://localhost:5175/src/utils/api.ts:5
+[     551ms] [LOG] Current window location: http://localhost:5175/admin-user-management @ http://localhost:5175/src/utils/api.ts:6
+[     593ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[     595ms] [LOG] [useAuth] Loaded user from localStorage: {id: 1176, userId: 1176, email: ernest@shieldlytics.com, firstName: Ernest, lastName: Pena Jr} @ http://localhost:5175/src/hooks/useAuth.ts:12
+[     595ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/users, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     596ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/users @ http://localhost:5175/src/utils/api.ts:43
+[     596ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/invites, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     596ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/invites @ http://localhost:5175/src/utils/api.ts:43
+[     596ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/roles, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     596ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/roles @ http://localhost:5175/src/utils/api.ts:43
+[     633ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/users, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     633ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/users @ http://localhost:5175/src/utils/api.ts:43
+[     633ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/invites, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     633ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/invites @ http://localhost:5175/src/utils/api.ts:43
+[     633ms] [LOG] 🔍 [API INTERCEPTOR] Processing request: {url: /api/roles, method: get, tokenExists: true, tokenLength: 327, tokenPreview: eyJhbGciOiJIUzI1NiIs...} @ http://localhost:5175/src/utils/api.ts:30
+[     633ms] [LOG] ✅ [API INTERCEPTOR] Added Authorization header for: /api/roles @ http://localhost:5175/src/utils/api.ts:43

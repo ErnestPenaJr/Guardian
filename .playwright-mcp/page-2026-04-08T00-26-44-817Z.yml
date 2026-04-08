@@ -1,0 +1,235 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e41]:
+      - banner [ref=e42]:
+        - generic [ref=e43]:
+          - img [ref=e44]
+          - generic [ref=e45]: Guardian
+        - textbox [ref=e48]:
+          - /placeholder: Search requests...
+        - generic [ref=e49]:
+          - button [ref=e51] [cursor=pointer]:
+            - img [ref=e52]
+            - generic [ref=e55]: "1"
+          - button [ref=e57] [cursor=pointer]:
+            - img [ref=e59]
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - generic [ref=e63]: Super Admin
+                - generic [ref=e64]: Role Switcher
+              - generic [ref=e65]: Testing Mode
+            - img [ref=e66]
+          - button [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: Ernest Pena Jr Super Admin
+            - img [ref=e70]
+          - button: EP
+      - navigation [ref=e72]:
+        - button [ref=e74] [cursor=pointer]:
+          - img [ref=e75]
+        - menu [ref=e77]:
+          - menuitem [ref=e78] [cursor=pointer]:
+            - img [ref=e81]
+            - generic [ref=e86]: Home
+          - menuitem [ref=e87] [cursor=pointer]:
+            - img [ref=e89]
+            - generic [ref=e92]: Requests
+          - menuitem [ref=e93] [cursor=pointer]:
+            - img [ref=e95]
+            - generic [ref=e97]: Notices
+          - menuitem [ref=e98] [cursor=pointer]:
+            - img [ref=e100]
+            - generic [ref=e104]: Workspaces
+          - menuitem [ref=e105] [cursor=pointer]:
+            - img [ref=e107]
+            - generic [ref=e109]: AIM-Financial
+          - menuitem [ref=e110] [cursor=pointer]:
+            - img [ref=e112]
+            - generic [ref=e115]: AIM-Wildlife
+          - menuitem [disabled] [ref=e116]:
+            - img [ref=e118]
+            - generic [ref=e123]: API Vendor
+          - menuitem [ref=e124] [cursor=pointer]:
+            - img [ref=e126]
+            - generic [ref=e127]: Settings
+        - button [ref=e129] [cursor=pointer]:
+          - img [ref=e131]
+          - generic [ref=e134]: Logout
+      - main [ref=e135]:
+        - generic [ref=e136]:
+          - heading [level=1] [ref=e137]: HOME
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - heading [level=2] [ref=e140]: Request Overview
+              - generic [ref=e141]:
+                - generic [ref=e142]:
+                  - img [ref=e143]
+                  - generic:
+                    - generic: "15"
+                - generic [ref=e144]:
+                  - generic [ref=e147]: Pending
+                  - generic [ref=e150]: Cancelled
+            - generic [ref=e151]:
+              - heading [level=2] [ref=e152]: Request Queue
+              - generic [ref=e153]:
+                - button [ref=e155] [cursor=pointer]:
+                  - img [ref=e156]
+                  - text: Refresh
+                - textbox [ref=e159]:
+                  - /placeholder: Search requests...
+              - table [ref=e161]:
+                - rowgroup [ref=e162]:
+                  - row [ref=e163]:
+                    - columnheader [ref=e164]: REQUEST ID
+                    - columnheader [ref=e165]: REQUEST NAME
+                    - columnheader [ref=e166]: STATUS
+                    - columnheader [ref=e167]: DATE
+                    - columnheader [ref=e168]: TYPE
+                    - columnheader [ref=e169]: PRIORITY
+                    - columnheader [ref=e170]: REQUESTOR
+                    - columnheader [ref=e171]: ASSIGNED
+                - rowgroup [ref=e172]:
+                  - row [ref=e173] [cursor=pointer]:
+                    - cell [ref=e174]: REQ-2026-290
+                    - cell [ref=e175]: fsd
+                    - cell [ref=e176]: Pending
+                    - cell [ref=e177]: Apr 4, 26
+                    - cell [ref=e178]: General
+                    - cell [ref=e179]
+                    - cell [ref=e182]: Ernest Pena Jr
+                    - cell [ref=e183]: Unassigned
+                  - row [ref=e184] [cursor=pointer]:
+                    - cell [ref=e185]: REQ-2026-289
+                    - cell [ref=e186]: df
+                    - cell [ref=e187]: Pending
+                    - cell [ref=e188]: Apr 4, 26
+                    - cell [ref=e189]: General
+                    - cell [ref=e190]
+                    - cell [ref=e193]: Ernest Pena Jr
+                    - cell [ref=e194]: Unassigned
+                  - row [ref=e195] [cursor=pointer]:
+                    - cell [ref=e196]: REQ-2026-288
+                    - cell [ref=e197]: sdf
+                    - cell [ref=e198]: Pending
+                    - cell [ref=e199]: Apr 4, 26
+                    - cell [ref=e200]: General
+                    - cell [ref=e201]
+                    - cell [ref=e204]: Ernest Pena Jr
+                    - cell [ref=e205]: Unassigned
+                  - row [ref=e206] [cursor=pointer]:
+                    - cell [ref=e207]: REQ-2026-261
+                    - cell [ref=e208]: Subject test 3
+                    - cell [ref=e209]: Pending
+                    - cell [ref=e210]: Mar 14, 26
+                    - cell [ref=e211]: General
+                    - cell [ref=e212]
+                    - cell [ref=e215]: Ernest Pena Jr
+                    - cell [ref=e216]: Unassigned
+                  - row [ref=e217] [cursor=pointer]:
+                    - cell [ref=e218]: REQ-2026-260
+                    - cell [ref=e219]: Subject Text 2
+                    - cell [ref=e220]: Pending
+                    - cell [ref=e221]: Mar 14, 26
+                    - cell [ref=e222]: General
+                    - cell [ref=e223]
+                    - cell [ref=e226]: Ernest Pena Jr
+                    - cell [ref=e227]: Unassigned
+              - generic [ref=e228]:
+                - generic [ref=e229]:
+                  - generic [ref=e230]: "Records per page:"
+                  - combobox [ref=e231]
+                  - generic [ref=e232]: 1-5 of 15
+                - generic [ref=e233]:
+                  - button [disabled] [ref=e234]: «
+                  - button [disabled] [ref=e235]: ‹
+                  - generic [ref=e236]: Page 1 of 3
+                  - button [ref=e237] [cursor=pointer]: ›
+                  - button [ref=e238] [cursor=pointer]: »
+            - generic [ref=e239]:
+              - heading [level=2] [ref=e240]: Notices Overview
+              - generic [ref=e241]:
+                - generic [ref=e242]:
+                  - img [ref=e243]
+                  - generic:
+                    - generic: "62"
+                - generic [ref=e244]:
+                  - generic [ref=e247]: Sent
+                  - generic [ref=e250]: Draft
+            - generic [ref=e251]:
+              - heading [level=2] [ref=e252]: Notices Queue
+              - generic [ref=e253]:
+                - button [ref=e255] [cursor=pointer]:
+                  - img [ref=e256]
+                  - text: Refresh
+                - textbox [ref=e259]:
+                  - /placeholder: Search notices...
+              - table [ref=e261]:
+                - rowgroup [ref=e262]:
+                  - row [ref=e263]:
+                    - columnheader [ref=e264]: TITLE
+                    - columnheader [ref=e265]: SENSITIVITY
+                    - columnheader [ref=e266]: STATUS
+                    - columnheader [ref=e267]: TYPE
+                    - columnheader [ref=e268]: CREATED BY
+                    - columnheader [ref=e269]: DATE CREATED
+                - rowgroup [ref=e270]:
+                  - row [ref=e271] [cursor=pointer]:
+                    - cell [ref=e272]: E2E Lifecycle 1774743570637
+                    - cell [ref=e273]:
+                      - generic [ref=e274]: High
+                    - cell [ref=e275]:
+                      - generic [ref=e276]: Draft
+                    - cell [ref=e277]: Internal Only
+                    - cell [ref=e278]: Ernest
+                    - cell [ref=e279]: 3/28/2026
+                  - row [ref=e280] [cursor=pointer]:
+                    - cell [ref=e281]: CRUD Test 1774743495522
+                    - cell [ref=e282]:
+                      - generic [ref=e283]: Low
+                    - cell [ref=e284]:
+                      - generic [ref=e285]: Sent
+                    - cell [ref=e286]: Internal Only
+                    - cell [ref=e287]: Ernest
+                    - cell [ref=e288]: 3/28/2026
+                  - row [ref=e289] [cursor=pointer]:
+                    - cell [ref=e290]: E2E Test Notice 1774743471642
+                    - cell [ref=e291]:
+                      - generic [ref=e292]: Low
+                    - cell [ref=e293]:
+                      - generic [ref=e294]: Draft
+                    - cell [ref=e295]: Internal Only
+                    - cell [ref=e296]: Ernest
+                    - cell [ref=e297]: 3/28/2026
+                  - row [ref=e298] [cursor=pointer]:
+                    - cell [ref=e299]: E2E Test Notice 1774743471642
+                    - cell [ref=e300]:
+                      - generic [ref=e301]: Low
+                    - cell [ref=e302]:
+                      - generic [ref=e303]: Draft
+                    - cell [ref=e304]: Internal Only
+                    - cell [ref=e305]: Ernest
+                    - cell [ref=e306]: 3/28/2026
+                  - row [ref=e307] [cursor=pointer]:
+                    - cell [ref=e308]: E2E Test Notice 1774743466588
+                    - cell [ref=e309]:
+                      - generic [ref=e310]: Low
+                    - cell [ref=e311]:
+                      - generic [ref=e312]: Sent
+                    - cell [ref=e313]: Internal Only
+                    - cell [ref=e314]: Ernest
+                    - cell [ref=e315]: 3/28/2026
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]: "Records per page:"
+                  - combobox [ref=e319]
+                  - generic [ref=e320]: 1-5 of 62
+                - generic [ref=e321]:
+                  - button [disabled] [ref=e322]: «
+                  - button [disabled] [ref=e323]: ‹
+                  - generic [ref=e324]: Page 1 of 13
+                  - button [ref=e325] [cursor=pointer]: ›
+                  - button [ref=e326] [cursor=pointer]: »
+    - button [ref=e327] [cursor=pointer]: 🚨 Error Testing Suite
+  - dialog "Success" [active] [ref=e329]:
+    - heading "Success" [level=2] [ref=e337]
+    - generic [ref=e338]: Login successful
+    - text: "!"

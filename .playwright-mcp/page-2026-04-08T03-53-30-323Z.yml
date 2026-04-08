@@ -1,0 +1,206 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e386]:
+    - banner [ref=e387]:
+      - heading "Guardian - Export Request Data" [level=1] [ref=e388]:
+        - img [ref=e389]
+        - text: Guardian - Export Request Data
+      - button "Back" [ref=e392] [cursor=pointer]:
+        - img [ref=e393]
+        - text: Back
+    - main [ref=e395]:
+      - generic [ref=e396]:
+        - generic [ref=e397]:
+          - heading "Export Request Data" [level=2] [ref=e398]:
+            - img [ref=e399]
+            - text: Export Request Data
+          - generic [ref=e402]: all-requests
+        - generic [ref=e403]:
+          - generic [ref=e404]:
+            - generic [ref=e405]:
+              - generic [ref=e406]: Total Records
+              - generic [ref=e407]: "15"
+            - generic [ref=e408]:
+              - generic [ref=e409]: Date Range
+              - generic [ref=e410]: 9/6/2025 - 4/4/2026
+            - generic [ref=e411]:
+              - generic [ref=e412]: Status Filter
+              - generic [ref=e413]: All
+            - generic [ref=e414]:
+              - generic [ref=e415]: Exported By
+              - generic [ref=e416]: ernest@shieldlytics.com
+            - generic [ref=e417]:
+              - generic [ref=e418]: Company
+              - generic [ref=e419]: N/A
+            - generic [ref=e420]:
+              - generic [ref=e421]: Export Date
+              - generic [ref=e422]: April 7, 2026 at 10:52 PM
+          - heading "Select Export Format" [level=3] [ref=e423]
+          - generic [ref=e424]:
+            - generic [ref=e425] [cursor=pointer]:
+              - heading "CSV Export .csv" [level=3] [ref=e426]:
+                - img [ref=e427]
+                - text: CSV Export
+                - generic [ref=e430]: .csv
+              - paragraph [ref=e431]: Spreadsheet-compatible format. Best for data analysis in Excel, Google Sheets, or database import.
+              - text: ✓
+            - generic [ref=e432] [cursor=pointer]:
+              - heading "JSON Export .json" [level=3] [ref=e433]:
+                - img [ref=e434]
+                - text: JSON Export
+                - generic [ref=e437]: .json
+              - paragraph [ref=e438]: Structured data format. Preserves all relationships and nested data. Ideal for system integration.
+            - generic [ref=e439] [cursor=pointer]:
+              - heading "PDF Report .pdf" [level=3] [ref=e440]:
+                - img [ref=e441]
+                - text: PDF Report
+                - generic [ref=e444]: .pdf
+              - paragraph [ref=e445]: Formatted printable report. Best for archival, sharing, and official documentation purposes.
+          - generic [ref=e446]:
+            - generic [ref=e447]:
+              - generic [ref=e448]: Data Preview
+              - generic [ref=e449]: 15 records • 1 sections
+            - generic [ref=e450]:
+              - button "Structured View" [ref=e451] [cursor=pointer]
+              - button "Table View" [ref=e452] [cursor=pointer]
+              - button "Raw Data" [ref=e453] [cursor=pointer]
+            - table [ref=e761]:
+              - rowgroup [ref=e762]:
+                - row "Tracking ID Request Name Status Submitted Requestor Assigned To" [ref=e763]:
+                  - columnheader "Tracking ID" [ref=e764]
+                  - columnheader "Request Name" [ref=e765]
+                  - columnheader "Status" [ref=e766]
+                  - columnheader "Submitted" [ref=e767]
+                  - columnheader "Requestor" [ref=e768]
+                  - columnheader "Assigned To" [ref=e769]
+              - rowgroup [ref=e770]:
+                - row "REQ-2026-290 fsd Pending Apr 4, 2026 Ernest Pena Jr Unassigned" [ref=e771]:
+                  - cell "REQ-2026-290" [ref=e772]
+                  - cell "fsd" [ref=e773]
+                  - cell "Pending" [ref=e774]
+                  - cell "Apr 4, 2026" [ref=e775]
+                  - cell "Ernest Pena Jr" [ref=e776]
+                  - cell "Unassigned" [ref=e777]
+                - row "REQ-2026-289 df Pending Apr 4, 2026 Ernest Pena Jr Unassigned" [ref=e778]:
+                  - cell "REQ-2026-289" [ref=e779]
+                  - cell "df" [ref=e780]
+                  - cell "Pending" [ref=e781]
+                  - cell "Apr 4, 2026" [ref=e782]
+                  - cell "Ernest Pena Jr" [ref=e783]
+                  - cell "Unassigned" [ref=e784]
+                - row "REQ-2026-288 sdf Pending Apr 4, 2026 Ernest Pena Jr Unassigned" [ref=e785]:
+                  - cell "REQ-2026-288" [ref=e786]
+                  - cell "sdf" [ref=e787]
+                  - cell "Pending" [ref=e788]
+                  - cell "Apr 4, 2026" [ref=e789]
+                  - cell "Ernest Pena Jr" [ref=e790]
+                  - cell "Unassigned" [ref=e791]
+                - row "REQ-2026-261 Subject test 3 Pending Mar 14, 2026 Ernest Pena Jr Unassigned" [ref=e792]:
+                  - cell "REQ-2026-261" [ref=e793]
+                  - cell "Subject test 3" [ref=e794]
+                  - cell "Pending" [ref=e795]
+                  - cell "Mar 14, 2026" [ref=e796]
+                  - cell "Ernest Pena Jr" [ref=e797]
+                  - cell "Unassigned" [ref=e798]
+                - row "REQ-2026-260 Subject Text 2 Pending Mar 14, 2026 Ernest Pena Jr Unassigned" [ref=e799]:
+                  - cell "REQ-2026-260" [ref=e800]
+                  - cell "Subject Text 2" [ref=e801]
+                  - cell "Pending" [ref=e802]
+                  - cell "Mar 14, 2026" [ref=e803]
+                  - cell "Ernest Pena Jr" [ref=e804]
+                  - cell "Unassigned" [ref=e805]
+                - row "REQ-2026-259 subject test Pending Mar 14, 2026 Ernest Pena Jr Unassigned" [ref=e806]:
+                  - cell "REQ-2026-259" [ref=e807]
+                  - cell "subject test" [ref=e808]
+                  - cell "Pending" [ref=e809]
+                  - cell "Mar 14, 2026" [ref=e810]
+                  - cell "Ernest Pena Jr" [ref=e811]
+                  - cell "Unassigned" [ref=e812]
+                - row "REQ-2026-258 effd Pending Mar 14, 2026 Ernest Pena Jr Unassigned" [ref=e813]:
+                  - cell "REQ-2026-258" [ref=e814]
+                  - cell "effd" [ref=e815]
+                  - cell "Pending" [ref=e816]
+                  - cell "Mar 14, 2026" [ref=e817]
+                  - cell "Ernest Pena Jr" [ref=e818]
+                  - cell "Unassigned" [ref=e819]
+                - row "REQ-2026-257 hgh Pending Mar 14, 2026 Ernest Pena Jr Unassigned" [ref=e820]:
+                  - cell "REQ-2026-257" [ref=e821]
+                  - cell "hgh" [ref=e822]
+                  - cell "Pending" [ref=e823]
+                  - cell "Mar 14, 2026" [ref=e824]
+                  - cell "Ernest Pena Jr" [ref=e825]
+                  - cell "Unassigned" [ref=e826]
+                - row "REQ-2026-249 e Pending Mar 12, 2026 Ernest Pena Jr Unassigned" [ref=e827]:
+                  - cell "REQ-2026-249" [ref=e828]
+                  - cell "e" [ref=e829]
+                  - cell "Pending" [ref=e830]
+                  - cell "Mar 12, 2026" [ref=e831]
+                  - cell "Ernest Pena Jr" [ref=e832]
+                  - cell "Unassigned" [ref=e833]
+                - row "REQ-2026-247 ggfd Pending Mar 11, 2026 Ernest Pena Jr Unassigned" [ref=e834]:
+                  - cell "REQ-2026-247" [ref=e835]
+                  - cell "ggfd" [ref=e836]
+                  - cell "Pending" [ref=e837]
+                  - cell "Mar 11, 2026" [ref=e838]
+                  - cell "Ernest Pena Jr" [ref=e839]
+                  - cell "Unassigned" [ref=e840]
+                - row "REQ-2026-244 fdsdf Pending Mar 10, 2026 Ernest Pena Jr Unassigned" [ref=e841]:
+                  - cell "REQ-2026-244" [ref=e842]
+                  - cell "fdsdf" [ref=e843]
+                  - cell "Pending" [ref=e844]
+                  - cell "Mar 10, 2026" [ref=e845]
+                  - cell "Ernest Pena Jr" [ref=e846]
+                  - cell "Unassigned" [ref=e847]
+                - row "REQ-2026-243 eeew Pending Mar 9, 2026 Ernest Pena Jr Unassigned" [ref=e848]:
+                  - cell "REQ-2026-243" [ref=e849]
+                  - cell "eeew" [ref=e850]
+                  - cell "Pending" [ref=e851]
+                  - cell "Mar 9, 2026" [ref=e852]
+                  - cell "Ernest Pena Jr" [ref=e853]
+                  - cell "Unassigned" [ref=e854]
+                - row "REQ-2026-235 dfg Pending Mar 4, 2026 Ernest Pena Jr Unassigned" [ref=e855]:
+                  - cell "REQ-2026-235" [ref=e856]
+                  - cell "dfg" [ref=e857]
+                  - cell "Pending" [ref=e858]
+                  - cell "Mar 4, 2026" [ref=e859]
+                  - cell "Ernest Pena Jr" [ref=e860]
+                  - cell "Unassigned" [ref=e861]
+                - row "REQ-2026-234 dfsdf Pending Mar 4, 2026 Ernest Pena Jr Unassigned" [ref=e862]:
+                  - cell "REQ-2026-234" [ref=e863]
+                  - cell "dfsdf" [ref=e864]
+                  - cell "Pending" [ref=e865]
+                  - cell "Mar 4, 2026" [ref=e866]
+                  - cell "Ernest Pena Jr" [ref=e867]
+                  - cell "Unassigned" [ref=e868]
+                - row "REQ-2025-173 Subject Test Cancelled Sep 6, 2025 Ernest Pena Jr Ernest Pena Jr" [ref=e869]:
+                  - cell "REQ-2025-173" [ref=e870]
+                  - cell "Subject Test" [ref=e871]
+                  - cell "Cancelled" [ref=e872]
+                  - cell "Sep 6, 2025" [ref=e873]
+                  - cell "Ernest Pena Jr" [ref=e874]
+                  - cell "Ernest Pena Jr" [ref=e875]
+          - generic [ref=e747]:
+            - generic [ref=e748]:
+              - strong [ref=e749]: 15 records
+              - text: will be exported across
+              - strong [ref=e750]: 1 sections
+              - text: Including metadata and all visible data fields
+            - generic [ref=e751]:
+              - button "Preview Export" [ref=e752] [cursor=pointer]:
+                - img [ref=e753]
+                - text: Preview Export
+              - button "Export Now" [active] [ref=e756] [cursor=pointer]:
+                - img [ref=e757]
+                - text: Export Now
+    - generic [ref=e877]:
+      - img [ref=e879]
+      - heading "Export Complete!" [level=3] [ref=e882]
+      - paragraph [ref=e883]: Your data has been successfully exported and is ready for download.
+      - generic [ref=e886]:
+        - generic [ref=e887]: all-requests_requests_2026-04-08.csv
+        - generic [ref=e888]: "File size: 1.5 KB"
+      - button "Download File" [ref=e889] [cursor=pointer]:
+        - img [ref=e890]
+        - text: Download File
+      - button "Close" [ref=e893] [cursor=pointer]
+  - button "🚨 Error Testing Suite" [ref=e385] [cursor=pointer]

@@ -1,0 +1,250 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e167]:
+    - banner [ref=e168]:
+      - heading "Guardian - Export User Data" [level=1] [ref=e169]:
+        - img [ref=e170]
+        - text: Guardian - Export User Data
+      - button "Back" [ref=e173] [cursor=pointer]:
+        - img [ref=e174]
+        - text: Back
+    - main [ref=e176]:
+      - generic [ref=e177]:
+        - generic [ref=e178]:
+          - heading "Export User Data" [level=2] [ref=e179]:
+            - img [ref=e180]
+            - text: Export User Data
+          - generic [ref=e183]: user-management
+        - generic [ref=e184]:
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - generic [ref=e187]: Company
+              - generic [ref=e188]: Current Company
+            - generic [ref=e189]:
+              - generic [ref=e190]: Active Users
+              - generic [ref=e191]: "4"
+            - generic [ref=e192]:
+              - generic [ref=e193]: Pending Invites
+              - generic [ref=e194]: "1"
+            - generic [ref=e195]:
+              - generic [ref=e196]: Exported By
+              - generic [ref=e197]: Current User
+            - generic [ref=e198]:
+              - generic [ref=e199]: Export Date
+              - generic [ref=e200]: April 7, 2026
+          - heading "Select Export Format" [level=3] [ref=e201]
+          - generic [ref=e202]:
+            - generic [ref=e203] [cursor=pointer]:
+              - heading "CSV Export .csv" [level=3] [ref=e204]:
+                - img [ref=e205]
+                - text: CSV Export
+                - generic [ref=e208]: .csv
+              - paragraph [ref=e209]: Spreadsheet-compatible format. Best for data analysis in Excel, Google Sheets, or database import.
+              - text: ✓
+            - generic [ref=e210] [cursor=pointer]:
+              - heading "JSON Export .json" [level=3] [ref=e211]:
+                - img [ref=e212]
+                - text: JSON Export
+                - generic [ref=e215]: .json
+              - paragraph [ref=e216]: Structured data format. Preserves all relationships and nested data. Ideal for system integration.
+            - generic [ref=e217] [cursor=pointer]:
+              - heading "PDF Report .pdf" [level=3] [ref=e218]:
+                - img [ref=e219]
+                - text: PDF Report
+                - generic [ref=e222]: .pdf
+              - paragraph [ref=e223]: Formatted printable report. Best for archival, sharing, and official documentation purposes.
+          - generic [ref=e224]:
+            - generic [ref=e225]:
+              - generic [ref=e226]: Data Preview
+              - generic [ref=e227]: 5 records • 2 sections
+            - generic [ref=e228]:
+              - button "Structured View" [ref=e229] [cursor=pointer]
+              - button "Table View" [ref=e230] [cursor=pointer]
+              - button "Raw Data" [ref=e231] [cursor=pointer]
+            - generic [ref=e232]:
+              - generic [ref=e233]:
+                - button "Active Users 5 fields" [ref=e234] [cursor=pointer]:
+                  - img [ref=e235]
+                  - text: Active Users
+                  - generic [ref=e240]: 5 fields
+                - generic [ref=e241]:
+                  - generic [ref=e242]: Record 1
+                  - generic [ref=e243]:
+                    - generic [ref=e244]: Name
+                    - generic [ref=e245]: Ernest Pena
+                  - generic [ref=e246]:
+                    - generic [ref=e247]: Email
+                    - generic [ref=e248]: ernestpenajr@me.com
+                  - generic [ref=e249]:
+                    - generic [ref=e250]: Role
+                    - generic [ref=e251]: GEN
+                  - generic [ref=e252]:
+                    - generic [ref=e253]: Status
+                    - generic [ref=e254]: Active
+                  - generic [ref=e255]:
+                    - generic [ref=e256]: Date Added
+                    - generic [ref=e257]: 4/1/2026
+                  - generic [ref=e258]: Record 2
+                  - generic [ref=e259]:
+                    - generic [ref=e260]: Name
+                    - generic [ref=e261]: Ernest Pena Jr
+                  - generic [ref=e262]:
+                    - generic [ref=e263]: Email
+                    - generic [ref=e264]: ernest@shieldlytics.com
+                  - generic [ref=e265]:
+                    - generic [ref=e266]: Role
+                    - generic [ref=e267]: JAFAR
+                  - generic [ref=e268]:
+                    - generic [ref=e269]: Status
+                    - generic [ref=e270]: Active
+                  - generic [ref=e271]:
+                    - generic [ref=e272]: Date Added
+                    - generic [ref=e273]: 8/31/2025
+                  - generic [ref=e274]: Record 3
+                  - generic [ref=e275]:
+                    - generic [ref=e276]: Name
+                    - generic [ref=e277]: Test User One
+                  - generic [ref=e278]:
+                    - generic [ref=e279]: Email
+                    - generic [ref=e280]: testuser1@shieldlytics.com
+                  - generic [ref=e281]:
+                    - generic [ref=e282]: Role
+                    - generic [ref=e283]: GEN
+                  - generic [ref=e284]:
+                    - generic [ref=e285]: Status
+                    - generic [ref=e286]: Active
+                  - generic [ref=e287]:
+                    - generic [ref=e288]: Date Added
+                    - generic [ref=e289]: 3/28/2026
+                  - generic [ref=e290]: Record 4
+                  - generic [ref=e291]:
+                    - generic [ref=e292]: Name
+                    - generic [ref=e293]: Test User Two
+                  - generic [ref=e294]:
+                    - generic [ref=e295]: Email
+                    - generic [ref=e296]: testuser2@shieldlytics.com
+                  - generic [ref=e297]:
+                    - generic [ref=e298]: Role
+                    - generic [ref=e299]: GEN
+                  - generic [ref=e300]:
+                    - generic [ref=e301]: Status
+                    - generic [ref=e302]: Active
+                  - generic [ref=e303]:
+                    - generic [ref=e304]: Date Added
+                    - generic [ref=e305]: 3/28/2026
+                  - generic [ref=e306]: Record 5
+                  - generic [ref=e307]:
+                    - generic [ref=e308]: Name
+                    - generic [ref=e309]: ernestpenajr@me.com
+                  - generic [ref=e310]:
+                    - generic [ref=e311]: Email
+                    - generic [ref=e312]: ernestpenajr@me.com
+                  - generic [ref=e313]:
+                    - generic [ref=e314]: Role
+                    - generic [ref=e315]: GEN
+                  - generic [ref=e316]:
+                    - generic [ref=e317]: Status
+                    - generic [ref=e318]: Expired
+                  - generic [ref=e319]:
+                    - generic [ref=e320]: Date Added
+                    - generic [ref=e321]: Not provided
+              - generic [ref=e322]:
+                - button "Invited Users 5 fields" [ref=e323] [cursor=pointer]:
+                  - img [ref=e324]
+                  - text: Invited Users
+                  - generic [ref=e329]: 5 fields
+                - generic [ref=e330]:
+                  - generic [ref=e331]: Record 1
+                  - generic [ref=e332]:
+                    - generic [ref=e333]: Email
+                    - generic [ref=e334]: ernestpenajr@me.com
+                  - generic [ref=e335]:
+                    - generic [ref=e336]: Role
+                    - generic [ref=e337]: GEN
+                  - generic [ref=e338]:
+                    - generic [ref=e339]: Status
+                    - generic [ref=e340]: Active
+                  - generic [ref=e341]:
+                    - generic [ref=e342]: Date Sent
+                    - generic [ref=e343]: Not provided
+                  - generic [ref=e344]:
+                    - generic [ref=e345]: Expires
+                    - generic [ref=e346]: Not provided
+                  - generic [ref=e347]: Record 2
+                  - generic [ref=e348]:
+                    - generic [ref=e349]: Email
+                    - generic [ref=e350]: ernest@shieldlytics.com
+                  - generic [ref=e351]:
+                    - generic [ref=e352]: Role
+                    - generic [ref=e353]: JAFAR
+                  - generic [ref=e354]:
+                    - generic [ref=e355]: Status
+                    - generic [ref=e356]: Active
+                  - generic [ref=e357]:
+                    - generic [ref=e358]: Date Sent
+                    - generic [ref=e359]: Not provided
+                  - generic [ref=e360]:
+                    - generic [ref=e361]: Expires
+                    - generic [ref=e362]: Not provided
+                  - generic [ref=e363]: Record 3
+                  - generic [ref=e364]:
+                    - generic [ref=e365]: Email
+                    - generic [ref=e366]: testuser1@shieldlytics.com
+                  - generic [ref=e367]:
+                    - generic [ref=e368]: Role
+                    - generic [ref=e369]: GEN
+                  - generic [ref=e370]:
+                    - generic [ref=e371]: Status
+                    - generic [ref=e372]: Active
+                  - generic [ref=e373]:
+                    - generic [ref=e374]: Date Sent
+                    - generic [ref=e375]: Not provided
+                  - generic [ref=e376]:
+                    - generic [ref=e377]: Expires
+                    - generic [ref=e378]: Not provided
+                  - generic [ref=e379]: Record 4
+                  - generic [ref=e380]:
+                    - generic [ref=e381]: Email
+                    - generic [ref=e382]: testuser2@shieldlytics.com
+                  - generic [ref=e383]:
+                    - generic [ref=e384]: Role
+                    - generic [ref=e385]: GEN
+                  - generic [ref=e386]:
+                    - generic [ref=e387]: Status
+                    - generic [ref=e388]: Active
+                  - generic [ref=e389]:
+                    - generic [ref=e390]: Date Sent
+                    - generic [ref=e391]: Not provided
+                  - generic [ref=e392]:
+                    - generic [ref=e393]: Expires
+                    - generic [ref=e394]: Not provided
+                  - generic [ref=e395]: Record 5
+                  - generic [ref=e396]:
+                    - generic [ref=e397]: Email
+                    - generic [ref=e398]: ernestpenajr@me.com
+                  - generic [ref=e399]:
+                    - generic [ref=e400]: Role
+                    - generic [ref=e401]: GEN
+                  - generic [ref=e402]:
+                    - generic [ref=e403]: Status
+                    - generic [ref=e404]: Expired
+                  - generic [ref=e405]:
+                    - generic [ref=e406]: Date Sent
+                    - generic [ref=e407]: 4/1/2026
+                  - generic [ref=e408]:
+                    - generic [ref=e409]: Expires
+                    - generic [ref=e410]: Not provided
+          - generic [ref=e411]:
+            - generic [ref=e412]:
+              - strong [ref=e413]: 5 records
+              - text: will be exported across
+              - strong [ref=e414]: 2 sections
+              - text: Including metadata and all visible data fields
+            - generic [ref=e415]:
+              - button "Preview Export" [ref=e416] [cursor=pointer]:
+                - img [ref=e417]
+                - text: Preview Export
+              - button "Export Now" [ref=e420] [cursor=pointer]:
+                - img [ref=e421]
+                - text: Export Now
+  - button "🚨 Error Testing Suite" [ref=e166] [cursor=pointer]

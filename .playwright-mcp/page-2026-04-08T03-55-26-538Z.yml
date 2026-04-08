@@ -1,0 +1,197 @@
+- generic [ref=e3]:
+  - region "Notifications Alt+T"
+  - generic [ref=e494]:
+    - banner [ref=e495]:
+      - heading "Guardian - Export Subject1 Data" [level=1] [ref=e496]:
+        - img [ref=e497]
+        - text: Guardian - Export Subject1 Data
+      - button "Back" [ref=e500] [cursor=pointer]:
+        - img [ref=e501]
+        - text: Back
+    - main [ref=e503]:
+      - generic [ref=e504]:
+        - generic [ref=e505]:
+          - heading "Export Subject1 Data" [level=2] [ref=e506]:
+            - img [ref=e507]
+            - text: Export Subject1 Data
+          - generic [ref=e510]: REQ-2026-290
+        - generic [ref=e511]:
+          - generic [ref=e512]:
+            - generic [ref=e513]:
+              - generic [ref=e514]: Form Template
+              - generic [ref=e515]: Subject1
+            - generic [ref=e516]:
+              - generic [ref=e517]: Request ID
+              - generic [ref=e518]: REQ-2026-290
+            - generic [ref=e519]:
+              - generic [ref=e520]: Submitted By
+              - generic [ref=e521]: Ernest Pena Jr
+            - generic [ref=e522]:
+              - generic [ref=e523]: Submission Date
+              - generic [ref=e524]: April 4, 2026
+            - generic [ref=e525]:
+              - generic [ref=e526]: Status
+              - generic [ref=e527]: P
+            - generic [ref=e528]:
+              - generic [ref=e529]: Assigned To
+              - generic [ref=e530]: Unassigned
+          - heading "Select Export Format" [level=3] [ref=e531]
+          - generic [ref=e532]:
+            - generic [ref=e533] [cursor=pointer]:
+              - heading "CSV Export .csv" [level=3] [ref=e534]:
+                - img [ref=e535]
+                - text: CSV Export
+                - generic [ref=e538]: .csv
+              - paragraph [ref=e539]: Spreadsheet-compatible format. Best for data analysis in Excel, Google Sheets, or database import.
+              - text: ✓
+            - generic [ref=e540] [cursor=pointer]:
+              - heading "JSON Export .json" [level=3] [ref=e541]:
+                - img [ref=e542]
+                - text: JSON Export
+                - generic [ref=e545]: .json
+              - paragraph [ref=e546]: Structured data format. Preserves all relationships and nested data. Ideal for system integration.
+            - generic [ref=e547] [cursor=pointer]:
+              - heading "PDF Report .pdf" [level=3] [ref=e548]:
+                - img [ref=e549]
+                - text: PDF Report
+                - generic [ref=e552]: .pdf
+              - paragraph [ref=e553]: Formatted printable report. Best for archival, sharing, and official documentation purposes.
+          - generic [ref=e554]:
+            - generic [ref=e555]:
+              - generic [ref=e556]: Data Preview
+              - generic [ref=e557]: 9 records • 1 sections
+            - generic [ref=e558]:
+              - button "Structured View" [ref=e559] [cursor=pointer]
+              - button "Table View" [ref=e560] [cursor=pointer]
+              - button "Raw Data" [ref=e561] [cursor=pointer]
+            - generic [ref=e563]:
+              - generic [ref=e564]:
+                - generic [ref=e565]: Field Name
+                - generic [ref=e566]: First Name
+              - generic [ref=e567]:
+                - generic [ref=e568]: Value
+                - generic [ref=e569]: Not provided
+              - generic [ref=e570]:
+                - generic [ref=e571]: Section
+                - generic [ref=e572]: Form Data
+              - generic [ref=e573]:
+                - generic [ref=e574]: Required
+                - generic [ref=e575]: N/A
+              - separator [ref=e576]
+              - generic [ref=e577]:
+                - generic [ref=e578]: Field Name
+                - generic [ref=e579]: Middle Init.
+              - generic [ref=e580]:
+                - generic [ref=e581]: Value
+                - generic [ref=e582]: Not provided
+              - generic [ref=e583]:
+                - generic [ref=e584]: Section
+                - generic [ref=e585]: Form Data
+              - generic [ref=e586]:
+                - generic [ref=e587]: Required
+                - generic [ref=e588]: N/A
+              - separator [ref=e589]
+              - generic [ref=e590]:
+                - generic [ref=e591]: Field Name
+                - generic [ref=e592]: Last Name
+              - generic [ref=e593]:
+                - generic [ref=e594]: Value
+                - generic [ref=e595]: Not provided
+              - generic [ref=e596]:
+                - generic [ref=e597]: Section
+                - generic [ref=e598]: Form Data
+              - generic [ref=e599]:
+                - generic [ref=e600]: Required
+                - generic [ref=e601]: N/A
+              - separator [ref=e602]
+              - generic [ref=e603]:
+                - generic [ref=e604]: Field Name
+                - generic [ref=e605]: D.O.B.
+              - generic [ref=e606]:
+                - generic [ref=e607]: Value
+                - generic [ref=e608]: Not provided
+              - generic [ref=e609]:
+                - generic [ref=e610]: Section
+                - generic [ref=e611]: Form Data
+              - generic [ref=e612]:
+                - generic [ref=e613]: Required
+                - generic [ref=e614]: N/A
+              - separator [ref=e615]
+              - generic [ref=e616]:
+                - generic [ref=e617]: Field Name
+                - generic [ref=e618]: Email
+              - generic [ref=e619]:
+                - generic [ref=e620]: Value
+                - generic [ref=e621]: Not provided
+              - generic [ref=e622]:
+                - generic [ref=e623]: Section
+                - generic [ref=e624]: Form Data
+              - generic [ref=e625]:
+                - generic [ref=e626]: Required
+                - generic [ref=e627]: N/A
+              - separator [ref=e628]
+              - generic [ref=e629]:
+                - generic [ref=e630]: Field Name
+                - generic [ref=e631]: SSN
+              - generic [ref=e632]:
+                - generic [ref=e633]: Value
+                - generic [ref=e634]: Not provided
+              - generic [ref=e635]:
+                - generic [ref=e636]: Section
+                - generic [ref=e637]: Form Data
+              - generic [ref=e638]:
+                - generic [ref=e639]: Required
+                - generic [ref=e640]: N/A
+              - separator [ref=e641]
+              - generic [ref=e642]:
+                - generic [ref=e643]: Field Name
+                - generic [ref=e644]: Phone
+              - generic [ref=e645]:
+                - generic [ref=e646]: Value
+                - generic [ref=e647]: Not provided
+              - generic [ref=e648]:
+                - generic [ref=e649]: Section
+                - generic [ref=e650]: Form Data
+              - generic [ref=e651]:
+                - generic [ref=e652]: Required
+                - generic [ref=e653]: N/A
+              - separator [ref=e654]
+              - generic [ref=e655]:
+                - generic [ref=e656]: Field Name
+                - generic [ref=e657]: Cell Phone
+              - generic [ref=e658]:
+                - generic [ref=e659]: Value
+                - generic [ref=e660]: Not provided
+              - generic [ref=e661]:
+                - generic [ref=e662]: Section
+                - generic [ref=e663]: Form Data
+              - generic [ref=e664]:
+                - generic [ref=e665]: Required
+                - generic [ref=e666]: N/A
+              - separator [ref=e667]
+              - generic [ref=e668]:
+                - generic [ref=e669]: Field Name
+                - generic [ref=e670]: Url
+              - generic [ref=e671]:
+                - generic [ref=e672]: Value
+                - generic [ref=e673]: Not provided
+              - generic [ref=e674]:
+                - generic [ref=e675]: Section
+                - generic [ref=e676]: Form Data
+              - generic [ref=e677]:
+                - generic [ref=e678]: Required
+                - generic [ref=e679]: N/A
+          - generic [ref=e680]:
+            - generic [ref=e681]:
+              - strong [ref=e682]: 9 records
+              - text: will be exported across
+              - strong [ref=e683]: 1 sections
+              - text: Including metadata and all visible data fields
+            - generic [ref=e684]:
+              - button "Preview Export" [ref=e685] [cursor=pointer]:
+                - img [ref=e686]
+                - text: Preview Export
+              - button "Export Now" [ref=e689] [cursor=pointer]:
+                - img [ref=e690]
+                - text: Export Now
+  - button "🚨 Error Testing Suite" [ref=e385] [cursor=pointer]
