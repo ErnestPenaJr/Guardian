@@ -76,12 +76,24 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
 
 // === STATIC FILE SERVING ===
 // For Azure App Service, serve static files from current directory
-app.use(express.static('.', {
-  index: 'index.html',
-  setHeaders: (res, path) => {
-    // Set proper MIME types for JavaScript modules
-    if (path.endsWith('.js') || path.endsWith('.mjs')) {
+//jsu 4/8/26 app.use(express.static('.', {
+//jsu 4/8/26  index: 'index.html',
+  //jsu 4/8/26setHeaders: (res, path) => {
+    //jsu 4/8/26// Set proper MIME types for JavaScript modules
+    //jsu 4/8/26if (path.endsWith('.js') || path.endsWith('.mjs')) {
+      //jsu 4/8/26res.setHeader('Content-Type', 'application/javascript');
+    //jsu 4/8/26}
+  //jsu 4/8/26}
+//jsu 4/8/26}));
+
+// Serve static files with explicit MIME types
+app.use(express.static(path.join(__dirname), {
+  index: false,  // Don't auto-serve index.html for directories
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
       res.setHeader('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
     }
   }
 }));
@@ -830,7 +842,18 @@ app.post('/api/complete-registration', async (req, res) => {
 
 // === SPA FALLBACK ROUTE ===
 // Handle all non-API routes for React Router (must be last!)
+// jsu 04/08/2026 app.get('*', (req, res) => {
+    // jsu 04/08/2026 res.sendFile(path.join(__dirname, 'index.html'));
+// jsu 04/08/2026 });
+
 app.get('*', (req, res) => {
+    // Don't catch asset requests — let them 404 naturally
+    if (req.path.startsWith('/assets/') || 
+        req.path.endsWith('.js') || 
+        req.path.endsWith('.css') ||
+        req.path.endsWith('.map')) {
+        return res.status(404).json({ error: 'Asset not found', path: req.path });
+    }
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
