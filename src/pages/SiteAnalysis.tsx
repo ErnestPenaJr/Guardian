@@ -5,13 +5,15 @@ import SiteAnalysisKpiCards from '../components/SiteAnalysis/SiteAnalysisKpiCard
 import SiteAnalysisActivityChart from '../components/SiteAnalysis/SiteAnalysisActivityChart';
 import SiteAnalysisNewAccountsChart from '../components/SiteAnalysis/SiteAnalysisNewAccountsChart';
 import SiteAnalysisCompanyTable from '../components/SiteAnalysis/SiteAnalysisCompanyTable';
-import type { SiteAnalysisPayload, SiteAnalysisRange } from '../components/SiteAnalysis/types';
+import KpiDrilldownModal from '../components/SiteAnalysis/KpiDrilldownModal';
+import type { KpiDrilldownType, SiteAnalysisPayload, SiteAnalysisRange } from '../components/SiteAnalysis/types';
 
 const SiteAnalysis: React.FC = () => {
     const [range, setRange] = useState<SiteAnalysisRange>('30d');
     const [data, setData] = useState<SiteAnalysisPayload | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [drilldownType, setDrilldownType] = useState<KpiDrilldownType | null>(null);
     const abortRef = useRef<AbortController | null>(null);
 
     const fetchData = useCallback(async (nextRange: SiteAnalysisRange, refresh = false) => {
@@ -91,7 +93,7 @@ const SiteAnalysis: React.FC = () => {
 
             {data && (
                 <>
-                    <SiteAnalysisKpiCards kpis={data.kpis} />
+                    <SiteAnalysisKpiCards kpis={data.kpis} onTileClick={setDrilldownType} />
                     <div className="row g-3 mb-4">
                         <div className="col-12 col-lg-8">
                             <SiteAnalysisActivityChart data={data.trends.activityPerDay} />
@@ -103,6 +105,12 @@ const SiteAnalysis: React.FC = () => {
                     <SiteAnalysisCompanyTable companies={data.companies} />
                 </>
             )}
+
+            <KpiDrilldownModal
+                type={drilldownType}
+                range={range}
+                onClose={() => setDrilldownType(null)}
+            />
         </div>
     );
 };
