@@ -13956,6 +13956,65 @@ const checkJafarRole = async (req, res, next) => {
     }
 };
 
+// ============================================================
+// Site Analysis (Jafar-only cross-tenant usage dashboard)
+// ============================================================
+
+const SITE_ANALYSIS_RANGE_PRESETS = ['7d', '30d', '90d', '12mo', 'all'];
+const SITE_ANALYSIS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const siteAnalysisCache = new Map(); // key: range preset -> { data, cachedAt }
+
+const resolveSiteAnalysisRange = (range) => {
+    const now = new Date();
+    const rangeEnd = new Date(now.getTime());
+    rangeEnd.setUTCHours(23, 59, 59, 999);
+
+    let rangeStart;
+    if (range === '7d') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 6); // last 7 days incl today
+    } else if (range === '30d') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 29);
+    } else if (range === '90d') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 89);
+    } else if (range === '12mo') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCMonth(rangeStart.getUTCMonth() - 12);
+    } else if (range === 'all') {
+        rangeStart = new Date('1970-01-01T00:00:00.000Z');
+    } else {
+        throw new Error(`Invalid range preset: ${range}`);
+    }
+    rangeStart.setUTCHours(0, 0, 0, 0);
+
+    return { rangeStart, rangeEnd };
+};
+
+const getCachedSiteAnalysis = (range) => {
+    try {
+        const entry = siteAnalysisCache.get(range);
+        if (!entry) return null;
+        if (Date.now() - entry.cachedAt > SITE_ANALYSIS_CACHE_TTL_MS) {
+            siteAnalysisCache.delete(range);
+            return null;
+        }
+        return entry.data;
+    } catch (err) {
+        console.error('[SITE ANALYSIS CACHE] getCached failed:', err);
+        return null;
+    }
+};
+
+const setCachedSiteAnalysis = (range, data) => {
+    siteAnalysisCache.set(range, { data, cachedAt: Date.now() });
+};
+
+const invalidateSiteAnalysisCache = (range) => {
+    siteAnalysisCache.delete(range);
+};
+
 const normalizeDeleteCount = (value) => {
     if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
