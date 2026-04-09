@@ -54,6 +54,25 @@ const fetchSiteAnalysis = async (token: string, range: string, refresh = false) 
     return { status: res.status, body: res.ok ? await res.json() : await res.text() };
 };
 
+const fetchDrilldown = async (token: string, type: string, range: string, withAuth = true) => {
+    const url = `${API_BASE}/api/jafar-admin/site-analysis/drilldown?type=${type}&range=${range}`;
+    const headers: Record<string, string> = {};
+    if (withAuth) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { headers });
+    return { status: res.status, body: res.ok ? await res.json() : await res.text() };
+};
+
+const KPI_TYPES = [
+    'totalCompanies',
+    'totalUsers',
+    'recentlyActiveUsers',
+    'totalRequests',
+    'requestsInRange',
+    'tasksInRange',
+    'totalCustomFormTemplates',
+    'totalAttachments'
+];
+
 const main = async () => {
     console.log('🔐 Logging in as Jafar...');
     const token = await login();
@@ -113,6 +132,29 @@ const main = async () => {
     console.log('\n🔒 Unauthenticated: no JWT should return 401');
     const unauthed = await fetch(`${API_BASE}/api/jafar-admin/site-analysis?range=30d`);
     assert('unauthenticated returns 401', unauthed.status === 401, unauthed.status);
+
+    console.log('\n🔍 Drill-down: all 8 KPI types should return valid payloads');
+    for (const kpiType of KPI_TYPES) {
+        const drill = await fetchDrilldown(token, kpiType, '30d');
+        assert(`${kpiType} returns 200`, drill.status === 200, drill.status);
+        const drillBody = drill.body as Record<string, unknown>;
+        assert(`${kpiType} payload has type=${kpiType}`, drillBody.type === kpiType);
+        assert(`${kpiType} payload has rows array`, Array.isArray(drillBody.rows));
+        assert(`${kpiType} payload has totalCount number`, typeof drillBody.totalCount === 'number');
+        assert(`${kpiType} payload has truncated boolean`, typeof drillBody.truncated === 'boolean');
+    }
+
+    console.log('\n🚫 Drill-down: invalid type should return 400');
+    const drillBadType = await fetchDrilldown(token, 'garbage', '30d');
+    assert('drill-down invalid type returns 400', drillBadType.status === 400, drillBadType.status);
+
+    console.log('\n🚫 Drill-down: invalid range should return 400');
+    const drillBadRange = await fetchDrilldown(token, 'totalRequests', 'xyz');
+    assert('drill-down invalid range returns 400', drillBadRange.status === 400, drillBadRange.status);
+
+    console.log('\n🔒 Drill-down: no JWT should return 401');
+    const drillUnauthed = await fetchDrilldown(token, 'totalRequests', '30d', false);
+    assert('drill-down unauthenticated returns 401', drillUnauthed.status === 401, drillUnauthed.status);
 
     console.log(`\n📈 Results: ${passed} passed, ${failed} failed`);
     process.exit(failed > 0 ? 1 : 0);
