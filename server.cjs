@@ -1685,6 +1685,15 @@ app.post('/api/login', async (req, res) => {
 
         console.log(`✅ Login successful for: ${email} (User ID: ${user.USER_ID}, Company: ${user.COMPANY_ID})`);
 
+        // Fire-and-forget: record login event for site analysis. Failure here
+        // MUST NOT block the login response — login availability > analytics.
+        prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_LOGIN_EVENTS (USER_ID, LOGIN_AT)
+            VALUES (${user.USER_ID}, GETDATE())
+        `.catch((err) => {
+            console.error('[LOGIN TRACK] Failed to record login event:', err);
+        });
+
         res.json({
             success: true,
             token: token,
