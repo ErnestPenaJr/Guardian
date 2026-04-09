@@ -1,9 +1,13 @@
 import React, { useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import type { ColDef } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import type { SiteAnalysisCompanyRow } from './types';
+
+// Note: AG Grid v33 ships with a default Theming API theme (themeQuartz). The
+// rest of the project relies on this default — see TaskTable.tsx and
+// WorkProgressTable.tsx, neither of which imports the legacy CSS files.
+// Importing ag-grid.css / ag-theme-alpine.css here triggers AG Grid error #239
+// because the CSS theme and Theming API conflict.
 
 interface SiteAnalysisCompanyTableProps {
     companies: SiteAnalysisCompanyRow[];
