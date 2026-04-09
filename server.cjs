@@ -15131,6 +15131,28 @@ app.get('/api/jafar-admin/site-analysis', getAuthenticatedUserCompany, checkJafa
     }
 });
 
+// Site analysis drill-down — list of underlying records for a single KPI tile
+app.get('/api/jafar-admin/site-analysis/drilldown', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const type = typeof req.query.type === 'string' ? req.query.type : '';
+        const range = typeof req.query.range === 'string' ? req.query.range : '30d';
+
+        if (!SITE_ANALYSIS_KPI_TYPES.includes(type)) {
+            return res.status(400).json({ error: 'Invalid KPI type' });
+        }
+        if (!SITE_ANALYSIS_RANGE_PRESETS.includes(range)) {
+            return res.status(400).json({ error: 'Invalid range preset' });
+        }
+
+        const { rangeStart } = resolveSiteAnalysisRange(range);
+        const payload = await runSiteAnalysisDrilldownQueries(type, rangeStart);
+        res.json({ type, range, ...payload });
+    } catch (error) {
+        console.error('❌ [SITE ANALYSIS DRILLDOWN] Failed:', error);
+        res.status(500).json({ error: 'Failed to load drill-down' });
+    }
+});
+
 // GET /api/workspaces - List all workspaces for company (role_id=6 only)
 app.get('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
     try {
