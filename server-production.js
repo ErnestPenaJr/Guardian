@@ -13964,6 +13964,18 @@ const SITE_ANALYSIS_RANGE_PRESETS = ['7d', '30d', '90d', '12mo', 'all'];
 const SITE_ANALYSIS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const siteAnalysisCache = new Map(); // key: range preset -> { data, cachedAt }
 
+const SITE_ANALYSIS_KPI_TYPES = [
+    'totalCompanies',
+    'totalUsers',
+    'recentlyActiveUsers',
+    'totalRequests',
+    'requestsInRange',
+    'tasksInRange',
+    'totalCustomFormTemplates',
+    'totalAttachments'
+];
+const SITE_ANALYSIS_DRILLDOWN_LIMIT = 500;
+
 const resolveSiteAnalysisRange = (range) => {
     const now = new Date();
     const rangeEnd = new Date(now.getTime());
@@ -14252,6 +14264,195 @@ const runSiteAnalysisCompanyQueries = async (rangeStart) => {
     }
 
     return companies;
+};
+
+const runSiteAnalysisDrilldownQueries = async (type, rangeStart) => {
+    const rangeStartIso = rangeStart.toISOString();
+    let rowsSql;
+    let countSql;
+
+    switch (type) {
+        case 'totalCompanies':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    c.COMPANY_ID,
+                    c.NAME,
+                    c.CREATED_AT,
+                    (SELECT COUNT(*) FROM GUARDIAN.USERS u WHERE TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID AND u.STATUS = 'P') AS userCount,
+                    (SELECT COUNT(*) FROM GUARDIAN.REQUESTS r WHERE TRY_CONVERT(INT, r.COMPANY_ID) = c.COMPANY_ID) AS requestCount
+                FROM GUARDIAN.COMPANY c
+                ORDER BY c.CREATED_AT DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY`;
+            break;
+
+        case 'totalUsers':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    u.USER_ID,
+                    u.EMAIL,
+                    u.FIRST_NAME,
+                    u.LAST_NAME,
+                    u.STATUS,
+                    u.CREATE_DATE,
+                    u.COMPANY_ID,
+                    c.NAME AS companyName,
+                    (SELECT MAX(LOGIN_AT) FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID = u.USER_ID) AS lastLoginAt
+                FROM GUARDIAN.USERS u
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = u.COMPANY_ID
+                WHERE u.STATUS = 'P'
+                ORDER BY u.CREATE_DATE DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.USERS WHERE STATUS = 'P'`;
+            break;
+
+        case 'recentlyActiveUsers':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    u.USER_ID,
+                    u.EMAIL,
+                    u.FIRST_NAME,
+                    u.LAST_NAME,
+                    c.NAME AS companyName,
+                    COUNT(ule.EVENT_ID) AS loginCount,
+                    MAX(ule.LOGIN_AT) AS lastLoginAt
+                FROM GUARDIAN.USER_LOGIN_EVENTS ule
+                INNER JOIN GUARDIAN.USERS u ON u.USER_ID = ule.USER_ID
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = u.COMPANY_ID
+                WHERE ule.LOGIN_AT >= '${rangeStartIso}'
+                GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, c.NAME
+                ORDER BY MAX(ule.LOGIN_AT) DESC
+            `;
+            countSql = `
+                SELECT COUNT(DISTINCT USER_ID) AS count
+                FROM GUARDIAN.USER_LOGIN_EVENTS
+                WHERE LOGIN_AT >= '${rangeStartIso}'
+            `;
+            break;
+
+        case 'totalRequests':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    r.REQUEST_ID,
+                    r.TRACKINGID,
+                    r.REQUEST_NAME,
+                    r.STATUS,
+                    r.CREATE_DATE,
+                    r.COMPANY_ID,
+                    c.NAME AS companyName,
+                    requestor.EMAIL AS requestorEmail
+                FROM GUARDIAN.REQUESTS r
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                LEFT JOIN GUARDIAN.USERS requestor ON requestor.USER_ID = r.REQUESTOR_ID
+                ORDER BY r.CREATE_DATE DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.REQUESTS`;
+            break;
+
+        case 'requestsInRange':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    r.REQUEST_ID,
+                    r.TRACKINGID,
+                    r.REQUEST_NAME,
+                    r.STATUS,
+                    r.CREATE_DATE,
+                    r.COMPANY_ID,
+                    c.NAME AS companyName,
+                    requestor.EMAIL AS requestorEmail
+                FROM GUARDIAN.REQUESTS r
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                LEFT JOIN GUARDIAN.USERS requestor ON requestor.USER_ID = r.REQUESTOR_ID
+                WHERE r.CREATE_DATE >= '${rangeStartIso}'
+                ORDER BY r.CREATE_DATE DESC
+            `;
+            countSql = `
+                SELECT COUNT(*) AS count
+                FROM GUARDIAN.REQUESTS
+                WHERE CREATE_DATE >= '${rangeStartIso}'
+            `;
+            break;
+
+        case 'tasksInRange':
+            // Note: GUARDIAN.TASKS has no TRACKINGID column in the actual DB
+            // (the Prisma schema declared one but it doesn't exist). Use
+            // TASK_ID as the primary identifier instead.
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    t.TASK_ID,
+                    t.DESCRIPTION,
+                    t.STATUS,
+                    t.CREATE_DATE,
+                    t.ASSIGNED_USER_ID,
+                    assignee.EMAIL AS assigneeEmail,
+                    r.REQUEST_NAME,
+                    r.TRACKINGID AS requestTrackingId,
+                    c.NAME AS companyName
+                FROM GUARDIAN.TASKS t
+                LEFT JOIN GUARDIAN.USERS assignee ON assignee.USER_ID = t.ASSIGNED_USER_ID
+                LEFT JOIN GUARDIAN.REQUESTS r ON r.REQUEST_ID = t.REQUEST_ID
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                WHERE t.CREATE_DATE >= '${rangeStartIso}'
+                ORDER BY t.CREATE_DATE DESC
+            `;
+            countSql = `
+                SELECT COUNT(*) AS count
+                FROM GUARDIAN.TASKS
+                WHERE CREATE_DATE >= '${rangeStartIso}'
+            `;
+            break;
+
+        case 'totalCustomFormTemplates':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    f.FORM_ID,
+                    f.FORM_NAME,
+                    f.FORM_DESCRIPTION,
+                    f.COMPANY_ID,
+                    c.NAME AS companyName,
+                    (SELECT COUNT(*) FROM GUARDIAN.FORMS_FIELDS ff WHERE ff.FORM_ID = f.FORM_ID) AS fieldCount
+                FROM GUARDIAN.FORMS f
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = f.COMPANY_ID
+                WHERE f.COMPANY_ID IS NOT NULL
+                ORDER BY f.FORM_ID DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.FORMS WHERE COMPANY_ID IS NOT NULL`;
+            break;
+
+        case 'totalAttachments':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    a.ATTACHMENT_ID,
+                    a.FILE_NAME,
+                    a.CREATE_DATE,
+                    a.REQUEST_ID,
+                    r.REQUEST_NAME,
+                    c.NAME AS companyName,
+                    uploader.EMAIL AS uploaderEmail
+                FROM GUARDIAN.ATTACHMENTS a
+                LEFT JOIN GUARDIAN.REQUESTS r ON r.REQUEST_ID = a.REQUEST_ID
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                LEFT JOIN GUARDIAN.USERS uploader ON uploader.USER_ID = a.CREATE_USER_ID
+                ORDER BY a.CREATE_DATE DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.ATTACHMENTS`;
+            break;
+
+        default:
+            throw new Error(`Unknown KPI type: ${type}`);
+    }
+
+    const [rows, countRows] = await Promise.all([
+        prisma.$queryRawUnsafe(rowsSql),
+        prisma.$queryRawUnsafe(countSql)
+    ]);
+
+    const totalCount = normalizeDeleteCount(countRows?.[0]?.count ?? 0);
+    return {
+        rows,
+        totalCount,
+        truncated: totalCount > SITE_ANALYSIS_DRILLDOWN_LIMIT
+    };
 };
 
 const getSiteAnalysis = async (range, { refresh = false } = {}) => {
@@ -14929,6 +15130,28 @@ app.get('/api/jafar-admin/site-analysis', getAuthenticatedUserCompany, checkJafa
         }
         console.error('❌ [SITE ANALYSIS] Failed to compute site analysis:', error);
         res.status(500).json({ error: 'Failed to compute site analysis' });
+    }
+});
+
+// Site analysis drill-down — list of underlying records for a single KPI tile
+app.get('/api/jafar-admin/site-analysis/drilldown', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const type = typeof req.query.type === 'string' ? req.query.type : '';
+        const range = typeof req.query.range === 'string' ? req.query.range : '30d';
+
+        if (!SITE_ANALYSIS_KPI_TYPES.includes(type)) {
+            return res.status(400).json({ error: 'Invalid KPI type' });
+        }
+        if (!SITE_ANALYSIS_RANGE_PRESETS.includes(range)) {
+            return res.status(400).json({ error: 'Invalid range preset' });
+        }
+
+        const { rangeStart } = resolveSiteAnalysisRange(range);
+        const payload = await runSiteAnalysisDrilldownQueries(type, rangeStart);
+        res.json({ type, range, ...payload });
+    } catch (error) {
+        console.error('❌ [SITE ANALYSIS DRILLDOWN] Failed:', error);
+        res.status(500).json({ error: 'Failed to load drill-down' });
     }
 });
 
