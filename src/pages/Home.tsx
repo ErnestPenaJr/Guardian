@@ -29,6 +29,7 @@ import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import JafarAdministration from './JafarAdministration';
+import SiteAnalysis from './SiteAnalysis';
 import { Modal } from 'react-bootstrap';
 import ViewNotice from './ViewNotice';
 import AllNotices from './AllNotices';
@@ -1876,6 +1877,7 @@ function Home() {
               <AdminDashboard
                 onShowUserManagement={() => setSelectedSection('adminUserManagement')}
                 onShowJafarAdministration={() => setSelectedSection('jafarAdministration')}
+                onShowJafarSiteAnalysis={() => setSelectedSection('jafarSiteAnalysis')}
               />
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
@@ -1885,6 +1887,10 @@ function Home() {
           ) : selectedSection === 'jafarAdministration' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <JafarAdministration />
+            </div>
+          ) : selectedSection === 'jafarSiteAnalysis' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <SiteAnalysis />
             </div>
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">
