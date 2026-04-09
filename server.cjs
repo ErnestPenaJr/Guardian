@@ -14374,10 +14374,12 @@ const runSiteAnalysisDrilldownQueries = async (type, rangeStart) => {
             break;
 
         case 'tasksInRange':
+            // Note: GUARDIAN.TASKS has no TRACKINGID column in the actual DB
+            // (the Prisma schema declared one but it doesn't exist). Use
+            // TASK_ID as the primary identifier instead.
             rowsSql = `
                 SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
                     t.TASK_ID,
-                    t.TRACKINGID,
                     t.DESCRIPTION,
                     t.STATUS,
                     t.CREATE_DATE,
