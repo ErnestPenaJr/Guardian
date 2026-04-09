@@ -14139,7 +14139,8 @@ const createEmptyJafarCounts = () => ({
     forms: 0,
     formFields: 0,
     formInstances: 0,
-    formInstanceValues: 0
+    formInstanceValues: 0,
+    userLoginEvents: 0
 });
 
 const buildJafarUserPreview = async (userId, actorUserId) => {
@@ -14191,6 +14192,11 @@ const buildJafarUserPreview = async (userId, actorUserId) => {
            OR CREATE_USER_ID = ${userId}
            OR UPDATE_USER_ID = ${userId}
            OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+    `);
+    counts.userLoginEvents = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.USER_LOGIN_EVENTS
+        WHERE USER_ID = ${userId}
     `);
     counts.users = 1;
 
@@ -14271,6 +14277,9 @@ const buildJafarCompanyPreview = async (companyId, actorUserId) => {
     counts.formFields = formIds.length > 0
         ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`)
         : 0;
+    counts.userLoginEvents = userIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID IN (${joinIds(userIds)})`)
+        : 0;
     counts.company = 1;
 
     return {
@@ -14331,6 +14340,8 @@ const executeJafarUserPurge = async (userId, actorUserId) => {
                OR CREATE_USER_ID = ${userId}
                OR UPDATE_USER_ID = ${userId}
         `);
+
+        counts.userLoginEvents += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID = ${userId}`);
 
         if (attachmentIds.length > 0) {
             counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
@@ -14394,6 +14405,10 @@ const executeJafarCompanyPurge = async (companyId, actorUserId) => {
         if (requestIds.length > 0) {
             counts.tasks += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
         }
+
+        counts.userLoginEvents += userIds.length > 0
+            ? await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID IN (${joinIds(userIds)})`)
+            : 0;
 
         if (attachmentIds.length > 0) {
             counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
