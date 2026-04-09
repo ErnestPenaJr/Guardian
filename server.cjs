@@ -14254,6 +14254,42 @@ const runSiteAnalysisCompanyQueries = async (rangeStart) => {
     return companies;
 };
 
+const getSiteAnalysis = async (range, { refresh = false } = {}) => {
+    if (!SITE_ANALYSIS_RANGE_PRESETS.includes(range)) {
+        const err = new Error(`Invalid range preset: ${range}`);
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if (refresh) invalidateSiteAnalysisCache(range);
+    const cached = getCachedSiteAnalysis(range);
+    if (cached) {
+        return { ...cached, cached: true };
+    }
+
+    const { rangeStart, rangeEnd } = resolveSiteAnalysisRange(range);
+
+    const [kpis, trends, companies] = await Promise.all([
+        runSiteAnalysisKpiQueries(rangeStart),
+        runSiteAnalysisTrendQueries(rangeStart, rangeEnd),
+        runSiteAnalysisCompanyQueries(rangeStart)
+    ]);
+
+    const payload = {
+        range,
+        rangeStart: rangeStart.toISOString(),
+        rangeEnd: rangeEnd.toISOString(),
+        generatedAt: new Date().toISOString(),
+        cached: false,
+        kpis,
+        trends,
+        companies
+    };
+
+    setCachedSiteAnalysis(range, payload);
+    return payload;
+};
+
 const normalizeDeleteCount = (value) => {
     if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
@@ -14876,6 +14912,23 @@ app.post('/api/jafar-admin/purge/company/:companyId', getAuthenticatedUserCompan
         res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
             error: error.message || 'Failed to purge company'
         });
+    }
+});
+
+// Site analysis dashboard — Jafar-only cross-tenant usage metrics
+app.get('/api/jafar-admin/site-analysis', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const range = typeof req.query.range === 'string' ? req.query.range : '30d';
+        const refresh = req.query.refresh === 'true' || req.query.refresh === '1';
+
+        const payload = await getSiteAnalysis(range, { refresh });
+        res.json(payload);
+    } catch (error) {
+        if (error && error.statusCode === 400) {
+            return res.status(400).json({ error: 'Invalid range preset' });
+        }
+        console.error('❌ [SITE ANALYSIS] Failed to compute site analysis:', error);
+        res.status(500).json({ error: 'Failed to compute site analysis' });
     }
 });
 
