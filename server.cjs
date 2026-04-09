@@ -14064,6 +14064,99 @@ const runSiteAnalysisKpiQueries = async (rangeStart) => {
     };
 };
 
+const runSiteAnalysisTrendQueries = async (rangeStart, rangeEnd) => {
+    const rangeStartIso = rangeStart.toISOString();
+    const rangeEndIso = rangeEnd.toISOString();
+
+    // Build a calendar of every day in the range so zero-activity days render as flat-line zero.
+    // SQL Server recursive CTE with MAXRECURSION 0 (unlimited) — range='all' (1970→today)
+    // generates ~20,000 rows, which would exceed the default 100 limit and a tighter cap like
+    // 4000. Unlimited is fine here because the query runs at most once per 5 minutes (cached).
+    const calendarSql = `
+        WITH DayCalendar AS (
+            SELECT CAST('${rangeStartIso}' AS DATE) AS day
+            UNION ALL
+            SELECT DATEADD(DAY, 1, day) FROM DayCalendar
+            WHERE day < CAST('${rangeEndIso}' AS DATE)
+        )
+        SELECT day FROM DayCalendar OPTION (MAXRECURSION 0)
+    `;
+
+    const [
+        loginsByDay,
+        requestsByDay,
+        tasksByDay,
+        newUsersByDay,
+        newCompaniesByDay,
+        calendarRows
+    ] = await Promise.all([
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, LOGIN_AT) AS day, COUNT(*) AS count
+            FROM GUARDIAN.USER_LOGIN_EVENTS
+            WHERE LOGIN_AT >= '${rangeStartIso}' AND LOGIN_AT <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, LOGIN_AT)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATE_DATE) AS day, COUNT(*) AS count
+            FROM GUARDIAN.REQUESTS
+            WHERE CREATE_DATE >= '${rangeStartIso}' AND CREATE_DATE <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATE_DATE)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATE_DATE) AS day, COUNT(*) AS count
+            FROM GUARDIAN.TASKS
+            WHERE CREATE_DATE >= '${rangeStartIso}' AND CREATE_DATE <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATE_DATE)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATE_DATE) AS day, COUNT(*) AS count
+            FROM GUARDIAN.USERS
+            WHERE CREATE_DATE >= '${rangeStartIso}' AND CREATE_DATE <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATE_DATE)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATED_AT) AS day, COUNT(*) AS count
+            FROM GUARDIAN.COMPANY
+            WHERE CREATED_AT >= '${rangeStartIso}' AND CREATED_AT <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATED_AT)
+        `),
+        prisma.$queryRawUnsafe(calendarSql)
+    ]);
+
+    // Build lookup maps keyed by YYYY-MM-DD (ISO date string).
+    const toDateKey = (row) => {
+        const value = row.day instanceof Date ? row.day : new Date(row.day);
+        return value.toISOString().slice(0, 10);
+    };
+    const toCount = (row) => normalizeDeleteCount(row.count);
+
+    const loginMap = new Map(loginsByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const requestMap = new Map(requestsByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const taskMap = new Map(tasksByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const newUserMap = new Map(newUsersByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const newCompanyMap = new Map(newCompaniesByDay.map((row) => [toDateKey(row), toCount(row)]));
+
+    const activityPerDay = [];
+    const newAccountsPerDay = [];
+
+    for (const row of calendarRows) {
+        const key = toDateKey(row);
+        activityPerDay.push({
+            date: key,
+            logins: loginMap.get(key) ?? 0,
+            requests: requestMap.get(key) ?? 0,
+            tasks: taskMap.get(key) ?? 0
+        });
+        newAccountsPerDay.push({
+            date: key,
+            newUsers: newUserMap.get(key) ?? 0,
+            newCompanies: newCompanyMap.get(key) ?? 0
+        });
+    }
+
+    return { activityPerDay, newAccountsPerDay };
+};
+
 const normalizeDeleteCount = (value) => {
     if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
