@@ -65,3 +65,17 @@ export const SITE_ANALYSIS_RANGE_OPTIONS: Array<{ value: SiteAnalysisRange; labe
     { value: '12mo', label: 'Last 12 months' },
     { value: 'all', label: 'All time' }
 ];
+
+// Drill-down types — derived from SiteAnalysisKpis so they stay in sync
+// automatically. Adding a new KPI to SiteAnalysisKpis later will surface
+// a TypeScript error wherever a switch is missing the new case.
+
+export type KpiDrilldownType = keyof SiteAnalysisKpis;
+
+export interface KpiDrilldownPayload<TRow = Record<string, unknown>> {
+    type: KpiDrilldownType;
+    range: SiteAnalysisRange;
+    rows: TRow[];
+    totalCount: number;
+    truncated: boolean;
+}
