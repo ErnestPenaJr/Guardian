@@ -436,6 +436,16 @@ model USERS {
   @@schema("GUARDIAN")
 }
 
+model USER_LOGIN_EVENTS {
+  EVENT_ID  Int      @id(map: "PK_USER_LOGIN_EVENTS") @default(autoincrement())
+  USER_ID   Int
+  LOGIN_AT  DateTime @default(now(), map: "DF__USER_LOGIN_EVENTS__LOGIN_AT") @db.DateTime
+
+  @@index([LOGIN_AT], map: "IX_USER_LOGIN_EVENTS_LOGIN_AT")
+  @@index([USER_ID, LOGIN_AT], map: "IX_USER_LOGIN_EVENTS_USER_LOGIN_AT")
+  @@schema("GUARDIAN")
+}
+
 model NOTIFICATIONS {
   NOTIFICATION_ID Int       @id(map: "PK_NOTIFICATIONS") @default(autoincrement())
   USER_ID         Int
