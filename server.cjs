@@ -14157,6 +14157,103 @@ const runSiteAnalysisTrendQueries = async (rangeStart, rangeEnd) => {
     return { activityPerDay, newAccountsPerDay };
 };
 
+const runSiteAnalysisCompanyQueries = async (rangeStart) => {
+    const rangeStartIso = rangeStart.toISOString();
+
+    // Pull all companies; LEFT JOIN everything per-company in one shot.
+    // Subqueries are simpler to reason about than a giant multi-join here, and
+    // the single-digit/hundreds-of-rows scale means the extra passes are cheap.
+    const rows = await prisma.$queryRawUnsafe(`
+        SELECT
+            c.COMPANY_ID AS companyId,
+            c.NAME AS companyName,
+            c.CREATED_AT AS createdAt,
+            (SELECT COUNT(*) FROM GUARDIAN.USERS u WHERE TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID AND u.STATUS = 'P') AS totalUsers,
+            (
+                SELECT COUNT(DISTINCT ule.USER_ID)
+                FROM GUARDIAN.USER_LOGIN_EVENTS ule
+                INNER JOIN GUARDIAN.USERS u2 ON u2.USER_ID = ule.USER_ID
+                WHERE TRY_CONVERT(INT, u2.COMPANY_ID) = c.COMPANY_ID
+                  AND ule.LOGIN_AT >= '${rangeStartIso}'
+            ) AS activeUsersInRange,
+            (SELECT COUNT(*) FROM GUARDIAN.REQUESTS r WHERE TRY_CONVERT(INT, r.COMPANY_ID) = c.COMPANY_ID) AS totalRequests,
+            (
+                SELECT COUNT(*)
+                FROM GUARDIAN.REQUESTS r2
+                WHERE TRY_CONVERT(INT, r2.COMPANY_ID) = c.COMPANY_ID
+                  AND r2.CREATE_DATE >= '${rangeStartIso}'
+            ) AS requestsInRange,
+            (
+                SELECT COUNT(*)
+                FROM GUARDIAN.TASKS t
+                INNER JOIN GUARDIAN.REQUESTS rt ON rt.REQUEST_ID = t.REQUEST_ID
+                WHERE TRY_CONVERT(INT, rt.COMPANY_ID) = c.COMPANY_ID
+            ) AS totalTasks,
+            (
+                SELECT COUNT(*)
+                FROM GUARDIAN.TASKS t2
+                INNER JOIN GUARDIAN.REQUESTS rt2 ON rt2.REQUEST_ID = t2.REQUEST_ID
+                WHERE TRY_CONVERT(INT, rt2.COMPANY_ID) = c.COMPANY_ID
+                  AND t2.CREATE_DATE >= '${rangeStartIso}'
+            ) AS tasksInRange,
+            (SELECT COUNT(*) FROM GUARDIAN.FORMS f WHERE f.COMPANY_ID = c.COMPANY_ID) AS customFormTemplates,
+            (
+                SELECT MAX(activity)
+                FROM (
+                    SELECT MAX(ule3.LOGIN_AT) AS activity
+                    FROM GUARDIAN.USER_LOGIN_EVENTS ule3
+                    INNER JOIN GUARDIAN.USERS u3 ON u3.USER_ID = ule3.USER_ID
+                    WHERE TRY_CONVERT(INT, u3.COMPANY_ID) = c.COMPANY_ID
+                    UNION ALL
+                    SELECT MAX(r3.CREATE_DATE) AS activity
+                    FROM GUARDIAN.REQUESTS r3
+                    WHERE TRY_CONVERT(INT, r3.COMPANY_ID) = c.COMPANY_ID
+                    UNION ALL
+                    SELECT MAX(t3.CREATE_DATE) AS activity
+                    FROM GUARDIAN.TASKS t3
+                    INNER JOIN GUARDIAN.REQUESTS rt3 ON rt3.REQUEST_ID = t3.REQUEST_ID
+                    WHERE TRY_CONVERT(INT, rt3.COMPANY_ID) = c.COMPANY_ID
+                ) AS combined
+            ) AS lastActivityAt
+        FROM GUARDIAN.COMPANY c
+        ORDER BY requestsInRange DESC, c.NAME ASC
+    `);
+
+    const now = Date.now();
+    const companies = rows.map((row) => {
+        const createdAt = row.createdAt ? new Date(row.createdAt) : null;
+        const accountAgeDays = createdAt
+            ? Math.max(0, Math.floor((now - createdAt.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0;
+
+        return {
+            companyId: normalizeDeleteCount(row.companyId),
+            companyName: row.companyName || '',
+            totalUsers: normalizeDeleteCount(row.totalUsers),
+            activeUsersInRange: normalizeDeleteCount(row.activeUsersInRange),
+            totalRequests: normalizeDeleteCount(row.totalRequests),
+            requestsInRange: normalizeDeleteCount(row.requestsInRange),
+            totalTasks: normalizeDeleteCount(row.totalTasks),
+            tasksInRange: normalizeDeleteCount(row.tasksInRange),
+            customFormTemplates: normalizeDeleteCount(row.customFormTemplates),
+            lastActivityAt: row.lastActivityAt ? new Date(row.lastActivityAt).toISOString() : null,
+            accountAgeDays,
+            percentOfPlatformRequests: 0 // filled in below after we know platform total
+        };
+    });
+
+    // Compute percentOfPlatformRequests using the sum of requestsInRange across all companies.
+    const platformRequestsInRange = companies.reduce((sum, c) => sum + c.requestsInRange, 0);
+    if (platformRequestsInRange > 0) {
+        for (const company of companies) {
+            company.percentOfPlatformRequests =
+                Math.round((company.requestsInRange / platformRequestsInRange) * 1000) / 10;
+        }
+    }
+
+    return companies;
+};
+
 const normalizeDeleteCount = (value) => {
     if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
