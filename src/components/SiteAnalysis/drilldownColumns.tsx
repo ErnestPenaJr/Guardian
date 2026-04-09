@@ -91,7 +91,7 @@ export const drilldownColumns: Record<KpiDrilldownType, DrilldownConfig> = {
         ]
     },
     totalRequests: {
-        title: 'All Requests',
+        title: 'Requests',
         emptyMessage: 'No requests yet.',
         columns: [
             { headerName: 'Tracking ID', field: 'TRACKINGID', sortable: true, filter: true, flex: 1, minWidth: 160 },
