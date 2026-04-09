@@ -14015,6 +14015,55 @@ const invalidateSiteAnalysisCache = (range) => {
     siteAnalysisCache.delete(range);
 };
 
+const runSiteAnalysisKpiQueries = async (rangeStart) => {
+    const rangeStartIso = rangeStart.toISOString();
+
+    const [
+        totalCompaniesRows,
+        totalUsersRows,
+        recentlyActiveUsersRows,
+        totalRequestsRows,
+        requestsInRangeRows,
+        tasksInRangeRows,
+        totalCustomFormTemplatesRows,
+        totalAttachmentsRows
+    ] = await Promise.all([
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY`),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.USERS WHERE STATUS = 'P'`),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(DISTINCT USER_ID) AS count
+            FROM GUARDIAN.USER_LOGIN_EVENTS
+            WHERE LOGIN_AT >= '${rangeStartIso}'
+        `),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.REQUESTS`),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) AS count
+            FROM GUARDIAN.REQUESTS
+            WHERE CREATE_DATE >= '${rangeStartIso}'
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) AS count
+            FROM GUARDIAN.TASKS
+            WHERE CREATE_DATE >= '${rangeStartIso}'
+        `),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS WHERE COMPANY_ID IS NOT NULL`),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.ATTACHMENTS`)
+    ]);
+
+    const countOf = (rows) => normalizeDeleteCount(rows?.[0]?.count ?? 0);
+
+    return {
+        totalCompanies: countOf(totalCompaniesRows),
+        totalUsers: countOf(totalUsersRows),
+        recentlyActiveUsers: countOf(recentlyActiveUsersRows),
+        totalRequests: countOf(totalRequestsRows),
+        requestsInRange: countOf(requestsInRangeRows),
+        tasksInRange: countOf(tasksInRangeRows),
+        totalCustomFormTemplates: countOf(totalCustomFormTemplatesRows),
+        totalAttachments: countOf(totalAttachmentsRows)
+    };
+};
+
 const normalizeDeleteCount = (value) => {
     if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
