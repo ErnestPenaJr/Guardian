@@ -10263,38 +10263,54 @@ app.get('/api/me/permissions', getAuthenticatedUserCompany, async (req, res) => 
 // Get custom templates - only for role_id 6 (JAFAR)
 app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log('📋 Fetching custom templates for role_id 6 user, company:', req.companyId);
-        
-        // Check if user has role_id 6 (JAFAR)
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
-        `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
-            return res.status(403).json({
-                error: 'Access denied. Custom templates are only available to JAFAR users (role_id 6).'
-            });
+        const typeFilter = (req.query.type || '').toString().toLowerCase();
+        const statusFilter = (req.query.status || '').toString().toLowerCase();
+        const allowedTypes = ['notice', 'request'];
+        const allowedStatuses = ['draft', 'active', 'inactive'];
+
+        // For public notice template listing (used by Create Notice modal),
+        // allow any authenticated company user. Admin writes are gated separately.
+        const isNoticeActiveQuery = typeFilter === 'notice' && statusFilter === 'active';
+
+        if (!isNoticeActiveQuery) {
+            const userRoles = await prisma.$queryRaw`
+                SELECT ur.ROLE_ID
+                FROM GUARDIAN.USER_ROLES ur
+                WHERE ur.USER_ID = ${req.userId}
+            `;
+            const roleIds = userRoles.map(r => r.ROLE_ID);
+            const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+            if (!isAdminOrSuper) {
+                return res.status(403).json({
+                    error: 'Access denied. Custom templates require admin (role 1) or super admin (role 6).'
+                });
+            }
         }
-        
-        // Fetch custom templates for the company (all active forms serve as templates)
-        const customTemplates = await prisma.$queryRaw`
-            SELECT 
-                f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
-                f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE,
+
+        console.log(`📋 Fetching custom templates for company ${req.companyId}`, { typeFilter, statusFilter });
+
+        const typeClause = allowedTypes.includes(typeFilter) ? `AND f.TEMPLATE_TYPE = '${typeFilter}'` : '';
+        const statusClause = allowedStatuses.includes(statusFilter) ? `AND f.STATUS = '${statusFilter}'` : '';
+
+        const sql = `
+            SELECT
+                f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
+                f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
+                f.CREATE_DATE, f.UPDATE_DATE,
                 COUNT(ff.FIELD_ID) as fieldCount
             FROM GUARDIAN.FORMS f
             LEFT JOIN GUARDIAN.FORMS_FIELDS ff ON f.FORM_ID = ff.FORM_ID
             WHERE f.COMPANY_ID = ${req.companyId}
             AND f.IS_DELETED = 0
-            AND f.IS_ACTIVE = 1
-            GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
-                     f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE
-            ORDER BY f.CREATE_DATE DESC
+            ${typeClause}
+            ${statusClause}
+            GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
+                     f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
+                     f.CREATE_DATE, f.UPDATE_DATE
+            ORDER BY f.CREATE_DATE ASC
         `;
-        
+        const customTemplates = await prisma.$queryRawUnsafe(sql);
+
         console.log(`✅ Found ${customTemplates.length} custom templates for company ${req.companyId}`);
         res.json(customTemplates);
     } catch (error) {
@@ -10311,33 +10327,32 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
     try {
         const templateId = parseInt(req.params.id);
         console.log(`📋 Fetching custom template ${templateId} for company:`, req.companyId);
-        
-        // Check if user has role_id 6 (JAFAR)
+
         const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
+            SELECT ur.ROLE_ID
+            FROM GUARDIAN.USER_ROLES ur
             WHERE ur.USER_ID = ${req.userId}
         `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+        if (!isAdminOrSuper) {
             return res.status(403).json({
-                error: 'Access denied. Custom templates are only available to JAFAR users (role_id 6).'
+                error: 'Access denied. Custom templates require admin (role 1) or super admin (role 6).'
             });
         }
-        
+
         if (!templateId || isNaN(templateId)) {
             return res.status(400).json({ error: 'Valid template ID required' });
         }
-        
-        // Get the form
+
+        // Get the form (include drafts so the builder can load templates in progress)
         const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${templateId} 
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC,
+                   TEMPLATE_TYPE, STATUS, IS_DELETED, COMPANY_ID
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${templateId}
             AND COMPANY_ID = ${req.companyId}
             AND IS_DELETED = 0
-            AND IS_ACTIVE = 1
         `;
         
         if (forms.length === 0) {
@@ -10371,6 +10386,8 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
                 FORM_DESCRIPTION: form.FORM_DESCRIPTION,
                 IS_ACTIVE: form.IS_ACTIVE,
                 IS_PUBLIC: form.IS_PUBLIC,
+                TEMPLATE_TYPE: form.TEMPLATE_TYPE,
+                STATUS: form.STATUS,
                 COMPANY_ID: form.COMPANY_ID
             },
             fields: fields
@@ -10391,23 +10408,27 @@ app.post('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) 
     try {
         const { form, fields } = req.body;
         console.log('📝 Creating custom template for company:', req.companyId);
-        
-        // Check if user has role_id 6 (JAFAR)
+
         const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
+            SELECT ur.ROLE_ID
+            FROM GUARDIAN.USER_ROLES ur
             WHERE ur.USER_ID = ${req.userId}
         `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+        if (!isAdminOrSuper) {
             return res.status(403).json({
-                error: 'Access denied. Only JAFAR users (role_id 6) can create custom templates.'
+                error: 'Access denied. Only admins (role 1) or super admins (role 6) can create custom templates.'
             });
         }
-        
+
         if (!form || !form.FORM_NAME) {
             return res.status(400).json({ error: 'Form name is required' });
+        }
+
+        const templateType = (form.TEMPLATE_TYPE || 'request').toLowerCase();
+        if (!['notice', 'request'].includes(templateType)) {
+            return res.status(400).json({ error: "template_type must be 'notice' or 'request'" });
         }
         
         // Check for duplicate form name within the company
@@ -10424,18 +10445,21 @@ app.post('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) 
             });
         }
         
-        // Create the form (custom template)
+        // Create the form (custom template) in draft status
         const result = await prisma.$queryRaw`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
+                TEMPLATE_TYPE, STATUS,
                 COMPANY_ID, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
             )
             OUTPUT INSERTED.FORM_ID, INSERTED.FORM_NAME, INSERTED.FORM_DESCRIPTION,
                    INSERTED.IS_ACTIVE, INSERTED.IS_PUBLIC,
+                   INSERTED.TEMPLATE_TYPE, INSERTED.STATUS,
                    INSERTED.COMPANY_ID, INSERTED.CREATE_DATE
             VALUES (
                 ${form.FORM_NAME.trim()}, ${form.FORM_DESCRIPTION?.trim() || ''},
                 ${form.IS_ACTIVE !== false}, ${form.IS_PUBLIC !== false}, 0,
+                ${templateType}, 'draft',
                 ${req.companyId}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
             )
         `;
@@ -10496,18 +10520,17 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
         const { form, fields } = req.body;
         console.log(`📝 Updating custom template ${templateId} for company:`, req.companyId);
         console.log('🔍 Update data:', { form, fieldsCount: fields?.length });
-        
-        // Check if user has role_id 6 (JAFAR)
+
         const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
+            SELECT ur.ROLE_ID
+            FROM GUARDIAN.USER_ROLES ur
             WHERE ur.USER_ID = ${req.userId}
         `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+        if (!isAdminOrSuper) {
             return res.status(403).json({
-                error: 'Access denied. Only JAFAR users (role_id 6) can update custom templates.'
+                error: 'Access denied. Only admins (role 1) or super admins (role 6) can update custom templates.'
             });
         }
         
@@ -10687,6 +10710,49 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
             error: 'Failed to update custom template',
             details: error.message
         });
+    }
+});
+
+// Publish custom template (draft -> active)
+app.patch('/api/custom-templates/:id/publish', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const templateId = parseInt(req.params.id);
+        if (!templateId || isNaN(templateId)) {
+            return res.status(400).json({ error: 'Valid template ID required' });
+        }
+
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        if (!(roleIds.includes(1) || roleIds.includes(6))) {
+            return res.status(403).json({ error: 'Access denied. Admin or super admin role required.' });
+        }
+
+        const existing = await prisma.$queryRaw`
+            SELECT FORM_ID, TEMPLATE_TYPE, STATUS FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${templateId} AND COMPANY_ID = ${req.companyId} AND IS_DELETED = 0
+        `;
+        if (existing.length === 0) {
+            return res.status(404).json({ error: 'Template not found' });
+        }
+
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.FORMS
+            SET STATUS = 'active', IS_ACTIVE = 1, UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+            WHERE FORM_ID = ${templateId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        const updated = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, TEMPLATE_TYPE, STATUS, IS_ACTIVE, COMPANY_ID
+            FROM GUARDIAN.FORMS WHERE FORM_ID = ${templateId}
+        `;
+
+        console.log(`✅ Published template ${templateId} (type=${updated[0].TEMPLATE_TYPE})`);
+        res.json({ success: true, template: updated[0] });
+    } catch (error) {
+        console.error('❌ Error publishing custom template:', error);
+        res.status(500).json({ error: 'Failed to publish template', details: error.message });
     }
 });
 

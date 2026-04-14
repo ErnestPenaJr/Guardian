@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from 'react-modal';
 import { FormField } from '../types/formBuilder';
-import SimpleFormBuilder from '../components/SimpleFormBuilder';
 import '../styles/FormCreationFlow.css';
 import Swal from 'sweetalert2';
 import userService, { User } from '../services/userService';
@@ -45,6 +45,7 @@ interface RequestMetadata {
 }
 
 const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSave, initialFormData }) => {
+  const navigate = useNavigate();
   // If initialFormData is from a template, we want to show the form to fill out, not the form builder
   const isTemplateForm = !!initialFormData;
   const [step, setStep] = useState(initialFormData ? 2 : 0); // Skip to form builder if initialFormData is provided
@@ -162,18 +163,30 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
     if (!validateForm()) {
       return;
     }
-    
+
+    // First-time admin creation flow: after step 1 (name/description/type) we
+    // hand off to the full-page FormBuilder at /form-builder/new instead of
+    // embedding the legacy SimpleFormBuilder in step 2. Template-fill mode is
+    // unaffected — that flow starts directly at step 2 via initialFormData.
+    if (step === 1 && !isTemplateForm) {
+      const params = new URLSearchParams({
+        name: formData.name.trim(),
+        type: formData.formType,
+        description: formData.description.trim(),
+        returnTo: '/home',
+        returnSection: 'admin',
+      });
+      handleClose();
+      navigate(`/form-builder/new?${params.toString()}`);
+      return;
+    }
+
     setStep(step + 1);
   };
 
   // Move to previous step
   const prevStep = () => {
     setStep(step - 1);
-  };
-
-  // Handle form fields update from the FormBuilder component
-  const handleFormFieldsChange = (fields: FormField[]) => {
-    setFormData({ ...formData, formFields: fields });
   };
 
   // Submit the form
@@ -829,31 +842,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
               </div>
             </form>
           </div>
-        ) : (
-          <>
-            <SimpleFormBuilder 
-              formFields={formData.formFields} 
-              onChange={handleFormFieldsChange} 
-              formId={undefined}
-            />
-            <div className="d-flex justify-content-between mt-4">
-              <button 
-                className="btn btn-outline-primary" 
-                onClick={prevStep}
-                disabled={saving}
-              >
-                Back
-              </button>
-              <button 
-                className="btn btn-primary" 
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? 'Submitting...' : 'Submit'}
-              </button>
-            </div>
-          </>
-        )}
+        ) : null}
       </div>
     )}
     
