@@ -1685,6 +1685,15 @@ app.post('/api/login', async (req, res) => {
 
         console.log(`✅ Login successful for: ${email} (User ID: ${user.USER_ID}, Company: ${user.COMPANY_ID})`);
 
+        // Fire-and-forget: record login event for site analysis. Failure here
+        // MUST NOT block the login response — login availability > analytics.
+        prisma.$executeRaw`
+            INSERT INTO GUARDIAN.USER_LOGIN_EVENTS (USER_ID, LOGIN_AT)
+            VALUES (${user.USER_ID}, GETDATE())
+        `.catch((err) => {
+            console.error('[LOGIN TRACK] Failed to record login event:', err);
+        });
+
         res.json({
             success: true,
             token: token,
@@ -13947,6 +13956,542 @@ const checkJafarRole = async (req, res, next) => {
     }
 };
 
+// ============================================================
+// Site Analysis (Jafar-only cross-tenant usage dashboard)
+// ============================================================
+
+const SITE_ANALYSIS_RANGE_PRESETS = ['7d', '30d', '90d', '12mo', 'all'];
+const SITE_ANALYSIS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const siteAnalysisCache = new Map(); // key: range preset -> { data, cachedAt }
+
+const SITE_ANALYSIS_KPI_TYPES = [
+    'totalCompanies',
+    'totalUsers',
+    'recentlyActiveUsers',
+    'totalRequests',
+    'requestsInRange',
+    'tasksInRange',
+    'totalCustomFormTemplates',
+    'totalAttachments'
+];
+const SITE_ANALYSIS_DRILLDOWN_LIMIT = 500;
+
+const resolveSiteAnalysisRange = (range) => {
+    const now = new Date();
+    const rangeEnd = new Date(now.getTime());
+    rangeEnd.setUTCHours(23, 59, 59, 999);
+
+    let rangeStart;
+    if (range === '7d') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 6); // last 7 days incl today
+    } else if (range === '30d') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 29);
+    } else if (range === '90d') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 89);
+    } else if (range === '12mo') {
+        rangeStart = new Date(now.getTime());
+        rangeStart.setUTCMonth(rangeStart.getUTCMonth() - 12);
+    } else if (range === 'all') {
+        rangeStart = new Date('1970-01-01T00:00:00.000Z');
+    } else {
+        throw new Error(`Invalid range preset: ${range}`);
+    }
+    rangeStart.setUTCHours(0, 0, 0, 0);
+
+    return { rangeStart, rangeEnd };
+};
+
+const getCachedSiteAnalysis = (range) => {
+    try {
+        const entry = siteAnalysisCache.get(range);
+        if (!entry) return null;
+        if (Date.now() - entry.cachedAt > SITE_ANALYSIS_CACHE_TTL_MS) {
+            siteAnalysisCache.delete(range);
+            return null;
+        }
+        return entry.data;
+    } catch (err) {
+        console.error('[SITE ANALYSIS CACHE] getCached failed:', err);
+        return null;
+    }
+};
+
+const setCachedSiteAnalysis = (range, data) => {
+    siteAnalysisCache.set(range, { data, cachedAt: Date.now() });
+};
+
+const invalidateSiteAnalysisCache = (range) => {
+    siteAnalysisCache.delete(range);
+};
+
+const runSiteAnalysisKpiQueries = async (rangeStart) => {
+    const rangeStartIso = rangeStart.toISOString();
+
+    const [
+        totalCompaniesRows,
+        totalUsersRows,
+        recentlyActiveUsersRows,
+        totalRequestsRows,
+        requestsInRangeRows,
+        tasksInRangeRows,
+        totalCustomFormTemplatesRows,
+        totalAttachmentsRows
+    ] = await Promise.all([
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY`),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.USERS WHERE STATUS = 'P'`),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(DISTINCT USER_ID) AS count
+            FROM GUARDIAN.USER_LOGIN_EVENTS
+            WHERE LOGIN_AT >= '${rangeStartIso}'
+        `),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.REQUESTS`),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) AS count
+            FROM GUARDIAN.REQUESTS
+            WHERE CREATE_DATE >= '${rangeStartIso}'
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) AS count
+            FROM GUARDIAN.TASKS
+            WHERE CREATE_DATE >= '${rangeStartIso}'
+        `),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS WHERE COMPANY_ID IS NOT NULL`),
+        prisma.$queryRawUnsafe(`SELECT COUNT(*) AS count FROM GUARDIAN.ATTACHMENTS`)
+    ]);
+
+    const countOf = (rows) => normalizeDeleteCount(rows?.[0]?.count ?? 0);
+
+    return {
+        totalCompanies: countOf(totalCompaniesRows),
+        totalUsers: countOf(totalUsersRows),
+        recentlyActiveUsers: countOf(recentlyActiveUsersRows),
+        totalRequests: countOf(totalRequestsRows),
+        requestsInRange: countOf(requestsInRangeRows),
+        tasksInRange: countOf(tasksInRangeRows),
+        totalCustomFormTemplates: countOf(totalCustomFormTemplatesRows),
+        totalAttachments: countOf(totalAttachmentsRows)
+    };
+};
+
+const runSiteAnalysisTrendQueries = async (rangeStart, rangeEnd) => {
+    const rangeStartIso = rangeStart.toISOString();
+    const rangeEndIso = rangeEnd.toISOString();
+
+    // Build a calendar of every day in the range so zero-activity days render as flat-line zero.
+    // SQL Server recursive CTE with MAXRECURSION 0 (unlimited) — range='all' (1970→today)
+    // generates ~20,000 rows, which would exceed the default 100 limit and a tighter cap like
+    // 4000. Unlimited is fine here because the query runs at most once per 5 minutes (cached).
+    const calendarSql = `
+        WITH DayCalendar AS (
+            SELECT CAST('${rangeStartIso}' AS DATE) AS day
+            UNION ALL
+            SELECT DATEADD(DAY, 1, day) FROM DayCalendar
+            WHERE day < CAST('${rangeEndIso}' AS DATE)
+        )
+        SELECT day FROM DayCalendar OPTION (MAXRECURSION 0)
+    `;
+
+    const [
+        loginsByDay,
+        requestsByDay,
+        tasksByDay,
+        newUsersByDay,
+        newCompaniesByDay,
+        calendarRows
+    ] = await Promise.all([
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, LOGIN_AT) AS day, COUNT(*) AS count
+            FROM GUARDIAN.USER_LOGIN_EVENTS
+            WHERE LOGIN_AT >= '${rangeStartIso}' AND LOGIN_AT <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, LOGIN_AT)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATE_DATE) AS day, COUNT(*) AS count
+            FROM GUARDIAN.REQUESTS
+            WHERE CREATE_DATE >= '${rangeStartIso}' AND CREATE_DATE <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATE_DATE)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATE_DATE) AS day, COUNT(*) AS count
+            FROM GUARDIAN.TASKS
+            WHERE CREATE_DATE >= '${rangeStartIso}' AND CREATE_DATE <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATE_DATE)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATE_DATE) AS day, COUNT(*) AS count
+            FROM GUARDIAN.USERS
+            WHERE CREATE_DATE >= '${rangeStartIso}' AND CREATE_DATE <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATE_DATE)
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT CONVERT(DATE, CREATED_AT) AS day, COUNT(*) AS count
+            FROM GUARDIAN.COMPANY
+            WHERE CREATED_AT >= '${rangeStartIso}' AND CREATED_AT <= '${rangeEndIso}'
+            GROUP BY CONVERT(DATE, CREATED_AT)
+        `),
+        prisma.$queryRawUnsafe(calendarSql)
+    ]);
+
+    // Build lookup maps keyed by YYYY-MM-DD (ISO date string).
+    const toDateKey = (row) => {
+        const value = row.day instanceof Date ? row.day : new Date(row.day);
+        return value.toISOString().slice(0, 10);
+    };
+    const toCount = (row) => normalizeDeleteCount(row.count);
+
+    const loginMap = new Map(loginsByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const requestMap = new Map(requestsByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const taskMap = new Map(tasksByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const newUserMap = new Map(newUsersByDay.map((row) => [toDateKey(row), toCount(row)]));
+    const newCompanyMap = new Map(newCompaniesByDay.map((row) => [toDateKey(row), toCount(row)]));
+
+    const activityPerDay = [];
+    const newAccountsPerDay = [];
+
+    for (const row of calendarRows) {
+        const key = toDateKey(row);
+        activityPerDay.push({
+            date: key,
+            logins: loginMap.get(key) ?? 0,
+            requests: requestMap.get(key) ?? 0,
+            tasks: taskMap.get(key) ?? 0
+        });
+        newAccountsPerDay.push({
+            date: key,
+            newUsers: newUserMap.get(key) ?? 0,
+            newCompanies: newCompanyMap.get(key) ?? 0
+        });
+    }
+
+    return { activityPerDay, newAccountsPerDay };
+};
+
+const runSiteAnalysisCompanyQueries = async (rangeStart) => {
+    const rangeStartIso = rangeStart.toISOString();
+
+    // Pull all companies; LEFT JOIN everything per-company in one shot.
+    // Subqueries are simpler to reason about than a giant multi-join here, and
+    // the single-digit/hundreds-of-rows scale means the extra passes are cheap.
+    const rows = await prisma.$queryRawUnsafe(`
+        SELECT
+            c.COMPANY_ID AS companyId,
+            c.NAME AS companyName,
+            c.CREATED_AT AS createdAt,
+            (SELECT COUNT(*) FROM GUARDIAN.USERS u WHERE TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID AND u.STATUS = 'P') AS totalUsers,
+            (
+                SELECT COUNT(DISTINCT ule.USER_ID)
+                FROM GUARDIAN.USER_LOGIN_EVENTS ule
+                INNER JOIN GUARDIAN.USERS u2 ON u2.USER_ID = ule.USER_ID
+                WHERE TRY_CONVERT(INT, u2.COMPANY_ID) = c.COMPANY_ID
+                  AND ule.LOGIN_AT >= '${rangeStartIso}'
+            ) AS activeUsersInRange,
+            (SELECT COUNT(*) FROM GUARDIAN.REQUESTS r WHERE TRY_CONVERT(INT, r.COMPANY_ID) = c.COMPANY_ID) AS totalRequests,
+            (
+                SELECT COUNT(*)
+                FROM GUARDIAN.REQUESTS r2
+                WHERE TRY_CONVERT(INT, r2.COMPANY_ID) = c.COMPANY_ID
+                  AND r2.CREATE_DATE >= '${rangeStartIso}'
+            ) AS requestsInRange,
+            (
+                SELECT COUNT(*)
+                FROM GUARDIAN.TASKS t
+                INNER JOIN GUARDIAN.REQUESTS rt ON rt.REQUEST_ID = t.REQUEST_ID
+                WHERE TRY_CONVERT(INT, rt.COMPANY_ID) = c.COMPANY_ID
+            ) AS totalTasks,
+            (
+                SELECT COUNT(*)
+                FROM GUARDIAN.TASKS t2
+                INNER JOIN GUARDIAN.REQUESTS rt2 ON rt2.REQUEST_ID = t2.REQUEST_ID
+                WHERE TRY_CONVERT(INT, rt2.COMPANY_ID) = c.COMPANY_ID
+                  AND t2.CREATE_DATE >= '${rangeStartIso}'
+            ) AS tasksInRange,
+            (SELECT COUNT(*) FROM GUARDIAN.FORMS f WHERE f.COMPANY_ID = c.COMPANY_ID) AS customFormTemplates,
+            (
+                SELECT MAX(activity)
+                FROM (
+                    SELECT MAX(ule3.LOGIN_AT) AS activity
+                    FROM GUARDIAN.USER_LOGIN_EVENTS ule3
+                    INNER JOIN GUARDIAN.USERS u3 ON u3.USER_ID = ule3.USER_ID
+                    WHERE TRY_CONVERT(INT, u3.COMPANY_ID) = c.COMPANY_ID
+                    UNION ALL
+                    SELECT MAX(r3.CREATE_DATE) AS activity
+                    FROM GUARDIAN.REQUESTS r3
+                    WHERE TRY_CONVERT(INT, r3.COMPANY_ID) = c.COMPANY_ID
+                    UNION ALL
+                    SELECT MAX(t3.CREATE_DATE) AS activity
+                    FROM GUARDIAN.TASKS t3
+                    INNER JOIN GUARDIAN.REQUESTS rt3 ON rt3.REQUEST_ID = t3.REQUEST_ID
+                    WHERE TRY_CONVERT(INT, rt3.COMPANY_ID) = c.COMPANY_ID
+                ) AS combined
+            ) AS lastActivityAt
+        FROM GUARDIAN.COMPANY c
+        ORDER BY requestsInRange DESC, c.NAME ASC
+    `);
+
+    const now = Date.now();
+    const companies = rows.map((row) => {
+        const createdAt = row.createdAt ? new Date(row.createdAt) : null;
+        const accountAgeDays = createdAt
+            ? Math.max(0, Math.floor((now - createdAt.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0;
+
+        return {
+            companyId: normalizeDeleteCount(row.companyId),
+            companyName: row.companyName || '',
+            totalUsers: normalizeDeleteCount(row.totalUsers),
+            activeUsersInRange: normalizeDeleteCount(row.activeUsersInRange),
+            totalRequests: normalizeDeleteCount(row.totalRequests),
+            requestsInRange: normalizeDeleteCount(row.requestsInRange),
+            totalTasks: normalizeDeleteCount(row.totalTasks),
+            tasksInRange: normalizeDeleteCount(row.tasksInRange),
+            customFormTemplates: normalizeDeleteCount(row.customFormTemplates),
+            lastActivityAt: row.lastActivityAt ? new Date(row.lastActivityAt).toISOString() : null,
+            accountAgeDays,
+            percentOfPlatformRequests: 0 // filled in below after we know platform total
+        };
+    });
+
+    // Compute percentOfPlatformRequests using the sum of requestsInRange across all companies.
+    const platformRequestsInRange = companies.reduce((sum, c) => sum + c.requestsInRange, 0);
+    if (platformRequestsInRange > 0) {
+        for (const company of companies) {
+            company.percentOfPlatformRequests =
+                Math.round((company.requestsInRange / platformRequestsInRange) * 1000) / 10;
+        }
+    }
+
+    return companies;
+};
+
+const runSiteAnalysisDrilldownQueries = async (type, rangeStart) => {
+    const rangeStartIso = rangeStart.toISOString();
+    let rowsSql;
+    let countSql;
+
+    switch (type) {
+        case 'totalCompanies':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    c.COMPANY_ID,
+                    c.NAME,
+                    c.CREATED_AT,
+                    (SELECT COUNT(*) FROM GUARDIAN.USERS u WHERE TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID AND u.STATUS = 'P') AS userCount,
+                    (SELECT COUNT(*) FROM GUARDIAN.REQUESTS r WHERE TRY_CONVERT(INT, r.COMPANY_ID) = c.COMPANY_ID) AS requestCount
+                FROM GUARDIAN.COMPANY c
+                ORDER BY c.CREATED_AT DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.COMPANY`;
+            break;
+
+        case 'totalUsers':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    u.USER_ID,
+                    u.EMAIL,
+                    u.FIRST_NAME,
+                    u.LAST_NAME,
+                    u.STATUS,
+                    u.CREATE_DATE,
+                    u.COMPANY_ID,
+                    c.NAME AS companyName,
+                    (SELECT MAX(LOGIN_AT) FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID = u.USER_ID) AS lastLoginAt
+                FROM GUARDIAN.USERS u
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = u.COMPANY_ID
+                WHERE u.STATUS = 'P'
+                ORDER BY u.CREATE_DATE DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.USERS WHERE STATUS = 'P'`;
+            break;
+
+        case 'recentlyActiveUsers':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    u.USER_ID,
+                    u.EMAIL,
+                    u.FIRST_NAME,
+                    u.LAST_NAME,
+                    c.NAME AS companyName,
+                    COUNT(ule.EVENT_ID) AS loginCount,
+                    MAX(ule.LOGIN_AT) AS lastLoginAt
+                FROM GUARDIAN.USER_LOGIN_EVENTS ule
+                INNER JOIN GUARDIAN.USERS u ON u.USER_ID = ule.USER_ID
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = u.COMPANY_ID
+                WHERE ule.LOGIN_AT >= '${rangeStartIso}'
+                GROUP BY u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, c.NAME
+                ORDER BY MAX(ule.LOGIN_AT) DESC
+            `;
+            countSql = `
+                SELECT COUNT(DISTINCT USER_ID) AS count
+                FROM GUARDIAN.USER_LOGIN_EVENTS
+                WHERE LOGIN_AT >= '${rangeStartIso}'
+            `;
+            break;
+
+        case 'totalRequests':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    r.REQUEST_ID,
+                    r.TRACKINGID,
+                    r.REQUEST_NAME,
+                    r.STATUS,
+                    r.CREATE_DATE,
+                    r.COMPANY_ID,
+                    c.NAME AS companyName,
+                    requestor.EMAIL AS requestorEmail
+                FROM GUARDIAN.REQUESTS r
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                LEFT JOIN GUARDIAN.USERS requestor ON requestor.USER_ID = r.REQUESTOR_ID
+                ORDER BY r.CREATE_DATE DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.REQUESTS`;
+            break;
+
+        case 'requestsInRange':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    r.REQUEST_ID,
+                    r.TRACKINGID,
+                    r.REQUEST_NAME,
+                    r.STATUS,
+                    r.CREATE_DATE,
+                    r.COMPANY_ID,
+                    c.NAME AS companyName,
+                    requestor.EMAIL AS requestorEmail
+                FROM GUARDIAN.REQUESTS r
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                LEFT JOIN GUARDIAN.USERS requestor ON requestor.USER_ID = r.REQUESTOR_ID
+                WHERE r.CREATE_DATE >= '${rangeStartIso}'
+                ORDER BY r.CREATE_DATE DESC
+            `;
+            countSql = `
+                SELECT COUNT(*) AS count
+                FROM GUARDIAN.REQUESTS
+                WHERE CREATE_DATE >= '${rangeStartIso}'
+            `;
+            break;
+
+        case 'tasksInRange':
+            // Note: GUARDIAN.TASKS has no TRACKINGID column in the actual DB
+            // (the Prisma schema declared one but it doesn't exist). Use
+            // TASK_ID as the primary identifier instead.
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    t.TASK_ID,
+                    t.DESCRIPTION,
+                    t.STATUS,
+                    t.CREATE_DATE,
+                    t.ASSIGNED_USER_ID,
+                    assignee.EMAIL AS assigneeEmail,
+                    r.REQUEST_NAME,
+                    r.TRACKINGID AS requestTrackingId,
+                    c.NAME AS companyName
+                FROM GUARDIAN.TASKS t
+                LEFT JOIN GUARDIAN.USERS assignee ON assignee.USER_ID = t.ASSIGNED_USER_ID
+                LEFT JOIN GUARDIAN.REQUESTS r ON r.REQUEST_ID = t.REQUEST_ID
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                WHERE t.CREATE_DATE >= '${rangeStartIso}'
+                ORDER BY t.CREATE_DATE DESC
+            `;
+            countSql = `
+                SELECT COUNT(*) AS count
+                FROM GUARDIAN.TASKS
+                WHERE CREATE_DATE >= '${rangeStartIso}'
+            `;
+            break;
+
+        case 'totalCustomFormTemplates':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    f.FORM_ID,
+                    f.FORM_NAME,
+                    f.FORM_DESCRIPTION,
+                    f.COMPANY_ID,
+                    c.NAME AS companyName,
+                    (SELECT COUNT(*) FROM GUARDIAN.FORMS_FIELDS ff WHERE ff.FORM_ID = f.FORM_ID) AS fieldCount
+                FROM GUARDIAN.FORMS f
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = f.COMPANY_ID
+                WHERE f.COMPANY_ID IS NOT NULL
+                ORDER BY f.FORM_ID DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.FORMS WHERE COMPANY_ID IS NOT NULL`;
+            break;
+
+        case 'totalAttachments':
+            rowsSql = `
+                SELECT TOP ${SITE_ANALYSIS_DRILLDOWN_LIMIT}
+                    a.ATTACHMENT_ID,
+                    a.FILE_NAME,
+                    a.CREATE_DATE,
+                    a.REQUEST_ID,
+                    r.REQUEST_NAME,
+                    c.NAME AS companyName,
+                    uploader.EMAIL AS uploaderEmail
+                FROM GUARDIAN.ATTACHMENTS a
+                LEFT JOIN GUARDIAN.REQUESTS r ON r.REQUEST_ID = a.REQUEST_ID
+                LEFT JOIN GUARDIAN.COMPANY c ON c.COMPANY_ID = TRY_CONVERT(INT, r.COMPANY_ID)
+                LEFT JOIN GUARDIAN.USERS uploader ON uploader.USER_ID = a.CREATE_USER_ID
+                ORDER BY a.CREATE_DATE DESC
+            `;
+            countSql = `SELECT COUNT(*) AS count FROM GUARDIAN.ATTACHMENTS`;
+            break;
+
+        default:
+            throw new Error(`Unknown KPI type: ${type}`);
+    }
+
+    const [rows, countRows] = await Promise.all([
+        prisma.$queryRawUnsafe(rowsSql),
+        prisma.$queryRawUnsafe(countSql)
+    ]);
+
+    const totalCount = normalizeDeleteCount(countRows?.[0]?.count ?? 0);
+    return {
+        rows,
+        totalCount,
+        truncated: totalCount > SITE_ANALYSIS_DRILLDOWN_LIMIT
+    };
+};
+
+
+const getSiteAnalysis = async (range, { refresh = false } = {}) => {
+    if (!SITE_ANALYSIS_RANGE_PRESETS.includes(range)) {
+        const err = new Error(`Invalid range preset: ${range}`);
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if (refresh) invalidateSiteAnalysisCache(range);
+    const cached = getCachedSiteAnalysis(range);
+    if (cached) {
+        return { ...cached, cached: true };
+    }
+
+    const { rangeStart, rangeEnd } = resolveSiteAnalysisRange(range);
+
+    const [kpis, trends, companies] = await Promise.all([
+        runSiteAnalysisKpiQueries(rangeStart),
+        runSiteAnalysisTrendQueries(rangeStart, rangeEnd),
+        runSiteAnalysisCompanyQueries(rangeStart)
+    ]);
+
+    const payload = {
+        range,
+        rangeStart: rangeStart.toISOString(),
+        rangeEnd: rangeEnd.toISOString(),
+        generatedAt: new Date().toISOString(),
+        cached: false,
+        kpis,
+        trends,
+        companies
+    };
+
+    setCachedSiteAnalysis(range, payload);
+    return payload;
+};
+
 const normalizeDeleteCount = (value) => {
     if (value == null) return 0;
     if (typeof value === 'bigint') return Number(value);
@@ -14130,7 +14675,8 @@ const createEmptyJafarCounts = () => ({
     forms: 0,
     formFields: 0,
     formInstances: 0,
-    formInstanceValues: 0
+    formInstanceValues: 0,
+    userLoginEvents: 0
 });
 
 const buildJafarUserPreview = async (userId, actorUserId) => {
@@ -14182,6 +14728,11 @@ const buildJafarUserPreview = async (userId, actorUserId) => {
            OR CREATE_USER_ID = ${userId}
            OR UPDATE_USER_ID = ${userId}
            OR ${requestIds.length > 0 ? `REQUEST_ID IN (${joinIds(requestIds)})` : '1 = 0'}
+    `);
+    counts.userLoginEvents = await countRaw(`
+        SELECT COUNT(*) AS count
+        FROM GUARDIAN.USER_LOGIN_EVENTS
+        WHERE USER_ID = ${userId}
     `);
     counts.users = 1;
 
@@ -14262,6 +14813,9 @@ const buildJafarCompanyPreview = async (companyId, actorUserId) => {
     counts.formFields = formIds.length > 0
         ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.FORMS_FIELDS WHERE FORM_ID IN (${joinIds(formIds)})`)
         : 0;
+    counts.userLoginEvents = userIds.length > 0
+        ? await countRaw(`SELECT COUNT(*) AS count FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID IN (${joinIds(userIds)})`)
+        : 0;
     counts.company = 1;
 
     return {
@@ -14322,6 +14876,8 @@ const executeJafarUserPurge = async (userId, actorUserId) => {
                OR CREATE_USER_ID = ${userId}
                OR UPDATE_USER_ID = ${userId}
         `);
+
+        counts.userLoginEvents += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID = ${userId}`);
 
         if (attachmentIds.length > 0) {
             counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
@@ -14385,6 +14941,10 @@ const executeJafarCompanyPurge = async (companyId, actorUserId) => {
         if (requestIds.length > 0) {
             counts.tasks += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.TASKS WHERE REQUEST_ID IN (${joinIds(requestIds)})`);
         }
+
+        counts.userLoginEvents += userIds.length > 0
+            ? await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.USER_LOGIN_EVENTS WHERE USER_ID IN (${joinIds(userIds)})`)
+            : 0;
 
         if (attachmentIds.length > 0) {
             counts.attachments += await tx.$executeRawUnsafe(`DELETE FROM GUARDIAN.ATTACHMENTS WHERE ATTACHMENT_ID IN (${joinIds(attachmentIds)})`);
@@ -14554,6 +15114,45 @@ app.post('/api/jafar-admin/purge/company/:companyId', getAuthenticatedUserCompan
         res.status(String(error.message || '').includes('not found') ? 404 : 500).json({
             error: error.message || 'Failed to purge company'
         });
+    }
+});
+
+// Site analysis dashboard — Jafar-only cross-tenant usage metrics
+app.get('/api/jafar-admin/site-analysis', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const range = typeof req.query.range === 'string' ? req.query.range : '30d';
+        const refresh = req.query.refresh === 'true' || req.query.refresh === '1';
+
+        const payload = await getSiteAnalysis(range, { refresh });
+        res.json(payload);
+    } catch (error) {
+        if (error && error.statusCode === 400) {
+            return res.status(400).json({ error: 'Invalid range preset' });
+        }
+        console.error('❌ [SITE ANALYSIS] Failed to compute site analysis:', error);
+        res.status(500).json({ error: 'Failed to compute site analysis' });
+    }
+});
+
+// Site analysis drill-down — list of underlying records for a single KPI tile
+app.get('/api/jafar-admin/site-analysis/drilldown', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const type = typeof req.query.type === 'string' ? req.query.type : '';
+        const range = typeof req.query.range === 'string' ? req.query.range : '30d';
+
+        if (!SITE_ANALYSIS_KPI_TYPES.includes(type)) {
+            return res.status(400).json({ error: 'Invalid KPI type' });
+        }
+        if (!SITE_ANALYSIS_RANGE_PRESETS.includes(range)) {
+            return res.status(400).json({ error: 'Invalid range preset' });
+        }
+
+        const { rangeStart } = resolveSiteAnalysisRange(range);
+        const payload = await runSiteAnalysisDrilldownQueries(type, rangeStart);
+        res.json({ type, range, ...payload });
+    } catch (error) {
+        console.error('❌ [SITE ANALYSIS DRILLDOWN] Failed:', error);
+        res.status(500).json({ error: 'Failed to load drill-down' });
     }
 });
 

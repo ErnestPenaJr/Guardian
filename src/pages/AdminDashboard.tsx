@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { FaUsers, FaCog, FaPalette, FaProjectDiagram } from 'react-icons/fa';
+import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaChartBar } from 'react-icons/fa';
 import ReactModal from 'react-modal';
 import Modal from '../components/Modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
@@ -17,7 +17,11 @@ import { toast } from 'react-toastify';
 // Set the app element for accessibility for react-modal
 ReactModal.setAppElement('#root');
 
-const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarAdministration?: () => void }> = ({ onShowUserManagement, onShowJafarAdministration }) => {
+const AdminDashboard: React.FC<{
+  onShowUserManagement?: () => void;
+  onShowJafarAdministration?: () => void;
+  onShowJafarSiteAnalysis?: () => void;
+}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
@@ -201,6 +205,31 @@ const AdminDashboard: React.FC<{ onShowUserManagement?: () => void; onShowJafarA
               <li>Preview destructive purges</li>
               <li>Hard delete users</li>
               <li>Wipe an entire company</li>
+            </ul>
+          </a>
+        )}
+
+        {isJafarUser() && (
+          <a
+            href="#"
+            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-primary"
+            style={{
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+            onClick={e => {
+              e.preventDefault();
+              onShowJafarSiteAnalysis && onShowJafarSiteAnalysis();
+            }}
+          >
+            <FaChartBar className="h-12 w-12 text-primary mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Site Analysis</h3>
+            <ul className="text-gray-600">
+              <li>Cross-company usage metrics</li>
+              <li>Platform activity trends</li>
+              <li>Company breakdown</li>
             </ul>
           </a>
         )}
