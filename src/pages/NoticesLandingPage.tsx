@@ -3,6 +3,7 @@ import DataTable, { TableColumn } from 'react-data-table-component';
 import { toast } from 'react-toastify';
 import { Search, Calendar, Filter, Plus, Bell, Eye, Users, AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { can } from '../utils/permissions';
 import noticeService, { Notice, NoticeFilters } from '../services/noticeService';
 import CreateNoticeModalV2 from '../components/CreateNoticeModalV2';
 import '../styles/RequestDashboard.css'; // Reuse existing styles
@@ -31,51 +32,9 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
-  // Role-based access control - check if user can see "All Notices" tab
-  const hasAllNoticesAccess = useMemo(() => {
-    if (!user) return false;
-    
-    // Allow access for Processor(3), Manager(4), Admin(1), Super Admin(6)
-    const allowedRoles = [1, 3, 4, 6];
-    
-    // Check roles array
-    if (user.roles && Array.isArray(user.roles)) {
-      return user.roles.some((role: any) => 
-        typeof role === 'object' && role !== null && 
-        allowedRoles.includes(role.id || role.role_id)
-      );
-    }
-    
-    // Check role as string (from JWT token)
-    if (user.role) {
-      const roleId = parseInt(user.role, 10);
-      return allowedRoles.includes(roleId);
-    }
-    
-    return false;
-  }, [user]);
-
-  // Check if user can create notices
-  const hasCreateNoticeAccess = useMemo(() => {
-    if (!user) return false;
-    
-    // Allow notice creation for Processor(3), Manager(4), Admin(1), Super Admin(6)
-    const allowedRoles = [1, 3, 4, 6];
-    
-    if (user.roles && Array.isArray(user.roles)) {
-      return user.roles.some((role: any) => 
-        typeof role === 'object' && role !== null && 
-        allowedRoles.includes(role.id || role.role_id)
-      );
-    }
-    
-    if (user.role) {
-      const roleId = parseInt(user.role, 10);
-      return allowedRoles.includes(roleId);
-    }
-    
-    return false;
-  }, [user]);
+  // Role gates resolved via shared permissions matrix.
+  const hasAllNoticesAccess = useMemo(() => can(user, 'notices.viewAll'), [user]);
+  const hasCreateNoticeAccess = useMemo(() => can(user, 'notices.new'), [user]);
 
   // Load notices on component mount and when tab changes
   useEffect(() => {

@@ -22,7 +22,8 @@ const AdminDashboard: React.FC<{
   onShowJafarAdministration?: () => void;
   onShowJafarSiteAnalysis?: () => void;
   onShowJafarUserManagement?: () => void;
-}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis, onShowJafarUserManagement }) => {
+  onShowJafarRoleSettings?: () => void;
+}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis, onShowJafarUserManagement, onShowJafarRoleSettings }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
@@ -256,6 +257,28 @@ const AdminDashboard: React.FC<{
               <li>Cross-company usage metrics</li>
               <li>Platform activity trends</li>
               <li>Company breakdown</li>
+            </ul>
+          </a>
+        )}
+
+        {isJafarUser() && (
+          <a
+            href="#"
+            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-primary"
+            style={{ borderRadius: '6px', backgroundColor: '#FFFFFF' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+            onClick={e => {
+              e.preventDefault();
+              if (onShowJafarRoleSettings) onShowJafarRoleSettings();
+            }}
+          >
+            <FaUserShield className="h-12 w-12 text-primary mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Role Access Matrix</h3>
+            <ul className="text-gray-600">
+              <li>Edit feature permissions per role</li>
+              <li>Manage External User allowlists</li>
+              <li>Reset to defaults</li>
             </ul>
           </a>
         )}
