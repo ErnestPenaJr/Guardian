@@ -15,6 +15,7 @@ import RequestModal from '../components/RequestModal';
 import formService from '../services/formService';
 import { FormField } from '../types/formBuilder';
 import { useAuth } from '../hooks/useAuth';
+import { can } from '../utils/permissions';
 import { useRequestState } from '../hooks/useRequestState';
 
 interface FormFieldWithLayout extends FormField {
@@ -214,7 +215,16 @@ const RequestDashboard: React.FC = () => {
     
     setLoading(true);
     setError(null);
-    
+
+    // Role gate: only Admin/Processor/Manager/Super Admin can view all group requests.
+    // General and External users see an empty list here; their work shows in Assignments.
+    if (!can(user, 'requests.viewAll')) {
+      console.log(`[${timestamp}] User lacks requests.viewAll — skipping group fetch`);
+      setRequests([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       console.log(`[${timestamp}] Fetching requests from API...`);
       const { data } = await api.get('/api/requests');

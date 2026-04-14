@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import { can } from '../utils/permissions';
 import { toast } from 'react-toastify';
 import { Upload, MessageSquare, CheckCircle, FileText, Send, Download, Save, X } from 'lucide-react';
 import './RequestModal.css';
@@ -253,47 +254,8 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
     }
   };
   
-  // Check if current user can assign requests (processor and above)
-  const canAssignRequests = () => {
-    if (!currentUser) {
-      return false;
-    }
-    
-    // Role IDs that can assign requests: Admin(1), Manager(3), Processor(4), Super Admin(6)
-    const assignmentRoles = [1, 3, 4, 6];
-    
-    // Check if user has roles array (from login API response)
-    if (currentUser.roles && Array.isArray(currentUser.roles)) {
-      const hasPermission = currentUser.roles.some((role: any) => {
-        const roleId = role.id;
-        return assignmentRoles.includes(roleId);
-      });
-      return hasPermission;
-    }
-    
-    // Check roleIds array (from login API response)
-    if (currentUser.roleIds && Array.isArray(currentUser.roleIds)) {
-      const hasPermission = currentUser.roleIds.some((roleId: number) => 
-        assignmentRoles.includes(roleId)
-      );
-      return hasPermission;
-    }
-    
-    // Check single role (fallback)
-    if (currentUser.role) {
-      const roleId = parseInt(currentUser.role, 10);
-      const hasPermission = assignmentRoles.includes(roleId);
-      return hasPermission;
-    }
-    
-    // Check if user has an ID property (temporary fix)
-    if (currentUser.id || currentUser.userId) {
-      // For now, allow all logged-in users to assign (temporary fix)
-      return true;
-    }
-    
-    return false;
-  };
+  // Check if current user can assign requests (matrix: Admin + Manager + Super Admin only)
+  const canAssignRequests = () => can(currentUser, 'requests.assign');
 
   // Memoized permission check to prevent dropdown from disappearing
   const hasAssignPermission = useMemo(() => {

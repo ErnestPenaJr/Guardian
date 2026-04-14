@@ -20,12 +20,15 @@ import MyNoticesService, {
   NoticeStatus,
   SensitivityLevel,
 } from "../services/mynotices";
+import { useAuth } from "../hooks/useAuth";
+import { can } from "../utils/permissions";
 
 import CreateNotice from "./CreateNotice";
 import ViewNotice from "./ViewNotice";
 import CreateNoticeModalV2 from "../components/CreateNoticeModalV2";
 
 export default function AllNotices() {
+  const { user } = useAuth();
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view' | null>(null);
   const [selectedNoticeId, setSelectedNoticeId] = useState<number | undefined>();
   const [showV2, setShowV2] = useState(false);
@@ -291,6 +294,7 @@ export default function AllNotices() {
             Refresh
           </button>
 
+          {can(user, 'notices.new') && (
           <button
             onClick={openCreateNotice}
             className="btn bg-warning text-dark ms-2"
@@ -298,6 +302,7 @@ export default function AllNotices() {
           >
             Create Notice
           </button>
+          )}
         </div>
 
         {/* Search Input */}

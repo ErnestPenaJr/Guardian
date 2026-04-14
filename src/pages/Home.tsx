@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { can } from '../utils/permissions';
 import { useRequestState } from '../hooks/useRequestState';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
@@ -1425,7 +1426,13 @@ function Home() {
             <h1 className="text-2xl font-bold uppercase fs-2 mb-4 sm:mb-8">HOME</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+              {!can(user, 'home.requestOverview') && !can(user, 'home.requestQueue') && (
+                <div className="md:col-span-4 bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center text-gray-500">
+                  Welcome! Your assignments and notices are available from the sidebar.
+                </div>
+              )}
               {/* Request Overview Card */}
+              {can(user, 'home.requestOverview') && (
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">
                 <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-center flex-shrink-0">Request Overview</h2>
                 <div className="flex flex-col items-center justify-center flex-1 min-h-0">
@@ -1483,7 +1490,9 @@ function Home() {
                   </div>
                 </div>
               </section>
+              )}
               {/* Request Queue Card */}
+              {can(user, 'home.requestQueue') && (
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-secondary p-4 sm:p-6 w-full md:col-span-3 border border-gray-200`} data-component-name="Home">
                 <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Request Queue</h2>
                 
@@ -1637,6 +1646,7 @@ function Home() {
                   </>
                 )}
               </section>
+              )}
 
               {/* Notices Overview Chart */}
               <section className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'} rounded-xl shadow-sm border-t-4 border-t-blue-500 p-4 sm:p-6 flex flex-col h-64 sm:h-80 md:h-96 md:col-span-1 border border-gray-200`} data-component-name="Home">

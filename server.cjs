@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient, Prisma } = require('@prisma/client');
+const { requirePermission, can, ROLE } = require('./lib/permissions.cjs');
 
 // Production Environment Detection and Security Configuration
 const isProduction = process.env.NODE_ENV === 'production' || 
@@ -1803,7 +1804,7 @@ app.get('/api/requests/assigned/me', getAuthenticatedUserCompany, async (req, re
 });
 
 // Start working on a request (change status from P to A)
-app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res) => {
+app.post('/api/requests/:id/start', getAuthenticatedUserCompany, requirePermission('requests.start'), async (req, res) => {
     try {
         const requestId = parseInt(req.params.id);
         console.log(`🚀 Starting work on request ${requestId} by user ${req.userId}`);
@@ -1837,7 +1838,7 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, async (req, res
 });
 
 // Complete a request (change status from A to C)
-app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, async (req, res) => {
+app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, requirePermission('requests.complete'), async (req, res) => {
     try {
         const requestId = parseInt(req.params.id);
         const { completionNotes } = req.body;
@@ -2292,7 +2293,7 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
 });
 
 // Real requests endpoint with database query (workspace-filtered)
-app.get('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
+app.get('/api/requests', getAuthenticatedUserCompany, requirePermission('requests.viewAll'), async (req, res) => {
     try {
         const startTime = Date.now();
         console.log(`📋 Fetching requests for company ID: ${req.companyId}, user ID: ${req.userId}`);
@@ -2488,7 +2489,22 @@ app.get('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) => {
         }
 
         const request = requests[0];
-        
+
+        // Role gate: users without requests.viewAllDetails may only view requests
+        // they created, submitted, or are assigned to (matrix: General/External see own only).
+        if (!can(req, 'requests.viewAllDetails')) {
+            const owns = request.REQUESTOR_ID === req.userId
+                || request.ASSIGNED_ID === req.userId
+                || request.CREATE_USER_ID === req.userId;
+            if (!owns) {
+                console.log(`🚫 User ${req.userId} denied detail view of request ${requestId} (not owner)`);
+                return res.status(403).json({
+                    error: 'Forbidden',
+                    message: 'You do not have permission to view this request'
+                });
+            }
+        }
+
         // Format the response similar to the main requests endpoint
         const formattedRequest = {
             REQUEST_ID: request.REQUEST_ID,
@@ -3943,7 +3959,7 @@ app.delete('/api/contact-groups/:id/members/:memberId', getAuthenticatedUserComp
 });
 
 // Update request assignment
-app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (req, res) => {
+app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, requirePermission('requests.assign'), async (req, res) => {
     try {
         const requestId = parseInt(req.params.requestId);
         const { assignedUserId } = req.body;
@@ -3953,20 +3969,6 @@ app.put('/api/requests/:requestId/assign', getAuthenticatedUserCompany, async (r
         if (!requestId || isNaN(requestId)) {
             return res.status(400).json({
                 error: 'Valid request ID is required'
-            });
-        }
-
-        // Check if user has permission to assign requests (Admin, Manager, Processor, or Super Admin)
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId} AND ur.STATUS = 'P'
-        `;
-        
-        const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
-        if (!isAdmin) {
-            return res.status(403).json({
-                error: 'Insufficient permissions for assignment operations'
             });
         }
 
@@ -5724,7 +5726,7 @@ app.get('/api/requests/:requestId/tasks', getAuthenticatedUserCompany, async (re
 });
 
 // Create a new task
-app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
+app.post('/api/tasks', getAuthenticatedUserCompany, requirePermission('requests.tasks'), async (req, res) => {
     try {
         const { requestId, assignedUserId, description, status = 'Pending' } = req.body;
         // Parse assigned user id if provided
@@ -5925,7 +5927,7 @@ app.post('/api/tasks', getAuthenticatedUserCompany, async (req, res) => {
 });
 
 // Update a task
-app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
+app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, requirePermission('requests.tasks'), async (req, res) => {
     try {
         const taskId = parseInt(req.params.taskId);
         const { assignedUserId, description, status } = req.body;
@@ -6168,7 +6170,7 @@ app.put('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
 });
 
 // Delete a task
-app.delete('/api/tasks/:taskId', getAuthenticatedUserCompany, async (req, res) => {
+app.delete('/api/tasks/:taskId', getAuthenticatedUserCompany, requirePermission('requests.tasks'), async (req, res) => {
     try {
         const taskId = parseInt(req.params.taskId);
 
