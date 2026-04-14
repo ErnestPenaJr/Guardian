@@ -61,7 +61,13 @@ export interface CreateNoticeRequest {
   CONTENT: string;
   NOTICE_TYPE: string;
   FORM_TEMPLATE_ID?: number;
-  recipientUserIds: number[];
+  PRIORITY_LEVEL?: 'LOW' | 'MEDIUM' | 'HIGH';
+  STATUS?: 'DRAFT' | 'PUBLISHED';
+  DUE_DATE?: string | null;
+  recipients?: number[];
+  contactGroups?: number[];
+  /** @deprecated use `recipients` */
+  recipientUserIds?: number[];
 }
 
 export interface UpdateNoticeRequest {

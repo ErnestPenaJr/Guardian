@@ -15117,6 +15117,196 @@ app.post('/api/jafar-admin/purge/company/:companyId', getAuthenticatedUserCompan
     }
 });
 
+// ========================================
+// JAFAR USER MANAGEMENT ENDPOINTS
+// ========================================
+
+// GET /api/jafar-admin/jafar-users — List all users with Jafar role (role_id=6)
+app.get('/api/jafar-admin/jafar-users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        console.log('📋 [JAFAR USERS] Fetching all shieldlytics users');
+        const users = await prisma.$queryRaw`
+            SELECT u.USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.STATUS, u.CREATE_DATE,
+                   u.COMPANY_ID, c.NAME AS COMPANY_NAME
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.COMPANY c ON u.COMPANY_ID = c.COMPANY_ID
+            WHERE u.EMAIL LIKE '%@shieldlytics.com' AND u.STATUS != 'D'
+            ORDER BY u.CREATE_DATE DESC
+        `;
+
+        // Fetch all roles for these users
+        if (users.length > 0) {
+            const userIds = users.map(u => u.USER_ID);
+            const allRoles = await prisma.$queryRaw`
+                SELECT ur.USER_ID, ur.ROLE_ID, r.NAME, r.DISPLAY_NAME
+                FROM GUARDIAN.USER_ROLES ur
+                INNER JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                WHERE ur.USER_ID IN (${Prisma.join(userIds)}) AND ur.STATUS = 'P'
+                ORDER BY ur.ROLE_ID
+            `;
+            const rolesByUser = {};
+            for (const r of allRoles) {
+                if (!rolesByUser[r.USER_ID]) rolesByUser[r.USER_ID] = [];
+                rolesByUser[r.USER_ID].push({ id: r.ROLE_ID, name: r.NAME, displayName: r.DISPLAY_NAME });
+            }
+            for (const u of users) {
+                u.roles = rolesByUser[u.USER_ID] || [];
+            }
+        }
+
+        console.log(`✅ [JAFAR USERS] Found ${users.length} Jafar users`);
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('❌ [JAFAR USERS] Failed to fetch Jafar users:', error);
+        res.status(500).json({ error: 'Failed to fetch Jafar users' });
+    }
+});
+
+// POST /api/jafar-admin/jafar-users — Create a new Jafar user directly
+app.post('/api/jafar-admin/jafar-users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const { firstName, lastName, email, password } = req.body;
+
+        if (!firstName || !lastName || !email || !password) {
+            return res.status(400).json({ error: 'All fields are required: firstName, lastName, email, password' });
+        }
+
+        const emailLower = email.trim().toLowerCase();
+
+        // Check if email already exists
+        const existing = await prisma.$queryRaw`
+            SELECT USER_ID FROM GUARDIAN.USERS WHERE EMAIL = ${emailLower}
+        `;
+        if (existing.length > 0) {
+            return res.status(409).json({ error: 'A user with this email already exists' });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Insert user
+        await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.USERS (FIRST_NAME, LAST_NAME, EMAIL, PASSWORD_HASH, STATUS, EMAIL_VALIDATED, CREATE_DATE, UPDATE_DATE)
+            VALUES (${firstName.trim()}, ${lastName.trim()}, ${emailLower}, ${hashedPassword}, 'A', 1, GETDATE(), GETDATE())
+        `;
+
+        // Get the new user ID
+        const newUser = await prisma.$queryRaw`
+            SELECT TOP 1 USER_ID FROM GUARDIAN.USERS WHERE EMAIL = ${emailLower} ORDER BY USER_ID DESC
+        `;
+        const userId = newUser[0].USER_ID;
+
+        // Assign Jafar role (role_id=6)
+        await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, STATUS, CREATE_DATE, UPDATE_DATE)
+            VALUES (${userId}, 6, 'P', GETDATE(), GETDATE())
+        `;
+
+        console.log(`✅ [JAFAR USERS] Created Jafar user: ${emailLower} (ID: ${userId})`);
+        res.json({
+            success: true,
+            data: { USER_ID: userId, FIRST_NAME: firstName.trim(), LAST_NAME: lastName.trim(), EMAIL: emailLower, STATUS: 'A' }
+        });
+    } catch (error) {
+        console.error('❌ [JAFAR USERS] Failed to create Jafar user:', error);
+        res.status(500).json({ error: 'Failed to create Jafar user' });
+    }
+});
+
+// PUT /api/jafar-admin/jafar-users/:userId/roles — Update roles for a Jafar user
+app.put('/api/jafar-admin/jafar-users/:userId/roles', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const targetUserId = parseInt(req.params.userId);
+        const { roleIds } = req.body;
+
+        if (!targetUserId || Number.isNaN(targetUserId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+        if (!Array.isArray(roleIds) || roleIds.length === 0) {
+            return res.status(400).json({ error: 'roleIds must be a non-empty array' });
+        }
+
+        // Verify target is a shieldlytics user
+        const target = await prisma.$queryRaw`
+            SELECT u.USER_ID, u.EMAIL FROM GUARDIAN.USERS u
+            WHERE u.USER_ID = ${targetUserId} AND u.EMAIL LIKE '%@shieldlytics.com' AND u.STATUS != 'D'
+        `;
+        if (target.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const validRoles = await prisma.$queryRaw`
+            SELECT ROLE_ID FROM GUARDIAN.ROLES WHERE STATUS = 'A'
+        `;
+        const validRoleIds = validRoles.map(r => r.ROLE_ID);
+        for (const rid of roleIds) {
+            if (!validRoleIds.includes(rid)) {
+                return res.status(400).json({ error: `Invalid role ID: ${rid}` });
+            }
+        }
+
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USER_ROLES SET STATUS = 'D', UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${targetUserId} AND STATUS = 'P'
+        `;
+
+        for (const rid of roleIds) {
+            await prisma.$queryRaw`
+                INSERT INTO GUARDIAN.USER_ROLES (USER_ID, ROLE_ID, STATUS, CREATE_DATE, UPDATE_DATE)
+                VALUES (${targetUserId}, ${rid}, 'P', GETDATE(), GETDATE())
+            `;
+        }
+
+        console.log(`✅ [JAFAR USERS] Updated roles for user ${targetUserId} (${target[0].EMAIL}): [${roleIds.join(', ')}]`);
+        res.json({ success: true, message: 'Roles updated' });
+    } catch (error) {
+        console.error('❌ [JAFAR USERS] Failed to update roles:', error);
+        res.status(500).json({ error: 'Failed to update roles' });
+    }
+});
+
+// DELETE /api/jafar-admin/jafar-users/:userId — Remove a Jafar user (soft-delete)
+app.delete('/api/jafar-admin/jafar-users/:userId', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const targetUserId = parseInt(req.params.userId);
+        if (!targetUserId || Number.isNaN(targetUserId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        // Prevent self-deletion
+        if (targetUserId === req.userId) {
+            return res.status(400).json({ error: 'You cannot remove yourself' });
+        }
+
+        // Verify target is a shieldlytics user
+        const target = await prisma.$queryRaw`
+            SELECT u.USER_ID, u.EMAIL FROM GUARDIAN.USERS u
+            WHERE u.USER_ID = ${targetUserId} AND u.EMAIL LIKE '%@shieldlytics.com' AND u.STATUS != 'D'
+        `;
+        if (target.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Remove all roles
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USER_ROLES SET STATUS = 'D', UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${targetUserId} AND STATUS = 'P'
+        `;
+
+        // Soft-delete user
+        await prisma.$queryRaw`
+            UPDATE GUARDIAN.USERS SET STATUS = 'D', UPDATE_DATE = GETDATE()
+            WHERE USER_ID = ${targetUserId}
+        `;
+
+        console.log(`✅ [JAFAR USERS] Removed Jafar user ID ${targetUserId} (${target[0].EMAIL})`);
+        res.json({ success: true, message: 'Jafar user removed' });
+    } catch (error) {
+        console.error('❌ [JAFAR USERS] Failed to remove Jafar user:', error);
+        res.status(500).json({ error: 'Failed to remove Jafar user' });
+    }
+});
+
 // Site analysis dashboard — Jafar-only cross-tenant usage metrics
 app.get('/api/jafar-admin/site-analysis', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
     try {

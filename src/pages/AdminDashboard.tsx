@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaChartBar } from 'react-icons/fa';
+import { FaUsers, FaCog, FaPalette, FaProjectDiagram, FaChartBar, FaUserShield } from 'react-icons/fa';
 import ReactModal from 'react-modal';
 import Modal from '../components/Modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
@@ -21,7 +21,8 @@ const AdminDashboard: React.FC<{
   onShowUserManagement?: () => void;
   onShowJafarAdministration?: () => void;
   onShowJafarSiteAnalysis?: () => void;
-}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis }) => {
+  onShowJafarUserManagement?: () => void;
+}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis, onShowJafarUserManagement }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
@@ -205,6 +206,31 @@ const AdminDashboard: React.FC<{
               <li>Preview destructive purges</li>
               <li>Hard delete users</li>
               <li>Wipe an entire company</li>
+            </ul>
+          </a>
+        )}
+
+        {isJafarUser() && (
+          <a
+            href="#"
+            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-indigo-500"
+            style={{
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+            onClick={e => {
+              e.preventDefault();
+              onShowJafarUserManagement && onShowJafarUserManagement();
+            }}
+          >
+            <FaUserShield className="h-12 w-12 text-indigo-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">JAFAR Users</h3>
+            <ul className="text-gray-600">
+              <li>Add shieldilytics accounts</li>
+              <li>Remove platform users</li>
+              <li>Manage Jafar access</li>
             </ul>
           </a>
         )}

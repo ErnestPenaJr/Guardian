@@ -23,12 +23,14 @@ import MyNoticesService, {
 
 import CreateNotice from "./CreateNotice";
 import ViewNotice from "./ViewNotice";
+import CreateNoticeModalV2 from "../components/CreateNoticeModalV2";
 
 export default function AllNotices() {
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view' | null>(null);
   const [selectedNoticeId, setSelectedNoticeId] = useState<number | undefined>();
+  const [showV2, setShowV2] = useState(false);
 
-  const openCreateNotice = () => { setModalType('create'); setSelectedNoticeId(undefined); };
+  const openCreateNotice = () => { setShowV2(true); };
   const openViewNotice = (noticeId?: number) => { setModalType('view'); setSelectedNoticeId(noticeId); };
   const editNotice = (noticeId?: number) => { setModalType('edit'); setSelectedNoticeId(noticeId); };
   const closeModal = () => { setModalType(null); setSelectedNoticeId(undefined); };
@@ -389,6 +391,12 @@ export default function AllNotices() {
           )}
         </Modal.Body>
       </Modal>
+
+      <CreateNoticeModalV2
+        isOpen={showV2}
+        onClose={() => setShowV2(false)}
+        onCreated={() => { setShowV2(false); fetchNotices(); }}
+      />
     </div>
   );
 }
