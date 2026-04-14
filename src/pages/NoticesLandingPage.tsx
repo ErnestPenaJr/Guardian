@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { Search, Calendar, Filter, Plus, Bell, Eye, Users, AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import noticeService, { Notice, NoticeFilters } from '../services/noticeService';
-import CreateNoticeModal from '../components/CreateNoticeModal';
+import CreateNoticeModalV2 from '../components/CreateNoticeModalV2';
 import '../styles/RequestDashboard.css'; // Reuse existing styles
 
 interface NoticesLandingPageProps {}
@@ -656,10 +656,10 @@ const NoticesLandingPage: React.FC<NoticesLandingPageProps> = () => {
       />
 
       {/* Create Notice Modal */}
-      <CreateNoticeModal
-        show={showCreateModal}
-        onHide={() => setShowCreateModal(false)}
-        onNoticeCreated={handleNoticeCreated}
+      <CreateNoticeModalV2
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={handleNoticeCreated}
       />
     </div>
   );

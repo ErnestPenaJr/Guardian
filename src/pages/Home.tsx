@@ -29,6 +29,8 @@ import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import JafarAdministration from './JafarAdministration';
+import JafarUserManagement from './JafarUserManagement';
+import SiteAnalysis from './SiteAnalysis';
 import { Modal } from 'react-bootstrap';
 import ViewNotice from './ViewNotice';
 import AllNotices from './AllNotices';
@@ -114,7 +116,7 @@ function Home() {
   const location = useLocation();
   const { user } = useAuth();
   const { subscribeToRefresh } = useRequestState();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'jafarUserManagement' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
 
@@ -1876,6 +1878,8 @@ function Home() {
               <AdminDashboard
                 onShowUserManagement={() => setSelectedSection('adminUserManagement')}
                 onShowJafarAdministration={() => setSelectedSection('jafarAdministration')}
+                onShowJafarSiteAnalysis={() => setSelectedSection('jafarSiteAnalysis')}
+                onShowJafarUserManagement={() => setSelectedSection('jafarUserManagement')}
               />
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
@@ -1885,6 +1889,14 @@ function Home() {
           ) : selectedSection === 'jafarAdministration' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <JafarAdministration />
+            </div>
+          ) : selectedSection === 'jafarUserManagement' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <JafarUserManagement />
+            </div>
+          ) : selectedSection === 'jafarSiteAnalysis' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <SiteAnalysis />
             </div>
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">
@@ -1981,9 +1993,9 @@ function Home() {
           if (["dashboard", "search", "notifications", "profile"].includes(key)) {
             setMobileNav(key as 'dashboard' | 'search' | 'notifications' | 'profile');
             if (key === 'dashboard') setSelectedSection('dashboard');
-          } else if (["workorder", "myRequests", "admin", "adminUserManagement", "jafarAdministration"].includes(key)) {
+          } else if (["workorder", "myRequests", "admin", "adminUserManagement", "jafarAdministration", "jafarUserManagement"].includes(key)) {
             // Handle dashboard dropdown selections
-            setSelectedSection(key as 'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration');
+            setSelectedSection(key as 'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'jafarUserManagement');
             setMobileNav('dashboard'); // Keep mobile nav on dashboard but change content
           }
         }}

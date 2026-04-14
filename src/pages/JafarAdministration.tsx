@@ -50,7 +50,8 @@ const countLabelMap: Record<string, string> = {
   forms: 'Forms',
   formFields: 'Form Fields',
   users: 'Users',
-  company: 'Company'
+  company: 'Company',
+  userLoginEvents: 'Login Events'
 }
 
 const formatUserTargetLabel = (target: UserTarget) => {
