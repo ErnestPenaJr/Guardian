@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient, Prisma } = require('@prisma/client');
-const { requirePermission, can, ROLE } = require('./lib/permissions.cjs');
+const { requirePermission, can, canViewForm, canViewNoticeType, ROLE } = require('./lib/permissions.cjs');
 
 // Production Environment Detection and Security Configuration
 const isProduction = process.env.NODE_ENV === 'production' || 
@@ -2059,6 +2059,18 @@ app.post('/api/requests', getAuthenticatedUserCompany, async (req, res) => {
             return res.status(400).json({
                 error: 'Request name is required',
                 details: 'REQUEST_NAME, name, or requestName field must be provided and non-empty'
+            });
+        }
+
+        // Phase 2 enforcement: if the user's role(s) carry a form allowlist
+        // (typically External User), reject submissions for forms they aren't
+        // explicitly granted. Roles without allowlist entries pass through.
+        const submittedFormId = FORM_ID ?? templateId ?? null;
+        if (submittedFormId != null && !canViewForm(req, submittedFormId)) {
+            console.log(`🔒 User ${req.userId} blocked from creating request on FORM_ID ${submittedFormId} (allowlist)`);
+            return res.status(403).json({
+                error: 'Forbidden',
+                message: 'Your role is not permitted to submit this form type'
             });
         }
 
@@ -8562,16 +8574,24 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         
         // Filter out any forms with invalid IDs to prevent frontend 404 errors
         const validForms = forms.filter(form => form.FORM_ID && form.FORM_ID > 0);
-        
+
         if (validForms.length !== forms.length) {
             console.warn(`⚠️ Filtered out ${forms.length - validForms.length} invalid forms. Returning ${validForms.length} valid forms.`);
         }
-        
-        // Debug: Log form IDs that will be returned to frontend
-        console.log('📋 Valid form IDs being returned:', validForms.map(f => `${f.FORM_NAME}(${f.FORM_ID})`).join(', '));
 
-        // Format the data to match frontend expectations - use validForms instead of forms
-        const formattedForms = validForms.map(form => ({
+        // Phase 2 enforcement: roles with form allowlist entries (typically External
+        // User) only see forms explicitly granted. Roles without entries are
+        // unrestricted and pass the canViewForm check trivially.
+        const allowedForms = validForms.filter((f) => canViewForm(req, f.FORM_ID));
+        if (allowedForms.length !== validForms.length) {
+            console.log(`🔒 Allowlist filtered ${validForms.length - allowedForms.length} forms for user ${req.userId}`);
+        }
+
+        // Debug: Log form IDs that will be returned to frontend
+        console.log('📋 Valid form IDs being returned:', allowedForms.map(f => `${f.FORM_NAME}(${f.FORM_ID})`).join(', '));
+
+        // Format the data to match frontend expectations - use allowedForms
+        const formattedForms = allowedForms.map(form => ({
             FORM_ID: form.FORM_ID,
             FORM_NAME: form.FORM_NAME,
             FORM_DESCRIPTION: form.FORM_DESCRIPTION,
@@ -10803,8 +10823,16 @@ app.get('/api/notices/my', getAuthenticatedUserCompany, async (req, res) => {
         `);
         
         console.log(`✅ Found ${notices.length} notices for user`);
-        
-        res.json(notices);
+
+        // Phase 2 enforcement: filter by notice type allowlist (typically
+        // restricts External Users to permitted types). Roles without
+        // allowlist entries pass through unchanged.
+        const allowed = notices.filter((n) => canViewNoticeType(req, n.NOTICE_TYPE));
+        if (allowed.length !== notices.length) {
+            console.log(`🔒 Allowlist filtered ${notices.length - allowed.length} notices for user ${req.userId}`);
+        }
+
+        res.json(allowed);
     } catch (error) {
         console.error('❌ Error fetching my notices:', error);
         res.status(500).json({
@@ -11343,7 +11371,16 @@ app.get('/api/notices/:id', getAuthenticatedUserCompany, async (req, res) => {
                 error: 'Access denied. You are not authorized to view this notice.'
             });
         }
-        
+
+        // Phase 2 enforcement: notice type allowlist (External User restriction).
+        // Management roles bypass — they need to view all types regardless.
+        if (!hasManagementRole && !canViewNoticeType(req, notice.NOTICE_TYPE)) {
+            console.log(`🔒 User ${req.userId} blocked from notice ${noticeId} type=${notice.NOTICE_TYPE}`);
+            return res.status(403).json({
+                error: 'Access denied. Your role is not permitted to view this notice type.'
+            });
+        }
+
         // Auto-mark as read if user is a recipient and notice is viewed
         if (isRecipient.length > 0) {
             const existingReadStatus = await prisma.$queryRaw`
