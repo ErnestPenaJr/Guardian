@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { setEffectivePermissions } from '../utils/permissions';
 
 interface UserProfile {
   USER_ID: number;
@@ -38,6 +39,24 @@ export function useAuth() {
   useEffect(() => {
     loadUserFromStorage();
   }, []);
+
+  // Hydrate effective permissions from the server whenever a token is
+  // present. Falls back silently to the matrix on failure.
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token || token === 'null' || token === 'invalid_token') return;
+    let cancelled = false;
+    fetch('/api/me/permissions', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data || !Array.isArray(data.permissions)) return;
+        setEffectivePermissions(data.permissions);
+      })
+      .catch(() => { /* offline / 401 — keep matrix fallback */ });
+    return () => { cancelled = true; };
+  }, [user?.USER_ID]);
 
   const loadUserFromStorage = () => {
     try {
@@ -165,6 +184,7 @@ export function useAuth() {
     localStorage.removeItem('user');
     localStorage.removeItem('companyId');
     localStorage.removeItem('token');
+    setEffectivePermissions(null);
     setUser(null);
   };
 

@@ -31,6 +31,7 @@ import AdminDashboard from './AdminDashboard';
 import AdminUserManagement from './AdminUserManagement';
 import JafarAdministration from './JafarAdministration';
 import JafarUserManagement from './JafarUserManagement';
+import JafarRoleSettings from './JafarRoleSettings';
 import SiteAnalysis from './SiteAnalysis';
 import { Modal } from 'react-bootstrap';
 import ViewNotice from './ViewNotice';
@@ -117,7 +118,7 @@ function Home() {
   const location = useLocation();
   const { user } = useAuth();
   const { subscribeToRefresh } = useRequestState();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'jafarUserManagement' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'jafarUserManagement' | 'jafarRoleSettings' | 'jafarSiteAnalysis' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
 
@@ -1890,6 +1891,7 @@ function Home() {
                 onShowJafarAdministration={() => setSelectedSection('jafarAdministration')}
                 onShowJafarSiteAnalysis={() => setSelectedSection('jafarSiteAnalysis')}
                 onShowJafarUserManagement={() => setSelectedSection('jafarUserManagement')}
+                onShowJafarRoleSettings={() => setSelectedSection('jafarRoleSettings')}
               />
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
@@ -1907,6 +1909,10 @@ function Home() {
           ) : selectedSection === 'jafarSiteAnalysis' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <SiteAnalysis />
+            </div>
+          ) : selectedSection === 'jafarRoleSettings' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <JafarRoleSettings />
             </div>
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">

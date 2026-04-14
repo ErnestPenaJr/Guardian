@@ -109,8 +109,46 @@ export function extractRoleIds(user: UserLike | null | undefined): number[] {
   return [...ids];
 }
 
+/**
+ * Effective permissions cache populated from /api/me/permissions on app load.
+ * When set, can() consults this Set first; otherwise it falls back to the
+ * hardcoded MATRIX (Phase 1 behavior). Persisted to localStorage so that
+ * page reloads don't briefly flash unauthorized UI.
+ */
+const STORAGE_KEY = 'effective_permissions';
+let effectivePermissions: Set<string> | null = null;
+
+function loadEffectiveFromStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) effectivePermissions = new Set(parsed);
+  } catch {
+    // Corrupt storage: ignore and fall back to matrix.
+  }
+}
+loadEffectiveFromStorage();
+
+export function setEffectivePermissions(keys: string[] | null): void {
+  if (keys === null) {
+    effectivePermissions = null;
+    if (typeof window !== 'undefined') window.localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+  effectivePermissions = new Set(keys);
+  if (typeof window !== 'undefined') {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(keys)); } catch { /* quota */ }
+  }
+}
+
 /** Does the user have permission for the given key? */
 export function can(user: UserLike | null | undefined, key: PermissionKey): boolean {
+  // Prefer the server-computed effective set when present; it already accounts
+  // for JAFAR overrides. Fall back to the hardcoded matrix for resilience
+  // (first paint before /api/me/permissions resolves, or offline-ish states).
+  if (effectivePermissions) return effectivePermissions.has(key);
   const allowed = MATRIX[key];
   if (!allowed) return false;
   const userRoles = extractRoleIds(user);

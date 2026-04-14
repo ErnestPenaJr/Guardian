@@ -100,5 +100,48 @@ ok(backend.can({ userRoleIds: [ROLE.PROCESSOR] }, 'requests.tasks'),
 ok(!backend.can({ userRoleIds: [ROLE.GENERAL_USER] }, 'requests.viewAll'),
    'Backend: General CANNOT view all requests');
 
+// Phase 2: cache-driven overrides
+console.log('Backend Phase 2: cache overrides');
+const snap = backend.cache.snapshot();
+
+// Grant Processor the 'requests.assign' permission via override
+snap.permissions[ROLE.PROCESSOR] = { 'requests.assign': { global: true, byCompany: {} } };
+ok(backend.can({ userRoleIds: [ROLE.PROCESSOR] }, 'requests.assign'),
+   'Override grants Processor.requests.assign');
+
+// Deny Admin a default permission via override
+snap.permissions[ROLE.ADMIN] = { 'requests.assign': { global: false, byCompany: {} } };
+ok(!backend.can({ userRoleIds: [ROLE.ADMIN] }, 'requests.assign'),
+   'Override denies Admin.requests.assign');
+
+// Per-company override beats global
+snap.permissions[ROLE.MANAGER] = { 'requests.assign': { global: false, byCompany: { 42: true } } };
+ok(backend.can({ userRoleIds: [ROLE.MANAGER], companyId: 42 }, 'requests.assign'),
+   'Per-company grant beats global deny');
+ok(!backend.can({ userRoleIds: [ROLE.MANAGER], companyId: 1 }, 'requests.assign'),
+   'Other company sees global deny');
+
+// effectivePermissionKeys computes set
+const keys = backend.effectivePermissionKeys({ userRoleIds: [ROLE.GENERAL_USER] });
+ok(keys.includes('home.myRequests'),  'effectivePermissionKeys includes granted key');
+ok(!keys.includes('requests.assign'), 'effectivePermissionKeys excludes denied key');
+
+// Form allowlist: empty = unrestricted; populated = strict
+ok(backend.canViewForm({ userRoleIds: [ROLE.EXTERNAL_USER] }, 7),
+   'Empty allowlist = unrestricted');
+snap.formAllowlist[ROLE.EXTERNAL_USER] = { 7: { global: true, byCompany: {} } };
+ok( backend.canViewForm({ userRoleIds: [ROLE.EXTERNAL_USER] }, 7), 'Form 7 allowed');
+ok(!backend.canViewForm({ userRoleIds: [ROLE.EXTERNAL_USER] }, 8), 'Form 8 not in allowlist');
+
+// Notice type allowlist
+snap.noticeTypeAllowlist[ROLE.EXTERNAL_USER] = { 'GENERAL': { global: true, byCompany: {} } };
+ok( backend.canViewNoticeType({ userRoleIds: [ROLE.EXTERNAL_USER] }, 'GENERAL'),     'Notice type GENERAL allowed');
+ok(!backend.canViewNoticeType({ userRoleIds: [ROLE.EXTERNAL_USER] }, 'THREAT_ADVISORY'), 'Notice type THREAT_ADVISORY not allowed');
+
+// Reset cache so other test runs aren't polluted
+backend.cache.snapshot().permissions = {};
+backend.cache.snapshot().formAllowlist = {};
+backend.cache.snapshot().noticeTypeAllowlist = {};
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

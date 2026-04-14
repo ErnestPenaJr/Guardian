@@ -714,7 +714,16 @@ const connectWithTimeout = () => {
 };
 
 connectWithTimeout()
-  .then(() => console.log('✅ Database connected successfully'))
+  .then(async () => {
+    console.log('✅ Database connected successfully');
+    try {
+      const { cache } = require('./lib/permissions.cjs');
+      await cache.init(prisma);
+      console.log('✅ Permission cache loaded');
+    } catch (err) {
+      console.warn('⚠️ Permission cache failed to initialize, defaults will apply:', err.message);
+    }
+  })
   .catch(err => {
     console.error('❌ Database connection failed:', err.message);
     console.log('⚠️ Continuing without database connection...');
@@ -10001,6 +10010,231 @@ app.post('/invites/send', async (req, res) => {
             error: 'Failed to process invites',
             message: error.message
         });
+    }
+});
+
+// === ROLE PERMISSIONS ADMIN (JAFAR ROLE ONLY) ===
+
+// JAFAR-only middleware. We can't use requirePermission here because JAFAR
+// inherits Admin via the matrix; this is specifically the Super Admin (role 6)
+// gate for managing the matrix itself.
+const requireJafar = (req, res, next) => {
+    if (!Array.isArray(req.userRoleIds) || !req.userRoleIds.includes(6)) {
+        return res.status(403).json({ error: 'Forbidden', message: 'JAFAR access required' });
+    }
+    next();
+};
+
+const ALLOWED_PERMISSION_KEYS = new Set(Object.keys(require('./lib/permissions.cjs').MATRIX));
+const ALLOWED_ROLE_IDS = new Set([1, 2, 3, 4, 5, 6]);
+const MAX_BULK_OVERRIDES = 500;
+
+// GET /api/admin/permissions — returns the full override snapshot plus the
+// matrix defaults so the UI can render an editable grid.
+app.get('/api/admin/permissions', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const { snapshot } = require('./lib/permissions.cjs').cache;
+        const { MATRIX } = require('./lib/permissions.cjs');
+        res.json({
+            defaults: MATRIX,
+            overrides: snapshot().permissions,
+            roles: [
+                { id: 1, name: 'Admin' },
+                { id: 2, name: 'General User' },
+                { id: 3, name: 'Processor' },
+                { id: 4, name: 'Manager' },
+                { id: 5, name: 'External User' },
+                { id: 6, name: 'Super Admin (JAFAR)' },
+            ],
+        });
+    } catch (err) {
+        console.error('GET /api/admin/permissions failed:', err);
+        res.status(500).json({ error: 'Failed to load permissions' });
+    }
+});
+
+// PUT /api/admin/permissions — body: { changes: [{ roleId, permissionKey, granted | null }] }
+// granted=true/false writes an explicit override; granted=null deletes it (back to default).
+app.put('/api/admin/permissions', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const { changes } = req.body || {};
+        if (!Array.isArray(changes) || changes.length === 0 || changes.length > MAX_BULK_OVERRIDES) {
+            return res.status(400).json({ error: `changes[] required (1..${MAX_BULK_OVERRIDES})` });
+        }
+        for (const c of changes) {
+            if (!ALLOWED_ROLE_IDS.has(c.roleId)) return res.status(400).json({ error: `Invalid roleId: ${c.roleId}` });
+            if (!ALLOWED_PERMISSION_KEYS.has(c.permissionKey)) return res.status(400).json({ error: `Unknown permissionKey: ${c.permissionKey}` });
+            if (c.granted !== true && c.granted !== false && c.granted !== null) return res.status(400).json({ error: 'granted must be true, false, or null' });
+        }
+        for (const c of changes) {
+            if (c.granted === null) {
+                await prisma.$executeRawUnsafe(
+                    `DELETE FROM GUARDIAN.ROLE_PERMISSIONS WHERE ROLE_ID = ${c.roleId} AND PERMISSION_KEY = '${c.permissionKey}' AND COMPANY_ID IS NULL`
+                );
+            } else {
+                const grantedBit = c.granted ? 1 : 0;
+                await prisma.$executeRawUnsafe(
+                    `MERGE GUARDIAN.ROLE_PERMISSIONS WITH (HOLDLOCK) AS T
+                     USING (SELECT ${c.roleId} AS ROLE_ID, '${c.permissionKey}' AS PERMISSION_KEY) AS S
+                     ON T.ROLE_ID = S.ROLE_ID AND T.PERMISSION_KEY = S.PERMISSION_KEY AND T.COMPANY_ID IS NULL
+                     WHEN MATCHED THEN UPDATE SET GRANTED = ${grantedBit}, UPDATE_DATE = SYSUTCDATETIME(), UPDATE_USER_ID = ${req.userId}
+                     WHEN NOT MATCHED THEN INSERT (ROLE_ID, PERMISSION_KEY, GRANTED, COMPANY_ID, UPDATE_USER_ID)
+                       VALUES (${c.roleId}, '${c.permissionKey}', ${grantedBit}, NULL, ${req.userId});`
+                );
+            }
+        }
+        await require('./lib/permissions.cjs').cache.invalidate();
+        console.log(`✅ JAFAR ${req.userId} updated ${changes.length} permission overrides`);
+        res.json({ ok: true, applied: changes.length });
+    } catch (err) {
+        console.error('PUT /api/admin/permissions failed:', err);
+        res.status(500).json({ error: 'Failed to update permissions' });
+    }
+});
+
+// POST /api/admin/permissions/reset?scope=permissions|formAllowlist|noticeTypeAllowlist|all
+app.post('/api/admin/permissions/reset', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const scope = String(req.query.scope || 'all');
+        const targets = {
+            permissions: scope === 'permissions' || scope === 'all',
+            formAllowlist: scope === 'formAllowlist' || scope === 'all',
+            noticeTypeAllowlist: scope === 'noticeTypeAllowlist' || scope === 'all',
+        };
+        if (!targets.permissions && !targets.formAllowlist && !targets.noticeTypeAllowlist) {
+            return res.status(400).json({ error: 'invalid scope' });
+        }
+        if (targets.permissions)         await prisma.$executeRawUnsafe(`DELETE FROM GUARDIAN.ROLE_PERMISSIONS WHERE COMPANY_ID IS NULL`);
+        if (targets.formAllowlist)       await prisma.$executeRawUnsafe(`DELETE FROM GUARDIAN.ROLE_FORM_ALLOWLIST WHERE COMPANY_ID IS NULL`);
+        if (targets.noticeTypeAllowlist) await prisma.$executeRawUnsafe(`DELETE FROM GUARDIAN.ROLE_NOTICE_TYPE_ALLOWLIST WHERE COMPANY_ID IS NULL`);
+        await require('./lib/permissions.cjs').cache.invalidate();
+        console.log(`♻️  JAFAR ${req.userId} reset overrides (scope=${scope})`);
+        res.json({ ok: true, scope });
+    } catch (err) {
+        console.error('POST /api/admin/permissions/reset failed:', err);
+        res.status(500).json({ error: 'Failed to reset' });
+    }
+});
+
+// GET /api/admin/form-allowlist — returns overrides plus the company's forms for picker UI
+app.get('/api/admin/form-allowlist', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const { snapshot } = require('./lib/permissions.cjs').cache;
+        const forms = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION
+            FROM GUARDIAN.FORMS
+            WHERE COMPANY_ID = ${req.companyId} AND IS_DELETED = 0 AND IS_ACTIVE = 1
+            ORDER BY FORM_NAME
+        `;
+        res.json({ overrides: snapshot().formAllowlist, forms });
+    } catch (err) {
+        console.error('GET /api/admin/form-allowlist failed:', err);
+        res.status(500).json({ error: 'Failed to load form allowlist' });
+    }
+});
+
+// PUT /api/admin/form-allowlist — body: { changes: [{ roleId, formId, granted | null }] }
+app.put('/api/admin/form-allowlist', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const { changes } = req.body || {};
+        if (!Array.isArray(changes) || changes.length === 0 || changes.length > MAX_BULK_OVERRIDES) {
+            return res.status(400).json({ error: `changes[] required (1..${MAX_BULK_OVERRIDES})` });
+        }
+        for (const c of changes) {
+            if (!ALLOWED_ROLE_IDS.has(c.roleId)) return res.status(400).json({ error: `Invalid roleId: ${c.roleId}` });
+            const fid = parseInt(c.formId, 10);
+            if (!Number.isInteger(fid) || fid <= 0) return res.status(400).json({ error: `Invalid formId: ${c.formId}` });
+            c.formId = fid;
+            if (c.granted !== true && c.granted !== false && c.granted !== null) return res.status(400).json({ error: 'granted must be true, false, or null' });
+        }
+        for (const c of changes) {
+            if (c.granted === null) {
+                await prisma.$executeRawUnsafe(
+                    `DELETE FROM GUARDIAN.ROLE_FORM_ALLOWLIST WHERE ROLE_ID = ${c.roleId} AND FORM_ID = ${c.formId} AND COMPANY_ID IS NULL`
+                );
+            } else {
+                const grantedBit = c.granted ? 1 : 0;
+                await prisma.$executeRawUnsafe(
+                    `MERGE GUARDIAN.ROLE_FORM_ALLOWLIST WITH (HOLDLOCK) AS T
+                     USING (SELECT ${c.roleId} AS ROLE_ID, ${c.formId} AS FORM_ID) AS S
+                     ON T.ROLE_ID = S.ROLE_ID AND T.FORM_ID = S.FORM_ID AND T.COMPANY_ID IS NULL
+                     WHEN MATCHED THEN UPDATE SET GRANTED = ${grantedBit}, UPDATE_DATE = SYSUTCDATETIME(), UPDATE_USER_ID = ${req.userId}
+                     WHEN NOT MATCHED THEN INSERT (ROLE_ID, FORM_ID, GRANTED, COMPANY_ID, UPDATE_USER_ID)
+                       VALUES (${c.roleId}, ${c.formId}, ${grantedBit}, NULL, ${req.userId});`
+                );
+            }
+        }
+        await require('./lib/permissions.cjs').cache.invalidate();
+        res.json({ ok: true, applied: changes.length });
+    } catch (err) {
+        console.error('PUT /api/admin/form-allowlist failed:', err);
+        res.status(500).json({ error: 'Failed to update form allowlist' });
+    }
+});
+
+// GET /api/admin/notice-type-allowlist
+app.get('/api/admin/notice-type-allowlist', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const { snapshot } = require('./lib/permissions.cjs').cache;
+        // Notice types are template IDs from the frontend config; expose the canonical set
+        // so the UI doesn't need to keep a duplicate list. Adjust here if config changes.
+        const noticeTypes = ['INTEL_DISSEMINATION', 'THREAT_ADVISORY', 'SITUATIONAL_AWARENESS', 'GENERAL'];
+        res.json({ overrides: snapshot().noticeTypeAllowlist, noticeTypes });
+    } catch (err) {
+        console.error('GET /api/admin/notice-type-allowlist failed:', err);
+        res.status(500).json({ error: 'Failed to load notice type allowlist' });
+    }
+});
+
+// PUT /api/admin/notice-type-allowlist
+app.put('/api/admin/notice-type-allowlist', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const { changes } = req.body || {};
+        if (!Array.isArray(changes) || changes.length === 0 || changes.length > MAX_BULK_OVERRIDES) {
+            return res.status(400).json({ error: `changes[] required (1..${MAX_BULK_OVERRIDES})` });
+        }
+        for (const c of changes) {
+            if (!ALLOWED_ROLE_IDS.has(c.roleId)) return res.status(400).json({ error: `Invalid roleId: ${c.roleId}` });
+            if (typeof c.noticeType !== 'string' || !/^[A-Z0-9_]{1,64}$/.test(c.noticeType)) return res.status(400).json({ error: `Invalid noticeType: ${c.noticeType}` });
+            if (c.granted !== true && c.granted !== false && c.granted !== null) return res.status(400).json({ error: 'granted must be true, false, or null' });
+        }
+        for (const c of changes) {
+            if (c.granted === null) {
+                await prisma.$executeRawUnsafe(
+                    `DELETE FROM GUARDIAN.ROLE_NOTICE_TYPE_ALLOWLIST WHERE ROLE_ID = ${c.roleId} AND NOTICE_TYPE = '${c.noticeType}' AND COMPANY_ID IS NULL`
+                );
+            } else {
+                const grantedBit = c.granted ? 1 : 0;
+                await prisma.$executeRawUnsafe(
+                    `MERGE GUARDIAN.ROLE_NOTICE_TYPE_ALLOWLIST WITH (HOLDLOCK) AS T
+                     USING (SELECT ${c.roleId} AS ROLE_ID, '${c.noticeType}' AS NOTICE_TYPE) AS S
+                     ON T.ROLE_ID = S.ROLE_ID AND T.NOTICE_TYPE = S.NOTICE_TYPE AND T.COMPANY_ID IS NULL
+                     WHEN MATCHED THEN UPDATE SET GRANTED = ${grantedBit}, UPDATE_DATE = SYSUTCDATETIME(), UPDATE_USER_ID = ${req.userId}
+                     WHEN NOT MATCHED THEN INSERT (ROLE_ID, NOTICE_TYPE, GRANTED, COMPANY_ID, UPDATE_USER_ID)
+                       VALUES (${c.roleId}, '${c.noticeType}', ${grantedBit}, NULL, ${req.userId});`
+                );
+            }
+        }
+        await require('./lib/permissions.cjs').cache.invalidate();
+        res.json({ ok: true, applied: changes.length });
+    } catch (err) {
+        console.error('PUT /api/admin/notice-type-allowlist failed:', err);
+        res.status(500).json({ error: 'Failed to update notice type allowlist' });
+    }
+});
+
+// GET /api/me/permissions — frontend hydrates its can() cache from this on app load
+app.get('/api/me/permissions', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const { effectivePermissionKeys } = require('./lib/permissions.cjs');
+        const keys = effectivePermissionKeys(req);
+        res.json({
+            roleIds: req.userRoleIds || [],
+            permissions: keys,
+        });
+    } catch (err) {
+        console.error('GET /api/me/permissions failed:', err);
+        res.status(500).json({ error: 'Failed to compute permissions' });
     }
 });
 
