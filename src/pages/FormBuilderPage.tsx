@@ -5,6 +5,8 @@ import { FormField } from '../types/formBuilder';
 import { UiFieldType } from '../services/fieldTypeService';
 import fieldTypeService from '../services/fieldTypeService';
 import formService, { DbForm } from '../services/formService';
+import customTemplateService from '../services/customTemplateService';
+import type { TemplateType, TemplateStatus } from '../types/template';
 import { toast } from 'react-toastify';
 
 const LAYOUT_TYPES = ['header', 'divider'];
@@ -25,6 +27,8 @@ export default function FormBuilderPage() {
   const [formType, setFormType] = useState(searchParams.get('type') || 'requests');
   const [formDescription, setFormDescription] = useState(searchParams.get('description') || '');
   const [numericFormId, setNumericFormId] = useState<number | null>(isNew ? null : Number(formId));
+  const [templateType, setTemplateType] = useState<TemplateType | null>(null);
+  const [templateStatus, setTemplateStatus] = useState<TemplateStatus | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -34,11 +38,21 @@ export default function FormBuilderPage() {
         setFieldTypes(types);
 
         if (!isNew && formId) {
-          const data = await formService.getFormById(Number(formId));
-          setFormName(data.form.FORM_NAME);
-          setFormDescription(data.form.FORM_DESCRIPTION || '');
-          const converted = formService.convertDbFieldsToFormFields(data.fields);
-          setInitialFields(converted);
+          try {
+            const tpl = await customTemplateService.getById(Number(formId));
+            setFormName(tpl.form.FORM_NAME);
+            setFormDescription(tpl.form.FORM_DESCRIPTION || '');
+            setTemplateType(tpl.form.TEMPLATE_TYPE);
+            setTemplateStatus(tpl.form.STATUS);
+            const converted = formService.convertDbFieldsToFormFields(tpl.fields as any);
+            setInitialFields(converted);
+          } catch {
+            const data = await formService.getFormById(Number(formId));
+            setFormName(data.form.FORM_NAME);
+            setFormDescription(data.form.FORM_DESCRIPTION || '');
+            const converted = formService.convertDbFieldsToFormFields(data.fields);
+            setInitialFields(converted);
+          }
         }
       } catch (error) {
         console.error('Error loading form builder data:', error);
@@ -68,7 +82,24 @@ export default function FormBuilderPage() {
         description: data.description,
         formFields: savableFields,
       });
-      toast.success('Form updated successfully');
+
+      // If this is a draft custom template, also publish it (draft -> active).
+      let publishedType = templateType;
+      if (templateStatus === 'draft' && publishedType) {
+        try {
+          await customTemplateService.publish(numericFormId);
+          setTemplateStatus('active');
+        } catch (e) {
+          console.warn('publish failed (continuing):', e);
+        }
+      }
+      toast.success(templateStatus === 'draft' ? 'Template published' : 'Form updated successfully');
+
+      if (publishedType === 'notice') {
+        const qs = `?published=${encodeURIComponent(data.name)}`;
+        navigate(`/my-notices${qs}`);
+        return;
+      }
     } else {
       const dbForm: DbForm = {
         FORM_NAME: data.name,

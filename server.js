@@ -7405,11 +7405,13 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
                     const insertResult = await prisma.$queryRaw`
                         INSERT INTO GUARDIAN.FIELDS (
                             FIELD_NAME, FIELD_TYPE_ID, ORGANIZATION_ID, IS_ACTIVE, IS_DELETED, IS_PUBLIC, IS_SENSITIVE,
+                            [OPTIONS],
                             CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
                         )
                         OUTPUT INSERTED.FIELD_ID
                         VALUES (
                             ${field.fieldName}, ${field.fieldTypeId || 1}, ${req.companyId}, 1, 0, 1, 0,
+                            ${field.options || null},
                             GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
                         )
                     `;
@@ -7454,10 +7456,11 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
                     
                     // Update the field in GUARDIAN.FIELDS table with new properties including fieldTypeId
                     await prisma.$executeRaw`
-                        UPDATE GUARDIAN.FIELDS 
-                        SET 
+                        UPDATE GUARDIAN.FIELDS
+                        SET
                             FIELD_NAME = ${field.fieldName},
                             FIELD_TYPE_ID = ${field.fieldTypeId || 1},
+                            [OPTIONS] = ${field.options || null},
                             UPDATE_DATE = GETDATE(),
                             UPDATE_USER_ID = ${req.userId}
                         WHERE FIELD_ID = ${field.dbFieldId} AND ORGANIZATION_ID = ${req.companyId}
@@ -8664,14 +8667,17 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 // First, create the field in GUARDIAN.FIELDS table - escape strings for SQL injection prevention
                 const escapedFieldName = field.FIELD_NAME.replace(/'/g, "''");
                 
+                const escapedOptions = field.OPTIONS != null ? `'${String(field.OPTIONS).replace(/'/g, "''")}'` : 'NULL';
+
                 const fieldResult = await prisma.$queryRawUnsafe(`
                     INSERT INTO GUARDIAN.FIELDS (
-                        FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED,
+                        FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED, [OPTIONS],
                         CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID, ORGANIZATION_ID
                     )
                     OUTPUT INSERTED.FIELD_ID
                     VALUES (
-                        '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
+                        '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, ${escapedOptions},
+                        GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
                     )
                 `);
                 
@@ -10264,38 +10270,52 @@ app.get('/api/me/permissions', getAuthenticatedUserCompany, async (req, res) => 
 // Get custom templates - only for role_id 6 (JAFAR)
 app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        console.log('📋 Fetching custom templates for role_id 6 user, company:', req.companyId);
-        
-        // Check if user has role_id 6 (JAFAR)
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
-        `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
-            return res.status(403).json({
-                error: 'Access denied. Custom templates are only available to JAFAR users (role_id 6).'
-            });
+        const typeFilter = (req.query.type || '').toString().toLowerCase();
+        const statusFilter = (req.query.status || '').toString().toLowerCase();
+        const allowedTypes = ['notice', 'request'];
+        const allowedStatuses = ['draft', 'active', 'inactive'];
+
+        const isNoticeActiveQuery = typeFilter === 'notice' && statusFilter === 'active';
+
+        if (!isNoticeActiveQuery) {
+            const userRoles = await prisma.$queryRaw`
+                SELECT ur.ROLE_ID
+                FROM GUARDIAN.USER_ROLES ur
+                WHERE ur.USER_ID = ${req.userId}
+            `;
+            const roleIds = userRoles.map(r => r.ROLE_ID);
+            const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+            if (!isAdminOrSuper) {
+                return res.status(403).json({
+                    error: 'Access denied. Custom templates require admin (role 1) or super admin (role 6).'
+                });
+            }
         }
-        
-        // Fetch custom templates for the company (all active forms serve as templates)
-        const customTemplates = await prisma.$queryRaw`
-            SELECT 
-                f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
-                f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE,
+
+        console.log(`📋 Fetching custom templates for company ${req.companyId}`, { typeFilter, statusFilter });
+
+        const typeClause = allowedTypes.includes(typeFilter) ? `AND f.TEMPLATE_TYPE = '${typeFilter}'` : '';
+        const statusClause = allowedStatuses.includes(statusFilter) ? `AND f.STATUS = '${statusFilter}'` : '';
+
+        const sql = `
+            SELECT
+                f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
+                f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
+                f.CREATE_DATE, f.UPDATE_DATE,
                 COUNT(ff.FIELD_ID) as fieldCount
             FROM GUARDIAN.FORMS f
             LEFT JOIN GUARDIAN.FORMS_FIELDS ff ON f.FORM_ID = ff.FORM_ID
             WHERE f.COMPANY_ID = ${req.companyId}
             AND f.IS_DELETED = 0
-            AND f.IS_ACTIVE = 1
-            GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION, 
-                     f.IS_ACTIVE, f.IS_PUBLIC, f.CREATE_DATE, f.UPDATE_DATE
-            ORDER BY f.CREATE_DATE DESC
+            ${typeClause}
+            ${statusClause}
+            GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
+                     f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
+                     f.CREATE_DATE, f.UPDATE_DATE
+            ORDER BY f.CREATE_DATE ASC
         `;
-        
+        const customTemplates = await prisma.$queryRawUnsafe(sql);
+
         console.log(`✅ Found ${customTemplates.length} custom templates for company ${req.companyId}`);
         res.json(customTemplates);
     } catch (error) {
@@ -10312,35 +10332,33 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
     try {
         const templateId = parseInt(req.params.id);
         console.log(`📋 Fetching custom template ${templateId} for company:`, req.companyId);
-        
-        // Check if user has role_id 6 (JAFAR)
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
-        `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
-            return res.status(403).json({
-                error: 'Access denied. Custom templates are only available to JAFAR users (role_id 6).'
-            });
-        }
-        
+
         if (!templateId || isNaN(templateId)) {
             return res.status(400).json({ error: 'Valid template ID required' });
         }
-        
-        // Get the form
+
         const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${templateId} 
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC,
+                   TEMPLATE_TYPE, STATUS, IS_DELETED, COMPANY_ID
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${templateId}
             AND COMPANY_ID = ${req.companyId}
             AND IS_DELETED = 0
-            AND IS_ACTIVE = 1
         `;
-        
+
+        const publicReadable = forms[0] && forms[0].TEMPLATE_TYPE === 'notice' && forms[0].STATUS === 'active';
+        if (!publicReadable) {
+            const userRoles = await prisma.$queryRaw`
+                SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+            `;
+            const roleIds = userRoles.map(r => r.ROLE_ID);
+            if (!(roleIds.includes(1) || roleIds.includes(6))) {
+                return res.status(403).json({
+                    error: 'Access denied. Custom templates require admin (role 1) or super admin (role 6).'
+                });
+            }
+        }
+
         if (forms.length === 0) {
             return res.status(404).json({
                 error: 'Custom template not found'
@@ -10352,8 +10370,8 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
         // Get the fields
         const fields = await prisma.$queryRaw`
             SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED,
-                   ff.SORT_ORDER, ft.TYPE_NAME as fieldType, f.DISPLAY_FORMAT,
-                   f.HAS_LOOKUP, f.IS_SENSITIVE, f.CAN_SELECT_MULIPLE, f.OPTIONS,
+                   ff.SORT_ORDER, ft.FIELD_TYPE_DESC as fieldType, f.DISPLAY_FORMAT,
+                   f.HAS_LOOKUP, f.IS_SENSITIVE, f.CAN_SELECT_MULIPLE, f.[OPTIONS],
                    f.ORGANIZATION_ID, f.IS_PUBLIC, f.IS_ACTIVE
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
@@ -10372,6 +10390,8 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
                 FORM_DESCRIPTION: form.FORM_DESCRIPTION,
                 IS_ACTIVE: form.IS_ACTIVE,
                 IS_PUBLIC: form.IS_PUBLIC,
+                TEMPLATE_TYPE: form.TEMPLATE_TYPE,
+                STATUS: form.STATUS,
                 COMPANY_ID: form.COMPANY_ID
             },
             fields: fields
@@ -10392,23 +10412,27 @@ app.post('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) 
     try {
         const { form, fields } = req.body;
         console.log('📝 Creating custom template for company:', req.companyId);
-        
-        // Check if user has role_id 6 (JAFAR)
+
         const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
+            SELECT ur.ROLE_ID
+            FROM GUARDIAN.USER_ROLES ur
             WHERE ur.USER_ID = ${req.userId}
         `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+        if (!isAdminOrSuper) {
             return res.status(403).json({
-                error: 'Access denied. Only JAFAR users (role_id 6) can create custom templates.'
+                error: 'Access denied. Only admins (role 1) or super admins (role 6) can create custom templates.'
             });
         }
-        
+
         if (!form || !form.FORM_NAME) {
             return res.status(400).json({ error: 'Form name is required' });
+        }
+
+        const templateType = (form.TEMPLATE_TYPE || 'request').toLowerCase();
+        if (!['notice', 'request'].includes(templateType)) {
+            return res.status(400).json({ error: "template_type must be 'notice' or 'request'" });
         }
         
         // Check for duplicate form name within the company
@@ -10425,18 +10449,21 @@ app.post('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) 
             });
         }
         
-        // Create the form (custom template)
+        // Create the form (custom template) in draft status
         const result = await prisma.$queryRaw`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
+                TEMPLATE_TYPE, STATUS,
                 COMPANY_ID, CREATE_USER_ID, UPDATE_USER_ID, CREATE_DATE, UPDATE_DATE
             )
             OUTPUT INSERTED.FORM_ID, INSERTED.FORM_NAME, INSERTED.FORM_DESCRIPTION,
                    INSERTED.IS_ACTIVE, INSERTED.IS_PUBLIC,
+                   INSERTED.TEMPLATE_TYPE, INSERTED.STATUS,
                    INSERTED.COMPANY_ID, INSERTED.CREATE_DATE
             VALUES (
                 ${form.FORM_NAME.trim()}, ${form.FORM_DESCRIPTION?.trim() || ''},
                 ${form.IS_ACTIVE !== false}, ${form.IS_PUBLIC !== false}, 0,
+                ${templateType}, 'draft',
                 ${req.companyId}, ${req.userId}, ${req.userId}, GETDATE(), GETDATE()
             )
         `;
@@ -10497,18 +10524,17 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
         const { form, fields } = req.body;
         console.log(`📝 Updating custom template ${templateId} for company:`, req.companyId);
         console.log('🔍 Update data:', { form, fieldsCount: fields?.length });
-        
-        // Check if user has role_id 6 (JAFAR)
+
         const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
+            SELECT ur.ROLE_ID
+            FROM GUARDIAN.USER_ROLES ur
             WHERE ur.USER_ID = ${req.userId}
         `;
-        
-        const hasJafarRole = userRoles.some(role => role.ROLE_ID === 6);
-        if (!hasJafarRole) {
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        const isAdminOrSuper = roleIds.includes(1) || roleIds.includes(6);
+        if (!isAdminOrSuper) {
             return res.status(403).json({
-                error: 'Access denied. Only JAFAR users (role_id 6) can update custom templates.'
+                error: 'Access denied. Only admins (role 1) or super admins (role 6) can update custom templates.'
             });
         }
         
@@ -10688,6 +10714,49 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
             error: 'Failed to update custom template',
             details: error.message
         });
+    }
+});
+
+// Publish custom template (draft -> active)
+app.patch('/api/custom-templates/:id/publish', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const templateId = parseInt(req.params.id);
+        if (!templateId || isNaN(templateId)) {
+            return res.status(400).json({ error: 'Valid template ID required' });
+        }
+
+        const userRoles = await prisma.$queryRaw`
+            SELECT ur.ROLE_ID FROM GUARDIAN.USER_ROLES ur WHERE ur.USER_ID = ${req.userId}
+        `;
+        const roleIds = userRoles.map(r => r.ROLE_ID);
+        if (!(roleIds.includes(1) || roleIds.includes(6))) {
+            return res.status(403).json({ error: 'Access denied. Admin or super admin role required.' });
+        }
+
+        const existing = await prisma.$queryRaw`
+            SELECT FORM_ID, TEMPLATE_TYPE, STATUS FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${templateId} AND COMPANY_ID = ${req.companyId} AND IS_DELETED = 0
+        `;
+        if (existing.length === 0) {
+            return res.status(404).json({ error: 'Template not found' });
+        }
+
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.FORMS
+            SET STATUS = 'active', IS_ACTIVE = 1, UPDATE_USER_ID = ${req.userId}, UPDATE_DATE = GETDATE()
+            WHERE FORM_ID = ${templateId} AND COMPANY_ID = ${req.companyId}
+        `;
+
+        const updated = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, TEMPLATE_TYPE, STATUS, IS_ACTIVE, COMPANY_ID
+            FROM GUARDIAN.FORMS WHERE FORM_ID = ${templateId}
+        `;
+
+        console.log(`✅ Published template ${templateId} (type=${updated[0].TEMPLATE_TYPE})`);
+        res.json({ success: true, template: updated[0] });
+    } catch (error) {
+        console.error('❌ Error publishing custom template:', error);
+        res.status(500).json({ error: 'Failed to publish template', details: error.message });
     }
 });
 
@@ -11054,24 +11123,51 @@ app.get('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
 // POST /api/my-notices — create a new notice
 app.post('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        const { NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, RECIPIENTS = [], SEND_NOTICE } = req.body;
+        const { NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, RECIPIENTS = [], contactGroups = [], SEND_NOTICE } = req.body;
         if (!NOTICE_TITLE || !SENSITIVITY_CLASSIFICATION || !BUTTON_STATUS) {
             return res.status(400).json({ error: 'NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, and BUTTON_STATUS are required' });
         }
 
-        // Validate RECIPIENTS is an array of integers
         if (!Array.isArray(RECIPIENTS) || !RECIPIENTS.every(id => Number.isInteger(id))) {
             return res.status(400).json({ error: 'RECIPIENTS must be an array of integer user IDs' });
         }
+        if (!Array.isArray(contactGroups) || !contactGroups.every(id => Number.isInteger(id))) {
+            return res.status(400).json({ error: 'contactGroups must be an array of integer group IDs' });
+        }
 
-        // Validate recipients belong to the same company
-        if (RECIPIENTS.length > 0) {
-            const recipientIdList = RECIPIENTS.join(',');
+        const expanded = new Set(RECIPIENTS);
+        if (contactGroups.length > 0) {
+            const groupIdList = contactGroups.join(',');
+            const validGroups = await prisma.$queryRawUnsafe(`
+                SELECT CONTACT_GROUP_ID FROM GUARDIAN.NOTICE_CONTACT_GROUPS
+                WHERE CONTACT_GROUP_ID IN (${groupIdList}) AND COMPANY_ID = ${parseInt(req.companyId, 10)}
+            `);
+            const validGroupIds = new Set(validGroups.map(g => g.CONTACT_GROUP_ID));
+            const invalidGroups = contactGroups.filter(id => !validGroupIds.has(id));
+            if (invalidGroups.length > 0) {
+                return res.status(400).json({ error: 'Some contact groups do not belong to your company', invalidGroups });
+            }
+            const members = await prisma.$queryRawUnsafe(`
+                SELECT DISTINCT m.USER_ID
+                FROM GUARDIAN.NOTICE_CONTACT_GROUP_MEMBERS m
+                INNER JOIN GUARDIAN.USERS u ON m.USER_ID = u.USER_ID
+                WHERE m.CONTACT_GROUP_ID IN (${groupIdList})
+                  AND (m.MEMBER_STATUS IS NULL OR m.MEMBER_STATUS = 'ACTIVE')
+                  AND u.COMPANY_ID = ${parseInt(req.companyId, 10)}
+                  AND u.STATUS = 'A'
+            `);
+            for (const r of members) expanded.add(r.USER_ID);
+        }
+
+        const finalRecipients = Array.from(expanded);
+
+        if (finalRecipients.length > 0) {
+            const recipientIdList = finalRecipients.join(',');
             const validRecipients = await prisma.$queryRawUnsafe(`
                 SELECT USER_ID FROM GUARDIAN.USERS WHERE USER_ID IN (${recipientIdList}) AND COMPANY_ID = ${parseInt(req.companyId, 10)}
             `);
             const validIds = new Set(validRecipients.map(r => r.USER_ID));
-            const invalidIds = RECIPIENTS.filter(id => !validIds.has(id));
+            const invalidIds = finalRecipients.filter(id => !validIds.has(id));
             if (invalidIds.length > 0) {
                 return res.status(400).json({ error: 'Some recipients do not belong to your company', invalidIds });
             }
@@ -11086,15 +11182,15 @@ app.post('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
         `);
 
         const noticeId = result[0]?.NOTICE_ID;
-        if (noticeId && RECIPIENTS.length > 0) {
-            for (const userId of RECIPIENTS) {
+        if (noticeId && finalRecipients.length > 0) {
+            for (const userId of finalRecipients) {
                 await prisma.$queryRawUnsafe(`
                     INSERT INTO GUARDIAN.MY_NOTICE_RECIPIENTS (NOTICE_ID, USER_ID) VALUES (${noticeId}, ${userId})
                 `);
             }
         }
 
-        res.status(201).json({ message: 'Notice created successfully', NOTICE_ID: noticeId });
+        res.status(201).json({ message: 'Notice created successfully', NOTICE_ID: noticeId, recipientsCount: finalRecipients.length });
     } catch (error) {
         console.error('❌ Error creating notice:', error);
         res.status(500).json({ error: 'Failed to create notice', details: error.message });
@@ -11310,6 +11406,46 @@ app.patch('/api/my-notices/:id', getAuthenticatedUserCompany, upload.single('att
 // ────────────────────────────────────────────────────────────────────────────
 
 // Get specific notice details
+// Get users eligible to receive notices (within same company)
+// NOTE: must be registered BEFORE '/api/notices/:id' so Express does not treat
+// "eligible-recipients" as a numeric :id param.
+app.get('/api/notices/eligible-recipients', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        console.log(`👥 Fetching eligible recipients for company ${req.companyId}`);
+
+        const hasPermission = await hasNoticeManagementRole(req.userId);
+        if (!hasPermission) {
+            return res.status(403).json({
+                error: 'Access denied. Insufficient permissions to view eligible recipients.'
+            });
+        }
+
+        const eligibleUsers = await prisma.$queryRaw`
+            SELECT
+                u.USER_ID,
+                u.FIRST_NAME,
+                u.LAST_NAME,
+                u.EMAIL,
+                r.NAME as ROLE_NAME
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
+            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE u.COMPANY_ID = ${req.companyId}
+            AND u.STATUS = 'A'
+            ORDER BY u.FIRST_NAME, u.LAST_NAME
+        `;
+
+        console.log(`✅ Found ${eligibleUsers.length} eligible recipients`);
+        res.json(eligibleUsers);
+    } catch (error) {
+        console.error('❌ Error fetching eligible recipients:', error);
+        res.status(500).json({
+            error: 'Failed to fetch eligible recipients',
+            message: error.message
+        });
+    }
+});
+
 app.get('/api/notices/:id', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const noticeId = parseInt(req.params.id);
@@ -12250,47 +12386,6 @@ app.get('/api/notices/:id/read-status', getAuthenticatedUserCompany, async (req,
         console.error('❌ Error fetching notice read status:', error);
         res.status(500).json({
             error: 'Failed to fetch notice read status',
-            message: error.message
-        });
-    }
-});
-
-// Get users eligible to receive notices (within same company)
-app.get('/api/notices/eligible-recipients', getAuthenticatedUserCompany, async (req, res) => {
-    try {
-        console.log(`👥 Fetching eligible recipients for company ${req.companyId}`);
-        
-        // Check permissions
-        const hasPermission = await hasNoticeManagementRole(req.userId);
-        if (!hasPermission) {
-            return res.status(403).json({
-                error: 'Access denied. Insufficient permissions to view eligible recipients.'
-            });
-        }
-        
-        const eligibleUsers = await prisma.$queryRaw`
-            SELECT 
-                u.USER_ID,
-                u.FIRST_NAME,
-                u.LAST_NAME,
-                u.EMAIL,
-                r.NAME as ROLE_NAME
-            FROM GUARDIAN.USERS u
-            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID
-            LEFT JOIN GUARDIAN.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-            WHERE u.COMPANY_ID = ${req.companyId}
-            AND u.IS_ACTIVE = 1
-            AND u.IS_DELETED = 0
-            ORDER BY u.FIRST_NAME, u.LAST_NAME
-        `;
-        
-        console.log(`✅ Found ${eligibleUsers.length} eligible recipients`);
-        
-        res.json(eligibleUsers);
-    } catch (error) {
-        console.error('❌ Error fetching eligible recipients:', error);
-        res.status(500).json({
-            error: 'Failed to fetch eligible recipients',
             message: error.message
         });
     }

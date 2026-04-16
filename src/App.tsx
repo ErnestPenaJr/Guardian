@@ -38,6 +38,7 @@ import CreateNotice from './pages/CreateNotice';
 import ViewNotice from './pages/ViewNotice';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 import FormBuilderPage from './pages/FormBuilderPage';
+import WorkflowTemplatesAdmin from './pages/admin/WorkflowTemplatesAdmin';
 import ExportPage from './pages/ExportPage';
 
 function App() {
@@ -87,6 +88,7 @@ function App() {
             <Route path="/my-notices/view-notice/:id" element={<ProtectedRoute><ViewNotice /></ProtectedRoute>} />
             <Route path="/my-notices/view-notice" element={<ProtectedRoute><ViewNotice /></ProtectedRoute>} />
             <Route path="/my-notices/notification-status-dashboard" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
+            <Route path="/admin/workflow-templates" element={<ProtectedRoute><WorkflowTemplatesAdmin /></ProtectedRoute>} />
             <Route path="/form-builder/new" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
             <Route path="/form-builder/:formId" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
             <Route path="/export/:type" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />

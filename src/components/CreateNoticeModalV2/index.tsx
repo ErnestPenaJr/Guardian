@@ -1,25 +1,66 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import {
-  NOTICE_TEMPLATES,
   DISTRIBUTION_OPTIONS,
   SENSITIVITY_OPTIONS,
   buildNoticeContent,
-  getTemplateById,
-  type NoticeTemplate,
-  type NoticeTemplateId,
   type DistributionType,
   type Sensitivity,
 } from '../../config/noticeTemplates';
-import noticeService from '../../services/noticeService';
+import api from '../../utils/api';
+import customTemplateService from '../../services/customTemplateService';
+import type { TemplateSummary, TemplateDetail, TemplateField } from '../../types/template';
 import CommonEditor from '../CommonEditor';
 import RecipientPicker, { type RecipientOption } from './RecipientPicker';
+import { FileText } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onCreated?: () => void;
+}
+
+type FieldKind = 'text' | 'textarea' | 'number' | 'email' | 'dropdown' | 'radio' | 'checkbox' | 'date' | 'file_upload';
+
+interface ViewField {
+  id: string;
+  label: string;
+  kind: FieldKind;
+  required: boolean;
+  options: string[];
+}
+
+function mapFieldType(raw: string | null | undefined): FieldKind {
+  const s = (raw || '').toLowerCase();
+  if (s.includes('textarea')) return 'textarea';
+  if (s.includes('number')) return 'number';
+  if (s.includes('email')) return 'email';
+  if (s.includes('dropdown') || s === 'select') return 'dropdown';
+  if (s.includes('radio')) return 'radio';
+  if (s.includes('checkbox')) return 'checkbox';
+  if (s.includes('date')) return 'date';
+  if (s.includes('file')) return 'file_upload';
+  return 'text';
+}
+
+function toViewField(f: TemplateField): ViewField {
+  let options: string[] = [];
+  if (f.OPTIONS) {
+    try {
+      const parsed = JSON.parse(f.OPTIONS);
+      if (Array.isArray(parsed)) options = parsed.map(String);
+    } catch {
+      options = f.OPTIONS.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  return {
+    id: String(f.FIELD_ID),
+    label: f.FIELD_NAME,
+    kind: mapFieldType(f.fieldType),
+    required: !!f.IS_REQUIRED,
+    options,
+  };
 }
 
 const COMPLIANCE_NOTE = (
@@ -30,7 +71,14 @@ const COMPLIANCE_NOTE = (
 
 export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [templateId, setTemplateId] = useState<NoticeTemplateId>(NOTICE_TEMPLATES[0].id);
+  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<TemplateDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
   const [title, setTitle] = useState('');
   const [sensitivity, setSensitivity] = useState<Sensitivity>('MEDIUM');
   const [distribution, setDistribution] = useState<DistributionType>('INTERNAL');
@@ -40,11 +88,54 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const template = useMemo(() => getTemplateById(templateId), [templateId]);
+  const selectedSummary = useMemo(
+    () => templates.find((t) => t.FORM_ID === selectedId) || null,
+    [templates, selectedId],
+  );
+
+  const viewFields: ViewField[] = useMemo(
+    () => (detail?.fields || []).map(toViewField),
+    [detail],
+  );
+
+  const loadTemplates = async () => {
+    setTemplatesLoading(true);
+    setTemplatesError(null);
+    try {
+      const rows = await customTemplateService.listActiveNoticeTemplates();
+      setTemplates(rows);
+      if (rows.length > 0) setSelectedId((prev) => prev ?? rows[0].FORM_ID);
+    } catch (e: any) {
+      setTemplatesError(e?.response?.data?.error || e?.message || 'Failed to load templates');
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && step === 1 && templates.length === 0 && !templatesLoading) {
+      loadTemplates();
+    }
+  }, [isOpen, step]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setDetail(null);
+      return;
+    }
+    if (detail?.form.FORM_ID === selectedId) return;
+    setDetailLoading(true);
+    customTemplateService
+      .getById(selectedId)
+      .then(setDetail)
+      .catch((e) => setError(e?.response?.data?.error || 'Failed to load template fields'))
+      .finally(() => setDetailLoading(false));
+  }, [selectedId]);
 
   const reset = () => {
     setStep(1);
-    setTemplateId(NOTICE_TEMPLATES[0].id);
+    setSelectedId(templates[0]?.FORM_ID || null);
+    setDetail(null);
     setTitle('');
     setSensitivity('MEDIUM');
     setDistribution('INTERNAL');
@@ -62,34 +153,55 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
 
   const submit = async (status: 'DRAFT' | 'PUBLISHED') => {
     setError(null);
+    if (!selectedSummary || !detail) return setError('Select a template');
+    if (status === 'PUBLISHED') {
+      if (!title.trim()) return setError('Notice title is required');
+      if (recipients.length === 0) return setError('At least one recipient is required');
 
-    if (!title.trim()) return setError('Notice title is required');
-    if (recipients.length === 0) return setError('At least one recipient is required');
+      const missing = viewFields
+        .filter((f) => f.required && !(templateValues[f.id] || '').trim())
+        .map((f) => f.label);
+      if (missing.length) {
+        return setError(`Required template fields: ${missing.join(', ')}`);
+      }
+    }
 
-    const missing = template.fields
-      .filter((f) => f.required && !(templateValues[f.key] || '').trim())
-      .map((f) => f.label);
-    if (missing.length) {
-      return setError(`Required template fields: ${missing.join(', ')}`);
+    const templateFieldLabelValues: Record<string, string> = {};
+    for (const f of viewFields) {
+      const v = templateValues[f.id];
+      if (v) templateFieldLabelValues[f.label] = v;
     }
 
     const content = buildNoticeContent({
-      templateId,
+      templateId: `FORM_${selectedSummary.FORM_ID}`,
       distributionType: distribution,
-      templateValues,
+      templateValues: templateFieldLabelValues,
       body,
     });
 
+    // Map our internal codes to the MY_NOTICES schema the dashboard reads from.
+    const SENSITIVITY_MAP: Record<Sensitivity, string> = {
+      LOW: 'Low',
+      MEDIUM: 'Medium',
+      HIGH: 'High',
+    };
+    const DISTRIBUTION_MAP: Record<DistributionType, string> = {
+      INTERNAL: 'Internal Only',
+      EXTERNAL: 'External Only',
+      RESTRICTED: 'Mixed (Internal + External)',
+    };
+
     try {
       setSubmitting(true);
-      await noticeService.createNotice({
-        TITLE: title.trim(),
-        CONTENT: content,
-        NOTICE_TYPE: templateId,
-        PRIORITY_LEVEL: sensitivity,
-        STATUS: status,
-        recipients: recipients.filter((r) => r.kind === 'user').map((r) => r.id),
+      await api.post('/api/my-notices', {
+        NOTICE_TITLE: title.trim() || `(Draft) ${selectedSummary.FORM_NAME}`,
+        SENSITIVITY_CLASSIFICATION: SENSITIVITY_MAP[sensitivity],
+        BUTTON_STATUS: status === 'PUBLISHED' ? 'Sent' : 'Draft',
+        DISTRIBUTION_TYPE: DISTRIBUTION_MAP[distribution],
+        NOTICE_BODY: content,
+        RECIPIENTS: recipients.filter((r) => r.kind === 'user').map((r) => r.id),
         contactGroups: recipients.filter((r) => r.kind === 'group').map((r) => r.id),
+        SEND_NOTICE: status === 'PUBLISHED',
       });
       toast.success(status === 'PUBLISHED' ? 'Notice sent' : 'Draft saved');
       onCreated?.();
@@ -136,7 +248,9 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
         onClose={handleClose}
       />
 
-      {step === 2 && <TemplateBanner template={template} onChange={() => setStep(1)} />}
+      {step === 2 && selectedSummary && (
+        <TemplateBanner summary={selectedSummary} onChange={() => setStep(1)} />
+      )}
 
       <div style={{ padding: '20px 24px', maxHeight: 'calc(100vh - 260px)', overflowY: 'auto' }}>
         {error && (
@@ -158,12 +272,17 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
 
         {step === 1 ? (
           <Step1
-            selectedId={templateId}
-            onSelect={setTemplateId}
+            templates={templates}
+            loading={templatesLoading}
+            error={templatesError}
+            onRetry={loadTemplates}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
           />
         ) : (
           <Step2
-            template={template}
+            fields={viewFields}
+            detailLoading={detailLoading}
             title={title}
             setTitle={setTitle}
             sensitivity={sensitivity}
@@ -177,6 +296,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
             body={body}
             setBody={setBody}
             disabled={submitting}
+            templateName={selectedSummary?.FORM_NAME || ''}
           />
         )}
       </div>
@@ -187,7 +307,12 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
           {step === 1 ? (
             <>
               <SecondaryBtn onClick={handleClose}>Cancel</SecondaryBtn>
-              <PrimaryBtn onClick={() => setStep(2)}>Next</PrimaryBtn>
+              <PrimaryBtn
+                onClick={() => setStep(2)}
+                disabled={!selectedId || templates.length === 0}
+              >
+                Next
+              </PrimaryBtn>
             </>
           ) : (
             <>
@@ -270,10 +395,10 @@ function ModalFooter({ children }: { children: React.ReactNode }) {
 }
 
 function TemplateBanner({
-  template,
+  summary,
   onChange,
 }: {
-  template: NoticeTemplate;
+  summary: TemplateSummary;
   onChange: () => void;
 }) {
   return (
@@ -290,10 +415,10 @@ function TemplateBanner({
     >
       <div>
         <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 600, color: '#032424' }}>
-          {template.name}
+          {summary.FORM_NAME}
         </div>
         <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#4F4F4F' }}>
-          {template.description}
+          {summary.FORM_DESCRIPTION}
         </div>
       </div>
       <button
@@ -317,28 +442,64 @@ function TemplateBanner({
 /* ---------- Step 1 ---------- */
 
 function Step1({
+  templates,
+  loading,
+  error,
+  onRetry,
   selectedId,
   onSelect,
 }: {
-  selectedId: NoticeTemplateId;
-  onSelect: (id: NoticeTemplateId) => void;
+  templates: TemplateSummary[];
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  selectedId: number | null;
+  onSelect: (id: number) => void;
 }) {
+  if (loading) {
+    return <div style={{ color: '#828282', fontFamily: 'Inter, sans-serif', padding: 24, textAlign: 'center' }}>Loading templates…</div>;
+  }
+  if (error) {
+    return (
+      <div style={{ color: '#C10000', fontFamily: 'Inter, sans-serif', padding: 16 }}>
+        Failed to load templates.{' '}
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{ border: 'none', background: 'transparent', color: '#2F8CED', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+  if (templates.length === 0) {
+    return (
+      <div style={{ fontFamily: 'Inter, sans-serif', color: '#4F4F4F', padding: 16 }}>
+        No notice templates available.{' '}
+        <a href="/admin/workflow-templates" style={{ color: '#2F8CED' }}>
+          Create one in Custom Workflow Templates
+        </a>
+        .
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {NOTICE_TEMPLATES.map((t) => {
-        const Icon = t.icon;
-        const selected = selectedId === t.id;
+      {templates.map((t) => {
+        const selected = selectedId === t.FORM_ID;
         return (
           <button
             type="button"
-            key={t.id}
-            onClick={() => onSelect(t.id)}
+            key={t.FORM_ID}
+            onClick={() => onSelect(t.FORM_ID)}
             style={{
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
               gap: 14,
-              padding: '14px 16px',
+              padding: '12px 14px',
               border: selected ? '1.5px solid #2F8CED' : '1px solid #E0E0E0',
               borderRadius: 4,
               background: selected ? '#EBF5FE' : '#FFFFFF',
@@ -350,8 +511,8 @@ function Step1({
             <Radio selected={selected} />
             <div
               style={{
-                width: 34,
-                height: 34,
+                width: 32,
+                height: 32,
                 borderRadius: 4,
                 background: selected ? '#B5D4F4' : '#E0E0E0',
                 display: 'flex',
@@ -360,12 +521,28 @@ function Step1({
                 flexShrink: 0,
               }}
             >
-              <Icon size={18} color={selected ? '#2F8CED' : '#828282'} />
+              <FileText size={16} color={selected ? '#2F8CED' : '#828282'} />
             </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#1F1F1F' }}>{t.name}</div>
-              <div style={{ fontSize: 13, color: '#4F4F4F', marginTop: 2 }}>{t.description}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1F1F1F' }}>{t.FORM_NAME}</div>
+              <div style={{ fontSize: 13, color: '#4F4F4F', marginTop: 2 }}>{t.FORM_DESCRIPTION}</div>
             </div>
+            <span
+              style={{
+                background: '#EBF5FE',
+                border: '1px solid #B5D4F4',
+                color: '#1a5f8a',
+                fontFamily: 'Montserrat, sans-serif',
+                fontSize: 10,
+                fontWeight: 600,
+                padding: '2px 7px',
+                borderRadius: 3,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+              }}
+            >
+              CUSTOM
+            </span>
           </button>
         );
       })}
@@ -377,8 +554,8 @@ function Radio({ selected }: { selected: boolean }) {
   return (
     <span
       style={{
-        width: 18,
-        height: 18,
+        width: 17,
+        height: 17,
         borderRadius: '50%',
         border: selected ? 'none' : '1.5px solid #BDBDBD',
         background: selected ? '#2F8CED' : 'transparent',
@@ -398,7 +575,8 @@ function Radio({ selected }: { selected: boolean }) {
 /* ---------- Step 2 ---------- */
 
 interface Step2Props {
-  template: NoticeTemplate;
+  fields: ViewField[];
+  detailLoading: boolean;
   title: string;
   setTitle: (v: string) => void;
   sensitivity: Sensitivity;
@@ -412,9 +590,13 @@ interface Step2Props {
   body: string;
   setBody: (v: string) => void;
   disabled: boolean;
+  templateName: string;
 }
 
 function Step2(p: Step2Props) {
+  const setVal = (id: string, v: string) =>
+    p.setTemplateValues((prev) => ({ ...prev, [id]: v }));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <SectionDivider label="Notice details" />
@@ -445,59 +627,107 @@ function Step2(p: Step2Props) {
         <RecipientPicker disabled={p.disabled} selected={p.recipients} onChange={p.setRecipients} />
       </Field>
 
-      <SectionDivider label="Template fields" />
-      <div
-        style={{
-          background: '#EBF5FE',
-          border: '1px solid #B5D4F4',
-          borderRadius: 4,
-          padding: 12,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-        }}
-      >
-        {p.template.fields.map((f) => {
-          const fullWidth = f.type === 'textarea';
-          return (
-            <div key={f.key} style={{ gridColumn: fullWidth ? '1 / -1' : 'auto' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontFamily: 'Montserrat, sans-serif',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#1a5f8a',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  marginBottom: 6,
-                }}
-              >
-                {f.label}
-                {f.required && <span style={{ color: '#C10000' }}> *</span>}
-              </label>
-              {f.type === 'textarea' ? (
-                <TextArea
-                  value={p.templateValues[f.key] || ''}
-                  onChange={(v) => p.setTemplateValues((prev) => ({ ...prev, [f.key]: v }))}
-                  disabled={p.disabled}
-                />
-              ) : (
-                <TextInput
-                  value={p.templateValues[f.key] || ''}
-                  onChange={(v) => p.setTemplateValues((prev) => ({ ...prev, [f.key]: v }))}
-                  disabled={p.disabled}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <SectionDivider label={`Template fields — ${p.templateName.toUpperCase()}`} />
+      {p.detailLoading ? (
+        <div style={{ color: '#828282', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>Loading template fields…</div>
+      ) : p.fields.length === 0 ? (
+        <div style={{ color: '#828282', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>This template has no additional fields.</div>
+      ) : (
+        <div
+          style={{
+            background: '#EBF5FE',
+            border: '1px solid #B5D4F4',
+            borderRadius: 4,
+            padding: 12,
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 12,
+          }}
+        >
+          {p.fields.map((f) => {
+            const fullWidth = f.kind === 'textarea' || f.kind === 'file_upload' || f.kind === 'checkbox' || f.kind === 'radio';
+            return (
+              <div key={f.id} style={{ gridColumn: fullWidth ? '1 / -1' : 'auto' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: '#1a5f8a',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    marginBottom: 6,
+                  }}
+                >
+                  {f.label}
+                  {f.required && <span style={{ color: '#C10000' }}> *</span>}
+                </label>
+                <FieldInput field={f} value={p.templateValues[f.id] || ''} onChange={(v) => setVal(f.id, v)} disabled={p.disabled} />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <SectionDivider label="Notice body" />
       <CommonEditor value={p.body} onChange={p.setBody} />
     </div>
   );
+}
+
+function FieldInput({ field, value, onChange, disabled }: { field: ViewField; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  switch (field.kind) {
+    case 'textarea':
+      return <TextArea value={value} onChange={onChange} disabled={disabled} />;
+    case 'number':
+      return <TextInput type="number" value={value} onChange={onChange} disabled={disabled} />;
+    case 'email':
+      return <TextInput type="email" value={value} onChange={onChange} disabled={disabled} />;
+    case 'date':
+      return <TextInput type="date" value={value} onChange={onChange} disabled={disabled} />;
+    case 'dropdown':
+      return (
+        <SelectInput
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          options={[{ value: '', label: 'Select…' }, ...field.options.map((o) => ({ value: o, label: o }))]}
+        />
+      );
+    case 'radio':
+      return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          {field.options.map((o) => (
+            <label key={o} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#1F1F1F', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <input type="radio" name={field.id} value={o} checked={value === o} onChange={() => onChange(o)} disabled={disabled} />
+              {o}
+            </label>
+          ))}
+        </div>
+      );
+    case 'checkbox': {
+      const checked = new Set(value ? value.split('|') : []);
+      const toggle = (o: string) => {
+        if (checked.has(o)) checked.delete(o); else checked.add(o);
+        onChange(Array.from(checked).join('|'));
+      };
+      return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          {field.options.map((o) => (
+            <label key={o} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#1F1F1F', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={checked.has(o)} onChange={() => toggle(o)} disabled={disabled} />
+              {o}
+            </label>
+          ))}
+        </div>
+      );
+    }
+    case 'file_upload':
+      return <input type="file" disabled={disabled} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13 }} />;
+    default:
+      return <TextInput value={value} onChange={onChange} disabled={disabled} />;
+  }
 }
 
 /* ---------- Shared form primitives ---------- */
@@ -509,7 +739,7 @@ function SectionDivider({ label }: { label: string }) {
         borderBottom: '1px solid #E0E0E0',
         paddingBottom: 6,
         fontFamily: 'Montserrat, sans-serif',
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 600,
         color: '#828282',
         textTransform: 'uppercase',
@@ -559,15 +789,17 @@ function TextInput({
   onChange,
   disabled,
   placeholder,
+  type = 'text',
 }: {
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  type?: string;
 }) {
   return (
     <input
-      type="text"
+      type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
@@ -594,28 +826,28 @@ function TextArea({
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       rows={3}
-      style={{ ...inputStyle, resize: 'vertical', minHeight: 72, fontFamily: 'Inter, sans-serif' }}
+      style={{ ...inputStyle, resize: 'vertical', minHeight: 54, fontFamily: 'Inter, sans-serif' }}
       onFocus={(e) => (e.currentTarget.style.borderColor = '#2F8CED')}
       onBlur={(e) => (e.currentTarget.style.borderColor = '#E0E0E0')}
     />
   );
 }
 
-function SelectInput<T extends string>({
+function SelectInput({
   value,
   onChange,
   options,
   disabled,
 }: {
-  value: T;
-  onChange: (v: T) => void;
-  options: Array<{ value: T; label: string }>;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
   disabled?: boolean;
 }) {
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value as T)}
+      onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       style={inputStyle}
     >

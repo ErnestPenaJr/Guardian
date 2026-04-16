@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Eye,
   Send,
@@ -29,9 +30,24 @@ import CreateNoticeModalV2 from "../components/CreateNoticeModalV2";
 
 export default function AllNotices() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [modalType, setModalType] = useState<'create' | 'edit' | 'view' | null>(null);
   const [selectedNoticeId, setSelectedNoticeId] = useState<number | undefined>();
   const [showV2, setShowV2] = useState(false);
+  const [publishedBanner, setPublishedBanner] = useState<string | null>(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('published');
+  });
+
+  useEffect(() => {
+    if (publishedBanner) {
+      // Strip ?published= from the URL once the banner is shown.
+      navigate(location.pathname, { replace: true });
+    }
+    // Only run once on mount — capture the value above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openCreateNotice = () => { setShowV2(true); };
   const openViewNotice = (noticeId?: number) => { setModalType('view'); setSelectedNoticeId(noticeId); };
@@ -257,6 +273,37 @@ export default function AllNotices() {
     <div className="container">
       {/* Page Title - matches Request Dashboard */}
       <h1 className="text-2xl font-bold uppercase fs-2 mb-8">Notices Dashboard</h1>
+
+      {publishedBanner && (
+        <div
+          style={{
+            background: '#EBF5FE',
+            border: '1px solid #B5D4F4',
+            borderRadius: 4,
+            padding: '12px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            fontFamily: 'Inter, sans-serif',
+          }}
+          role="status"
+        >
+          <CheckCircle size={18} color="#27AE60" />
+          <div style={{ flex: 1, fontSize: 13, color: '#1F1F1F' }}>
+            <div style={{ fontWeight: 600 }}>"{publishedBanner}" template published successfully.</div>
+            <div style={{ color: '#4F4F4F' }}>It is now available when creating a new notice.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPublishedBanner(null)}
+            aria-label="Dismiss"
+            style={{ border: 'none', background: 'transparent', color: '#828282', cursor: 'pointer', fontSize: 16 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Section Header with divider bar */}
       <div className="mb-3">

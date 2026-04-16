@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, User, Users, X } from 'lucide-react';
+import api from '../../utils/api';
 
 export type RecipientKind = 'user' | 'group';
 export interface RecipientOption {
@@ -21,23 +22,15 @@ export default function RecipientPicker({ disabled, selected, onChange }: Props)
   const [groups, setGroups] = useState<RecipientOption[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
     setLoading(true);
+    setLoadError(null);
     Promise.all([
-      fetch('/api/notices/eligible-recipients', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-      fetch('/api/contact-groups', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
+      api.get('/api/notices/eligible-recipients').then((r) => r.data),
+      api.get('/api/contact-groups').then((r) => r.data),
     ])
       .then(([u, g]: [unknown, unknown]) => {
         const userOpts: RecipientOption[] = Array.isArray(u)
@@ -60,6 +53,12 @@ export default function RecipientPicker({ disabled, selected, onChange }: Props)
           : [];
         setUsers(userOpts);
         setGroups(groupOpts);
+      })
+      .catch((e: unknown) => {
+        const err = e as { response?: { status?: number; data?: { error?: string } }; message?: string };
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.error || err?.message || 'Failed to load recipients';
+        setLoadError(status === 403 ? 'You do not have permission to view recipients.' : msg);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -193,6 +192,8 @@ export default function RecipientPicker({ disabled, selected, onChange }: Props)
         >
           {loading ? (
             <div style={{ padding: 12, color: '#828282', fontSize: 13 }}>Loading…</div>
+          ) : loadError ? (
+            <div style={{ padding: 12, color: '#8A1F1F', fontSize: 13 }}>{loadError}</div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: 12, color: '#828282', fontSize: 13 }}>No matches</div>
           ) : (

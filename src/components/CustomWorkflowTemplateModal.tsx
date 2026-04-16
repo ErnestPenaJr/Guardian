@@ -33,6 +33,7 @@ import {
   Filter
 } from 'lucide-react';
 import { GuardianSweetAlert } from '../utils/sweetAlert';
+import customTemplateService from '../services/customTemplateService';
 
 interface CustomWorkflowTemplate {
   FORM_ID: number;
@@ -64,8 +65,9 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    formType: 'requests'
+    formType: 'notice' as 'notice' | 'request',
   });
+  const [creating, setCreating] = useState(false);
 
   // Load custom templates
   const loadTemplates = async () => {
@@ -195,7 +197,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const resetModalState = () => {
     setShowCreateForm(false);
     setEditingTemplate(null);
-    setFormData({ name: '', description: '', formType: 'requests' });
+    setFormData({ name: '', description: '', formType: 'notice' });
     setSearchTerm('');
     setStatusFilter('all');
   };
@@ -204,7 +206,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const handleCancel = () => {
     setShowCreateForm(false);
     setEditingTemplate(null);
-    setFormData({ name: '', description: '', formType: 'requests' });
+    setFormData({ name: '', description: '', formType: 'notice' });
   };
 
   // Handle modal close
@@ -239,7 +241,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                 <button
                   className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
                   onClick={() => {
-                    setFormData({ name: '', description: '', formType: 'requests' });
+                    setFormData({ name: '', description: '', formType: 'notice' });
                     setShowCreateForm(true);
                   }}
                 >
@@ -331,11 +333,10 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       value={formData.formType}
-                      onChange={(e) => setFormData({ ...formData, formType: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, formType: e.target.value as 'notice' | 'request' })}
                     >
-                      <option value="requests">Requests - Standard workflow forms</option>
-                      <option value="self-service">Self-Service - User-initiated forms</option>
-                      <option value="notice">Notice - Notification forms</option>
+                      <option value="notice">Notice — Notification forms</option>
+                      <option value="request">Request — Workflow forms</option>
                     </select>
                     <p className="text-xs text-gray-500">Select the primary use case for this template</p>
                   </div>
@@ -358,22 +359,34 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
                   <button
                     className={`flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 ${
-                      formData.name.trim()
+                      formData.name.trim() && !creating
                         ? 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
                         : 'bg-gray-400 cursor-not-allowed'
                     }`}
-                    onClick={() => {
+                    onClick={async () => {
                       if (!formData.name.trim()) {
                         toast.error('Template name is required');
                         return;
                       }
-                      handleModalClose();
-                      navigate(`/form-builder/new?name=${encodeURIComponent(formData.name.trim())}&type=${encodeURIComponent(formData.formType)}&description=${encodeURIComponent(formData.description.trim())}&returnTo=/home&returnSection=admin`);
+                      try {
+                        setCreating(true);
+                        const created = await customTemplateService.create({
+                          FORM_NAME: formData.name.trim(),
+                          FORM_DESCRIPTION: formData.description.trim(),
+                          TEMPLATE_TYPE: formData.formType,
+                        });
+                        handleModalClose();
+                        navigate(`/form-builder/${created.FORM_ID}?returnTo=${formData.formType === 'notice' ? '/my-notices' : '/home'}&returnSection=admin`);
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.error || 'Failed to create template');
+                      } finally {
+                        setCreating(false);
+                      }
                     }}
-                    disabled={!formData.name.trim()}
+                    disabled={!formData.name.trim() || creating}
                   >
                     <FaWrench className="mr-2" />
-                    Continue to Field Builder
+                    {creating ? 'Creating…' : 'Continue to Field Builder'}
                   </button>
                   <button
                     className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
@@ -416,7 +429,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                   <button
                     className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
                     onClick={() => {
-                      setFormData({ name: '', description: '', formType: 'requests' });
+                      setFormData({ name: '', description: '', formType: 'notice' });
                       setShowCreateForm(true);
                     }}
                   >

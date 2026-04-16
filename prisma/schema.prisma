@@ -129,6 +129,7 @@ model FIELDS {
   SysEndTime                   DateTime                   @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FIELDS_SysEnd")
   FIELD_LOOKUP_DISPLAY_TYPE_ID Int?
   ORGANIZATION_ID              Int?
+  OPTIONS                      String?                    @db.NVarChar(Max)
   FIELD_LOOKUP_DISPLAY_TYPE    FIELD_LOOKUP_DISPLAY_TYPE? @relation(fields: [FIELD_LOOKUP_DISPLAY_TYPE_ID], references: [FIELD_LOOKUP_DISPLAY_TYPE_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FIELDS__FIELD_LO__7BB05806")
   ORGANIZATIONS                ORGANIZATIONS?             @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FIELDS__ORGANIZA__0539C240")
   FIELD_TYPE                   FIELD_TYPE                 @relation(fields: [FIELD_TYPE_ID], references: [FIELD_TYPE_ID], onUpdate: NoAction, map: "FK__FIELDS__UPDATE_D__5B438874")
@@ -171,6 +172,8 @@ model FORMS {
   SysStartTime     DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
   SysEndTime       DateTime         @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
   WORKSPACE_ID     Int?
+  TEMPLATE_TYPE    String           @default("request", map: "DF_FORMS_TEMPLATE_TYPE") @db.NVarChar(20)
+  STATUS           String           @default("draft", map: "DF_FORMS_STATUS") @db.NVarChar(20)
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
   COMPANY          COMPANY?         @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, map: "FK__FORMS__COMPANY")
   WORKSPACE        WORKSPACES?      @relation("WorkspaceForms", fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_FORMS_WORKSPACE")
