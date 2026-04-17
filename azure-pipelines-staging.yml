@@ -169,6 +169,7 @@ steps:
     appName: 'GUARDIAN-STAGING'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
+    deploymentMethod: 'zipDeploy'
   displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
 - script: |
