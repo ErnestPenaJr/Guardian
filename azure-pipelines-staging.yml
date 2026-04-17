@@ -15,7 +15,7 @@ steps:
     echo "Installing dependencies (skipping postinstall to avoid double build)..."
     npm install --ignore-scripts
     echo "Generating Prisma client..."
-    npx prisma generate --generator client
+    npx prisma generate
     echo "Cleaning previous builds..."
     rm -rf dist dist-server
     echo "Building frontend..."
@@ -96,11 +96,6 @@ steps:
       echo "Production .env file copied to deployment as .env"
       echo "First few lines of production .env file:"
       head -3 deployment/.env
-    elif [ -f "env.staging" ]; then
-      cp .env.staging deployment/.env
-      echo "Staging .env file copied to deployment as .env"
-      echo "First few lines of staging .env file:"
-      head -3 deployment/.env
     elif [ -f ".env" ]; then
       cp .env deployment/
       echo "Development .env file copied to deployment (fallback)"
@@ -128,6 +123,14 @@ steps:
     cp web.config deployment/web.config
     echo "web.config copied to deployment"
   displayName: 'Copy web.config'
+  
+  # JSU
+- script: |
+    echo "Copying lib folder to deployment"
+    cp -r lib deployment/lib
+    echo "lib directory contents:"
+    ls -la deployment/lib/
+  displayName: 'Copy lib folder to deployment'
 
 - script: |
     cd deployment
@@ -169,7 +172,6 @@ steps:
     appName: 'GUARDIAN-STAGING'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
-    deploymentMethod: 'zipDeploy'
   displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
 - script: |
@@ -177,23 +179,23 @@ steps:
     echo "Waiting 30 seconds for deployment to stabilize..."
     sleep 30
 
-    STAGING_URL="https://guardian-staging.azurewebsites.net/"
+    PROD_URL="https://guardian-staging.azurewebsites.net"
 
-    echo "===== Staging ($STAGING_URL) ====="
+    echo "===== Production ($PROD_URL) ====="
 
-    if curl -f -s --max-time 30 "$STAGING_URL/api/health" > /dev/null; then
+    if curl -f -s --max-time 30 "$PROD_URL/api/health" > /dev/null; then
       echo "  API health check PASSED"
     else
       echo "  API health check FAILED - server may still be starting"
     fi
 
-    if curl -f -s --max-time 30 "$STAGING_URL/api/debug/assets" > /dev/null; then
+    if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > /dev/null; then
       echo "  Asset verification PASSED"
     else
       echo "  Asset verification FAILED"
     fi
 
-    if curl -f -s --max-time 30 "$STAGING_URL" > /dev/null; then
+    if curl -f -s --max-time 30 "$PROD_URL" > /dev/null; then
       echo "  Main page PASSED"
     else
       echo "  Main page FAILED"
@@ -201,5 +203,5 @@ steps:
 
     echo ""
     echo "Deployment complete"
-    echo "  Staging: $STAGING_URL"
+    echo "  Production: $PROD_URL"
   displayName: 'Post-deployment verification'
