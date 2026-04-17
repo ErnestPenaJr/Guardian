@@ -161,17 +161,17 @@ steps:
   inputs:
     azureSubscription: 'AzureSP-Dev'
     appType: 'webApp'
-    appName: 'GUARDIAN-MVP'
+    appName: 'GUARDIAN-STAGING'
     package: '$(System.DefaultWorkingDirectory)/app.zip'
     runtimeStack: 'NODE|20-lts'
-  displayName: 'Deploy to Production (GUARDIAN-MVP)'
+  displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
 - script: |
     echo "Post-deployment verification starting..."
     echo "Waiting 30 seconds for deployment to stabilize..."
     sleep 30
 
-    PROD_URL="https://guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
+    PROD_URL="https://guardian-staging.azurewebsites.net"
 
     echo "===== Production ($PROD_URL) ====="
 
