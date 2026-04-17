@@ -123,6 +123,14 @@ steps:
     cp web.config deployment/web.config
     echo "web.config copied to deployment"
   displayName: 'Copy web.config'
+  
+  # JSU
+- script: |
+    echo "Copying lib folder to deployment"
+    cp -r lib deployment/lib
+    echo "lib directory contents:"
+    ls -la deployment/lib/
+  displayName: 'Copy lib folder to deployment'
 
 - script: |
     cd deployment
