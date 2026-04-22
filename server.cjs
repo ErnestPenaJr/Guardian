@@ -2784,6 +2784,44 @@ app.get('/api/users/account-info', getAuthenticatedUserCompany, async (req, res)
     }
 });
 
+// PUT /api/company — rename current user's company (Admin / Super Admin only)
+app.put('/api/company', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const isAdmin = Array.isArray(req.userRoleIds) &&
+                        req.userRoleIds.some(id => id === 1 || id === 6);
+        if (!isAdmin) {
+            console.warn(`⛔ PUT /api/company denied for user ${req.userId} (roles: ${req.userRoleIds})`);
+            return res.status(403).json({ error: 'Only company administrators can rename the company' });
+        }
+
+        if (!req.companyId) {
+            return res.status(400).json({ error: 'No company associated with user' });
+        }
+
+        const raw = (req.body && typeof req.body.name === 'string') ? req.body.name : '';
+        const name = raw.trim();
+        if (!name) return res.status(400).json({ error: 'Company name is required' });
+        if (name.length > 125) return res.status(400).json({ error: 'Company name must be 125 characters or fewer' });
+        if (/[\x00-\x1F\x7F]/.test(name)) return res.status(400).json({ error: 'Company name contains invalid characters' });
+
+        const before = await prisma.$queryRaw`
+            SELECT NAME FROM GUARDIAN.COMPANY WHERE COMPANY_ID = ${req.companyId}
+        `;
+        if (!before.length) return res.status(404).json({ error: 'Company not found' });
+
+        await prisma.$executeRaw`
+            UPDATE GUARDIAN.COMPANY SET NAME = ${name} WHERE COMPANY_ID = ${req.companyId}
+        `;
+
+        console.log(`🏷️  Company rename by user ${req.userId} (company ${req.companyId}): "${before[0].NAME}" → "${name}"`);
+        res.json({ companyId: req.companyId, companyName: name });
+    } catch (err) {
+        console.error('❌ PUT /api/company failed:', err);
+        safeErrorLog('Error in PUT /api/company:', { error: err.message, userId: req.userId, companyId: req.companyId });
+        res.status(500).json({ error: 'Failed to update company name' });
+    }
+});
+
 // Get all users (for backward compatibility)
 app.get('/api/users', getAuthenticatedUserCompany, async (req, res) => {
     try {

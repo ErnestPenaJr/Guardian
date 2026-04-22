@@ -32,8 +32,16 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({
     email: '',
     companyName: '',
   });
+  const [initialCompanyName, setInitialCompanyName] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const userAny = user as any;
+  const isCompanyAdmin = Array.isArray(userAny?.roles)
+    ? userAny.roles.some((r: any) => r?.id === 1 || r?.id === 6)
+    : Array.isArray(userAny?.roleIds)
+      ? userAny.roleIds.some((id: number) => id === 1 || id === 6)
+      : false;
 
   // Load user data when modal opens
   useEffect(() => {
@@ -52,20 +60,19 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({
   const loadCompanyInfo = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token || !user?.COMPANY_ID) return;
+      if (!token) return;
 
-      const response = await fetch(`/api/company/${user.COMPANY_ID}`, {
+      const response = await fetch('/api/users/account-info', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
-        const companyData = await response.json();
-        setFormData(prev => ({
-          ...prev,
-          companyName: companyData.COMPANY_NAME || companyData.name || '',
-        }));
+        const data = await response.json();
+        const name = data?.companyName || '';
+        setFormData(prev => ({ ...prev, companyName: name }));
+        setInitialCompanyName(name);
       }
     } catch (error) {
       console.error('Error loading company info:', error);
@@ -209,7 +216,7 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({
       await response.json();
 
       // Update user in auth context and localStorage
-      const updatedUserData = {
+      const updatedUserData: any = {
         ...user,
         FIRST_NAME: formData.firstName.trim(),
         LAST_NAME: formData.lastName.trim(),
@@ -220,6 +227,40 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({
         email: formData.email.trim(),
         fullName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
       };
+
+      // Admins: if the company name changed, persist it via PUT /api/company.
+      // Wrapped in its own try so a company-rename failure doesn't roll back
+      // the already-saved profile update.
+      const newCompanyName = (formData.companyName ?? '').trim();
+      if (
+        isCompanyAdmin &&
+        newCompanyName &&
+        newCompanyName !== initialCompanyName.trim()
+      ) {
+        try {
+          const companyResponse = await fetch('/api/company', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name: newCompanyName }),
+          });
+          if (!companyResponse.ok) {
+            const companyError = await companyResponse.json().catch(() => ({}));
+            throw new Error(companyError.error || 'Failed to update organization');
+          }
+          const companyData = await companyResponse.json();
+          const savedName = companyData?.companyName ?? newCompanyName;
+          updatedUserData.companyName = savedName;
+          updatedUserData.COMPANY_NAME = savedName;
+          localStorage.setItem('companyName', savedName);
+          setInitialCompanyName(savedName);
+        } catch (companyErr: any) {
+          toast.error(companyErr?.message || 'Failed to update organization');
+          // Fall through — profile was already saved successfully.
+        }
+      }
 
       updateUser(updatedUserData);
 
@@ -400,7 +441,7 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({
                 )}
               </div>
 
-              {/* Company/Organization (Read Only) */}
+              {/* Company/Organization (admins can edit) */}
               <div className="mb-6">
                 <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
                   Organization
@@ -409,13 +450,21 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({
                   type="text"
                   id="companyName"
                   name="companyName"
-                  value={formData.companyName || 'Loading...'}
-                  disabled={true}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-600 cursor-not-allowed"
+                  value={formData.companyName ?? ''}
+                  onChange={handleInputChange}
+                  disabled={!isCompanyAdmin || isSubmitting}
+                  maxLength={125}
+                  className={
+                    isCompanyAdmin
+                      ? 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                      : 'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-600 cursor-not-allowed'
+                  }
                   placeholder="Organization name"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Contact your administrator to update organization information.
+                  {isCompanyAdmin
+                    ? 'As an administrator you can rename your organization.'
+                    : 'Contact your administrator to update organization information.'}
                 </p>
               </div>
             </form>

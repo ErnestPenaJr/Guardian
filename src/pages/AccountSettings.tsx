@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
-import { 
-  Settings, ArrowLeft, User, Shield, Bell, 
-  Monitor, Key, Building2, Mail, Phone 
+import {
+  Settings, ArrowLeft, User, Shield, Bell,
+  Monitor, Key, Building2, Mail, Phone,
+  Pencil, Check, X
 } from 'lucide-react';
 
 interface AccountInfo {
@@ -26,9 +27,56 @@ interface AccountInfo {
 
 const AccountSettings = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+  const [isEditingCompany, setIsEditingCompany] = useState(false);
+  const [companyDraft, setCompanyDraft] = useState('');
+  const [savingCompany, setSavingCompany] = useState(false);
+
+  const userAny = user as any;
+  const isCompanyAdmin = Array.isArray(userAny?.roles)
+    ? userAny.roles.some((r: any) => r?.id === 1 || r?.id === 6)
+    : Array.isArray(userAny?.roleIds)
+      ? userAny.roleIds.some((id: number) => id === 1 || id === 6)
+      : false;
+
+  const handleStartEditCompany = () => {
+    setCompanyDraft(accountInfo?.companyName ?? '');
+    setIsEditingCompany(true);
+  };
+
+  const handleCancelEditCompany = () => {
+    setIsEditingCompany(false);
+    setCompanyDraft('');
+  };
+
+  const handleSaveCompany = async () => {
+    const trimmed = companyDraft.trim();
+    if (!trimmed) {
+      toast.error('Company name is required');
+      return;
+    }
+    if (trimmed.length > 125) {
+      toast.error('Company name must be 125 characters or fewer');
+      return;
+    }
+    try {
+      setSavingCompany(true);
+      const { data } = await api.put('/api/company', { name: trimmed });
+      const newName = data?.companyName ?? trimmed;
+      setAccountInfo(prev => prev ? { ...prev, companyName: newName } : prev);
+      updateUser({ companyName: newName, COMPANY_NAME: newName } as any);
+      localStorage.setItem('companyName', newName);
+      toast.success('Company name updated');
+      setIsEditingCompany(false);
+    } catch (err: any) {
+      const message = err?.response?.data?.error ?? 'Failed to update company name';
+      toast.error(message);
+    } finally {
+      setSavingCompany(false);
+    }
+  };
 
   useEffect(() => {
     // Load fresh account information from API
@@ -190,10 +238,63 @@ const AccountSettings = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Organization
                   </label>
-                  <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <Building2 className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-gray-900">{accountInfo.companyName}</span>
-                  </div>
+                  {isEditingCompany ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-1 px-3 py-2 border border-blue-300 rounded-md bg-white focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
+                        <Building2 className="w-4 h-4 text-gray-400 mr-2" />
+                        <input
+                          type="text"
+                          value={companyDraft}
+                          onChange={(e) => setCompanyDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveCompany();
+                            if (e.key === 'Escape') handleCancelEditCompany();
+                          }}
+                          maxLength={125}
+                          disabled={savingCompany}
+                          autoFocus
+                          className="flex-1 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none disabled:opacity-50"
+                          placeholder="Organization name"
+                          aria-label="Organization name"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveCompany}
+                        disabled={savingCompany || !companyDraft.trim()}
+                        className="inline-flex items-center justify-center p-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Save organization name"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEditCompany}
+                        disabled={savingCompany}
+                        className="inline-flex items-center justify-center p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Cancel editing organization name"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                      <div className="flex items-center min-w-0">
+                        <Building2 className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+                        <span className="text-gray-900 truncate">{accountInfo.companyName}</span>
+                      </div>
+                      {isCompanyAdmin && (
+                        <button
+                          type="button"
+                          onClick={handleStartEditCompany}
+                          className="ml-2 text-gray-500 hover:text-blue-600 flex-shrink-0"
+                          aria-label="Edit organization name"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>

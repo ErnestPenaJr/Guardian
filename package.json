@@ -13,7 +13,7 @@
     "build:server": "tsc -p tsconfig.server.json && cp -r server/emails dist-server/emails 2>/dev/null || :",
     "build:all": "npm run build && npm run build:server",
     "start:server": "node dist-server/index.js",
-    "dev:server": "ts-node --esm server/index.ts",
+    "dev:server": "npm run build:server -- --watch & node --watch dist-server/index.js",
     "backend": "DATABASE_URL=\"sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false\" bun server.cjs",
     "server:dev": "DATABASE_URL=\"sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false\" bun server.cjs",
     "server:prod-test": "cp package.json package.dev.json && cp package.production.json package.json && PORT=3001 node server.js; cp package.dev.json package.json && rm package.dev.json",
