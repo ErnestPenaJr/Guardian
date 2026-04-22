@@ -124,15 +124,22 @@ api.interceptors.response.use(
       const isLoginCall = url.includes('/api/login');
       const isAlreadyOnLogin = window.location.pathname === '/login';
 
-      if (!isLoginCall) {
-        // Token expired, invalid, or contains invalid user data - clear all auth data
-        console.warn('[API] Authentication failed - clearing all stored auth data');
+      // Only wipe auth state for actual token problems. Other 401s (permissions,
+      // transient backend issues misclassified upstream) must not force a logout.
+      const tokenErrorTypes = ['TOKEN_EXPIRED', 'TOKEN_INVALID', 'TOKEN_MALFORMED', 'TOKEN_NOT_ACTIVE'];
+      const responseErrorType = error.response?.data?.errorType;
+      const isTokenProblem = tokenErrorTypes.includes(responseErrorType);
+
+      if (!isLoginCall && isTokenProblem) {
+        console.warn('[API] Token problem (' + responseErrorType + ') - clearing stored auth data');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('companyId');
         if (!isAlreadyOnLogin) {
           window.location.href = '/login';
         }
+      } else if (!isLoginCall) {
+        console.warn('[API] 401 without token errorType — not clearing auth:', responseErrorType || 'unspecified');
       }
     }
     return Promise.reject(error);

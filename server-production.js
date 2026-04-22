@@ -1167,12 +1167,19 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
             });
         } else if (error.name === 'NotBeforeError') {
             console.error('❌ JWT token not active yet:', error.date);
-            return res.status(401).json({ 
+            return res.status(401).json({
                 error: 'Authentication token not yet active',
                 errorType: 'TOKEN_NOT_ACTIVE'
             });
+        } else if (error.name && error.name.startsWith('PrismaClient')) {
+            // DB error during auth (e.g. pool timeout) — not an auth problem
+            console.error('❌ Database error during auth (not a token problem):', error.message);
+            return res.status(503).json({
+                error: 'Database temporarily unavailable. Please retry.',
+                errorType: 'DB_UNAVAILABLE'
+            });
         } else {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 error: 'Invalid authentication token',
                 errorType: 'TOKEN_INVALID'
             });
@@ -1818,14 +1825,32 @@ app.post('/api/requests/:id/start', getAuthenticatedUserCompany, requirePermissi
         const requestId = parseInt(req.params.id);
         console.log(`🚀 Starting work on request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'A' (Active/In Progress)
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'A', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
-            WHERE REQUEST_ID = ${requestId} 
+        // Update request status to 'A' (Active/In Progress). Auto-assigns to the
+        // current user when the request is unassigned, matching the Tasks flow.
+        const startRowsAffected = await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS
+            SET STATUS = 'A',
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId},
+                ASSIGNED_ID = COALESCE(ASSIGNED_ID, ${req.userId})
+            WHERE REQUEST_ID = ${requestId}
                 AND COMPANY_ID = ${req.companyId}
-                AND ASSIGNED_ID = ${req.userId}
+                AND (ASSIGNED_ID IS NULL OR ASSIGNED_ID = ${req.userId})
         `;
+
+        if (startRowsAffected === 0) {
+            const existing = await prisma.$queryRaw`
+                SELECT ASSIGNED_ID, STATUS FROM GUARDIAN.REQUESTS
+                WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            `;
+            if (existing.length === 0) {
+                return res.status(404).json({ error: 'Request not found' });
+            }
+            return res.status(409).json({
+                error: 'Request is assigned to another user and cannot be started by you',
+                errorType: 'NOT_ASSIGNEE'
+            });
+        }
 
         // Create milestone for request start
         try {
@@ -1853,14 +1878,32 @@ app.post('/api/requests/:id/complete', getAuthenticatedUserCompany, requirePermi
         const { completionNotes } = req.body;
         console.log(`✅ Completing request ${requestId} by user ${req.userId}`);
 
-        // Update request status to 'D' (Complete)
-        await prisma.$executeRaw`
-            UPDATE GUARDIAN.REQUESTS 
-            SET STATUS = 'D', UPDATE_DATE = GETDATE(), UPDATE_USER_ID = ${req.userId}
-            WHERE REQUEST_ID = ${requestId} 
+        // Update request status to 'D' (Complete). Auto-assigns to the current
+        // user when the request is unassigned.
+        const completeRowsAffected = await prisma.$executeRaw`
+            UPDATE GUARDIAN.REQUESTS
+            SET STATUS = 'D',
+                UPDATE_DATE = GETDATE(),
+                UPDATE_USER_ID = ${req.userId},
+                ASSIGNED_ID = COALESCE(ASSIGNED_ID, ${req.userId})
+            WHERE REQUEST_ID = ${requestId}
                 AND COMPANY_ID = ${req.companyId}
-                AND ASSIGNED_ID = ${req.userId}
+                AND (ASSIGNED_ID IS NULL OR ASSIGNED_ID = ${req.userId})
         `;
+
+        if (completeRowsAffected === 0) {
+            const existing = await prisma.$queryRaw`
+                SELECT ASSIGNED_ID, STATUS FROM GUARDIAN.REQUESTS
+                WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${req.companyId}
+            `;
+            if (existing.length === 0) {
+                return res.status(404).json({ error: 'Request not found' });
+            }
+            return res.status(409).json({
+                error: 'Request is assigned to another user and cannot be completed by you',
+                errorType: 'NOT_ASSIGNEE'
+            });
+        }
 
         // Add completion notes if provided
         if (completionNotes) {
