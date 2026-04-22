@@ -42,6 +42,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-04-22-rename-company',
+    date: '2026-04-22',
+    title: 'Rename your company anytime',
+    highlights: [
+      {
+        text: "Admins can now update their company name after setup — no need to get it perfect during onboarding.",
+        category: 'improved',
+      },
+      {
+        text: 'Previously the company name could only be set during initial account creation.',
+        category: 'fixed',
+      },
+    ],
+  },
+  {
     id: 'v2.7.0',
     date: '2026-04-08',
     version: 'v2.7.0',
