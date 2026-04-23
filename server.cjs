@@ -8630,17 +8630,28 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         console.log('📋 Fetching forms from database for company:', req.companyId);
         console.log('🔍 Company ID type:', typeof req.companyId);
 
+        // Audience gate: external users (role 5) only see IS_EXTERNAL=1 forms;
+        // internal users only see IS_INTERNAL=1. Forms with both flags true
+        // are visible to everyone; both false = hidden from everyone.
+        const userIsExternal = Array.isArray(req.userRoleIds) && req.userRoleIds.includes(5);
+        const externalFlag = userIsExternal ? 1 : 0;
+
         const forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
-            FROM GUARDIAN.FORMS 
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
+                   IS_INTERNAL, IS_EXTERNAL, ORGANIZATION_ID, COMPANY_ID
+            FROM GUARDIAN.FORMS
             WHERE (
-                ORGANIZATION_ID = ${req.companyId} 
+                ORGANIZATION_ID = ${req.companyId}
                 OR COMPANY_ID = ${req.companyId}
                 OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL AND IS_PUBLIC = 1)
             )
             AND IS_DELETED = 0
-            ORDER BY 
-                CASE 
+            AND (
+                (${externalFlag} = 1 AND IS_EXTERNAL = 1)
+                OR (${externalFlag} = 0 AND IS_INTERNAL = 1)
+            )
+            ORDER BY
+                CASE
                     WHEN ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL THEN 0
                     ELSE 1
                 END,
@@ -8682,6 +8693,8 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             IS_ACTIVE: form.IS_ACTIVE,
             IS_PUBLIC: form.IS_PUBLIC,
             IS_DELETED: form.IS_DELETED,
+            IS_INTERNAL: form.IS_INTERNAL,
+            IS_EXTERNAL: form.IS_EXTERNAL,
             ORGANIZATION_ID: form.ORGANIZATION_ID,
             COMPANY_ID: form.COMPANY_ID
         }));
@@ -8725,14 +8738,22 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const escapedFormName = form.FORM_NAME.replace(/'/g, "''");
         const escapedFormDescription = (form.FORM_DESCRIPTION || '').replace(/'/g, "''");
         
+        // Audience flags default to 1 (visible) if the caller omits them,
+        // matching the DB default and keeping legacy callers working.
+        const isInternal = form.IS_INTERNAL === false ? 0 : 1;
+        const isExternal = form.IS_EXTERNAL === false ? 0 : 1;
+
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                IS_INTERNAL, IS_EXTERNAL,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
-                '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+                '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
+                ${isInternal}, ${isExternal},
+                GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
 

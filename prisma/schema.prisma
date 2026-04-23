@@ -165,6 +165,8 @@ model FORMS {
   IS_PUBLIC        Boolean          @default(false, map: "DF__FORMS__IS_PUBLIC__66EA454A")
   IS_ACTIVE        Boolean          @default(false, map: "DF__FORMS__IS_ACTIVE__67DE6983")
   IS_DELETED       Boolean          @default(false, map: "DF__FORMS__IS_DELETE__68D28DBC")
+  IS_INTERNAL      Boolean          @default(true, map: "DF_FORMS_IS_INTERNAL")
+  IS_EXTERNAL      Boolean          @default(true, map: "DF_FORMS_IS_EXTERNAL")
   CREATE_USER_ID   Int?
   UPDATE_USER_ID   Int?
   CREATE_DATE      DateTime         @default(now(), map: "DF__FORMS__CREATE_DA__69C6B1F5") @db.DateTime

@@ -19,6 +19,8 @@ export default function FormBuilderPage() {
   const isNew = !formId || formId === 'new';
   const returnTo = searchParams.get('returnTo') || '/home';
   const returnSection = searchParams.get('returnSection') || 'admin';
+  const initialIsInternal = searchParams.get('isInternal') !== 'false';
+  const initialIsExternal = searchParams.get('isExternal') !== 'false';
 
   const [loading, setLoading] = useState(true);
   const [initialFields, setInitialFields] = useState<FormField[]>([]);
@@ -105,6 +107,8 @@ export default function FormBuilderPage() {
         FORM_NAME: data.name,
         FORM_DESCRIPTION: data.description,
         IS_PUBLIC: false,
+        IS_INTERNAL: initialIsInternal,
+        IS_EXTERNAL: initialIsExternal,
         IS_ACTIVE: true,
         IS_DELETED: false,
       };

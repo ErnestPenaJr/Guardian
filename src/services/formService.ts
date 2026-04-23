@@ -35,6 +35,8 @@ export interface DbForm {
   IS_PUBLIC: boolean;
   IS_ACTIVE: boolean;
   IS_DELETED: boolean;
+  IS_INTERNAL?: boolean;
+  IS_EXTERNAL?: boolean;
   CREATE_USER_ID?: number;
   UPDATE_USER_ID?: number;
 }

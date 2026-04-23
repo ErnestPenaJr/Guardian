@@ -6,6 +6,7 @@ import ReactModal from 'react-modal';
 import Modal from '../components/Modal';
 import EnhancedFormBuilder from '../components/EnhancedFormBuilder';
 import NewRequestModal from '../pages/NewRequestModal';
+import CreateTemplateModal from '../components/CreateTemplateModal';
 import AdminFormsGroupsModal from '../components/AdminFormsGroupsModal';
 import AdminFields from '../pages/AdminFields';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
@@ -31,6 +32,7 @@ const AdminDashboard: React.FC<{
   const [enhancedFormBuilderModalOpen, setEnhancedFormBuilderModalOpen] = useState(false);
   const [enhancedFormFields, setEnhancedFormFields] = useState<any[]>([]);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
+  const [createTemplateModalOpen, setCreateTemplateModalOpen] = useState(false);
   const [formsGroupsModalOpen, setFormsGroupsModalOpen] = useState(false);
   const [adminFieldsModalOpen, setAdminFieldsModalOpen] = useState(false);
   const [workflowManagementModalOpen, setWorkflowManagementModalOpen] = useState(false);
@@ -106,7 +108,7 @@ const AdminDashboard: React.FC<{
   const handleCreateNewTemplate = () => {
     console.log('Creating new workflow template');
     setEditingFormData(null); // Clear any existing editing data
-    setNewRequestModalOpen(true); // Open the workflow creation modal
+    setCreateTemplateModalOpen(true); // Open the redesigned metadata modal
   };
 
   // Handle template editor save/close
@@ -353,7 +355,7 @@ const AdminDashboard: React.FC<{
           />
         </div>
       </Modal>
-      {/* New Request Modal */}
+      {/* New Request Modal (retained for template-fill flow) */}
       <NewRequestModal
         isOpen={newRequestModalOpen}
         onClose={() => {
@@ -363,7 +365,13 @@ const AdminDashboard: React.FC<{
         onSave={handleSaveForm}
         initialFormData={editingFormData}
       />
-      
+
+      {/* Create Template Modal — entry point for building a new template */}
+      <CreateTemplateModal
+        isOpen={createTemplateModalOpen}
+        onClose={() => setCreateTemplateModalOpen(false)}
+      />
+
       {/* Forms Groups Modal */}
       <AdminFormsGroupsModal
         isOpen={formsGroupsModalOpen}
@@ -404,6 +412,7 @@ const AdminDashboard: React.FC<{
         <CustomWorkflowTemplateModal
           isOpen={customTemplateModalOpen}
           onClose={() => setCustomTemplateModalOpen(false)}
+          onCreateNew={handleCreateNewTemplate}
         />
       )}
     </div>
