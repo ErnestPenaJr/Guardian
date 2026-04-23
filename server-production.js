@@ -15816,6 +15816,109 @@ app.get('/api/jafar-admin/site-analysis/drilldown', getAuthenticatedUserCompany,
     }
 });
 
+// ========================================
+// SECURITY REPORT ENDPOINTS (Jafar only)
+// Reads scan reports produced by `gstack cso` from .gstack/security-reports/.
+// The directory is intentionally NOT deployed to production — handlers return
+// empty/404 when the directory is missing. Never log parsed report bodies —
+// they contain live exploit payloads (see Finding #10 in the scan report).
+// ========================================
+
+const SECURITY_REPORTS_DIR = path.resolve(process.cwd(), '.gstack/security-reports');
+const SECURITY_REPORT_FILENAME_RE = /^\d{4}-\d{2}-\d{2}-\d{6}\.json$/;
+
+const listSecurityReportFilenames = async () => {
+    try {
+        const entries = await fs.promises.readdir(SECURITY_REPORTS_DIR);
+        return entries
+            .filter((name) => SECURITY_REPORT_FILENAME_RE.test(name))
+            .sort()
+            .reverse(); // newest first
+    } catch (err) {
+        if (err && err.code === 'ENOENT') return [];
+        throw err;
+    }
+};
+
+const readSecurityReport = async (filename) => {
+    if (!SECURITY_REPORT_FILENAME_RE.test(filename)) {
+        const e = new Error('INVALID_FILENAME');
+        e.status = 400;
+        throw e;
+    }
+    const resolved = path.resolve(SECURITY_REPORTS_DIR, filename);
+    if (!resolved.startsWith(SECURITY_REPORTS_DIR + path.sep)) {
+        const e = new Error('PATH_TRAVERSAL');
+        e.status = 400;
+        throw e;
+    }
+    const raw = await fs.promises.readFile(resolved, 'utf8');
+    return JSON.parse(raw);
+};
+
+const summarizeSecurityReport = (filename, report) => ({
+    filename,
+    date: report.date,
+    mode: report.mode,
+    scope: report.scope,
+    totals: report.totals,
+    trend: report.trend
+});
+
+// GET /api/jafar-admin/security-reports — list metadata only, newest first
+app.get('/api/jafar-admin/security-reports', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const filenames = await listSecurityReportFilenames();
+        const reports = [];
+        for (const filename of filenames) {
+            try {
+                const report = await readSecurityReport(filename);
+                reports.push(summarizeSecurityReport(filename, report));
+            } catch (err) {
+                console.error(`⚠️  [SECURITY REPORT] Skipping malformed file ${filename}:`, err && err.message);
+            }
+        }
+        res.json({ reports });
+    } catch (err) {
+        console.error('❌ [SECURITY REPORT] Failed to list reports:', err && err.message);
+        res.status(500).json({ error: 'Failed to list security reports' });
+    }
+});
+
+// GET /api/jafar-admin/security-reports/latest — full JSON of newest report
+app.get('/api/jafar-admin/security-reports/latest', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const filenames = await listSecurityReportFilenames();
+        if (filenames.length === 0) {
+            return res.status(404).json({ error: 'No reports available' });
+        }
+        const report = await readSecurityReport(filenames[0]);
+        res.json({ filename: filenames[0], report });
+    } catch (err) {
+        console.error('❌ [SECURITY REPORT] Failed to read latest report:', err && err.message);
+        const status = err && err.status ? err.status : 500;
+        res.status(status).json({ error: err && err.message === 'INVALID_FILENAME' ? 'Invalid filename' : 'Failed to read report' });
+    }
+});
+
+// GET /api/jafar-admin/security-reports/:filename — full JSON of a specific report
+app.get('/api/jafar-admin/security-reports/:filename', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    const filename = String(req.params.filename || '');
+    try {
+        const report = await readSecurityReport(filename);
+        res.json({ filename, report });
+    } catch (err) {
+        if (err && err.code === 'ENOENT') {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+        if (err && err.status === 400) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
+        console.error('❌ [SECURITY REPORT] Failed to read report:', err && err.message);
+        res.status(500).json({ error: 'Failed to read report' });
+    }
+});
+
 // GET /api/workspaces - List all workspaces for company (role_id=6 only)
 app.get('/api/workspaces', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
     try {
