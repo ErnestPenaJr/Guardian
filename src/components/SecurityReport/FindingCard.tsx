@@ -1,7 +1,8 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, Copy } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Sparkles } from 'lucide-react';
 import { toast } from 'react-toastify';
 import type { SecurityFinding, Severity } from './types';
+import { buildAgentPrompt } from './buildAgentPrompt';
 
 interface FindingCardProps {
     finding: SecurityFinding;
@@ -77,6 +78,16 @@ const FindingCard: React.FC<FindingCardProps> = ({ finding, expanded, onToggle }
             </button>
             {expanded && (
                 <div className="p-4 border-t border-gray-200">
+                    <div className="flex justify-end mb-2">
+                        <button
+                            type="button"
+                            onClick={() => copyToClipboard('Agent prompt', buildAgentPrompt(finding))}
+                            className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-md hover:bg-gray-700 flex items-center gap-1.5"
+                            title="Copy a ready-to-paste prompt for an AI coding agent (e.g. Claude Code) to fix this finding"
+                        >
+                            <Sparkles className="h-3.5 w-3.5" /> Copy agent prompt
+                        </button>
+                    </div>
                     <Section label="Description" body={finding.description} />
                     <Section label="Exploit scenario" body={finding.exploit_scenario} />
                     <Section label="Impact" body={finding.impact} />
