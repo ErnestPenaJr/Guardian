@@ -44,3 +44,6 @@ CLAUDE.md
 /.playwright-mcp/
 /screenshots/
 /snapshots/
+
+# gstack security scan artifacts — contain live exploit payloads, MUST NOT ship to production
+.gstack/
