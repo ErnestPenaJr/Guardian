@@ -24,7 +24,8 @@ const AdminDashboard: React.FC<{
   onShowJafarSiteAnalysis?: () => void;
   onShowJafarUserManagement?: () => void;
   onShowJafarRoleSettings?: () => void;
-}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis, onShowJafarUserManagement, onShowJafarRoleSettings }) => {
+  onShowJafarSecurityReport?: () => void;
+}> = ({ onShowUserManagement, onShowJafarAdministration, onShowJafarSiteAnalysis, onShowJafarUserManagement, onShowJafarRoleSettings, onShowJafarSecurityReport }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
@@ -281,6 +282,28 @@ const AdminDashboard: React.FC<{
               <li>Edit feature permissions per role</li>
               <li>Manage External User allowlists</li>
               <li>Reset to defaults</li>
+            </ul>
+          </a>
+        )}
+
+        {isJafarUser() && (
+          <a
+            href="#"
+            className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-danger"
+            style={{ borderRadius: '6px', backgroundColor: '#FFFFFF' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+            onClick={e => {
+              e.preventDefault();
+              if (onShowJafarSecurityReport) onShowJafarSecurityReport();
+            }}
+          >
+            <FaUserShield className="h-12 w-12 text-danger mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Security Report</h3>
+            <ul className="text-gray-600">
+              <li>Latest gstack cso scan</li>
+              <li>Critical/High/Medium findings</li>
+              <li>Exploit scenarios &amp; remediations</li>
             </ul>
           </a>
         )}

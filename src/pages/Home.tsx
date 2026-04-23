@@ -33,6 +33,7 @@ import JafarAdministration from './JafarAdministration';
 import JafarUserManagement from './JafarUserManagement';
 import JafarRoleSettings from './JafarRoleSettings';
 import SiteAnalysis from './SiteAnalysis';
+import SecurityReport from './SecurityReport';
 import { Modal } from 'react-bootstrap';
 import ViewNotice from './ViewNotice';
 import AllNotices from './AllNotices';
@@ -118,7 +119,7 @@ function Home() {
   const location = useLocation();
   const { user } = useAuth();
   const { subscribeToRefresh } = useRequestState();
-  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'jafarUserManagement' | 'jafarRoleSettings' | 'jafarSiteAnalysis' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
+  const [selectedSection, setSelectedSection] = useState<'dashboard' | 'workorder' | 'myRequests' | 'admin' | 'adminUserManagement' | 'jafarAdministration' | 'jafarUserManagement' | 'jafarRoleSettings' | 'jafarSiteAnalysis' | 'jafarSecurityReport' | 'apiManager' | 'notices' | 'workspaces'>('dashboard');
   const [mobileNav, setMobileNav] = useState<'dashboard' | 'search' | 'notifications' | 'profile'>('dashboard');
   const [isNavExpanded, setIsNavExpanded] = useState(true);
 
@@ -1892,6 +1893,7 @@ function Home() {
                 onShowJafarSiteAnalysis={() => setSelectedSection('jafarSiteAnalysis')}
                 onShowJafarUserManagement={() => setSelectedSection('jafarUserManagement')}
                 onShowJafarRoleSettings={() => setSelectedSection('jafarRoleSettings')}
+                onShowJafarSecurityReport={() => setSelectedSection('jafarSecurityReport')}
               />
             </div>
           ) : selectedSection === 'adminUserManagement' ? (
@@ -1913,6 +1915,10 @@ function Home() {
           ) : selectedSection === 'jafarRoleSettings' ? (
             <div className="mt-4 md:mt-6 mb-6">
               <JafarRoleSettings />
+            </div>
+          ) : selectedSection === 'jafarSecurityReport' ? (
+            <div className="mt-4 md:mt-6 mb-6">
+              <SecurityReport />
             </div>
           ) : selectedSection === 'notices' ? (
             <div className="mt-4 md:mt-6 mb-6">

@@ -32,6 +32,7 @@ import ChangePassword from './pages/ChangePassword';
 import NotificationPreferences from './pages/NotificationPreferences';
 import JafarAdministration from './pages/JafarAdministration';
 import SiteAnalysis from './pages/SiteAnalysis';
+import SecurityReport from './pages/SecurityReport';
 import RequireJafar from './components/RequireJafar';
 import AllNotices from './pages/AllNotices';
 import CreateNotice from './pages/CreateNotice';
@@ -82,6 +83,7 @@ function App() {
             <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
             <Route path="/jafar-administration" element={<ProtectedRoute><JafarAdministration /></ProtectedRoute>} />
             <Route path="/jafar/site-analysis" element={<ProtectedRoute><RequireJafar><SiteAnalysis /></RequireJafar></ProtectedRoute>} />
+            <Route path="/jafar/security-report" element={<ProtectedRoute><RequireJafar><SecurityReport /></RequireJafar></ProtectedRoute>} />
             <Route path="/my-notices" element={<ProtectedRoute><AllNotices /></ProtectedRoute>} />
             <Route path="/my-notices/create" element={<ProtectedRoute><CreateNotice /></ProtectedRoute>} />
             <Route path="/my-notices/edit/:id" element={<ProtectedRoute><CreateNotice /></ProtectedRoute>} />
