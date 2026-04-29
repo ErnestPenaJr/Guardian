@@ -140,7 +140,7 @@ stages:
         cd deployment
         echo "Configuring Node.js deployment"
         echo '[config]
-        SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
+        SCM_DO_BUILD_DURING_DEPLOYMENT=true' > .deployment
         echo "Configuration complete - Node.js serves static assets + API + SPA routing"
       displayName: 'Configure Node.js deployment'
 
@@ -161,7 +161,7 @@ stages:
 
     - script: |
         cd deployment
-        zip -r ../app.zip .
+        zip -r ../app.zip . --exclude "node_modules/*"
         cd ..
         du -h app.zip
       displayName: 'Create deployment package'
@@ -196,6 +196,7 @@ stages:
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
               deploymentMethod: 'zipDeploy'
+              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT true'
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
           - script: |
@@ -264,6 +265,7 @@ stages:
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
               deploymentMethod: 'zipDeploy'
+              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT true'
             displayName: 'Deploy to Production (GUARDIAN-MVP)'
 
           - script: |
