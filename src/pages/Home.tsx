@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LogOut, User, FileText,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
-  Building2, Settings, KeyRound, Bell, SunMoon, Landmark, Globe, Network
+  Building2, Settings, KeyRound, Bell, SunMoon, Network
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -636,23 +636,10 @@ function Home() {
       {
         icon: <Building2 className="w-6 h-6" />,
         label: 'Workspaces',
-        onClick: () => setSelectedSection('workspaces'),
-        active: selectedSection === 'workspaces',
+        onClick: () => {},
+        active: false,
+        disabled: true,
       }
-    ] : []),
-    ...((user?.roles?.some((role: any) => role.id === 6) || user?.role === '6') ? [
-      {
-        icon: <Landmark className="w-6 h-6" />,
-        label: 'AIM-Financial',
-        onClick: () => window.open('https://aim-financial.netlify.app/', '_blank'),
-        active: false,
-      },
-      {
-        icon: <Globe className="w-6 h-6" />,
-        label: 'AIM-Wildlife',
-        onClick: () => window.open('https://aim-wildlife.netlify.app/', '_blank'),
-        active: false,
-      },
     ] : []),
     {
       icon: <Network className="w-6 h-6" />,

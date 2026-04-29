@@ -1,5 +1,6 @@
 import axios from 'axios';
 import errorCapture from './errorCapture';
+import dbWakeUp from './dbWakeUp';
 
 // Base URL for API requests
 // In development, we use the Vite proxy which is configured in vite.config.ts
@@ -97,7 +98,7 @@ api.interceptors.response.use(
     
     return response;
   },
-  (error) => {
+  async (error) => {
     // Log detailed error information
     console.error('[API] Request failed:', {
       url: error.config?.url,
@@ -106,7 +107,53 @@ api.interceptors.response.use(
       statusText: error.response?.statusText,
       data: error.response?.data
     });
-    
+
+    // --- Database wake-up handling -------------------------------------
+    // Azure SQL Serverless can auto-pause; the first request after a sleep
+    // returns 503 DB_WAKING (from /api/login) or fails the network entirely.
+    // We probe /api/health/db, show the friendly overlay while waiting, and
+    // transparently retry the original request once the DB is back.
+    const status = error.response?.status;
+    const code = error.response?.data?.code;
+    const isExplicitWaking = status === 503 && code === 'DB_WAKING';
+    const isNetworkFailure = !error.response && (
+      error.code === 'ERR_NETWORK' ||
+      error.code === 'ECONNABORTED' ||
+      /timeout|Network Error/i.test(error.message || '')
+    );
+    const isFiveHundred = status === 500;
+    const cfg: any = error.config || {};
+    const alreadyRetried = cfg.__dbWakeRetried === true;
+    const isHealthCheck = (cfg.url || '').includes('/api/health/db');
+
+    if (!alreadyRetried && !isHealthCheck && (isExplicitWaking || isNetworkFailure || isFiveHundred)) {
+      // For 500 / network failures, confirm it's a DB issue before triggering
+      // overlay UI. /api/health/db is cheap and returns 503 only when the DB
+      // is actually down — so a 200 here means the original failure was
+      // unrelated (we just rethrow normally).
+      let shouldWake = isExplicitWaking;
+      if (!shouldWake) {
+        try {
+          const probe = await fetch('/api/health/db', { cache: 'no-store' });
+          shouldWake = probe.status === 503;
+        } catch {
+          shouldWake = true; // can't even reach health endpoint -> server / DB asleep
+        }
+      }
+
+      if (shouldWake) {
+        cfg.__dbWakeRetried = true;
+        const ready = await dbWakeUp.trigger();
+        if (ready) {
+          // Replay the original request with the same config (token/header
+          // interceptor will re-run automatically).
+          return api.request(cfg);
+        }
+        // Fall through to existing error handling if wake-up timed out.
+      }
+    }
+    // -------------------------------------------------------------------
+
     // Capture API error with detailed information
     try {
       errorCapture.captureApiError(error, {
@@ -117,7 +164,7 @@ api.interceptors.response.use(
     } catch (captureError) {
       console.warn('Failed to capture API error:', captureError);
     }
-    
+
     if (error.response && error.response.status === 401) {
       // Don't force redirect for the login endpoint itself so the page can show SweetAlert
       const url = error.config?.url || '';

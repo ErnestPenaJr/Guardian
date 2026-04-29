@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorTestingComponent from './components/ErrorTestingComponent';
+import DbWakeUpOverlay from './components/DbWakeUpOverlay';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
@@ -47,6 +48,7 @@ function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover />
+        <DbWakeUpOverlay />
         <Router>
           <Routes>
             <Route path="/" element={<Login />} />

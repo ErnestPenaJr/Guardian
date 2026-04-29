@@ -744,13 +744,47 @@ console.log('🔧 Development mode: Static files served by Vite on port 5175');
 // Basic health check (no database required)
 app.get('/api/health', (req, res) => {
     res.json({
-        status: 'ok', 
-        timestamp: new Date().toISOString(), 
-        server: 'Guardian MVP Simple Server', 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        server: 'Guardian MVP Simple Server',
         port: PORT,
         nodeVersion: process.version,
         uptime: process.uptime()
     });
+});
+
+// Detect DB connection / wake-from-sleep errors so the client can show a
+// friendly "warming up" overlay and retry instead of surfacing a 500.
+function isDbWakingError(err) {
+    if (!err) return false;
+    const code = err.code || err.errorCode;
+    if (code && ['P1001', 'P1002', 'P1008', 'P1017'].includes(code)) return true;
+    const msg = (err.message || '').toString();
+    if (/ETIMEDOUT|ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ENETUNREACH/i.test(msg)) return true;
+    if (/Can't reach database server|Connection lost|server has closed the connection|Timed out fetching a new connection/i.test(msg)) return true;
+    if (err.name === 'PrismaClientInitializationError') return true;
+    return false;
+}
+
+// DB-aware health check — returns 503 with code DB_WAKING while the
+// database is sleeping/unreachable so the frontend can poll until ready.
+app.get('/api/health/db', async (req, res) => {
+    try {
+        await prisma.$queryRaw`SELECT 1 AS ok`;
+        return res.json({ status: 'ok', database: 'up', timestamp: new Date().toISOString() });
+    } catch (error) {
+        const waking = isDbWakingError(error);
+        console.warn(`⚠️  /api/health/db ${waking ? 'DB_WAKING' : 'DB_ERROR'}: ${error.message}`);
+        return res.status(503).json({
+            status: 'unavailable',
+            database: 'down',
+            code: waking ? 'DB_WAKING' : 'DB_ERROR',
+            message: waking
+                ? 'Database is waking from sleep. Please retry shortly.'
+                : 'Database is currently unreachable.',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Error email rate limiting (in-memory store)
@@ -1733,6 +1767,13 @@ app.post('/api/login', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Login error:', error);
+        if (isDbWakingError(error)) {
+            return res.status(503).json({
+                code: 'DB_WAKING',
+                error: 'Database is waking up',
+                message: 'Our secure database is resuming from sleep. Please retry in a moment.'
+            });
+        }
         res.status(500).json({
             error: 'Server error during login',
             message: error.message
