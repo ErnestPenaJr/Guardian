@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   LogOut, User, FileText,
   LayoutDashboard, ChevronLeft, ChevronRight, Sliders, Send, MessageSquareText,
-  Building2, Settings, KeyRound, Bell, SunMoon, Network
+  Building2, Settings, KeyRound, Bell, SunMoon, Network, Landmark, Globe
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -641,6 +641,18 @@ function Home() {
         disabled: true,
       }
     ] : []),
+    {
+      icon: <Landmark className="w-6 h-6" />,
+      label: 'AIM Financial',
+      onClick: () => window.open('https://aim-financial.netlify.app/', '_blank'),
+      active: false,
+    },
+    {
+      icon: <Globe className="w-6 h-6" />,
+      label: 'AIM Wildlife',
+      onClick: () => window.open('https://aim-wildlife.netlify.app/', '_blank'),
+      active: false,
+    },
     {
       icon: <Network className="w-6 h-6" />,
       label: 'API Vendor',
