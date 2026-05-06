@@ -140,31 +140,32 @@ stages:
         cd deployment
         echo "Configuring Node.js deployment"
         echo '[config]
-        SCM_DO_BUILD_DURING_DEPLOYMENT=true' > .deployment
-        echo "Configuration complete - Node.js serves static assets + API + SPA routing"
+        SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
+        echo "Configuration complete - node_modules pre-built, Kudu build disabled"
       displayName: 'Configure Node.js deployment'
 
     - script: |
         cd deployment
-        npm install
-        echo "Installed server dependencies in deployment directory"
+        npm install --omit=dev
+        echo "Installed production dependencies in deployment directory"
         if [ -f "prisma/schema.prisma" ]; then
-          echo "Generating Prisma client for deployment..."
+          echo "Generating Prisma client (native + windows binary targets)..."
           npx prisma generate
           echo "Prisma client generated successfully"
           ls -la node_modules/.prisma/client/
+          echo "Verifying Windows engine binary is present:"
+          ls -la node_modules/.prisma/client/query-engine-windows.exe || (echo "❌ query-engine-windows.exe missing — check binaryTargets in schema.prisma" && exit 1)
         else
           echo "No Prisma schema found - skipping client generation"
         fi
-        ls -la node_modules
       displayName: 'Install server dependencies and generate Prisma client'
 
     - script: |
         cd deployment
-        zip -r ../app.zip . --exclude "node_modules/*"
+        zip -r ../app.zip .
         cd ..
         du -h app.zip
-      displayName: 'Create deployment package'
+      displayName: 'Create deployment package (includes node_modules)'
 
     - task: PublishPipelineArtifact@1
       inputs:
@@ -196,7 +197,7 @@ stages:
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
               deploymentMethod: 'zipDeploy'
-              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT true'
+              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT false -PRISMA_SKIP_POSTINSTALL_GENERATE true'
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
           - script: |
