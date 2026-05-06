@@ -39,6 +39,7 @@ const KEY_GROUPS: Array<{ label: string; keys: string[] }> = [
   { label: 'Home', keys: ['home.requestQueue', 'home.requestOverview', 'home.myRequests', 'home.notices'] },
   { label: 'Requests', keys: ['requests.new', 'requests.viewAll', 'requests.viewAllDetails', 'requests.viewMy', 'requests.start', 'requests.assign', 'requests.reassign', 'requests.tasks', 'requests.complete'] },
   { label: 'Notices', keys: ['notices.new', 'notices.viewAll', 'notices.viewMy', 'notices.respond'] },
+  { label: 'Workflows', keys: ['workflows.viewTemplates', 'workflows.createTemplate', 'workflows.editTemplate', 'workflows.deleteTemplate'] },
   { label: 'Reporting', keys: ['reports.workflow'] },
 ];
 

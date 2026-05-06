@@ -430,14 +430,12 @@ const AdminDashboard: React.FC<{
         onSave={handleTemplateEditorSave}
       />
 
-      {/* Custom Workflow Template Modal - Only for JAFAR users */}
-      {isJafarUser() && (
-        <CustomWorkflowTemplateModal
-          isOpen={customTemplateModalOpen}
-          onClose={() => setCustomTemplateModalOpen(false)}
-          onCreateNew={handleCreateNewTemplate}
-        />
-      )}
+      {/* Custom Workflow Template Modal - admins (role 1) and super admins (role 6) */}
+      <CustomWorkflowTemplateModal
+        isOpen={customTemplateModalOpen}
+        onClose={() => setCustomTemplateModalOpen(false)}
+        onCreateNew={handleCreateNewTemplate}
+      />
     </div>
   );
 };

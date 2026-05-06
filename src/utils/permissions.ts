@@ -40,6 +40,11 @@ export type PermissionKey =
   | 'notices.viewAll'
   | 'notices.viewMy'
   | 'notices.respond'
+  // Workflows (request type / form templates)
+  | 'workflows.viewTemplates'
+  | 'workflows.createTemplate'
+  | 'workflows.editTemplate'
+  | 'workflows.deleteTemplate'
   // Reporting
   | 'reports.workflow';
 
@@ -74,6 +79,11 @@ const MATRIX: Record<PermissionKey, readonly RoleId[]> = {
   'notices.viewAll':         [A, P, M, S],
   'notices.viewMy':          [A, G, P, M, E, S], // External restricted to permitted types (Phase 2)
   'notices.respond':         [A, G, P, M, E, S],
+
+  'workflows.viewTemplates': [A, S],
+  'workflows.createTemplate':[A, S],
+  'workflows.editTemplate':  [A, S],
+  'workflows.deleteTemplate':[A, S],
 
   'reports.workflow':        [A, M, S],
 };
