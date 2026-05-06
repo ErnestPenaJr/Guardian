@@ -188,6 +188,13 @@ stages:
               path: '$(System.DefaultWorkingDirectory)'
             displayName: 'Download build artifact'
 
+          - task: AzureAppServiceManage@0
+            inputs:
+              azureSubscription: 'AzureSP-Dev'
+              Action: 'Stop Azure App Service'
+              WebAppName: 'GUARDIAN-STAGING'
+            displayName: 'Stop staging to release Prisma engine file lock'
+
           - task: AzureWebApp@1
             inputs:
               azureSubscription: 'AzureSP-Dev'
@@ -198,6 +205,13 @@ stages:
               deploymentMethod: 'zipDeploy'
               appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT true'
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
+
+          - task: AzureAppServiceManage@0
+            inputs:
+              azureSubscription: 'AzureSP-Dev'
+              Action: 'Start Azure App Service'
+              WebAppName: 'GUARDIAN-STAGING'
+            displayName: 'Start staging after deploy'
 
           - script: |
               echo "Post-deployment verification starting..."
