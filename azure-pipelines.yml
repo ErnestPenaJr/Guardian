@@ -141,23 +141,22 @@ stages:
         echo "Configuring Node.js deployment"
         echo '[config]
         SCM_DO_BUILD_DURING_DEPLOYMENT=false' > .deployment
-        echo "Configuration complete - node_modules pre-built, Kudu build disabled"
+        echo "Configuration complete - Node.js serves static assets + API + SPA routing"
       displayName: 'Configure Node.js deployment'
 
     - script: |
         cd deployment
-        npm install --omit=dev
-        echo "Installed production dependencies in deployment directory"
+        npm install
+        echo "Installed server dependencies in deployment directory"
         if [ -f "prisma/schema.prisma" ]; then
-          echo "Generating Prisma client (native + windows binary targets)..."
+          echo "Generating Prisma client for deployment..."
           npx prisma generate
           echo "Prisma client generated successfully"
           ls -la node_modules/.prisma/client/
-          echo "Verifying Windows engine binary is present:"
-          ls -la node_modules/.prisma/client/query-engine-windows.exe || (echo "❌ query-engine-windows.exe missing — check binaryTargets in schema.prisma" && exit 1)
         else
           echo "No Prisma schema found - skipping client generation"
         fi
+        ls -la node_modules
       displayName: 'Install server dependencies and generate Prisma client'
 
     - script: |
@@ -165,7 +164,7 @@ stages:
         zip -r ../app.zip .
         cd ..
         du -h app.zip
-      displayName: 'Create deployment package (includes node_modules)'
+      displayName: 'Create deployment package'
 
     - task: PublishPipelineArtifact@1
       inputs:
@@ -197,7 +196,6 @@ stages:
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
               deploymentMethod: 'zipDeploy'
-              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT false -PRISMA_SKIP_POSTINSTALL_GENERATE true'
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
           - script: |
@@ -266,7 +264,6 @@ stages:
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
               deploymentMethod: 'zipDeploy'
-              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT true'
             displayName: 'Deploy to Production (GUARDIAN-MVP)'
 
           - script: |
