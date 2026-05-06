@@ -8677,6 +8677,11 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const userIsExternal = Array.isArray(req.userRoleIds) && req.userRoleIds.includes(5);
         const externalFlag = userIsExternal ? 1 : 0;
 
+        // /api/forms is the request-templates list (used by AddRequestModal,
+        // SelectFormModal, WorkflowManagementModal, Home first-time check).
+        // Strictly include only TEMPLATE_TYPE='request' so notice templates and
+        // any unstamped legacy NULLs cannot leak in. POST /api/forms now stamps
+        // 'request' on insert, so no new NULL rows should appear.
         const forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
                    IS_INTERNAL, IS_EXTERNAL, ORGANIZATION_ID, COMPANY_ID, TEMPLATE_TYPE
@@ -8687,7 +8692,7 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL AND IS_PUBLIC = 1)
             )
             AND IS_DELETED = 0
-            AND (TEMPLATE_TYPE IS NULL OR TEMPLATE_TYPE <> 'notice')
+            AND TEMPLATE_TYPE = 'request'
             AND (
                 (${externalFlag} = 1 AND IS_EXTERNAL = 1)
                 OR (${externalFlag} = 0 AND IS_INTERNAL = 1)
