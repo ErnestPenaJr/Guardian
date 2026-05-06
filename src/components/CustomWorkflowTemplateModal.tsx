@@ -575,7 +575,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                   <Users className="w-3 h-3 text-blue-600" />
                 </div>
                 <p className="text-sm text-gray-600">
-                  Custom templates are only visible to users with Super Admin privileges
+                  Custom templates can be created and managed by Admin and Super Admin users
                 </p>
               </div>
               <button
