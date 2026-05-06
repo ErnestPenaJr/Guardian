@@ -8682,7 +8682,7 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
 
         const forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
-                   IS_INTERNAL, IS_EXTERNAL, ORGANIZATION_ID, COMPANY_ID
+                   IS_INTERNAL, IS_EXTERNAL, ORGANIZATION_ID, COMPANY_ID, TEMPLATE_TYPE
             FROM GUARDIAN.FORMS
             WHERE (
                 ORGANIZATION_ID = ${req.companyId}
@@ -8690,6 +8690,7 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL AND IS_PUBLIC = 1)
             )
             AND IS_DELETED = 0
+            AND (TEMPLATE_TYPE IS NULL OR TEMPLATE_TYPE <> 'notice')
             AND (
                 (${externalFlag} = 1 AND IS_EXTERNAL = 1)
                 OR (${externalFlag} = 0 AND IS_INTERNAL = 1)
@@ -8740,7 +8741,8 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             IS_INTERNAL: form.IS_INTERNAL,
             IS_EXTERNAL: form.IS_EXTERNAL,
             ORGANIZATION_ID: form.ORGANIZATION_ID,
-            COMPANY_ID: form.COMPANY_ID
+            COMPANY_ID: form.COMPANY_ID,
+            TEMPLATE_TYPE: form.TEMPLATE_TYPE
         }));
 
         console.log('🔍 ===== FORMATTED FORMS BEFORE SENDING =====');

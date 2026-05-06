@@ -1,9 +1,350 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Shieldlytics — Colors & Type
+   ============================================================
+   Primary foundation file. Imported once via main.tsx.
+   Anchored to the brand's teal shield mark.
+   ============================================================ */
+
+/* Brand fonts — Montserrat (self-hosted when fonts/*.ttf are present, Google Fonts as fallback).
+   Commit Mono via Google Fonts for data/code (slashed zero). */
+@import url('https://fonts.googleapis.com/css2?family=Commit+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 100; font-display: swap; src: url('fonts/Montserrat-Thin.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 100; font-display: swap; src: url('fonts/Montserrat-ThinItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 200; font-display: swap; src: url('fonts/Montserrat-ExtraLight.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 200; font-display: swap; src: url('fonts/Montserrat-ExtraLightItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/Montserrat-Light.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 300; font-display: swap; src: url('fonts/Montserrat-LightItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Montserrat-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Montserrat-Italic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/Montserrat-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 500; font-display: swap; src: url('fonts/Montserrat-MediumItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/Montserrat-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 600; font-display: swap; src: url('fonts/Montserrat-SemiBoldItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/Montserrat-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 700; font-display: swap; src: url('fonts/Montserrat-BoldItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 800; font-display: swap; src: url('fonts/Montserrat-ExtraBold.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 800; font-display: swap; src: url('fonts/Montserrat-ExtraBoldItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 900; font-display: swap; src: url('fonts/Montserrat-Black.ttf') format('truetype'); }
+@font-face { font-family: 'Montserrat'; font-style: italic; font-weight: 900; font-display: swap; src: url('fonts/Montserrat-BlackItalic.ttf') format('truetype'); }
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* ------------------------------------------------------------
+     BRAND — Teal spine (Option C · Vivid)
+     Bright, confident, product-forward
+     ------------------------------------------------------------ */
+  --sl-teal-50:  #E6FAFA;
+  --sl-teal-100: #C7F2F2;
+  --sl-teal-200: #8FE4E4;
+  --sl-teal-300: #4FD3D3;
+  --sl-teal-400: #14B8B8;  /* bright accent */
+  --sl-teal-500: #14B8B8;
+  --sl-teal-600: #009999;  /* primary */
+  --sl-teal-700: #007A7A;  /* hover / text */
+  --sl-teal-800: #005656;  /* press */
+  --sl-teal-900: #003838;  /* near-black */
+  --sl-teal-950: #001F1F;
+
+  --sl-brand:        var(--sl-teal-600);
+  --sl-brand-hover:  var(--sl-teal-700);
+  --sl-brand-press:  var(--sl-teal-800);
+  --sl-brand-ink:    #FFFFFF;    /* text on brand */
+  --sl-brand-soft:   var(--sl-teal-50);  /* tinted bg */
+
+  /* ------------------------------------------------------------
+     NEUTRALS — cool gray with a faint teal undertone
+     ------------------------------------------------------------ */
+  --sl-gray-0:   #FFFFFF;
+  --sl-gray-25:  #FAFBFB;
+  --sl-gray-50:  #F5F7F7;
+  --sl-gray-100: #EDEFEF;
+  --sl-gray-200: #E1E5E5;
+  --sl-gray-300: #CBD1D1;
+  --sl-gray-400: #9BA5A5;
+  --sl-gray-500: #6B7676;
+  --sl-gray-600: #4C5757;
+  --sl-gray-700: #344040;
+  --sl-gray-800: #1F2929;
+  --sl-gray-900: #111818;
+  --sl-gray-950: #080C0C;
+
+  /* ------------------------------------------------------------
+     SEMANTIC — surface, text, border
+     ------------------------------------------------------------ */
+  --bg-canvas:     var(--sl-gray-50);     /* page bg */
+  --bg-surface:    var(--sl-gray-0);      /* cards, panels */
+  --bg-sunken:     var(--sl-gray-100);    /* inset regions */
+  --bg-hover:      var(--sl-gray-50);
+  --bg-active:     var(--sl-gray-100);
+  --bg-overlay:    rgba(8, 12, 12, 0.48);
+
+  --fg1: var(--sl-gray-900);   /* primary text */
+  --fg2: var(--sl-gray-600);   /* secondary text */
+  --fg3: var(--sl-gray-500);   /* tertiary / meta */
+  --fg4: var(--sl-gray-400);   /* placeholder, disabled */
+  --fg-on-brand: #FFFFFF;
+  --fg-link:     var(--sl-teal-600);
+
+  --border-subtle: var(--sl-gray-100);
+  --border:        var(--sl-gray-200);
+  --border-strong: var(--sl-gray-300);
+  --border-focus:  var(--sl-teal-500);
+
+  /* ------------------------------------------------------------
+     STATUS — measured, not loud. For FIU/public-service gravitas.
+     ------------------------------------------------------------ */
+  --success-500: #0E8F5E;  --success-bg: #E6F5EE;  --success-fg: #075A3B;
+  --warning-500: #C77A0A;  --warning-bg: #FDF3E2;  --warning-fg: #7A4A06;
+  --danger-500:  #C0352B;  --danger-bg:  #FBEAE8;  --danger-fg:  #7A211A;
+  --info-500:    #2260B8;  --info-bg:    #E8EFFA;  --info-fg:    #163F7A;
+
+  /* Risk / intelligence scale — for AIM data viz */
+  --risk-low:      #0E8F5E;
+  --risk-moderate: #C77A0A;
+  --risk-elevated: #D9541A;
+  --risk-high:     #C0352B;
+  --risk-critical: #7A211A;
+
+  /* ------------------------------------------------------------
+     TYPE — Montserrat sans + Commit Mono
+     ------------------------------------------------------------ */
+  --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Commit Mono', 'SF Mono', 'Menlo', monospace;
+  --font-display: 'Montserrat', sans-serif;
+
+  --fs-xs:   12px;
+  --fs-sm:   13px;
+  --fs-base: 14px;
+  --fs-md:   15px;
+  --fs-lg:   17px;
+  --fs-xl:   20px;
+  --fs-2xl:  24px;
+  --fs-3xl:  30px;
+  --fs-4xl:  38px;
+  --fs-5xl:  48px;
+  --fs-6xl:  64px;
+
+  --lh-tight:   1.15;
+  --lh-snug:    1.3;
+  --lh-normal:  1.5;
+  --lh-relaxed: 1.65;
+
+  --tracking-tight:  -0.02em;
+  --tracking-snug:   -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-caps:   0.08em;
+
+  --fw-light:    300;
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* ------------------------------------------------------------
+     SPACING — 4px base grid
+     ------------------------------------------------------------ */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  /* ------------------------------------------------------------
+     RADII — modestly rounded, never pillowy
+     ------------------------------------------------------------ */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-pill: 999px;
+
+  /* ------------------------------------------------------------
+     SHADOWS — soft, neutral, never teal-tinted
+     ------------------------------------------------------------ */
+  --shadow-xs:  0 1px 2px rgba(8, 20, 20, 0.04);
+  --shadow-sm:  0 1px 2px rgba(8, 20, 20, 0.05), 0 1px 3px rgba(8, 20, 20, 0.06);
+  --shadow-md:  0 2px 4px rgba(8, 20, 20, 0.05), 0 4px 10px rgba(8, 20, 20, 0.06);
+  --shadow-lg:  0 4px 8px rgba(8, 20, 20, 0.06), 0 12px 24px rgba(8, 20, 20, 0.08);
+  --shadow-xl:  0 8px 16px rgba(8, 20, 20, 0.08), 0 24px 48px rgba(8, 20, 20, 0.10);
+  --shadow-focus: 0 0 0 3px rgba(20, 184, 184, 0.28);
+  --shadow-focus-danger: 0 0 0 3px rgba(192, 53, 43, 0.22);
+
+  /* Inner shadow for inputs / wells */
+  --shadow-inset: inset 0 1px 2px rgba(8, 20, 20, 0.04);
+
+  /* ------------------------------------------------------------
+     MOTION — quick, confident, no bounce
+     ------------------------------------------------------------ */
+  --duration-instant: 80ms;
+  --duration-fast:    140ms;
+  --duration-base:    200ms;
+  --duration-slow:    320ms;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);      /* default */
+  --ease-emphasis: cubic-bezier(0.2, 0, 0.2, 1);
+  --ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+
+  /* ------------------------------------------------------------
+     LAYOUT
+     ------------------------------------------------------------ */
+  --z-base:    1;
+  --z-sticky:  10;
+  --z-dropdown: 100;
+  --z-modal:   1000;
+  --z-toast:   2000;
+
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1440px;
+}
+
+/* ============================================================
+   SEMANTIC TYPOGRAPHY CLASSES
+   ============================================================ */
+
+.sl-display {
+  font-family: var(--font-display);
+  font-size: var(--fs-6xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+
+.sl-h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-4xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+
+.sl-h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-snug);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+
+.sl-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-snug);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+
+.sl-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-snug);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+
+.sl-h5 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-snug);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+
+.sl-p {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  font-weight: var(--fw-regular);
+  color: var(--fg1);
+}
+
+.sl-lead {
+  font-family: var(--font-sans);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-relaxed);
+  font-weight: var(--fw-regular);
+  color: var(--fg2);
+}
+
+.sl-small {
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--fg2);
+}
+
+.sl-meta {
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-normal);
+  color: var(--fg3);
+}
+
+.sl-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--fg2);
+}
+
+.sl-code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
+  color: var(--fg1);
+  background: var(--bg-sunken);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.sl-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ============================================================
+   GLOBAL RESET (scoped — opt in with class="sl")
+   ============================================================ */
+.sl, .sl * { box-sizing: border-box; }
+.sl {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--fg1);
+  background: var(--bg-canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ============================================================
+   GUARDIAN APP OVERRIDES
+   Preserved utilities, third-party overrides, and motion
+   helpers used across the existing app surface.
+   ============================================================ */
 
 /* Custom utility classes for enhanced UI components */
 @layer utilities {
@@ -13,7 +354,7 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  
+
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -22,14 +363,12 @@
   }
 }
 
-/* Ensure SweetAlert2 modal overlay is visible and dimmed above all dashboard content */
+/* SweetAlert2 modal overlay — dim above all dashboard content */
 .swal2-container {
   background: rgba(30, 41, 59, 0.55) !important;
-  /* slate-800/55 */
   z-index: 99999 !important;
 }
 
-/* Add a solid background for the SweetAlert2 modal content area */
 .swal2-html-container {
   background: #fff !important;
   border-radius: 1rem !important;
@@ -45,10 +384,9 @@
   padding: 0 !important;
 }
 
-/* Custom SweetAlert2 button styling */
 .swal2-confirm {
-  background-color: #032424 !important;
-  border: 1px solid #032424 !important;
+  background-color: var(--sl-teal-900) !important;
+  border: 1px solid var(--sl-teal-900) !important;
   color: white !important;
   padding: 0.625em 1.1em !important;
   border-radius: 0.25em !important;
@@ -58,134 +396,82 @@
 }
 
 .swal2-confirm:hover {
-  background-color: #041d1d !important;
-  border-color: #041d1d !important;
+  background-color: var(--sl-teal-800) !important;
+  border-color: var(--sl-teal-800) !important;
   transform: scale(1.02) !important;
 }
 
 .swal2-confirm:focus {
-  background-color: #032424 !important;
-  border-color: #032424 !important;
-  box-shadow: 0 0 0 3px rgba(3, 36, 36, 0.25) !important;
+  background-color: var(--sl-teal-900) !important;
+  border-color: var(--sl-teal-900) !important;
+  box-shadow: var(--shadow-focus) !important;
   outline: none !important;
 }
 
 .swal2-confirm:active {
-  background-color: #021b1b !important;
+  background-color: var(--sl-teal-950) !important;
   transform: scale(0.98) !important;
 }
 
 /* Guardian Invite Acceptance Delightful Animations */
 @keyframes celebrationBounce {
-  0%, 20%, 53%, 80%, 100% {
-    transform: translate3d(0, 0, 0);
-  }
-  40%, 43% {
-    transform: translate3d(0, -15px, 0);
-  }
-  70% {
-    transform: translate3d(0, -7px, 0);
-  }
-  90% {
-    transform: translate3d(0, -3px, 0);
-  }
+  0%, 20%, 53%, 80%, 100% { transform: translate3d(0, 0, 0); }
+  40%, 43% { transform: translate3d(0, -15px, 0); }
+  70% { transform: translate3d(0, -7px, 0); }
+  90% { transform: translate3d(0, -3px, 0); }
 }
 
 @keyframes sparkleFloat {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 0.8;
-  }
-  50% {
-    transform: translateY(-5px) rotate(180deg);
-    opacity: 1;
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.8; }
+  50% { transform: translateY(-5px) rotate(180deg); opacity: 1; }
 }
 
 @keyframes progressPulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(46, 188, 188, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(46, 188, 188, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(46, 188, 188, 0);
-  }
+  0% { box-shadow: 0 0 0 0 rgba(20, 184, 184, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(20, 184, 184, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(20, 184, 184, 0); }
 }
 
 @keyframes welcomeWave {
-  0% {
-    transform: rotate(0deg);
-  }
-  10% {
-    transform: rotate(14deg);
-  }
-  20% {
-    transform: rotate(-8deg);
-  }
-  30% {
-    transform: rotate(14deg);
-  }
-  40% {
-    transform: rotate(-4deg);
-  }
-  50% {
-    transform: rotate(10deg);
-  }
-  60% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(14deg); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(10deg); }
+  60% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
 }
 
-/* Success celebration animations */
-.celebration-bounce {
-  animation: celebrationBounce 1.2s ease-in-out;
-}
+.celebration-bounce { animation: celebrationBounce 1.2s ease-in-out; }
+.sparkle-float      { animation: sparkleFloat 2s ease-in-out infinite; }
+.progress-pulse     { animation: progressPulse 2s infinite; }
+.welcome-wave       { animation: welcomeWave 2.5s ease-in-out; }
 
-.sparkle-float {
-  animation: sparkleFloat 2s ease-in-out infinite;
-}
-
-.progress-pulse {
-  animation: progressPulse 2s infinite;
-}
-
-.welcome-wave {
-  animation: welcomeWave 2.5s ease-in-out;
-}
-
-/* Enhanced hover effects for professional delight */
+/* Hover effects — re-anchored to the new brand teal */
 .guardian-card:hover {
   transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .guardian-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(46, 188, 188, 0.3);
+  box-shadow: 0 4px 12px rgba(20, 184, 184, 0.3);
 }
 
 .guardian-input:focus {
   transform: scale(1.01);
-  box-shadow: 0 0 0 3px rgba(46, 188, 188, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-focus), var(--shadow-sm);
 }
 
-/* Subtle loading state enhancements */
+/* Subtle loading shimmer */
 .loading-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--sl-gray-100) 25%, var(--sl-gray-200) 50%, var(--sl-gray-100) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

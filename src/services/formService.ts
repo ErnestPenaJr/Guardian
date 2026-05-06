@@ -37,6 +37,7 @@ export interface DbForm {
   IS_DELETED: boolean;
   IS_INTERNAL?: boolean;
   IS_EXTERNAL?: boolean;
+  TEMPLATE_TYPE?: string | null;
   CREATE_USER_ID?: number;
   UPDATE_USER_ID?: number;
 }
