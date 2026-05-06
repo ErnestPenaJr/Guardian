@@ -196,6 +196,7 @@ stages:
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
               deploymentMethod: 'zipDeploy'
+              appSettings: '-SCM_DO_BUILD_DURING_DEPLOYMENT false -PRISMA_SKIP_POSTINSTALL_GENERATE true'
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
           - script: |
@@ -231,69 +232,11 @@ stages:
 
               if [ $FAILED -eq 1 ]; then
                 echo ""
-                echo "❌ Staging verification FAILED - blocking production deploy"
+                echo "❌ Staging verification FAILED"
                 exit 1
               fi
 
               echo ""
-              echo "✅ All staging checks passed - production deploy can proceed"
+              echo "✅ All staging checks passed"
               echo "Staging: $STAGING_URL"
-            displayName: 'Post-deployment verification'
-
-- stage: DeployProduction
-  displayName: 'Deploy to Production'
-  dependsOn: DeployStaging
-  jobs:
-  - deployment: DeployProduction
-    environment: 'Production'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: 'drop'
-              path: '$(System.DefaultWorkingDirectory)'
-            displayName: 'Download build artifact'
-
-          - task: AzureWebApp@1
-            inputs:
-              azureSubscription: 'AzureSP-Dev'
-              appType: 'webApp'
-              appName: 'GUARDIAN-MVP'
-              package: '$(System.DefaultWorkingDirectory)/app.zip'
-              runtimeStack: 'NODE|20-lts'
-              deploymentMethod: 'zipDeploy'
-            displayName: 'Deploy to Production (GUARDIAN-MVP)'
-
-          - script: |
-              echo "Post-deployment verification starting..."
-              echo "Waiting 30 seconds for deployment to stabilize..."
-              sleep 30
-
-              PROD_URL="guardian-mvp-dtgph0bcd4ctdbhb.eastus2-01.azurewebsites.net"
-
-              echo "===== Production ($PROD_URL) ====="
-
-              if curl -f -s --max-time 30 "$PROD_URL/api/health" > /dev/null; then
-                echo "✅ API health check PASSED"
-              else
-                echo "❌ API health check FAILED"
-              fi
-
-              if curl -f -s --max-time 30 "$PROD_URL/api/debug/assets" > /dev/null; then
-                echo "✅ Asset verification PASSED"
-              else
-                echo "❌ Asset verification FAILED"
-              fi
-
-              if curl -f -s --max-time 30 "$PROD_URL" > /dev/null; then
-                echo "✅ Main page PASSED"
-              else
-                echo "❌ Main page FAILED"
-              fi
-
-              echo ""
-              echo "Deployment complete"
-              echo "Production: $PROD_URL"
             displayName: 'Post-deployment verification'
