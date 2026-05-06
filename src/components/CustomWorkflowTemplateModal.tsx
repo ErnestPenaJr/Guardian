@@ -49,12 +49,18 @@ interface CustomWorkflowTemplateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateNew?: () => void;
+  // When set, scopes the modal to one TEMPLATE_TYPE: list, status filter, and
+  // the create-dialog dropdown all lock to this value. Without it the modal
+  // shows everything (legacy behavior). Use 'request' for the admin Workflow
+  // card and 'notice' from notice-management entry points.
+  formType?: 'notice' | 'request';
 }
 
 const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = ({
   isOpen,
   onClose,
-  onCreateNew
+  onCreateNew,
+  formType
 }) => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<CustomWorkflowTemplate[]>([]);
@@ -67,7 +73,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    formType: 'notice' as 'notice' | 'request',
+    formType: (formType ?? 'notice') as 'notice' | 'request',
   });
   const [creating, setCreating] = useState(false);
 
@@ -75,7 +81,10 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/custom-templates', {
+      const url = formType
+        ? `/api/custom-templates?type=${encodeURIComponent(formType)}`
+        : '/api/custom-templates';
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -124,12 +133,12 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
     setFilteredTemplates(filtered);
   }, [templates, searchTerm, statusFilter]);
 
-  // Load templates when modal opens
+  // Load templates when modal opens or scope changes
   useEffect(() => {
     if (isOpen) {
       loadTemplates();
     }
-  }, [isOpen]);
+  }, [isOpen, formType]);
 
   // Handle delete template
   const handleDeleteTemplate = async (templateId: number, templateName: string) => {
@@ -199,7 +208,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const resetModalState = () => {
     setShowCreateForm(false);
     setEditingTemplate(null);
-    setFormData({ name: '', description: '', formType: 'notice' });
+    setFormData({ name: '', description: '', formType: formType ?? 'notice' });
     setSearchTerm('');
     setStatusFilter('all');
   };
@@ -208,7 +217,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const handleCancel = () => {
     setShowCreateForm(false);
     setEditingTemplate(null);
-    setFormData({ name: '', description: '', formType: 'notice' });
+    setFormData({ name: '', description: '', formType: formType ?? 'notice' });
   };
 
   // Handle modal close
@@ -248,7 +257,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                       onCreateNew();
                       return;
                     }
-                    setFormData({ name: '', description: '', formType: 'notice' });
+                    setFormData({ name: '', description: '', formType: formType ?? 'notice' });
                     setShowCreateForm(true);
                   }}
                 >
@@ -338,14 +347,19 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Template Type</label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={formData.formType}
                       onChange={(e) => setFormData({ ...formData, formType: e.target.value as 'notice' | 'request' })}
+                      disabled={!!formType}
                     >
                       <option value="notice">Notice — Notification forms</option>
                       <option value="request">Request — Workflow forms</option>
                     </select>
-                    <p className="text-xs text-gray-500">Select the primary use case for this template</p>
+                    <p className="text-xs text-gray-500">
+                      {formType
+                        ? `Locked to ${formType} templates in this view.`
+                        : 'Select the primary use case for this template'}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -436,7 +450,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                   <button
                     className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
                     onClick={() => {
-                      setFormData({ name: '', description: '', formType: 'notice' });
+                      setFormData({ name: '', description: '', formType: formType ?? 'notice' });
                       setShowCreateForm(true);
                     }}
                   >

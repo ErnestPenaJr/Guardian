@@ -103,6 +103,11 @@ export default function FormBuilderPage() {
         return;
       }
     } else {
+      // Normalize the URL ?type= param ('Notice', 'Request', 'Self-Service', …)
+      // into the strict server vocabulary so notice templates don't leak into
+      // the request templates list (or vice versa).
+      const normalizedType: 'notice' | 'request' =
+        (formType || '').toLowerCase() === 'notice' ? 'notice' : 'request';
       const dbForm: DbForm = {
         FORM_NAME: data.name,
         FORM_DESCRIPTION: data.description,
@@ -111,6 +116,7 @@ export default function FormBuilderPage() {
         IS_EXTERNAL: initialIsExternal,
         IS_ACTIVE: true,
         IS_DELETED: false,
+        TEMPLATE_TYPE: normalizedType,
       };
       const dbFields = formService.convertFormFieldsToDbFields(savableFields);
       const result = await formService.createForm(dbForm, dbFields);

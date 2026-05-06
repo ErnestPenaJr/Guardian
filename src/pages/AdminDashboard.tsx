@@ -430,11 +430,14 @@ const AdminDashboard: React.FC<{
         onSave={handleTemplateEditorSave}
       />
 
-      {/* Custom Workflow Template Modal - admins (role 1) and super admins (role 6) */}
+      {/* Custom Workflow Template Modal - admins (role 1) and super admins (role 6).
+          Scoped to 'request' so notice templates don't appear in this list; notice
+          templates are managed from the notices section. */}
       <CustomWorkflowTemplateModal
         isOpen={customTemplateModalOpen}
         onClose={() => setCustomTemplateModalOpen(false)}
         onCreateNew={handleCreateNewTemplate}
+        formType="request"
       />
     </div>
   );

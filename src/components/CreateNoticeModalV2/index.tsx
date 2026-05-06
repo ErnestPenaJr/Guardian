@@ -477,7 +477,7 @@ function Step1({
     return (
       <div style={{ fontFamily: 'Inter, sans-serif', color: '#4F4F4F', padding: 16 }}>
         No notice templates available.{' '}
-        <a href="/admin/workflow-templates" style={{ color: '#2F8CED' }}>
+        <a href="/admin/workflow-templates?type=notice" style={{ color: '#2F8CED' }}>
           Create one in Custom Workflow Templates
         </a>
         .

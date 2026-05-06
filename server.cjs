@@ -8700,7 +8700,8 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                     WHEN ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL THEN 0
                     ELSE 1
                 END,
-                FORM_NAME
+                CREATE_DATE DESC,
+                FORM_ID DESC
         `;
 
         console.log(`✅ Found ${forms.length} forms for company ${req.companyId}`);
@@ -8789,16 +8790,21 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const isInternal = form.IS_INTERNAL === false ? 0 : 1;
         const isExternal = form.IS_EXTERNAL === false ? 0 : 1;
 
+        // Stamp TEMPLATE_TYPE on create so notice templates never leak into
+        // the request templates list (which queries this same table).
+        const rawTemplateType = (form.TEMPLATE_TYPE || 'request').toString().toLowerCase();
+        const templateType = rawTemplateType === 'notice' ? 'notice' : 'request';
+
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
-                IS_INTERNAL, IS_EXTERNAL,
+                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
                 '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
-                ${isInternal}, ${isExternal},
+                ${isInternal}, ${isExternal}, '${templateType}',
                 GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
@@ -10461,7 +10467,7 @@ app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) =
             GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
                      f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
                      f.CREATE_DATE, f.UPDATE_DATE
-            ORDER BY f.CREATE_DATE ASC
+            ORDER BY f.CREATE_DATE DESC, f.FORM_ID DESC
         `;
         const customTemplates = await prisma.$queryRawUnsafe(sql);
 
