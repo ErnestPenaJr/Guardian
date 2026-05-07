@@ -103,13 +103,13 @@ export default function JafarRoleSettings() {
 
   const cyclePerm = (roleId: number, key: string) => {
     if (!perms) return;
-    const current = getPermValue(roleId, key);
-    // Cycle: default -> grant -> deny -> default
-    const next: Tristate = current === null ? true : current === true ? false : null;
     const editKey = cellKey(roleId, key);
+    const original = readOverride(perms.overrides || {}, roleId, key);
     setPermEdits((prev) => {
+      const current: Tristate = prev.has(editKey) ? (prev.get(editKey) as Tristate) : original;
+      // Cycle: default -> grant -> deny -> default
+      const next: Tristate = current === null ? true : current === true ? false : null;
       const m = new Map(prev);
-      const original = readOverride(perms.overrides || {}, roleId, key);
       if (next === original) m.delete(editKey);
       else m.set(editKey, next);
       return m;
@@ -161,13 +161,13 @@ export default function JafarRoleSettings() {
   };
   const cycleForm = (formId: number) => {
     if (!forms) return;
-    const current = getFormValue(formId);
-    const next: Tristate = current === null ? true : current === true ? false : null;
     const k = formCellKey(formId);
+    const orig = forms.overrides?.[String(externalRoleId)]?.[String(formId)]?.global;
+    const origTri: Tristate = orig === true || orig === false ? orig : null;
     setFormEdits((prev) => {
+      const current: Tristate = prev.has(k) ? (prev.get(k) as Tristate) : origTri;
+      const next: Tristate = current === null ? true : current === true ? false : null;
       const m = new Map(prev);
-      const orig = forms.overrides?.[String(externalRoleId)]?.[String(formId)]?.global;
-      const origTri: Tristate = orig === true || orig === false ? orig : null;
       if (next === origTri) m.delete(k);
       else m.set(k, next);
       return m;
@@ -202,13 +202,13 @@ export default function JafarRoleSettings() {
   };
   const cycleNt = (nt: string) => {
     if (!noticeTypes) return;
-    const current = getNtValue(nt);
-    const next: Tristate = current === null ? true : current === true ? false : null;
     const k = ntCellKey(nt);
+    const orig = noticeTypes.overrides?.[String(externalRoleId)]?.[nt]?.global;
+    const origTri: Tristate = orig === true || orig === false ? orig : null;
     setNtEdits((prev) => {
+      const current: Tristate = prev.has(k) ? (prev.get(k) as Tristate) : origTri;
+      const next: Tristate = current === null ? true : current === true ? false : null;
       const m = new Map(prev);
-      const orig = noticeTypes.overrides?.[String(externalRoleId)]?.[nt]?.global;
-      const origTri: Tristate = orig === true || orig === false ? orig : null;
       if (next === origTri) m.delete(k);
       else m.set(k, next);
       return m;
@@ -238,6 +238,21 @@ export default function JafarRoleSettings() {
     [tab, permEdits, formEdits, ntEdits],
   );
 
+  const discardEdits = () => {
+    if (tab === 'permissions') setPermEdits(new Map());
+    else if (tab === 'forms') setFormEdits(new Map());
+    else setNtEdits(new Map());
+  };
+
+  const pendingPermSummary = useMemo(() => {
+    if (tab !== 'permissions' || !perms) return [] as Array<{ label: string; next: Tristate }>;
+    const roleNameById = new Map(perms.roles.map((r) => [r.id, r.name] as const));
+    return Array.from(permEdits.entries()).map(([k, v]) => {
+      const [roleId, key] = k.split('::');
+      return { label: `${roleNameById.get(Number(roleId)) ?? roleId} · ${key}`, next: v };
+    });
+  }, [tab, perms, permEdits]);
+
   if (loading) return <div className="p-6">Loading role settings…</div>;
   if (!perms) return <div className="p-6 text-red-600">Failed to load role settings.</div>;
 
@@ -259,6 +274,14 @@ export default function JafarRoleSettings() {
         >
           {saving ? 'Saving…' : dirtyCount > 0 ? `Save ${dirtyCount} change${dirtyCount === 1 ? '' : 's'}` : 'No changes'}
         </button>
+        <button
+          className="btn btn-outline-secondary"
+          disabled={saving || dirtyCount === 0}
+          onClick={discardEdits}
+          title="Clear unsaved changes on this tab"
+        >
+          Discard
+        </button>
         {tab === 'permissions' && (
           <button className="btn btn-outline-danger" disabled={saving} onClick={resetPerms}>
             Reset all permissions to defaults
@@ -268,6 +291,25 @@ export default function JafarRoleSettings() {
           Click a cell to cycle: <span className="font-mono">default → grant → deny → default</span>
         </span>
       </div>
+
+      {tab === 'permissions' && pendingPermSummary.length > 0 && (
+        <details className="mb-4 bg-blue-50 border border-blue-200 rounded p-3" open>
+          <summary className="cursor-pointer text-sm font-semibold text-blue-900">
+            Pending changes ({pendingPermSummary.length})
+          </summary>
+          <ul className="mt-2 text-xs space-y-0.5 max-h-40 overflow-auto">
+            {pendingPermSummary.map((p, i) => (
+              <li key={i} className="font-mono text-gray-700">
+                <span className="text-gray-500">{p.label}</span>
+                {' → '}
+                <span className={p.next === true ? 'text-green-700 font-semibold' : p.next === false ? 'text-red-700 font-semibold' : 'text-gray-500 font-semibold'}>
+                  {p.next === true ? 'grant' : p.next === false ? 'deny' : 'default'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       {tab === 'permissions' && (
         <PermissionsGrid

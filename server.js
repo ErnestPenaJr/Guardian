@@ -10248,23 +10248,23 @@ app.put('/api/admin/permissions', getAuthenticatedUserCompany, requireJafar, asy
             if (!ALLOWED_PERMISSION_KEYS.has(c.permissionKey)) return res.status(400).json({ error: `Unknown permissionKey: ${c.permissionKey}` });
             if (c.granted !== true && c.granted !== false && c.granted !== null) return res.status(400).json({ error: 'granted must be true, false, or null' });
         }
-        for (const c of changes) {
+        const ops = changes.map((c) => {
             if (c.granted === null) {
-                await prisma.$executeRawUnsafe(
+                return prisma.$executeRawUnsafe(
                     `DELETE FROM GUARDIAN.ROLE_PERMISSIONS WHERE ROLE_ID = ${c.roleId} AND PERMISSION_KEY = '${c.permissionKey}' AND COMPANY_ID IS NULL`
                 );
-            } else {
-                const grantedBit = c.granted ? 1 : 0;
-                await prisma.$executeRawUnsafe(
-                    `MERGE GUARDIAN.ROLE_PERMISSIONS WITH (HOLDLOCK) AS T
-                     USING (SELECT ${c.roleId} AS ROLE_ID, '${c.permissionKey}' AS PERMISSION_KEY) AS S
-                     ON T.ROLE_ID = S.ROLE_ID AND T.PERMISSION_KEY = S.PERMISSION_KEY AND T.COMPANY_ID IS NULL
-                     WHEN MATCHED THEN UPDATE SET GRANTED = ${grantedBit}, UPDATE_DATE = SYSUTCDATETIME(), UPDATE_USER_ID = ${req.userId}
-                     WHEN NOT MATCHED THEN INSERT (ROLE_ID, PERMISSION_KEY, GRANTED, COMPANY_ID, UPDATE_USER_ID)
-                       VALUES (${c.roleId}, '${c.permissionKey}', ${grantedBit}, NULL, ${req.userId});`
-                );
             }
-        }
+            const grantedBit = c.granted ? 1 : 0;
+            return prisma.$executeRawUnsafe(
+                `MERGE GUARDIAN.ROLE_PERMISSIONS WITH (HOLDLOCK) AS T
+                 USING (SELECT ${c.roleId} AS ROLE_ID, '${c.permissionKey}' AS PERMISSION_KEY) AS S
+                 ON T.ROLE_ID = S.ROLE_ID AND T.PERMISSION_KEY = S.PERMISSION_KEY AND T.COMPANY_ID IS NULL
+                 WHEN MATCHED THEN UPDATE SET GRANTED = ${grantedBit}, UPDATE_DATE = SYSUTCDATETIME(), UPDATE_USER_ID = ${req.userId}
+                 WHEN NOT MATCHED THEN INSERT (ROLE_ID, PERMISSION_KEY, GRANTED, COMPANY_ID, UPDATE_USER_ID)
+                   VALUES (${c.roleId}, '${c.permissionKey}', ${grantedBit}, NULL, ${req.userId});`
+            );
+        });
+        await prisma.$transaction(ops);
         await require('./lib/permissions.cjs').cache.invalidate();
         console.log(`✅ JAFAR ${req.userId} updated ${changes.length} permission overrides`);
         res.json({ ok: true, applied: changes.length });
