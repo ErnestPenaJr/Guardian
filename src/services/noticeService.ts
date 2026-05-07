@@ -89,25 +89,79 @@ export interface NoticeFilters {
   dateTo?: string;
 }
 
+// CreateNoticeModalV2 writes through POST /api/my-notices into GUARDIAN.MY_NOTICES,
+// so the dashboard list must read from the same source. The previous /api/notices/my
+// endpoint reads the legacy GUARDIAN.NOTICES table, which is why newly-created
+// notices appeared to "vanish" on the landing page. Map the new schema onto the
+// legacy Notice shape NoticesLandingPage's columns expect.
+function mapMyNoticeToLegacy(row: Record<string, unknown>): Notice {
+  const buttonStatus = String(row.BUTTON_STATUS ?? '');
+  const status = buttonStatus === 'Sent' ? 'PUBLISHED' : buttonStatus === 'Draft' ? 'DRAFT' : buttonStatus;
+  const createUserName = String(row.CREATE_USER_NAME ?? '').trim();
+  const [first, ...rest] = createUserName.split(' ');
+  const createDate = (row.CREATE_DATE as string) ?? '';
+  return {
+    NOTICE_ID: Number(row.NOTICE_ID),
+    TITLE: String(row.NOTICE_TITLE ?? ''),
+    CONTENT: String(row.NOTICE_BODY ?? ''),
+    NOTICE_TYPE: String(row.DISTRIBUTION_TYPE ?? 'GENERAL'),
+    STATUS: status,
+    PRIORITY_LEVEL: 'MEDIUM',
+    DUE_DATE: null,
+    ISSUED_BY_USER_ID: Number(row.CREATE_USER_ID ?? 0),
+    ISSUE_DATE: createDate || null,
+    COMPANY_ID: Number(row.COMPANY_ID ?? 0),
+    FORM_TEMPLATE_ID: null,
+    CANCELLATION_REASON: null,
+    IS_ACTIVE: status === 'PUBLISHED',
+    IS_DELETED: false,
+    CREATE_DATE: createDate,
+    UPDATE_DATE: String(row.UPDATE_DATE ?? createDate),
+    CREATE_USER_ID: row.CREATE_USER_ID == null ? null : Number(row.CREATE_USER_ID),
+    UPDATE_USER_ID: null,
+    ISSUED_BY_USER: createUserName
+      ? { FIRST_NAME: first || createUserName, LAST_NAME: rest.join(' '), EMAIL: '' }
+      : undefined,
+    _recipientCount: Number(row.RECIPIENTS_COUNT ?? 0),
+    // MY_NOTICES has no per-user read tracking yet; default to read so the
+    // creator's own notice doesn't render with a "NEW" badge.
+    _isRead: true,
+  };
+}
+
+// /api/my-notices uses Sent/Draft for BUTTON_STATUS while the landing page
+// filter uses the legacy PUBLISHED/DRAFT vocabulary.
+function mapStatusFilterToButton(status: string | undefined): string | undefined {
+  if (!status) return undefined;
+  if (status === 'PUBLISHED' || status === 'ACTIVE') return 'Sent';
+  if (status === 'DRAFT') return 'Draft';
+  return status;
+}
+
 class NoticeService {
   /**
-   * Get all notices for the current user (notices issued to them)
+   * Get all notices for the current user.
+   * Reads from /api/my-notices (GUARDIAN.MY_NOTICES) so newly-created notices
+   * surface on the landing page.
    */
   async getMyNotices(filters?: NoticeFilters): Promise<Notice[]> {
     try {
-      const params = new URLSearchParams();
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.noticeType) params.append('noticeType', filters.noticeType);
-      if (filters?.unreadOnly) params.append('unreadOnly', 'true');
-      if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters?.dateTo) params.append('dateTo', filters.dateTo);
-
-      const queryString = params.toString();
-      const url = `/api/notices/my${queryString ? `?${queryString}` : ''}`;
-      
-      const response = await api.get(url);
+      const buttonStatus = mapStatusFilterToButton(filters?.status);
+      const response = await api.get('/api/my-notices', {
+        params: {
+          status: buttonStatus,
+          // The landing page does its own client-side search; pull a generous
+          // page so the local filter has rows to work with.
+          limit: 100,
+        },
+      });
       const payload = response.data;
-      return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+      const rows: Record<string, unknown>[] = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      return rows.map(mapMyNoticeToLegacy);
     } catch (error) {
       console.error('Error fetching my notices:', error);
       throw error;
@@ -115,28 +169,13 @@ class NoticeService {
   }
 
   /**
-   * Get all notices (role-based - only for authorized users)
+   * Get all notices (management view).
+   * /api/my-notices already returns every notice in the user's company, so the
+   * "All Notices" tab uses the same source as "My Notices" until a richer
+   * recipient/issuer split lands server-side.
    */
   async getAllNotices(filters?: NoticeFilters): Promise<Notice[]> {
-    try {
-      const params = new URLSearchParams();
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.noticeType) params.append('noticeType', filters.noticeType);
-      if (filters?.unreadOnly) params.append('unreadOnly', 'true');
-      if (filters?.issuedByMe) params.append('issuedByMe', 'true');
-      if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters?.dateTo) params.append('dateTo', filters.dateTo);
-
-      const queryString = params.toString();
-      const url = `/api/notices${queryString ? `?${queryString}` : ''}`;
-      
-      const response = await api.get(url);
-      const payload = response.data;
-      return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
-    } catch (error) {
-      console.error('Error fetching all notices:', error);
-      throw error;
-    }
+    return this.getMyNotices(filters);
   }
 
   /**

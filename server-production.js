@@ -10703,13 +10703,18 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
             return res.status(400).json({ error: 'Valid template ID required' });
         }
         
-        // Verify template exists and belongs to user's company
+        // Verify template exists and belongs to user's company. Pull the
+        // existing column values too — partial updates (e.g. just IS_ACTIVE
+        // from the deactivate toggle) need them as fallbacks so the UPDATE
+        // doesn't NULL out NOT NULL columns like FORM_NAME, and so we can
+        // mirror IS_ACTIVE into STATUS for non-draft templates.
         const existingTemplate = await prisma.$queryRaw`
-            SELECT FORM_ID FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${templateId} 
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, STATUS
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${templateId}
             AND COMPANY_ID = ${req.companyId}
         `;
-        
+
         if (existingTemplate.length === 0) {
             return res.status(404).json({
                 error: 'Custom template not found or access denied'
@@ -10725,27 +10730,52 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
             // Backward compatibility with old format
             formUpdates = req.body;
         }
-        
-        // Update the form metadata if provided
+
+        // Update the form metadata if provided. Only overwrite columns that
+        // were explicitly included in the request body — anything missing
+        // falls back to the existing row so toggling IS_ACTIVE alone doesn't
+        // wipe out FORM_NAME / FORM_DESCRIPTION.
         if (formUpdates) {
             console.log('📝 Updating form metadata:', formUpdates);
-            
-            const formName = formUpdates.FORM_NAME?.trim();
-            const formDescription = formUpdates.FORM_DESCRIPTION?.trim() || '';
-            const isActive = formUpdates.IS_ACTIVE;
-            
-            if (formName !== undefined || formDescription !== undefined || isActive !== undefined) {
+
+            const hasName = typeof formUpdates.FORM_NAME === 'string';
+            const hasDescription = typeof formUpdates.FORM_DESCRIPTION === 'string';
+            const hasIsActive = formUpdates.IS_ACTIVE !== undefined;
+
+            if (hasName || hasDescription || hasIsActive) {
+                const trimmedName = hasName ? formUpdates.FORM_NAME.trim() : '';
+                const formName = hasName && trimmedName
+                    ? trimmedName
+                    : existingTemplate[0].FORM_NAME;
+                const formDescription = hasDescription
+                    ? (formUpdates.FORM_DESCRIPTION.trim() || '')
+                    : (existingTemplate[0].FORM_DESCRIPTION ?? '');
+                const isActive = hasIsActive
+                    ? !!formUpdates.IS_ACTIVE
+                    : !!existingTemplate[0].IS_ACTIVE;
+
+                // Mirror IS_ACTIVE into STATUS so the Create Notice/Request
+                // pickers (which filter on STATUS='active') stay consistent
+                // with the Deactivate toggle. Drafts are left alone — a draft
+                // that gets deactivated stays a draft, not silently published.
+                const existingStatus = existingTemplate[0].STATUS;
+                let newStatus = existingStatus;
+                if (hasIsActive && existingStatus !== 'draft') {
+                    newStatus = isActive ? 'active' : 'inactive';
+                }
+
                 await prisma.$executeRaw`
-                    UPDATE GUARDIAN.FORMS 
-                    SET FORM_NAME = ${formName || existingTemplate[0].FORM_NAME},
+                    UPDATE GUARDIAN.FORMS
+                    SET FORM_NAME = ${formName},
                         FORM_DESCRIPTION = ${formDescription},
-                        IS_ACTIVE = ${isActive !== undefined ? isActive : true},
-                        UPDATE_USER_ID = ${req.userId}, 
+                        IS_ACTIVE = ${isActive},
+                        STATUS = ${newStatus},
+                        UPDATE_USER_ID = ${req.userId},
                         UPDATE_DATE = GETDATE()
                     WHERE FORM_ID = ${templateId}
                     AND COMPANY_ID = ${req.companyId}
                 `;
-                console.log('✅ Updated form metadata');
+                console.log(`✅ Updated form metadata (IS_ACTIVE=${isActive}, STATUS=${newStatus})`);
             }
         }
         

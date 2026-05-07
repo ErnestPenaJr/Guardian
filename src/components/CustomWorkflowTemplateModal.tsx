@@ -44,6 +44,10 @@ interface CustomWorkflowTemplate {
   // pickers filter on STATUS='active', so drafts with this flag are invisible
   // until the user publishes them. Surface that explicitly in the card UI.
   STATUS?: 'draft' | 'active' | 'inactive';
+  // TEMPLATE_TYPE drives which Create picker the template belongs to (Notice
+  // vs Request). Surfaced as a card badge so users browsing a mixed list can
+  // tell what they're looking at.
+  TEMPLATE_TYPE?: 'notice' | 'request';
   CREATE_DATE: string;
   fieldCount?: number;
   fields?: any[];
@@ -73,7 +77,7 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CustomWorkflowTemplate | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'draft'>('all');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -127,11 +131,15 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
       );
     }
 
-    // Apply status filter
+    // Apply status filter. 'draft' uses the STATUS string (publication state)
+    // since drafts have IS_ACTIVE=true server-side and would otherwise hide
+    // under the "Active" bucket; 'active'/'inactive' continue to read the
+    // IS_ACTIVE boolean (deactivated state, independent of STATUS).
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(template =>
-        statusFilter === 'active' ? template.IS_ACTIVE : !template.IS_ACTIVE
-      );
+      filtered = filtered.filter(template => {
+        if (statusFilter === 'draft') return template.STATUS === 'draft';
+        return statusFilter === 'active' ? template.IS_ACTIVE : !template.IS_ACTIVE;
+      });
     }
 
     setFilteredTemplates(filtered);
@@ -303,10 +311,11 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                   <select
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                    onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive' | 'draft')}
                   >
                     <option value="all">All Templates</option>
                     <option value="active">Active Templates</option>
+                    <option value="draft">Draft Templates</option>
                     <option value="inactive">Inactive Templates</option>
                   </select>
                 </div>
@@ -321,6 +330,10 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                   <span className="text-gray-600">Active: {templates.filter(t => t.IS_ACTIVE).length}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                  <span className="text-gray-600">Draft: {templates.filter(t => t.STATUS === 'draft').length}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
@@ -500,7 +513,22 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                             <h3 className="text-lg font-medium text-gray-900 truncate" title={template.FORM_NAME}>
                               {template.FORM_NAME}
                             </h3>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <div className="flex items-center flex-wrap gap-2 mt-1">
+                              {/* Type badge — Notice vs Request — so a mixed
+                                  list isn't ambiguous. Falls back gracefully
+                                  if the server didn't include TEMPLATE_TYPE. */}
+                              {template.TEMPLATE_TYPE === 'notice' && (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-sky-100 text-sky-800" title="Notice template — appears in the Create Notice picker when active.">
+                                  <div className="w-1.5 h-1.5 bg-sky-500 rounded-full mr-1.5" />
+                                  Notice
+                                </span>
+                              )}
+                              {template.TEMPLATE_TYPE === 'request' && (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800" title="Request template — appears in the Create Request picker when active.">
+                                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-1.5" />
+                                  Request
+                                </span>
+                              )}
                               {/* Draft has its own pill — Active/Inactive badge below
                                   was treating drafts as 'Active' which hid the fact
                                   that they don't show in Create Notice/Request pickers. */}
