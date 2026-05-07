@@ -40,6 +40,10 @@ interface CustomWorkflowTemplate {
   FORM_NAME: string;
   FORM_DESCRIPTION: string;
   IS_ACTIVE: boolean;
+  // STATUS is the source of truth for "appears in Create Notice picker" —
+  // pickers filter on STATUS='active', so drafts with this flag are invisible
+  // until the user publishes them. Surface that explicitly in the card UI.
+  STATUS?: 'draft' | 'active' | 'inactive';
   CREATE_DATE: string;
   fieldCount?: number;
   fields?: any[];
@@ -168,6 +172,20 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
     } catch (error) {
       console.error('Error deleting custom template:', error);
       toast.error('Failed to delete custom template');
+    }
+  };
+
+  // Promote a draft template to active so it appears in the Create Notice /
+  // Create Request pickers. Rescues templates left stuck in draft when the
+  // FormBuilderPage publish step was skipped or failed.
+  const handlePublishTemplate = async (templateId: number, templateName: string) => {
+    try {
+      await customTemplateService.publish(templateId);
+      toast.success(`Template "${templateName}" published`);
+      loadTemplates();
+    } catch (error: any) {
+      console.error('Error publishing custom template:', error);
+      toast.error(error?.response?.data?.error || 'Failed to publish template');
     }
   };
 
@@ -468,10 +486,14 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center space-x-3">
                           <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${
-                            template.IS_ACTIVE ? 'bg-green-100' : 'bg-gray-100'
+                            template.STATUS === 'draft'
+                              ? 'bg-amber-100'
+                              : template.IS_ACTIVE ? 'bg-green-100' : 'bg-gray-100'
                           }`}>
                             <FileText className={`w-5 h-5 ${
-                              template.IS_ACTIVE ? 'text-green-600' : 'text-gray-400'
+                              template.STATUS === 'draft'
+                                ? 'text-amber-600'
+                                : template.IS_ACTIVE ? 'text-green-600' : 'text-gray-400'
                             }`} />
                           </div>
                           <div className="flex-1">
@@ -479,17 +501,27 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                               {template.FORM_NAME}
                             </h3>
                             <div className="flex items-center space-x-2 mt-1">
-                              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                                template.IS_ACTIVE
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                {template.IS_ACTIVE ? (
-                                  <><div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5" />Active</>
-                                ) : (
-                                  <><div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5" />Inactive</>
-                                )}
-                              </span>
+                              {/* Draft has its own pill — Active/Inactive badge below
+                                  was treating drafts as 'Active' which hid the fact
+                                  that they don't show in Create Notice/Request pickers. */}
+                              {template.STATUS === 'draft' ? (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800" title="Draft templates do not appear in Create pickers. Publish to make available.">
+                                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5" />
+                                  Draft (not in pickers)
+                                </span>
+                              ) : (
+                                <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                                  template.IS_ACTIVE
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {template.IS_ACTIVE ? (
+                                    <><div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5" />Active</>
+                                  ) : (
+                                    <><div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5" />Inactive</>
+                                  )}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -528,6 +560,17 @@ const CustomWorkflowTemplateModal: React.FC<CustomWorkflowTemplateModalProps> = 
                           <Edit3 className="w-3 h-3 mr-1.5" />
                           Edit Fields
                         </button>
+
+                        {template.STATUS === 'draft' && (
+                          <button
+                            className="flex items-center px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200"
+                            onClick={() => handlePublishTemplate(template.FORM_ID, template.FORM_NAME)}
+                            title="Publish this draft so it appears in Create Notice / Create Request pickers"
+                          >
+                            <FaSave className="w-3 h-3 mr-1.5" />
+                            Publish
+                          </button>
+                        )}
 
                         <button
                           className={`flex items-center px-3 py-1.5 text-xs font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 ${

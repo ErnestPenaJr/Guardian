@@ -7333,8 +7333,11 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         let forms;
         
         // Users can access their company's forms, global forms (both IDs null), or any public form
+        // TEMPLATE_TYPE/STATUS included so FormBuilderPage's fallback path can still
+        // trigger the draft->active publish step when the custom-templates GET fails.
         forms = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED, ORGANIZATION_ID, COMPANY_ID
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC, IS_DELETED,
+                   ORGANIZATION_ID, COMPANY_ID, TEMPLATE_TYPE, STATUS
             FROM GUARDIAN.FORMS
             WHERE FORM_ID = ${formId}
             AND (
@@ -7393,7 +7396,9 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
                 FORM_DESCRIPTION: form.FORM_DESCRIPTION,
                 IS_ACTIVE: form.IS_ACTIVE,
                 IS_PUBLIC: form.IS_PUBLIC,
-                IS_DELETED: form.IS_DELETED
+                IS_DELETED: form.IS_DELETED,
+                TEMPLATE_TYPE: form.TEMPLATE_TYPE,
+                STATUS: form.STATUS
             },
             fields: fields.map(field => ({
                 FIELD_ID: field.FIELD_ID,

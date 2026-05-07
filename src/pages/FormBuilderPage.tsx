@@ -52,6 +52,15 @@ export default function FormBuilderPage() {
             const data = await formService.getFormById(Number(formId));
             setFormName(data.form.FORM_NAME);
             setFormDescription(data.form.FORM_DESCRIPTION || '');
+            // Pull TEMPLATE_TYPE/STATUS through the fallback path too, so the
+            // draft->active publish step in handleSave doesn't get silently skipped
+            // when the custom-templates GET throws.
+            if (data.form.TEMPLATE_TYPE) {
+              setTemplateType(data.form.TEMPLATE_TYPE as TemplateType);
+            }
+            if ((data.form as any).STATUS) {
+              setTemplateStatus((data.form as any).STATUS as TemplateStatus);
+            }
             const converted = formService.convertDbFieldsToFormFields(data.fields);
             setInitialFields(converted);
           }
@@ -86,19 +95,31 @@ export default function FormBuilderPage() {
       });
 
       // If this is a draft custom template, also publish it (draft -> active).
+      // Track publish outcome so the success toast doesn't lie about state.
       let publishedType = templateType;
+      let publishSucceeded = templateStatus !== 'draft';
       if (templateStatus === 'draft' && publishedType) {
         try {
           await customTemplateService.publish(numericFormId);
           setTemplateStatus('active');
+          publishSucceeded = true;
         } catch (e) {
-          console.warn('publish failed (continuing):', e);
+          // Surface the failure: silent console.warn here is what left users'
+          // templates stuck in draft and invisible to the Create Notice picker.
+          console.error('publish failed:', e);
+          toast.error(
+            "Saved, but couldn't publish. Template is still a draft and won't appear in pickers. Open it from the templates list and try saving again."
+          );
         }
       }
-      toast.success(templateStatus === 'draft' ? 'Template published' : 'Form updated successfully');
+      if (publishSucceeded) {
+        toast.success(templateStatus === 'draft' ? 'Template published' : 'Form updated successfully');
+      }
 
       if (publishedType === 'notice') {
-        const qs = `?published=${encodeURIComponent(data.name)}`;
+        // Only flag ?published=… when we actually published — otherwise the
+        // /my-notices banner would lie about a draft that never went active.
+        const qs = publishSucceeded ? `?published=${encodeURIComponent(data.name)}` : '';
         navigate(`/my-notices${qs}`);
         return;
       }
