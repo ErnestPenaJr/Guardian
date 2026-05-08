@@ -161,7 +161,11 @@ stages:
 
     - script: |
         cd deployment
-        zip -r ../app.zip .
+        zip -r ../app.zip . \
+          --exclude "node_modules/.prisma/client/libquery_engine-debian*" \
+          --exclude "node_modules/.prisma/client/libquery_engine-linux*" \
+          --exclude "node_modules/@prisma/engines/libquery*" \
+          --exclude "node_modules/@prisma/engines/schema-engine-linux*"
         cd ..
         du -h app.zip
       displayName: 'Create deployment package'
@@ -195,7 +199,7 @@ stages:
               appName: 'GUARDIAN-STAGING'
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
-              deploymentMethod: 'zipDeploy'
+              #JSU --deploymentMethod: 'zipDeploy'
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
           - script: |
@@ -262,7 +266,7 @@ stages:
               appName: 'GUARDIAN-MVP'
               package: '$(System.DefaultWorkingDirectory)/app.zip'
               runtimeStack: 'NODE|20-lts'
-              deploymentMethod: 'zipDeploy'
+              #JSU --deploymentMethod: 'zipDeploy'
             displayName: 'Deploy to Production (GUARDIAN-MVP)'
 
           - script: |
