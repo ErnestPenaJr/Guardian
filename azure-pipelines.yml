@@ -203,42 +203,42 @@ stages:
             displayName: 'Deploy to Staging (GUARDIAN-STAGING)'
 
           - script: |
-              echo "Waiting for app to start..."
-              STAGING_URL="https://guardian-staging.azurewebsites.net"
-              FAILED=0
+    echo "Waiting for app to start..."
+    STAGING_URL="https://guardian-staging.azurewebsites.net"
+    FAILED=0
     
-            # Retry health check for up to 2 minutes
-            for i in {1..12}; do
-                  echo "Health check attempt $i of 12..."
-                    if curl -f -s --max-time 15 "$STAGING_URL/api/health" > /dev/null; then
-                      echo "✅ API health check PASSED on attempt $i"
-                      break
-                    fi
-            if [ $i -eq 12 ]; then
-              echo "❌ API health check FAILED after 12 attempts"
-              FAILED=1
-            fi
-            sleep 10
-          done
+    # Retry health check for up to 2 minutes
+    for i in {1..12}; do
+      echo "Health check attempt $i of 12..."
+      if curl -f -s --max-time 15 "$STAGING_URL/api/health" > /dev/null; then
+        echo "✅ API health check PASSED on attempt $i"
+        break
+      fi
+      if [ $i -eq 12 ]; then
+        echo "❌ API health check FAILED after 12 attempts"
+        FAILED=1
+      fi
+      sleep 10
+    done
 
-          if curl -f -s --max-time 30 "$STAGING_URL/api/debug/assets" > /dev/null; then
-            echo "✅ Asset verification PASSED"
-          else
-            echo "❌ Asset verification FAILED"
-            FAILED=1
-          fi
+    if curl -f -s --max-time 30 "$STAGING_URL/api/debug/assets" > /dev/null; then
+      echo "✅ Asset verification PASSED"
+    else
+      echo "❌ Asset verification FAILED"
+      FAILED=1
+    fi
 
-          if curl -f -s --max-time 30 "$STAGING_URL" > /dev/null; then
-            echo "✅ Main page PASSED"
-          else
-            echo "❌ Main page FAILED"
-            FAILED=1
-          fi
+    if curl -f -s --max-time 30 "$STAGING_URL" > /dev/null; then
+      echo "✅ Main page PASSED"
+    else
+      echo "❌ Main page FAILED"
+      FAILED=1
+    fi
 
-          if [ $FAILED -eq 1 ]; then
-            echo "❌ Staging verification FAILED - blocking production deploy"
-            exit 1
-          fi
+    if [ $FAILED -eq 1 ]; then
+      echo "❌ Staging verification FAILED - blocking production deploy"
+      exit 1
+    fi
 
     echo "✅ All staging checks passed - production deploy can proceed"
   displayName: 'Post-deployment verification'
