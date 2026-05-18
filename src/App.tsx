@@ -47,6 +47,7 @@ import SecuritiesNoticeTemplateAdmin from './pages/SecuritiesNoticeTemplateAdmin
 import SecuritiesNoticeSend from './pages/SecuritiesNoticeSend';
 import SecuritiesNoticeApprovalQueue from './pages/SecuritiesNoticeApprovalQueue';
 import ExternalUserInbox from './pages/ExternalUserInbox';
+import AuditLogPage from './pages/AuditLog';
 
 function App() {
   return (
@@ -109,6 +110,8 @@ function App() {
             {/* Phase 7 / US-SRB-03 — External user portal (role 5) */}
             <Route path="/external/inbox" element={<ProtectedRoute><ExternalUserInbox /></ProtectedRoute>} />
             <Route path="/external/notices/:id" element={<ProtectedRoute><ExternalUserInbox /></ProtectedRoute>} />
+            {/* Phase 8 / US-CCL-04 — Audit log (admins + managers) */}
+            <Route path="/audit-log" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
