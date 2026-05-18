@@ -448,3 +448,25 @@ model RESPONSE_MY_NOTICE {
   ATTACHMENT             ATTACHMENTS? @relation(fields: [ATTACHMENT_ID], references: [ATTACHMENT_ID], onDelete: NoAction, onUpdate: NoAction)
 
 }
+
+// Securities Notice MVP — audit log table (Phase 0 migration target).
+// Mirrors the model in prisma/schema.prisma so the Prisma client generated
+// from this root schema also exposes prisma.aUDIT_LOG for the writeAudit
+// helper in server/lib/audit.ts.
+model AUDIT_LOG {
+  ENTRY_ID         BigInt    @id @default(autoincrement())
+  EVENT_TYPE       String    @db.NVarChar(64)
+  ACTOR_USER_ID    Int?
+  ACTOR_ROLE_ID    Int?
+  TARGET_TYPE      String    @db.NVarChar(32)
+  TARGET_ID        String?   @db.NVarChar(64)
+  EVENT_DETAIL     String?   @db.NVarChar(Max)
+  COMPANY_ID       Int?
+  FIRST_TIME_FLAG  Boolean?
+  DISCLAIMER_STATE Boolean?
+  CREATED_AT       DateTime  @default(now())
+
+  @@index([COMPANY_ID, CREATED_AT])
+  @@index([EVENT_TYPE])
+  @@index([TARGET_TYPE, TARGET_ID])
+}
