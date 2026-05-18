@@ -33,6 +33,7 @@ import noticesRoutes from './routes/notices.js';
 import myNoticesRoutes from './routes/my-notices.js';
 import attachmentsRoutes from './routes/attachments.js';
 import platformAdminRoutes from './routes/platform-admin.js';
+import securitiesNoticesRoutes from './routes/securities-notices.js';
 
 // Type definitions are handled by TypeScript, no need to import
 
@@ -184,6 +185,7 @@ app.use('/api/field-lookups', fieldLookupsRoutes);
 app.use('/api/notices', noticesRoutes); // Notices routes
 app.use('/api/my-notices', myNoticesRoutes); // My Notices routes
 app.use('/api/platform', platformAdminRoutes); // JAFAR platform config (US-CCL-05)
+app.use('/api/securities-notices', securitiesNoticesRoutes); // Securities Fraud Notice workflow (Phase 5)
 app.use('/api/attachments', attachmentsRoutes);
 app.use('/api', milestonesRoutes); // Milestone routes (includes /api/requests/:requestId/milestones and /api/milestones)
 console.log('[ROUTES] ✓ Milestone routes registered at /api');
