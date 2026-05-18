@@ -46,6 +46,7 @@ import ExportPage from './pages/ExportPage';
 import SecuritiesNoticeTemplateAdmin from './pages/SecuritiesNoticeTemplateAdmin';
 import SecuritiesNoticeSend from './pages/SecuritiesNoticeSend';
 import SecuritiesNoticeApprovalQueue from './pages/SecuritiesNoticeApprovalQueue';
+import ExternalUserInbox from './pages/ExternalUserInbox';
 
 function App() {
   return (
@@ -105,6 +106,9 @@ function App() {
             <Route path="/securities-notice-templates/new" element={<ProtectedRoute><SecuritiesNoticeTemplateAdmin /></ProtectedRoute>} />
             <Route path="/securities-notices/new" element={<ProtectedRoute><SecuritiesNoticeSend /></ProtectedRoute>} />
             <Route path="/securities-notices/approvals" element={<ProtectedRoute><SecuritiesNoticeApprovalQueue /></ProtectedRoute>} />
+            {/* Phase 7 / US-SRB-03 — External user portal (role 5) */}
+            <Route path="/external/inbox" element={<ProtectedRoute><ExternalUserInbox /></ProtectedRoute>} />
+            <Route path="/external/notices/:id" element={<ProtectedRoute><ExternalUserInbox /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
