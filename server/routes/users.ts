@@ -227,6 +227,35 @@ router.post('/', requireAuth, isAdmin, async (req, res) => {
   }
 });
 
+// Get distinct role count for the caller's company (Phase 4 / US-CCL-02 ManagerApprovalToggle)
+// Returns { distinctRoleCount: number } based on USER_ROLES rows joined to active users in the company.
+router.get(
+  '/company-roles-count',
+  passport.authenticate('jwt', { session: false }),
+  async (req: any, res) => {
+    try {
+      const companyId = req.user?.COMPANY_ID;
+      if (!companyId) {
+        return res.status(400).json({ error: 'Company ID is required' });
+      }
+      const rows = (await prisma.$queryRaw`
+        SELECT COUNT(DISTINCT ur.ROLE_ID) AS distinctRoleCount
+        FROM GUARDIAN.USER_ROLES ur
+        JOIN GUARDIAN.USERS u ON u.USER_ID = ur.USER_ID
+        WHERE u.COMPANY_ID = ${companyId}
+          AND u.STATUS = 'A'
+          AND ur.STATUS = 'P'
+      `) as Array<{ distinctRoleCount: number | bigint }>;
+      const raw = rows?.[0]?.distinctRoleCount ?? 0;
+      const distinctRoleCount = typeof raw === 'bigint' ? Number(raw) : Number(raw);
+      res.json({ distinctRoleCount });
+    } catch (err) {
+      console.error('[USERS] Error fetching company roles count:', err);
+      res.status(500).json({ error: 'Failed to fetch company roles count' });
+    }
+  }
+);
+
 // Get assignable users for request assignment (any authenticated user can access)
 router.get('/assignable', passport.authenticate('jwt', { session: false }), async (req: any, res) => {
   try {
