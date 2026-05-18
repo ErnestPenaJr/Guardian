@@ -43,6 +43,9 @@ import DeliveryDashboard from './pages/DeliveryDashboard';
 import FormBuilderPage from './pages/FormBuilderPage';
 import WorkflowTemplatesAdmin from './pages/admin/WorkflowTemplatesAdmin';
 import ExportPage from './pages/ExportPage';
+import SecuritiesNoticeTemplateAdmin from './pages/SecuritiesNoticeTemplateAdmin';
+import SecuritiesNoticeSend from './pages/SecuritiesNoticeSend';
+import SecuritiesNoticeApprovalQueue from './pages/SecuritiesNoticeApprovalQueue';
 
 function App() {
   return (
@@ -98,6 +101,10 @@ function App() {
             <Route path="/form-builder/new" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
             <Route path="/form-builder/:formId" element={<ProtectedRoute><FormBuilderPage /></ProtectedRoute>} />
             <Route path="/export/:type" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
+            {/* Securities Fraud Notice MVP — Phase 5 */}
+            <Route path="/securities-notice-templates/new" element={<ProtectedRoute><SecuritiesNoticeTemplateAdmin /></ProtectedRoute>} />
+            <Route path="/securities-notices/new" element={<ProtectedRoute><SecuritiesNoticeSend /></ProtectedRoute>} />
+            <Route path="/securities-notices/approvals" element={<ProtectedRoute><SecuritiesNoticeApprovalQueue /></ProtectedRoute>} />
           </Routes>
         </Router>
         <ErrorTestingComponent />
