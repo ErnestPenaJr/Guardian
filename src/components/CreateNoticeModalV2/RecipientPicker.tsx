@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, User, Users, X } from 'lucide-react';
+import { Search, ShieldCheck, AlertCircle, User, Users, X } from 'lucide-react';
 import api from '../../utils/api';
+import { recipientService, type VerifiedStatus } from '../../services/recipientService';
 
 export type RecipientKind = 'user' | 'group';
 export interface RecipientOption {
@@ -23,6 +24,10 @@ export default function RecipientPicker({ disabled, selected, onChange }: Props)
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Phase 6 / US-CCL-03 — verification status keyed by USER_ID. We populate
+  // this on-demand for selected recipients only (batch fetch on change), so
+  // typing in the search box doesn't trigger any extra network traffic.
+  const [verification, setVerification] = useState<Record<number, VerifiedStatus>>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -73,6 +78,37 @@ export default function RecipientPicker({ disabled, selected, onChange }: Props)
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
+  // Phase 6 / US-CCL-03 — batch-fetch verification for newly selected user
+  // recipients. We only request IDs we haven't seen before; groups don't have
+  // a verification status. Fallback to FIRST_TIME on any error so the UI still
+  // surfaces the safer (amber) badge.
+  useEffect(() => {
+    const userIds = selected
+      .filter((s) => s.kind === 'user')
+      .map((s) => s.id)
+      .filter((id) => !(id in verification));
+    if (userIds.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      userIds.map((id) =>
+        recipientService
+          .getVerification(id)
+          .then((r) => [id, r.data.verifiedStatus] as const)
+          .catch(() => [id, 'FIRST_TIME' as VerifiedStatus] as const),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      setVerification((prev) => {
+        const next = { ...prev };
+        for (const [id, status] of results) next[id] = status;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, verification]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const isSelected = (o: RecipientOption) =>
@@ -113,43 +149,70 @@ export default function RecipientPicker({ disabled, selected, onChange }: Props)
         }}
         onClick={() => !disabled && setOpen(true)}
       >
-        {selected.map((s) => (
-          <span
-            key={`${s.kind}-${s.id}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: s.kind === 'group' ? '#EBF5FE' : '#F5F5F5',
-              color: '#1F1F1F',
-              border: s.kind === 'group' ? '1px solid #B5D4F4' : '1px solid #E0E0E0',
-              borderRadius: 4,
-              padding: '3px 8px',
-              fontSize: 13,
-              fontFamily: 'Inter, sans-serif',
-            }}
-          >
-            {s.kind === 'group' ? <Users size={12} color="#2F8CED" /> : <User size={12} color="#4F4F4F" />}
-            {s.label}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                remove(s);
-              }}
-              disabled={disabled}
+        {selected.map((s) => {
+          const status = s.kind === 'user' ? verification[s.id] : undefined;
+          const isVerified = status === 'PREVIOUSLY_VERIFIED';
+          const isFirstTime = status === 'FIRST_TIME';
+          return (
+            <span
+              key={`${s.kind}-${s.id}`}
               style={{
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                padding: 0,
                 display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: s.kind === 'group' ? '#EBF5FE' : '#F5F5F5',
+                color: '#1F1F1F',
+                border: s.kind === 'group' ? '1px solid #B5D4F4' : '1px solid #E0E0E0',
+                borderRadius: 4,
+                padding: '3px 8px',
+                fontSize: 13,
+                fontFamily: 'Inter, sans-serif',
               }}
             >
-              <X size={12} color="#828282" />
-            </button>
-          </span>
-        ))}
+              {s.kind === 'group' ? <Users size={12} color="#2F8CED" /> : <User size={12} color="#4F4F4F" />}
+              {s.label}
+              {s.kind === 'user' && (isVerified || isFirstTime) && (
+                <span
+                  title={isVerified ? 'Previously Verified' : 'First-Time Recipient'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    background: isVerified ? '#E6F4EA' : '#FFF4E5',
+                    color: isVerified ? '#1B6B33' : '#8A5A1F',
+                    border: `1px solid ${isVerified ? '#B7DFC1' : '#F2D2A1'}`,
+                    borderRadius: 10,
+                    padding: '1px 6px',
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                  data-testid={`recipient-verification-${s.id}`}
+                  data-verified-status={isVerified ? 'PREVIOUSLY_VERIFIED' : 'FIRST_TIME'}
+                >
+                  {isVerified ? <ShieldCheck size={10} /> : <AlertCircle size={10} />}
+                  {isVerified ? 'Previously Verified' : 'First-Time Recipient'}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(s);
+                }}
+                disabled={disabled}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'inline-flex',
+                }}
+              >
+                <X size={12} color="#828282" />
+              </button>
+            </span>
+          );
+        })}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 140 }}>
           <Search size={14} color="#828282" />
           <input
