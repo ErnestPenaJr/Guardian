@@ -386,7 +386,7 @@ router.put(
       if (!notice || notice.COMPANY_ID !== companyId) {
         return res.status(404).json({ error: 'Notice not found' });
       }
-      if (notice.NOTICE_STATUS !== 'SENT_AWAITING_RESPONSE') {
+      if (notice.NOTICE_STATUS !== 'SUBPOENA_RECEIVED_PENDING_REVIEW') {
         return res.status(409).json({
           error: `Notice in status ${notice.NOTICE_STATUS} cannot be marked records-released`,
         });
