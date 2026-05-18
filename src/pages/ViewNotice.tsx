@@ -412,6 +412,7 @@ export default function ViewNotice({
               NOTICE_STATUS?: string | null;
               SUBMITTED_BY?: number | null;
               REJECTION_REASON?: string | null;
+              ATTACHED_SUBPOENA_ATTACHMENT_ID?: number | null;
             };
             const isSecurities = !!(sec.TEMPLATE_FORM_ID || sec.NOTICE_STATUS);
             if (!isSecurities) return null;
@@ -424,7 +425,27 @@ export default function ViewNotice({
               (status === 'DRAFT' || status === 'RETURNED_FOR_REVISION');
             const showApprove =
               can(user, 'securitiesNotice.approve') && status === 'PENDING_APPROVAL';
-            if (!showSend && !showSubmit && !showApprove && !sec.REJECTION_REASON) return null;
+            // Phase 7 / US-SRB-04 — Mark Records Released. Visible only when
+            // notice is in SUBPOENA_RECEIVED_PENDING_REVIEW AND the caller has
+            // the markRecordsReleased permission (Processor or Manager).
+            const showRecordsReleased =
+              can(user, 'securitiesNotice.markRecordsReleased') &&
+              status === 'SUBPOENA_RECEIVED_PENDING_REVIEW';
+            // Subpoena download link visible only to Processor/Manager/Admin
+            // (anyone holding securitiesNotice.view). GENERAL_USER (role 2,
+            // who has viewReadOnly but NOT view) is excluded — per US-SRB-04.
+            const showSubpoenaDownload =
+              can(user, 'securitiesNotice.view') &&
+              !!sec.ATTACHED_SUBPOENA_ATTACHMENT_ID;
+            if (
+              !showSend &&
+              !showSubmit &&
+              !showApprove &&
+              !showRecordsReleased &&
+              !showSubpoenaDownload &&
+              !sec.REJECTION_REASON
+            )
+              return null;
             return (
               <div className="mt-3 border border-blue-200 bg-blue-50 rounded-lg p-3 flex flex-wrap gap-2 items-center">
                 <span className="text-xs font-semibold text-blue-800 mr-2">
@@ -475,6 +496,48 @@ export default function ViewNotice({
                     className="bg-green-600 text-white px-3 py-1 rounded text-xs"
                   >
                     Review for Approval
+                  </button>
+                )}
+                {showSubpoenaDownload && (
+                  <a
+                    href={`/api/attachments/${sec.ATTACHED_SUBPOENA_ATTACHMENT_ID}`}
+                    className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-xs hover:bg-gray-300"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Download Executed Subpoena
+                  </a>
+                )}
+                {showRecordsReleased && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const confirm = await Swal.fire({
+                        icon: 'question',
+                        title: 'Mark records released?',
+                        text:
+                          'This confirms that records covered by the subpoena have been released to the requesting party.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm',
+                      });
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        await api.put(`/api/securities-notices/${notice.NOTICE_ID}/records-released`);
+                        await Swal.fire({ icon: 'success', title: 'Records released' });
+                        // Refresh to pick up new NOTICE_STATUS.
+                        window.location.reload();
+                      } catch (e: unknown) {
+                        const err = e as { response?: { data?: { error?: string } } };
+                        await Swal.fire({
+                          icon: 'error',
+                          title: 'Failed to mark records released',
+                          text: err?.response?.data?.error ?? 'Server error',
+                        });
+                      }
+                    }}
+                    className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                  >
+                    Mark Records Released
                   </button>
                 )}
               </div>
