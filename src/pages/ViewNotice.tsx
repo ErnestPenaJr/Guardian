@@ -20,6 +20,9 @@ import { useDropzone } from "react-dropzone";
 import MyNoticesService, { Notice } from "../services/mynotices";
 import moment from "moment";
 import Swal from "sweetalert2";
+import { useAuth } from "../hooks/useAuth";
+import { can } from "../utils/permissions";
+import api from "../utils/api";
 
 type ResponseFormValues = {
   response: string;
@@ -169,6 +172,7 @@ export default function ViewNotice({
   const [notice, setNotice] = useState<Notice | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
   const responseForm = useFormik<ResponseFormValues>({
     initialValues: { response: "", attachment: null },
     validate: validateResponseForm,
@@ -398,6 +402,84 @@ export default function ViewNotice({
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700">
             <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notice.NOTICE_BODY) }} />
           </div>
+
+          {/* Securities Fraud Notice — Phase 5 control gating (US-SNT-06).
+              Only renders when the underlying record has the workflow fields
+              populated. Buttons are individually gated by `can(user, ...)`. */}
+          {(() => {
+            const sec = notice as unknown as {
+              TEMPLATE_FORM_ID?: number | null;
+              NOTICE_STATUS?: string | null;
+              SUBMITTED_BY?: number | null;
+              REJECTION_REASON?: string | null;
+            };
+            const isSecurities = !!(sec.TEMPLATE_FORM_ID || sec.NOTICE_STATUS);
+            if (!isSecurities) return null;
+            const status = sec.NOTICE_STATUS ?? '';
+            const showSend =
+              can(user, 'securitiesNotice.send') &&
+              (status === '' || status === 'DRAFT' || status === 'RETURNED_FOR_REVISION');
+            const showSubmit =
+              can(user, 'securitiesNotice.submit') &&
+              (status === 'DRAFT' || status === 'RETURNED_FOR_REVISION');
+            const showApprove =
+              can(user, 'securitiesNotice.approve') && status === 'PENDING_APPROVAL';
+            if (!showSend && !showSubmit && !showApprove && !sec.REJECTION_REASON) return null;
+            return (
+              <div className="mt-3 border border-blue-200 bg-blue-50 rounded-lg p-3 flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-semibold text-blue-800 mr-2">
+                  Securities Notice
+                  {status ? ` — ${status}` : ''}
+                </span>
+                {sec.REJECTION_REASON && (
+                  <span className="text-xs text-amber-700 italic">
+                    Returned for revision: {sec.REJECTION_REASON}
+                  </span>
+                )}
+                {showSend && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/securities-notices/new?noticeId=${notice.NOTICE_ID}`)}
+                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                  >
+                    Send
+                  </button>
+                )}
+                {showSubmit && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await api.put(`/api/securities-notices/${notice.NOTICE_ID}/submit`);
+                        await Swal.fire({ icon: 'success', title: 'Submitted for approval' });
+                      } catch (e: unknown) {
+                        const err = e as { response?: { data?: { error?: string } } };
+                        await Swal.fire({
+                          icon: 'error',
+                          title: 'Submit failed',
+                          text: err?.response?.data?.error ?? 'Server error',
+                        });
+                      }
+                    }}
+                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                  >
+                    Submit for Approval
+                  </button>
+                )}
+                {showApprove && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/securities-notices/approvals?id=${notice.NOTICE_ID}`)
+                    }
+                    className="bg-green-600 text-white px-3 py-1 rounded text-xs"
+                  >
+                    Review for Approval
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* RECIPIENT RESPONSES – inside notice card, below body */}
           <div className="border-t border-gray-200 mt-4 pt-4">
