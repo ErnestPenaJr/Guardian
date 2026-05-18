@@ -46,7 +46,26 @@ export type PermissionKey =
   | 'workflows.editTemplate'
   | 'workflows.deleteTemplate'
   // Reporting
-  | 'reports.workflow';
+  | 'reports.workflow'
+  // Securities Notice MVP
+  | 'securitiesNotice.template.create'
+  | 'securitiesNotice.template.edit'
+  | 'securitiesNotice.template.view'
+  | 'securitiesNotice.send'
+  | 'securitiesNotice.submit'
+  | 'securitiesNotice.approve'
+  | 'securitiesNotice.view'
+  | 'securitiesNotice.viewReadOnly'
+  | 'securitiesNotice.markRecordsReleased'
+  | 'subpoenaRider.configureLanguage'
+  | 'subpoenaRider.generate'
+  | 'audit.viewFull'
+  | 'audit.viewScoped'
+  | 'audit.export'
+  | 'platform.config'
+  | 'external.viewOwnNotice'
+  | 'external.attachSubpoena'
+  | 'external.requestCall';
 
 const A = ROLE.ADMIN;
 const G = ROLE.GENERAL_USER;
@@ -86,6 +105,25 @@ const MATRIX: Record<PermissionKey, readonly RoleId[]> = {
   'workflows.deleteTemplate':[A, S],
 
   'reports.workflow':        [A, M, S],
+
+  'securitiesNotice.template.create':       [A, S],
+  'securitiesNotice.template.edit':         [A, S],
+  'securitiesNotice.template.view':         [A, P, M, S],
+  'securitiesNotice.send':                  [P, M],
+  'securitiesNotice.submit':                [P],
+  'securitiesNotice.approve':               [M],
+  'securitiesNotice.view':                  [A, P, M, S],
+  'securitiesNotice.viewReadOnly':          [G],
+  'securitiesNotice.markRecordsReleased':   [P, M],
+  'subpoenaRider.configureLanguage':        [A, S],
+  'subpoenaRider.generate':                 [P, M],
+  'audit.viewFull':                         [A, S],
+  'audit.viewScoped':                       [M],
+  'audit.export':                           [A, S],
+  'platform.config':                        [S],
+  'external.viewOwnNotice':                 [E],
+  'external.attachSubpoena':                [E],
+  'external.requestCall':                   [E],
 };
 
 export interface UserLike {
