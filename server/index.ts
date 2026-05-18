@@ -38,6 +38,7 @@ import recipientsRoutes from './routes/recipients.js';
 import noticeTemplatesRoutes from './routes/notice-templates.js';
 import subpoenaRidersRoutes from './routes/subpoena-riders.js';
 import externalNoticesRoutes from './routes/external-notices.js';
+import auditRoutes from './routes/audit.js';
 
 // Type definitions are handled by TypeScript, no need to import
 
@@ -197,6 +198,7 @@ app.use('/api/securities-notices', securitiesNoticesRoutes); // Securities Fraud
 app.use('/api/recipients', recipientsRoutes); // Recipient verification status (Phase 6 / US-CCL-03)
 app.use('/api/templates', noticeTemplatesRoutes); // Subpoena language templates (Phase 7 / US-SRB-01)
 app.use('/api/subpoena-riders', subpoenaRidersRoutes); // Subpoena rider generator (Phase 7 / US-SRB-02)
+app.use('/api/audit', auditRoutes); // Audit log + CSV/PDF export (Phase 8 / US-CCL-04)
 app.use('/api/attachments', attachmentsRoutes);
 app.use('/api', milestonesRoutes); // Milestone routes (includes /api/requests/:requestId/milestones and /api/milestones)
 console.log('[ROUTES] ✓ Milestone routes registered at /api');

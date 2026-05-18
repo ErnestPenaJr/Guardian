@@ -2,23 +2,31 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-export type AuditEventType =
-  | 'TEMPLATE_CREATED'
-  | 'TEMPLATE_MODIFIED'
-  | 'FIELD_RESTRICTION_CHANGED'
-  | 'DISCLAIMER_TOGGLED'
-  | 'MANAGER_APPROVAL_CONFIG_CHANGED'
-  | 'NOTICE_SUBMITTED_FOR_APPROVAL'
-  | 'NOTICE_APPROVED'
-  | 'NOTICE_REJECTED'
-  | 'NOTICE_SENT'
-  | 'SUBPOENA_RIDER_GENERATED'
-  | 'SUBPOENA_RECEIVED'
-  | 'RECORDS_RELEASED'
-  | 'FIRST_TIME_RECIPIENT_CONFIRMED'
-  | 'JAFAR_FIELD_LOCKED'
-  | 'JAFAR_DISCLAIMER_UPDATED'
-  | 'JAFAR_FILE_TYPES_UPDATED';
+/**
+ * Canonical list of audit event types. Kept as a runtime array (not a
+ * raw type union) so the frontend can render this list in dropdowns
+ * without hard-coding a parallel copy.
+ */
+export const AUDIT_EVENT_TYPES = [
+  'TEMPLATE_CREATED',
+  'TEMPLATE_MODIFIED',
+  'FIELD_RESTRICTION_CHANGED',
+  'DISCLAIMER_TOGGLED',
+  'MANAGER_APPROVAL_CONFIG_CHANGED',
+  'NOTICE_SUBMITTED_FOR_APPROVAL',
+  'NOTICE_APPROVED',
+  'NOTICE_REJECTED',
+  'NOTICE_SENT',
+  'SUBPOENA_RIDER_GENERATED',
+  'SUBPOENA_RECEIVED',
+  'RECORDS_RELEASED',
+  'FIRST_TIME_RECIPIENT_CONFIRMED',
+  'JAFAR_FIELD_LOCKED',
+  'JAFAR_DISCLAIMER_UPDATED',
+  'JAFAR_FILE_TYPES_UPDATED',
+] as const;
+
+export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
 export interface WriteAuditParams {
   eventType: AuditEventType;
