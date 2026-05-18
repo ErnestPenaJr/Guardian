@@ -10428,6 +10428,178 @@ app.get('/api/me/permissions', getAuthenticatedUserCompany, async (req, res) => 
     }
 });
 
+// === JAFAR PLATFORM CONFIG (US-CCL-05) ===
+// Mirror of server/routes/platform-admin.ts. JAFAR-only platform-wide
+// configuration: compliance disclaimer text, locked field list, and the
+// permitted subpoena file types. Every mutation writes a JAFAR_* audit
+// row with COMPANY_ID = null.
+//
+// In-process cache for jafar platform config (30s TTL).
+let __jafarConfigCache = null; // { ts: number, values: Record<string,string> }
+const __JAFAR_CONFIG_TTL_MS = 30_000;
+
+async function __jafarConfigGetAll() {
+    if (!__jafarConfigCache || Date.now() - __jafarConfigCache.ts > __JAFAR_CONFIG_TTL_MS) {
+        const rows = await prisma.$queryRawUnsafe(
+            `SELECT CONFIG_KEY, CONFIG_VALUE FROM GUARDIAN.JAFAR_PLATFORM_CONFIG`
+        );
+        const values = {};
+        for (const r of rows) values[r.CONFIG_KEY] = r.CONFIG_VALUE;
+        __jafarConfigCache = { ts: Date.now(), values };
+    }
+    return __jafarConfigCache.values;
+}
+
+async function __jafarConfigGet(key) {
+    const all = await __jafarConfigGetAll();
+    return all[key] ?? null;
+}
+
+async function __jafarConfigSet(key, value, updatedBy) {
+    // SQL Server MERGE for upsert. Values are properly parameterized.
+    await prisma.$executeRawUnsafe(
+        `MERGE GUARDIAN.JAFAR_PLATFORM_CONFIG WITH (HOLDLOCK) AS T
+         USING (SELECT @P1 AS CONFIG_KEY) AS S
+         ON T.CONFIG_KEY = S.CONFIG_KEY
+         WHEN MATCHED THEN UPDATE SET CONFIG_VALUE = @P2, UPDATED_BY = @P3, UPDATED_AT = SYSUTCDATETIME()
+         WHEN NOT MATCHED THEN INSERT (CONFIG_KEY, CONFIG_VALUE, UPDATED_BY, UPDATED_AT)
+            VALUES (@P1, @P2, @P3, SYSUTCDATETIME());`,
+        key,
+        value,
+        updatedBy
+    );
+    __jafarConfigCache = null;
+}
+
+async function __jafarConfigGetLockedFields() {
+    const raw = await __jafarConfigGet('LOCKED_FIELDS');
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+async function __jafarConfigGetFileTypes() {
+    const raw = await __jafarConfigGet('PERMITTED_SUBPOENA_FILE_TYPES');
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+async function __jafarConfigGetDisclaimer() {
+    return (await __jafarConfigGet('COMPLIANCE_DISCLAIMER_TEXT')) ?? '';
+}
+
+async function __writePlatformAudit(eventType, actorUserId, targetId, detail) {
+    await prisma.$executeRawUnsafe(
+        `INSERT INTO GUARDIAN.AUDIT_LOG
+            (EVENT_TYPE, ACTOR_USER_ID, ACTOR_ROLE_ID, TARGET_TYPE, TARGET_ID, EVENT_DETAIL, COMPANY_ID, CREATED_AT)
+         VALUES
+            (@P1, @P2, 6, 'PLATFORM', @P3, @P4, NULL, SYSUTCDATETIME());`,
+        eventType,
+        actorUserId,
+        targetId,
+        detail == null ? null : JSON.stringify(detail)
+    );
+}
+
+// PUT /api/platform/disclaimer — set compliance disclaimer text.
+app.put('/api/platform/disclaimer', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const text = req.body && typeof req.body.text === 'string' ? req.body.text : '';
+        if (!text || text.length < 1) {
+            return res.status(400).json({ error: 'Invalid input', details: 'text must be a non-empty string' });
+        }
+        const prev = await __jafarConfigGetDisclaimer();
+        await __jafarConfigSet('COMPLIANCE_DISCLAIMER_TEXT', text, req.userId);
+        await __writePlatformAudit('JAFAR_DISCLAIMER_UPDATED', req.userId, 'COMPLIANCE_DISCLAIMER_TEXT', {
+            prevText: prev,
+            newText: text,
+            tenantScope: 'ALL',
+        });
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('PUT /api/platform/disclaimer failed:', err);
+        res.status(500).json({ error: 'Failed to update disclaimer' });
+    }
+});
+
+// PUT /api/platform/fields/:name/lock — toggle a field name in the locked-fields list.
+app.put('/api/platform/fields/:name/lock', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const name = String(req.params.name || '');
+        if (!name) return res.status(400).json({ error: 'Field name required' });
+        const locked = req.body && req.body.locked;
+        if (typeof locked !== 'boolean') {
+            return res.status(400).json({ error: 'Invalid input', details: 'locked must be a boolean' });
+        }
+        const current = await __jafarConfigGetLockedFields();
+        const next = locked ? Array.from(new Set([...current, name])) : current.filter((f) => f !== name);
+        await __jafarConfigSet('LOCKED_FIELDS', JSON.stringify(next), req.userId);
+        await __writePlatformAudit('JAFAR_FIELD_LOCKED', req.userId, `LOCKED_FIELDS:${name}`, {
+            fieldName: name,
+            locked,
+            tenantScope: 'ALL',
+        });
+        res.json({ ok: true, lockedFields: next });
+    } catch (err) {
+        console.error('PUT /api/platform/fields/:name/lock failed:', err);
+        res.status(500).json({ error: 'Failed to toggle field lock' });
+    }
+});
+
+// PUT /api/platform/file-types — set permitted subpoena file types.
+app.put('/api/platform/file-types', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const types = req.body && req.body.types;
+        if (!Array.isArray(types) || types.some((t) => typeof t !== 'string' || t.length === 0)) {
+            return res.status(400).json({ error: 'Invalid input', details: 'types must be a non-empty string array' });
+        }
+        const prev = await __jafarConfigGetFileTypes();
+        await __jafarConfigSet('PERMITTED_SUBPOENA_FILE_TYPES', JSON.stringify(types), req.userId);
+        await __writePlatformAudit('JAFAR_FILE_TYPES_UPDATED', req.userId, 'PERMITTED_SUBPOENA_FILE_TYPES', {
+            prev,
+            next: types,
+            tenantScope: 'ALL',
+        });
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('PUT /api/platform/file-types failed:', err);
+        res.status(500).json({ error: 'Failed to update permitted file types' });
+    }
+});
+
+// GET /api/platform/audit — list platform-scoped (COMPANY_ID NULL) JAFAR_* audit rows.
+app.get('/api/platform/audit', getAuthenticatedUserCompany, requireJafar, async (req, res) => {
+    try {
+        const rows = await prisma.$queryRawUnsafe(
+            `SELECT TOP 500
+                ENTRY_ID, EVENT_TYPE, ACTOR_USER_ID, ACTOR_ROLE_ID,
+                TARGET_TYPE, TARGET_ID, EVENT_DETAIL, COMPANY_ID,
+                FIRST_TIME_FLAG, DISCLAIMER_STATE, CREATED_AT
+             FROM GUARDIAN.AUDIT_LOG
+             WHERE COMPANY_ID IS NULL AND EVENT_TYPE LIKE 'JAFAR_%'
+             ORDER BY CREATED_AT DESC`
+        );
+        // ENTRY_ID is BIGINT — serialize to string so JSON doesn't lose precision.
+        const entries = rows.map((r) => ({
+            ...r,
+            ENTRY_ID: typeof r.ENTRY_ID === 'bigint' ? r.ENTRY_ID.toString() : r.ENTRY_ID,
+        }));
+        res.json({ entries });
+    } catch (err) {
+        console.error('GET /api/platform/audit failed:', err);
+        res.status(500).json({ error: 'Failed to fetch platform audit log' });
+    }
+});
+
 // === CUSTOM TEMPLATE ENDPOINTS (JAFAR ROLE ONLY) ===
 
 // Get custom templates - only for role_id 6 (JAFAR)
