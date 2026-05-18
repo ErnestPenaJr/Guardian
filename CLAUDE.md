@@ -642,6 +642,182 @@ bun server.js  # or node server.js
 22. **Emergency Recovery Protocol** - Documented step-by-step recovery process for production server failures (Added 2025-08-21)
 23. **Custom Templates Authentication** - Enhanced token validation prevents "invalid_token" transmission and ensures proper JWT authentication flow (Fixed 2025-09-27)
 
+## Securities Notice MVP
+
+Three feature packs delivered on branch `features/Securities-Notice`. The
+end-user guide lives at `docs/securities-notice-mvp.md`; this section is for
+operators / engineers.
+
+### Overview
+
+1. **Securities Fraud Notice Template** — a new notice subtype with
+   compliance fields, optional manager approval, and a sent → records-released
+   lifecycle. User stories US-SNT-01..06.
+2. **Subpoena Rider Builder** — reusable per-fraud-type language templates
+   that get merged into a notice. External users (law enforcement) can attach
+   executed subpoenas back through the portal. User stories US-SRB-01..04.
+3. **Compliance Control Layer** — JAFAR-managed platform config (disclaimer
+   text, locked fields, permitted subpoena file types), recipient-verification
+   warnings, and an immutable audit log with CSV/PDF export. User stories
+   US-CCL-01..05.
+
+### New tables (`migrations/securities_notice/*.sql`)
+
+Migrations are SQL Server-flavored, idempotent (`IF NOT EXISTS` guards), and
+must be applied manually against each environment **before** the new API
+endpoints will work end-to-end.
+
+| Migration | Table / change | Purpose |
+|-----------|----------------|---------|
+| `01_audit_log.sql` | `GUARDIAN.AUDIT_LOG` (new) | Immutable per-tenant audit ledger keyed on `ENTRY_ID BIGINT IDENTITY`. |
+| `02_extend_my_notices.sql` | `GUARDIAN.MY_NOTICES` (alter) | Adds `TEMPLATE_FORM_ID`, `NOTICE_STATUS`, `DISCLAIMER_STATE`, `APPROVING_MANAGER_USER_ID`, etc. New status enum drives the workflow state machine. |
+| `03_jafar_platform_config.sql` | `GUARDIAN.JAFAR_PLATFORM_CONFIG` (new) | Key/value bag for platform-wide settings (disclaimer text, locked fields, permitted MIME types). Seeded with defaults. |
+| `04_extend_forms_template_subtype.sql` | `GUARDIAN.FORMS` + `GUARDIAN.FORMS_FIELDS` (alter) | Adds `NOTICE_SUBTYPE`, `FRAUD_TYPE`, `REQUIRES_MANAGER_APPROVAL`, `SHOW_DISCLAIMER` to forms; `IS_PII`, `IS_LOCKED` to fields. |
+| `05_recipient_verifications.sql` | `GUARDIAN.RECIPIENT_VERIFICATIONS` (new) | Per-(company, recipient) first-seen tracking for the first-time-recipient warning. |
+| `06_subpoena_riders.sql` | `GUARDIAN.SUBPOENA_RIDERS` (new) | Generated rider documents tied to notice + language template. |
+| `07_subpoena_language_templates.sql` | `GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES` (new) | Reusable per-fraud-type boilerplate language. PII-scanned on save. |
+| `08_external_users.sql` | `GUARDIAN.EXTERNAL_NOTICE_ASSIGNMENTS` + `GUARDIAN.EXTERNAL_CALL_REQUESTS` (new) | Joins external (role 5) users to specific notices and stores call-request proposals. |
+
+### New API endpoints (canonical TS server only)
+
+All routes live under `server/routes/*.ts` and are mounted in `server/index.ts`.
+They are **not** mirrored into the legacy `server.cjs`/`server.js`/
+`server-production.js` files — see the deferred-sync subsection below.
+
+**Securities Fraud Notice workflow** (`server/routes/securities-notices.ts`)
+- `POST   /api/securities-notices`                          — create + send a notice. `requireRole('securitiesNotice.send', …)`.
+- `PUT    /api/securities-notices/:id/submit`               — submit a DRAFT for manager approval. `securitiesNotice.submit`.
+- `PUT    /api/securities-notices/:id/approve`              — approve a `PENDING_APPROVAL` notice. `securitiesNotice.approve`.
+- `PUT    /api/securities-notices/:id/reject`               — reject a `PENDING_APPROVAL` notice. `securitiesNotice.approve`.
+- `PUT    /api/securities-notices/:id/records-released`     — close the loop after the subpoena is received. `securitiesNotice.markRecordsReleased`.
+- `GET    /api/securities-notices`                          — company-scoped list (`requireAuth` only).
+- `GET    /api/securities-notices/:id`                      — single notice detail (`requireAuth` only).
+
+**Subpoena language templates** (`server/routes/notice-templates.ts`)
+- `POST   /api/templates/subpoena`                          — create per-fraud-type boilerplate. `subpoenaRider.configureLanguage`.
+- `GET    /api/templates/subpoena/:fraudType`               — list available templates for a fraud type (`requireAuth`).
+
+**Subpoena riders** (`server/routes/subpoena-riders.ts`)
+- `POST   /api/subpoena-riders`                             — generate a rider for a notice. `subpoenaRider.generate`.
+- `GET    /api/subpoena-riders/:id`                         — fetch a generated rider (`requireAuth`).
+
+**External user portal** (`server/routes/external-notices.ts`, all gated by `requireExternalUser`)
+- `GET    /api/external/notices/:id`                        — assignment-scoped read-only view.
+- `POST   /api/external/notices/:id/subpoena`               — multer upload, transitions to `SUBPOENA_RECEIVED_PENDING_REVIEW`.
+- `POST   /api/external/notices/:id/call-request`           — record proposed times for a follow-up call.
+
+**Audit log** (`server/routes/audit.ts`)
+- `GET    /api/audit`                                       — filterable list; admin (1/6) sees full company log, manager (4) sees scoped view, others get 403.
+- `GET    /api/audit/export?format=csv|pdf`                 — `audit.export` (admin / JAFAR only).
+
+**Platform admin / JAFAR** (`server/routes/platform-admin.ts`, all gated by `requireJafar`)
+- `PUT    /api/platform/disclaimer`                         — set platform-wide compliance disclaimer text.
+- `PUT    /api/platform/fields/:name/lock`                  — toggle a field-lock entry.
+- `PUT    /api/platform/file-types`                         — set permitted MIME types for external subpoena uploads.
+- `GET    /api/platform/audit`                              — JAFAR view of platform-level audit rows.
+
+**Recipient verifications** (`server/routes/recipients.ts`) — supporting endpoints used by the first-time-recipient warning are mounted under `/api/recipients`.
+
+### Role → permission-key mapping
+
+Source of truth: `src/utils/permissions.ts` (frontend `MATRIX`) mirrored by
+`server/middleware/requireRole.ts` (`ROLE_PERMS`).
+
+| Permission key | Roles allowed |
+|----------------|---------------|
+| `securitiesNotice.template.create`     | Admin (1), Super Admin (6) |
+| `securitiesNotice.template.edit`       | Admin (1), Super Admin (6) |
+| `securitiesNotice.template.view`       | Admin (1), Processor (3), Manager (4), Super Admin (6) |
+| `securitiesNotice.send`                | Processor (3), Manager (4) |
+| `securitiesNotice.submit`              | Processor (3) |
+| `securitiesNotice.approve`             | Manager (4) |
+| `securitiesNotice.view`                | Admin (1), Processor (3), Manager (4), Super Admin (6) |
+| `securitiesNotice.viewReadOnly`        | General User (2) |
+| `securitiesNotice.markRecordsReleased` | Processor (3), Manager (4) |
+| `subpoenaRider.configureLanguage`      | Admin (1), Super Admin (6) |
+| `subpoenaRider.generate`               | Processor (3), Manager (4) |
+| `audit.viewFull`                       | Admin (1), Super Admin (6) |
+| `audit.viewScoped`                     | Manager (4) |
+| `audit.export`                         | Admin (1), Super Admin (6) |
+| `platform.config`                      | Super Admin (6) only |
+| `external.viewOwnNotice`               | External User (5) |
+| `external.attachSubpoena`              | External User (5) |
+| `external.requestCall`                 | External User (5) |
+
+Roles: 1 = Admin, 2 = General User, 3 = Processor, 4 = Manager, 5 = External
+User, 6 = Super Admin / JAFAR.
+
+### Audit event types (16)
+
+Defined as `AUDIT_EVENT_TYPES` in `server/lib/audit.ts`:
+
+`TEMPLATE_CREATED`, `TEMPLATE_MODIFIED`, `FIELD_RESTRICTION_CHANGED`,
+`DISCLAIMER_TOGGLED`, `MANAGER_APPROVAL_CONFIG_CHANGED`,
+`NOTICE_SUBMITTED_FOR_APPROVAL`, `NOTICE_APPROVED`, `NOTICE_REJECTED`,
+`NOTICE_SENT`, `SUBPOENA_RIDER_GENERATED`, `SUBPOENA_RECEIVED`,
+`RECORDS_RELEASED`, `FIRST_TIME_RECIPIENT_CONFIRMED`, `JAFAR_FIELD_LOCKED`,
+`JAFAR_DISCLAIMER_UPDATED`, `JAFAR_FILE_TYPES_UPDATED`.
+
+### Operational notes
+
+- **Migrations are not auto-applied.** `migrations/securities_notice/*.sql`
+  must be applied manually (in numeric order) against each environment's
+  database before the new endpoints will work end-to-end. Each file is
+  idempotent.
+- **Canonical runtime.** The Securities Notice MVP endpoints live in the TS
+  server only — `server/index.ts` → `dist-server/index.js`. Run
+  `npm run build:server` to compile.
+- **Smoke tests.** Bun-runnable smoke tests under `src/tests/`:
+  - `securities-notice-permissions.test.ts` — unit + opt-in HTTP RBAC matrix
+  - `securities-notice-workflow.smoke.test.ts`
+  - `notice-template.smoke.test.ts`
+  - `subpoena-rider.smoke.test.ts`
+  - `external-user-portal.smoke.test.ts`
+  - `audit-log.smoke.test.ts`
+  - `recipient-verification.smoke.test.ts`
+  - `platform-config.smoke.test.ts`
+  - `pii-guard.test.ts`
+- **Audit immutability.** `GUARDIAN.AUDIT_LOG` has no UPDATE / DELETE
+  endpoints. Rows are append-only.
+
+### Securities Notice MVP — legacy-server sync deferred
+
+The Securities Notice MVP endpoints exist **only** in the TS server
+(`server/index.ts` → `dist-server/index.js`). Mirroring them into the
+CommonJS legacy servers (`server.cjs`, `server.js`, `server-production.js`)
+is deferred — the canonical Azure deploy path now uses the TS build. Mirror
+these into the legacy files only if a future deploy path resurrects them.
+
+Endpoints present in TS server but **NOT** in legacy servers:
+
+- `POST   /api/securities-notices`
+- `GET    /api/securities-notices`
+- `GET    /api/securities-notices/:id`
+- `PUT    /api/securities-notices/:id/submit`
+- `PUT    /api/securities-notices/:id/approve`
+- `PUT    /api/securities-notices/:id/reject`
+- `PUT    /api/securities-notices/:id/records-released`
+- `POST   /api/templates/subpoena`
+- `GET    /api/templates/subpoena/:fraudType`
+- `POST   /api/subpoena-riders`
+- `GET    /api/subpoena-riders/:id`
+- `GET    /api/external/notices/:id`
+- `POST   /api/external/notices/:id/subpoena`
+- `POST   /api/external/notices/:id/call-request`
+- `GET    /api/audit`
+- `GET    /api/audit/export`
+- `GET    /api/recipients/*` (first-time-recipient lookup)
+
+Endpoints that **were** mirrored into legacy servers (commit `10689aa`):
+
+- `PUT    /api/platform/disclaimer`
+- `PUT    /api/platform/fields/:name/lock`
+- `PUT    /api/platform/file-types`
+- `GET    /api/platform/audit`
+
+If a future change requires legacy-server parity, reuse the patterns in
+`lib/permissions.cjs` and the platform-admin mirrors as the template.
+
 ## Deployment
 
 ### Development
