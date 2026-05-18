@@ -7,9 +7,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   className?: string;
 }
 
-/**
- * Select component based on the Guardian style guide
- */
+// Shieldlytics Select — uses .input shape (§6.2) with chevron caret on the right.
 const Select: React.FC<SelectProps> = ({
   label,
   status,
@@ -18,38 +16,58 @@ const Select: React.FC<SelectProps> = ({
   children,
   ...props
 }) => {
-  const baseSelectClasses = 'w-full px-4 py-3 border appearance-none bg-white focus:outline-none focus:ring-2 pr-10';
-  
-  const statusClasses = {
-    default: 'border-gray-5 focus:ring-secondary focus:border-transparent',
-    success: 'border-success focus:ring-success focus:border-transparent',
-    warning: 'border-warning focus:ring-warning focus:border-transparent',
-    error: 'border-error focus:ring-error focus:border-transparent',
-  };
-  
-  const statusTextClasses = {
-    default: 'text-gray-3',
-    success: 'text-success',
-    warning: 'text-warning',
-    error: 'text-error',
-  };
-  
-  const selectClasses = `${baseSelectClasses} ${statusClasses[statusType]} ${className}`;
-  
+  const statusColor =
+    statusType === 'success' ? 'var(--success-fg)' :
+    statusType === 'warning' ? 'var(--warning-fg)' :
+    statusType === 'error'   ? 'var(--danger-fg)'  :
+    'var(--fg3)';
+
+  const ariaInvalid = statusType === 'error' ? true : undefined;
+
   return (
     <div className="w-full">
-      {label && <label className="block text-body-sm mb-1">{label}</label>}
+      {label && (
+        <label
+          className="block mb-1"
+          style={{
+            fontSize: 'var(--fs-xs)',
+            fontWeight: 'var(--fw-medium)',
+            color: 'var(--fg2)',
+          }}
+        >
+          {label}
+        </label>
+      )}
       <div className="relative">
-        <select className={selectClasses} style={{ borderRadius: '6px' }} {...props}>
+        <select
+          className={`input appearance-none pr-10 ${className}`}
+          aria-invalid={ariaInvalid}
+          {...props}
+        >
           {children}
         </select>
-        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-          <svg className="w-5 h-5 text-gray-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+        <div
+          className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"
+          style={{ color: 'var(--fg3)' }}
+        >
+          <svg
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
       </div>
-      {status && <p className={`text-body-xs ${statusTextClasses[statusType]} mt-1`}>{status}</p>}
+      {status && (
+        <p className="mt-1" style={{ fontSize: 'var(--fs-xs)', color: statusColor }}>
+          {status}
+        </p>
+      )}
     </div>
   );
 };

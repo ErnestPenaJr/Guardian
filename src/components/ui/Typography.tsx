@@ -1,83 +1,82 @@
 import React, { ReactNode, HTMLAttributes } from 'react';
 
+type Variant =
+  | 'display' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5'
+  | 'body-lg' | 'body-md' | 'body-base' | 'body-sm' | 'body-xs'
+  | 'lead' | 'small' | 'meta' | 'eyebrow' | 'code' | 'num';
+
 interface TypographyProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
-  variant: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'body-lg' | 'body-md' | 'body-base' | 'body-sm' | 'body-xs';
-  component?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div';
-  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
-  color?: 'primary' | 'secondary' | 'black' | 'white' | 'gray-1' | 'gray-2' | 'gray-3' | 'gray-4' | 'gray-5';
+  variant: Variant;
+  component?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div' | 'code';
+  /**
+   * Optional weight override. The .sl-* classes already set the spec weight;
+   * use this sparingly (e.g. emphasizing a sub-section).
+   */
+  weight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+  /** Optional color token override. Defaults to the class's built-in color. */
+  color?: 'fg1' | 'fg2' | 'fg3' | 'fg4' | 'brand' | 'on-brand';
   className?: string;
 }
 
-/**
- * Typography component based on the Guardian style guide
- */
+// Shieldlytics Typography — maps variants to the .sl-* utility classes (§5).
+// Legacy body-* aliases map to the closest semantic class.
 const Typography: React.FC<TypographyProps> = ({
   children,
   variant,
   component,
-  weight = 'normal',
-  color = 'black',
+  weight,
+  color,
   className = '',
+  style,
   ...props
 }) => {
-  // Default component mapping based on variant
-  const defaultComponents = {
-    h1: 'h1',
-    h2: 'h2',
-    h3: 'h3',
-    h4: 'h4',
-    h5: 'h5',
-    h6: 'h6',
-    'body-lg': 'p',
-    'body-md': 'p',
-    'body-base': 'p',
-    'body-sm': 'p',
-    'body-xs': 'p',
+  const variantClass: Record<Variant, string> = {
+    display:     'sl-display',
+    h1:          'sl-h1',
+    h2:          'sl-h2',
+    h3:          'sl-h3',
+    h4:          'sl-h4',
+    h5:          'sl-h5',
+    'body-lg':   'sl-lead',
+    'body-md':   'sl-p',
+    'body-base': 'sl-p',
+    'body-sm':   'sl-small',
+    'body-xs':   'sl-meta',
+    lead:        'sl-lead',
+    small:       'sl-small',
+    meta:        'sl-meta',
+    eyebrow:     'sl-eyebrow',
+    code:        'sl-code',
+    num:         'sl-num',
   };
 
-  // Determine which HTML element to use
-  const Component = (component || defaultComponents[variant]) as keyof JSX.IntrinsicElements;
-
-  // Font weight classes
-  const weightClasses = {
-    normal: 'font-normal',
-    medium: 'font-medium',
-    semibold: 'font-semibold',
-    bold: 'font-bold',
+  const defaultComponent: Record<Variant, string> = {
+    display: 'h1', h1: 'h1', h2: 'h2', h3: 'h3', h4: 'h4', h5: 'h5',
+    'body-lg': 'p', 'body-md': 'p', 'body-base': 'p', 'body-sm': 'p', 'body-xs': 'p',
+    lead: 'p', small: 'p', meta: 'p', eyebrow: 'span', code: 'code', num: 'span',
   };
 
-  // Color classes
-  const colorClasses = {
-    primary: 'text-primary',
-    secondary: 'text-secondary',
-    black: 'text-black-1',
-    white: 'text-white',
-    'gray-1': 'text-gray-1',
-    'gray-2': 'text-gray-2',
-    'gray-3': 'text-gray-3',
-    'gray-4': 'text-gray-4',
-    'gray-5': 'text-gray-5',
-  };
+  const Component = (component || defaultComponent[variant]) as keyof JSX.IntrinsicElements;
 
-  // Font family classes
-  const fontFamilyClasses = {
-    h1: 'font-display',
-    h2: 'font-display',
-    h3: 'font-display',
-    h4: 'font-display',
-    h5: 'font-display',
-    h6: 'font-display',
-    'body-lg': 'font-sans',
-    'body-md': 'font-sans',
-    'body-base': 'font-sans',
-    'body-sm': 'font-sans',
-    'body-xs': 'font-sans',
-  };
+  const weightToken = weight
+    ? { light: 300, normal: 400, medium: 500, semibold: 600, bold: 700 }[weight]
+    : undefined;
+
+  const colorVar = color
+    ? color === 'brand' ? 'var(--sl-teal-600)'
+      : color === 'on-brand' ? 'var(--fg-on-brand)'
+      : `var(--${color})`
+    : undefined;
 
   return (
     <Component
-      className={`text-${variant} ${fontFamilyClasses[variant]} ${weightClasses[weight]} ${colorClasses[color]} ${className}`}
+      className={`${variantClass[variant]} ${className}`}
+      style={{
+        ...(weightToken !== undefined ? { fontWeight: weightToken } : null),
+        ...(colorVar ? { color: colorVar } : null),
+        ...style,
+      }}
       {...props}
     >
       {children}

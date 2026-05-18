@@ -1,212 +1,115 @@
-/* Consistent Card Component Styles */
-
-:root {
-  --card-primary-color: #2563eb;
-  --card-info-color: #0ea5e9;
-  --card-success-color: #059669;
-  --card-warning-color: #d97706;
-  --card-gray-50: #f8fafc;
-  --card-gray-100: #f1f5f9;
-  --card-gray-200: #e2e8f0;
-  --card-gray-600: #475569;
-  --card-gray-700: #334155;
-  --card-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --card-radius-xl: 1rem;
-  --card-transition-fast: 0.15s ease-in-out;
-}
+/* Consistent Card — Shieldlytics-aligned styling.
+   All values are sourced from the foundation tokens in src/index.css.
+   - No gradients (§11 forbids them outside the marketing hero).
+   - No tinted shadows (§11).
+   - Left-border accent reserved for severity variants only (§11). */
 
 .consistent-card {
-  background: linear-gradient(135deg, #ffffff 0%, var(--card-gray-50) 100%);
-  border-radius: var(--card-radius-xl);
-  box-shadow: var(--card-shadow-lg);
-  border: 1px solid var(--card-gray-200);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
-  transition: all var(--card-transition-fast);
-  margin-bottom: 2rem;
+  transition: box-shadow var(--duration-base) var(--ease-standard),
+              border-color var(--duration-base) var(--ease-standard);
+  margin-bottom: var(--space-7);
 }
 
 .consistent-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border);
 }
 
-/* Blue top border gradient */
-.consistent-card__top-border {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--card-primary-color), var(--card-info-color), var(--card-success-color));
-  border-radius: var(--card-radius-xl) var(--card-radius-xl) 0 0;
-}
+/* Severity stripe — left border, 4px, only for severity variants. */
+.consistent-card--warning { border-left: 4px solid var(--warning-500); }
+.consistent-card--success { border-left: 4px solid var(--success-500); }
+.consistent-card--info    { border-left: 4px solid var(--info-500); }
+.consistent-card--primary,
+.consistent-card--default { /* no severity stripe */ }
 
-/* Variant-specific top borders */
-.consistent-card--primary .consistent-card__top-border {
-  background: linear-gradient(90deg, var(--card-primary-color), #1d4ed8);
-}
+/* Legacy top-border element kept inert for backwards compatibility. */
+.consistent-card__top-border { display: none; }
 
-.consistent-card--success .consistent-card__top-border {
-  background: linear-gradient(90deg, var(--card-success-color), #047857);
-}
-
-.consistent-card--warning .consistent-card__top-border {
-  background: linear-gradient(90deg, var(--card-warning-color), #b45309);
-}
-
-.consistent-card--info .consistent-card__top-border {
-  background: linear-gradient(90deg, var(--card-info-color), #0284c7);
-}
-
-/* Header section */
+/* Header */
 .consistent-card__header {
-  padding: 2rem 2rem 1rem 2rem;
+  padding: var(--space-6) var(--space-6) var(--space-4) var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 2rem;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 
 .consistent-card__title-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
   flex: 1;
 }
 
 .consistent-card__icon {
-  color: var(--card-primary-color);
+  color: var(--sl-teal-600);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
 }
+.consistent-card__icon svg { width: 24px; height: 24px; stroke-width: 1.5; }
 
-.consistent-card__icon svg {
-  width: 32px;
-  height: 32px;
-}
-
-.consistent-card__title-content {
-  flex: 1;
-}
+.consistent-card__title-content { flex: 1; }
 
 .consistent-card__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--card-gray-700);
-  margin: 0 0 0.25rem 0;
-  line-height: 1.2;
+  font-family: var(--font-sans);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-snug);
+  color: var(--fg1);
+  margin: 0 0 2px 0;
+  line-height: var(--lh-snug);
 }
 
 .consistent-card__subtitle {
-  font-size: 0.95rem;
-  color: var(--card-gray-600);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  color: var(--fg2);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--lh-normal);
 }
 
 .consistent-card__controls {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
-/* Content section */
 .consistent-card__content {
-  padding: 0 2rem 2rem 2rem;
+  padding: 0 var(--space-6) var(--space-6) var(--space-6);
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .consistent-card__header {
-    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    padding: var(--space-5) var(--space-5) var(--space-4) var(--space-5);
     flex-direction: column;
     align-items: stretch;
-    gap: 1.5rem;
+    gap: var(--space-5);
   }
-  
-  .consistent-card__title-section {
-    justify-content: center;
-    text-align: center;
-  }
-  
-  .consistent-card__title {
-    font-size: 1.25rem;
-  }
-  
-  .consistent-card__controls {
-    justify-content: center;
-  }
-  
-  .consistent-card__content {
-    padding: 0 1.5rem 1.5rem 1.5rem;
-  }
+  .consistent-card__title-section { justify-content: flex-start; }
+  .consistent-card__title { font-size: var(--fs-lg); }
+  .consistent-card__content { padding: 0 var(--space-5) var(--space-5) var(--space-5); }
 }
 
-@media (max-width: 576px) {
-  .consistent-card__header {
-    padding: 1.25rem 1.25rem 0.75rem 1.25rem;
-  }
-  
-  .consistent-card__content {
-    padding: 0 1.25rem 1.25rem 1.25rem;
-  }
-  
-  .consistent-card__title {
-    font-size: 1.125rem;
-  }
-  
-  .consistent-card__subtitle {
-    font-size: 0.875rem;
-  }
-}
-
-/* Animation for card entrance */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.consistent-card {
-  animation: fadeInUp 0.3s ease-out;
-}
-
-/* Focus states for accessibility */
 .consistent-card:focus-within {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), var(--card-shadow-lg);
+  box-shadow: var(--shadow-focus);
 }
 
-/* High contrast mode support */
 @media (prefers-contrast: high) {
-  .consistent-card {
-    border-width: 2px;
-  }
-  
-  .consistent-card__top-border {
-    height: 6px;
-  }
+  .consistent-card { border-width: 2px; }
 }
 
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .consistent-card {
-    animation: none;
-    transition: none;
-  }
-  
-  .consistent-card:hover {
-    transform: none;
-  }
+  .consistent-card,
+  .consistent-card:hover { transition: none; }
 }

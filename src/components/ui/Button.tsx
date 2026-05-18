@@ -1,15 +1,14 @@
 import React, { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'small' | 'normal' | 'medium' | 'large';
   fullWidth?: boolean;
   className?: string;
 }
 
-/**
- * Button component based on the Guardian style guide
- */
+// Shieldlytics Button — consumes the .btn / .btn-{variant} / .btn-{size}
+// classes declared in src/index.css per UI_DESIGN-DIANA.md §6.1.
 const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
@@ -18,25 +17,23 @@ const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'font-semibold rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-opacity-50';
-  
-  const variantClasses = {
-    primary: 'bg-primary text-white hover:bg-primary/90 focus:ring-primary',
-    secondary: 'bg-secondary text-white hover:bg-secondary/90 focus:ring-secondary',
-  };
-  
-  const sizeClasses = {
-    small: 'py-2 px-4 text-body-sm',
-    normal: 'py-3 px-6',
-    medium: 'py-3 px-8',
-    large: 'py-4 px-10',
-  };
-  
+  const variantClass = {
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    ghost: 'btn-ghost',
+    danger: 'btn-danger',
+  }[variant];
+
+  const sizeClass =
+    size === 'small' ? 'btn-sm' :
+    size === 'large' ? 'btn-lg' :
+    '';
+
   const widthClass = fullWidth ? 'w-full' : '';
-  
+
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
+      className={['btn', variantClass, sizeClass, widthClass, className].filter(Boolean).join(' ')}
       {...props}
     >
       {children}

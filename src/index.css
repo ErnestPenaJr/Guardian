@@ -341,6 +341,296 @@
 }
 
 /* ============================================================
+   COMPONENT CLASSES — per UI_DESIGN-DIANA.md §6
+   Consume tokens only. Never inline raw colors here.
+   ============================================================ */
+
+/* §6.1 Button */
+.btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: var(--fw-medium);
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+.btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.btn-primary   { background: var(--sl-teal-600); color: var(--fg-on-brand); }
+.btn-primary:hover  { background: var(--sl-teal-700); }
+.btn-primary:active { background: var(--sl-teal-800); }
+.btn-secondary { background: var(--bg-surface); color: var(--fg1); border-color: var(--border); }
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-ghost     { background: var(--sl-teal-50); color: var(--sl-teal-700); border-color: var(--sl-teal-100); }
+.btn-ghost:hover { background: var(--sl-teal-100); border-color: var(--sl-teal-200); }
+.btn-danger    { background: var(--danger-500); color: var(--fg-on-brand); }
+.btn-danger:hover { background: #9A2A22; } /* press shade — kept inline; not a token */
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn-lg { padding: 12px 22px; font-size: 14px; }
+.btn[disabled], .btn[aria-disabled='true'] { opacity: .5; cursor: not-allowed; }
+
+/* §6.2 Input */
+.input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--fg1);
+  box-shadow: var(--shadow-inset);
+  outline: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+.input:focus { border-color: var(--sl-teal-500); box-shadow: var(--shadow-focus); }
+.input::placeholder { color: var(--fg4); }
+.input[aria-invalid='true'] { border-color: var(--danger-500); }
+.input[aria-invalid='true']:focus { box-shadow: var(--shadow-focus-danger); }
+.input[disabled] { background: var(--bg-sunken); color: var(--fg4); cursor: not-allowed; }
+
+/* §6.3 Badge / status pill */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+}
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.badge-open      { background: var(--success-bg); color: var(--success-fg); }
+.badge-open .dot { background: var(--success-500); }
+.badge-review    { background: var(--info-bg);    color: var(--info-fg); }
+.badge-review .dot { background: var(--info-500); }
+.badge-pending   { background: var(--warning-bg); color: var(--warning-fg); }
+.badge-pending .dot { background: var(--warning-500); }
+.badge-escalated { background: var(--danger-bg);  color: var(--danger-fg); }
+.badge-escalated .dot { background: var(--danger-500); }
+.badge-closed    { background: var(--sl-gray-100); color: var(--fg2); }
+.badge-closed .dot { background: var(--sl-gray-500); }
+.badge-neutral   { background: var(--sl-gray-100); color: var(--fg2); }
+.badge-neutral .dot { background: var(--sl-gray-500); }
+.badge-brand     { background: var(--sl-teal-50); color: var(--sl-teal-700); }
+.badge-brand .dot { background: var(--sl-teal-600); }
+
+/* §6.4 Card */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+.card-hover {
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
+}
+.card-hover:hover { box-shadow: var(--shadow-sm); border-color: var(--border); }
+
+/* §6.5 Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.table th {
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--fg3);
+  background: var(--sl-gray-25);
+}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: var(--bg-hover); }
+.table .num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* §6.6 Sidebar nav */
+.sidebar {
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  width: 240px;
+  padding: 16px 12px;
+}
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 14px;
+}
+.sidebar .brand img { width: 28px; height: 28px; }
+.sidebar .section {
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--fg3);
+  padding: 12px 10px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--fg2);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--fg1); }
+.nav-item.active { background: var(--sl-teal-50); color: var(--sl-teal-700); }
+.nav-item svg { width: 18px; height: 18px; stroke-width: 1.5; }
+
+/* ============================================================
+   REACT-BOOTSTRAP OVERRIDES
+   Bootstrap CSS is imported by individual components; these
+   selectors realign its primitives to the Shieldlytics tokens.
+   Source CSS load order: bootstrap → src/index.css, so unless
+   we use !important the cascade wins for us anyway. We use
+   !important sparingly where Bootstrap inlines !important itself.
+   ============================================================ */
+
+/* Buttons — Bootstrap's .btn shape collides with ours.
+   Ours is defined first above; these refine Bootstrap's variants. */
+.btn-primary,
+.btn-outline-primary {
+  background-color: var(--sl-teal-600);
+  border-color: var(--sl-teal-600);
+  color: var(--fg-on-brand);
+}
+.btn-primary:hover,
+.btn-outline-primary:hover {
+  background-color: var(--sl-teal-700);
+  border-color: var(--sl-teal-700);
+  color: var(--fg-on-brand);
+}
+.btn-primary:focus,
+.btn-primary:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+.btn-secondary {
+  background-color: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--fg1);
+}
+.btn-secondary:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--fg1);
+}
+.btn-danger {
+  background-color: var(--danger-500);
+  border-color: var(--danger-500);
+}
+.btn-success {
+  background-color: var(--success-500);
+  border-color: var(--success-500);
+}
+
+/* Form controls — align with §6.2 .input */
+.form-control,
+.form-select {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--fg1);
+  box-shadow: var(--shadow-inset);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--sl-teal-500);
+  box-shadow: var(--shadow-focus);
+  outline: none;
+}
+.form-control::placeholder { color: var(--fg4); }
+.form-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  color: var(--fg2);
+  margin-bottom: 4px;
+}
+
+/* Modals */
+.modal-content {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  background: var(--bg-surface);
+}
+.modal-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 18px 24px;
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--fg1);
+}
+.modal-body { padding: 20px 24px; }
+.modal-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 14px 24px;
+  gap: 8px;
+}
+.modal-backdrop.show { background: var(--bg-overlay); opacity: 1; }
+
+/* Bootstrap badges — recolor variants to spec */
+.badge.bg-success   { background: var(--success-bg) !important; color: var(--success-fg) !important; }
+.badge.bg-warning   { background: var(--warning-bg) !important; color: var(--warning-fg) !important; }
+.badge.bg-danger    { background: var(--danger-bg)  !important; color: var(--danger-fg)  !important; }
+.badge.bg-info      { background: var(--info-bg)    !important; color: var(--info-fg)    !important; }
+.badge.bg-primary   { background: var(--sl-teal-50) !important; color: var(--sl-teal-700) !important; }
+.badge.bg-secondary { background: var(--sl-gray-100)!important; color: var(--fg2)        !important; }
+
+/* Tables (when react-bootstrap Table is used) */
+.table-bordered > :not(caption) > * > * { border-color: var(--border-subtle); }
+.table-hover > tbody > tr:hover > * { background-color: var(--bg-hover); color: var(--fg1); }
+
+/* Bootstrap alerts — keep the soft-fill convention */
+.alert-success { background: var(--success-bg); color: var(--success-fg); border-color: var(--success-bg); }
+.alert-warning { background: var(--warning-bg); color: var(--warning-fg); border-color: var(--warning-bg); }
+.alert-danger  { background: var(--danger-bg);  color: var(--danger-fg);  border-color: var(--danger-bg); }
+.alert-info    { background: var(--info-bg);    color: var(--info-fg);    border-color: var(--info-bg); }
+
+/* ============================================================
    GUARDIAN APP OVERRIDES
    Preserved utilities, third-party overrides, and motion
    helpers used across the existing app surface.

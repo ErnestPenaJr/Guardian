@@ -5,23 +5,32 @@ interface RadioButtonProps extends InputHTMLAttributes<HTMLInputElement> {
   className?: string;
 }
 
-/**
- * RadioButton component based on the Guardian style guide
- */
+// Shieldlytics RadioButton — native input with teal accent and focus ring.
 const RadioButton: React.FC<RadioButtonProps> = ({
   label,
   className = '',
   ...props
 }) => {
   return (
-    <div className={`flex items-center ${className}`}>
-      <input 
-        type="radio" 
-        className="w-5 h-5 text-primary focus:ring-primary" 
-        {...props} 
+    <label className={`inline-flex items-center gap-2 ${className}`}>
+      <input
+        type="radio"
+        className="focus:outline-none"
+        style={{
+          width: 16,
+          height: 16,
+          accentColor: 'var(--sl-teal-600)',
+        }}
+        onFocus={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-focus)'; props.onFocus?.(e); }}
+        onBlur={(e)  => { e.currentTarget.style.boxShadow = 'none'; props.onBlur?.(e); }}
+        {...props}
       />
-      {label && <label className="ml-2 text-body-sm">{label}</label>}
-    </div>
+      {label && (
+        <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--fg1)' }}>
+          {label}
+        </span>
+      )}
+    </label>
   );
 };
 

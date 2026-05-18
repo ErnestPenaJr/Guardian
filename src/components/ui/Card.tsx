@@ -3,16 +3,22 @@ import React, { ReactNode } from 'react';
 interface CardProps {
   children: ReactNode;
   className?: string;
-  noAccent?: boolean; // Option to disable the blue accent stripe
+  /**
+   * Hover affordance (lifts the border + adds a soft shadow). Off by default —
+   * cards in dashboards should feel still, not interactive.
+   */
+  hover?: boolean;
+  /**
+   * @deprecated The Shieldlytics system has no blue accent stripe on cards.
+   * Kept as a no-op for backwards compatibility.
+   */
+  noAccent?: boolean;
 }
 
-/**
- * Card component based on the Guardian style guide
- */
-const Card: React.FC<CardProps> = ({ children, className = '', noAccent = false }) => {
-  const accentClasses = noAccent ? '' : 'border-t-4 border-t-secondary';
+// Shieldlytics Card — consumes the .card / .card-hover classes (§6.4).
+const Card: React.FC<CardProps> = ({ children, className = '', hover = false }) => {
   return (
-    <div className={`bg-white p-6 shadow-sm border border-gray-200 ${accentClasses} ${className}`} style={{ borderRadius: '6px' }}>
+    <div className={`card ${hover ? 'card-hover' : ''} ${className}`}>
       {children}
     </div>
   );

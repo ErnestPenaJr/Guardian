@@ -2,27 +2,49 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  /**
+   * Status mapping (preferred):
+   *   - open       → success bg
+   *   - review     → info bg
+   *   - pending    → warning bg
+   *   - escalated  → danger bg
+   *   - closed     → neutral gray
+   *   - brand      → teal soft
+   *
+   * Legacy aliases (kept for backwards compatibility):
+   *   - primary    → brand
+   *   - secondary  → neutral
+   *   - success    → open
+   *   - warning    → pending
+   *   - danger     → escalated
+   */
+  variant?:
+    | 'open' | 'review' | 'pending' | 'escalated' | 'closed' | 'brand' | 'neutral'
+    | 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  /** Show the leading dot indicator. Default true. */
+  dot?: boolean;
   className?: string;
 }
 
-const Badge: React.FC<BadgeProps> = ({ 
-  children, 
-  variant = 'secondary', 
-  className = '' 
+// Shieldlytics Badge — consumes .badge / .badge-{variant} classes (§6.3).
+const Badge: React.FC<BadgeProps> = ({
+  children,
+  variant = 'neutral',
+  dot = true,
+  className = '',
 }) => {
-  const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
-  
-  const variantClasses = {
-    primary: 'bg-blue-100 text-blue-800',
-    secondary: 'bg-gray-100 text-gray-800',
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    danger: 'bg-red-100 text-red-800'
+  const aliased: Record<string, string> = {
+    primary: 'brand',
+    secondary: 'neutral',
+    success: 'open',
+    warning: 'pending',
+    danger: 'escalated',
   };
+  const resolved = aliased[variant] ?? variant;
 
   return (
-    <span className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
+    <span className={`badge badge-${resolved} ${className}`}>
+      {dot && <span className="dot" aria-hidden="true" />}
       {children}
     </span>
   );

@@ -7,9 +7,7 @@ interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   className?: string;
 }
 
-/**
- * TextArea component based on the Guardian style guide
- */
+// Shieldlytics TextArea — uses the .input class (§6.2) with auto-height behavior left to caller.
 const TextArea: React.FC<TextAreaProps> = ({
   label,
   status,
@@ -17,29 +15,38 @@ const TextArea: React.FC<TextAreaProps> = ({
   className = '',
   ...props
 }) => {
-  const baseTextAreaClasses = 'w-full px-4 py-3 border focus:outline-none focus:ring-2 transition-all';
-  
-  const statusClasses = {
-    default: 'border-gray-5 focus:ring-secondary focus:border-transparent',
-    success: 'border-success focus:ring-success focus:border-transparent',
-    warning: 'border-warning focus:ring-warning focus:border-transparent',
-    error: 'border-error focus:ring-error focus:border-transparent',
-  };
-  
-  const statusTextClasses = {
-    default: 'text-gray-3',
-    success: 'text-success',
-    warning: 'text-warning',
-    error: 'text-error',
-  };
-  
-  const textAreaClasses = `${baseTextAreaClasses} ${statusClasses[statusType]} ${className}`;
-  
+  const statusColor =
+    statusType === 'success' ? 'var(--success-fg)' :
+    statusType === 'warning' ? 'var(--warning-fg)' :
+    statusType === 'error'   ? 'var(--danger-fg)'  :
+    'var(--fg3)';
+
+  const ariaInvalid = statusType === 'error' ? true : undefined;
+
   return (
     <div className="w-full">
-      {label && <label className="block text-body-sm mb-1">{label}</label>}
-      <textarea className={textAreaClasses} style={{ borderRadius: '6px' }} {...props} />
-      {status && <p className={`text-body-xs ${statusTextClasses[statusType]} mt-1`}>{status}</p>}
+      {label && (
+        <label
+          className="block mb-1"
+          style={{
+            fontSize: 'var(--fs-xs)',
+            fontWeight: 'var(--fw-medium)',
+            color: 'var(--fg2)',
+          }}
+        >
+          {label}
+        </label>
+      )}
+      <textarea
+        className={`input ${className}`}
+        aria-invalid={ariaInvalid}
+        {...props}
+      />
+      {status && (
+        <p className="mt-1" style={{ fontSize: 'var(--fs-xs)', color: statusColor }}>
+          {status}
+        </p>
+      )}
     </div>
   );
 };
