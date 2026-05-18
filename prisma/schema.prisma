@@ -695,10 +695,12 @@ model EXTERNAL_NOTICE_ASSIGNMENTS {
   ASSIGNMENT_ID    Int      @id @default(autoincrement())
   NOTICE_ID        Int
   EXTERNAL_USER_ID Int
+  COMPANY_ID       Int
   AGENCY_NAME      String?  @db.NVarChar(255)
   CREATED_AT       DateTime @default(now())
 
   @@unique([NOTICE_ID, EXTERNAL_USER_ID])
+  @@index([COMPANY_ID, EXTERNAL_USER_ID])
   @@schema("GUARDIAN")
 }
 
