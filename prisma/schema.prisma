@@ -176,6 +176,11 @@ model FORMS {
   WORKSPACE_ID     Int?
   TEMPLATE_TYPE    String           @default("request", map: "DF_FORMS_TEMPLATE_TYPE") @db.NVarChar(20)
   STATUS           String           @default("draft", map: "DF_FORMS_STATUS") @db.NVarChar(20)
+  NOTICE_SUBTYPE               String?  @db.NVarChar(40)
+  FRAUD_TYPE                   String?  @db.NVarChar(40)
+  REQUIRES_MANAGER_APPROVAL    Boolean  @default(false)
+  COMPLIANCE_DISCLAIMER_ENABLED Boolean @default(false)
+  TITLE_FORMAT                 String?  @db.NVarChar(255)
   ORGANIZATIONS    ORGANIZATIONS?   @relation(fields: [ORGANIZATION_ID], references: [ORGANIZATION_ID], onDelete: NoAction, map: "FK__FORMS__ORGANIZAT__6BAEFA67")
   COMPANY          COMPANY?         @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, map: "FK__FORMS__COMPANY")
   WORKSPACE        WORKSPACES?      @relation("WorkspaceForms", fields: [WORKSPACE_ID], references: [WORKSPACE_ID], onUpdate: NoAction, onDelete: NoAction, map: "FK_FORMS_WORKSPACE")
@@ -196,6 +201,10 @@ model FORMS_FIELDS {
   UPDATE_USER_ID Int?
   CREATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__CREAT__65C116E7") @db.DateTime
   UPDATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__UPDAT__66B53B20") @db.DateTime
+  IS_PII             Boolean @default(false)
+  IS_ENABLED         Boolean @default(true)
+  IS_LOCKED_BY_JAFAR Boolean @default(false)
+  IS_READ_ONLY       Boolean @default(false)
   FIELDS         FIELDS   @relation(fields: [FIELD_ID], references: [FIELD_ID], onUpdate: NoAction, map: "FK__FORMS_FIE__FIELD__689D8392")
   FORMS          FORMS    @relation(fields: [FORM_ID], references: [FORM_ID], onUpdate: NoAction, map: "FK__FORMS_FIE__UPDAT__67A95F59")
 
@@ -572,5 +581,134 @@ model USER_WORKSPACES {
   @@unique([USER_ID, WORKSPACE_ID], map: "UQ_USER_WORKSPACES_USER_WORKSPACE")
   @@index([USER_ID, IS_ACTIVE])
   @@index([WORKSPACE_ID, IS_ACTIVE])
+  @@schema("GUARDIAN")
+}
+
+// =====================================================================
+// Securities Notice MVP — Phase 0
+// =====================================================================
+
+model MY_NOTICES {
+  NOTICE_ID                       Int       @id(map: "PK_MY_NOTICES") @default(autoincrement())
+  NOTICE_TITLE                    String    @db.NVarChar(255)
+  SENSITIVITY_CLASSIFICATION      String    @db.NVarChar(50)
+  BUTTON_STATUS                   String    @db.NVarChar(50)
+  DISTRIBUTION_TYPE               String?   @db.NVarChar(50)
+  NOTICE_BODY                     String?   @db.NVarChar(Max)
+  CREATE_USER_ID                  Int?
+  UPDATE_USER_ID                  Int?
+  CREATE_DATE                     DateTime  @default(now())
+  UPDATE_DATE                     DateTime?
+  COMPANY_ID                      Int?
+  // Securities Notice MVP additions
+  TEMPLATE_FORM_ID                Int?
+  NOTICE_STATUS                   String    @default("DRAFT") @db.NVarChar(40)
+  SUBMITTED_BY                    Int?
+  SUBMITTED_AT                    DateTime?
+  APPROVED_BY                     Int?
+  APPROVED_AT                     DateTime?
+  REJECTED_BY                     Int?
+  REJECTED_AT                     DateTime?
+  REJECTION_REASON                String?   @db.NVarChar(2000)
+  SENT_AT                         DateTime?
+  DISCLAIMER_STATE                Boolean?
+  FIRST_TIME_RECIPIENT_FLAG       Boolean?
+  SUBPOENA_RIDER_ID               Int?
+  ATTACHED_SUBPOENA_ATTACHMENT_ID Int?
+
+  @@index([NOTICE_STATUS])
+  @@schema("GUARDIAN")
+}
+
+model AUDIT_LOG {
+  ENTRY_ID         BigInt    @id @default(autoincrement())
+  EVENT_TYPE       String    @db.NVarChar(64)
+  ACTOR_USER_ID    Int?
+  ACTOR_ROLE_ID    Int?
+  TARGET_TYPE      String    @db.NVarChar(32)
+  TARGET_ID        String?   @db.NVarChar(64)
+  EVENT_DETAIL     String?   @db.NVarChar(Max)
+  COMPANY_ID       Int?
+  FIRST_TIME_FLAG  Boolean?
+  DISCLAIMER_STATE Boolean?
+  CREATED_AT       DateTime  @default(now())
+
+  @@index([COMPANY_ID, CREATED_AT])
+  @@index([EVENT_TYPE])
+  @@index([TARGET_TYPE, TARGET_ID])
+  @@schema("GUARDIAN")
+}
+
+model JAFAR_PLATFORM_CONFIG {
+  CONFIG_KEY   String   @id @db.NVarChar(64)
+  CONFIG_VALUE String   @db.NVarChar(Max)
+  UPDATED_BY   Int?
+  UPDATED_AT   DateTime @default(now())
+
+  @@schema("GUARDIAN")
+}
+
+model RECIPIENT_VERIFICATIONS {
+  VERIFICATION_ID   Int       @id @default(autoincrement())
+  RECIPIENT_USER_ID Int
+  COMPANY_ID        Int
+  VERIFIED_STATUS   String    @default("FIRST_TIME") @db.NVarChar(32)
+  VERIFIED_AT       DateTime?
+  FIRST_NOTICE_ID   Int?
+
+  @@unique([RECIPIENT_USER_ID, COMPANY_ID])
+  @@index([COMPANY_ID, VERIFIED_STATUS])
+  @@schema("GUARDIAN")
+}
+
+model SUBPOENA_LANGUAGE_TEMPLATES {
+  LANGUAGE_TEMPLATE_ID Int       @id @default(autoincrement())
+  FRAUD_TYPE           String    @db.NVarChar(40)
+  BASE_LANGUAGE        String    @db.NVarChar(Max)
+  TOKENS_JSON          String    @db.NVarChar(Max)
+  CREATED_BY           Int
+  COMPANY_ID           Int
+  CREATED_AT           DateTime  @default(now())
+  UPDATED_AT           DateTime?
+  RIDERS               SUBPOENA_RIDERS[]
+
+  @@unique([COMPANY_ID, FRAUD_TYPE])
+  @@schema("GUARDIAN")
+}
+
+model SUBPOENA_RIDERS {
+  RIDER_ID             Int      @id @default(autoincrement())
+  LANGUAGE_TEMPLATE_ID Int
+  LANGUAGE_TEMPLATE    SUBPOENA_LANGUAGE_TEMPLATES @relation(fields: [LANGUAGE_TEMPLATE_ID], references: [LANGUAGE_TEMPLATE_ID])
+  FRAUD_TYPE           String   @db.NVarChar(40)
+  POPULATED_LANGUAGE   String   @db.NVarChar(Max)
+  TOKEN_VALUES_JSON    String   @db.NVarChar(Max)
+  INCIDENT_NOTICE_ID   Int?
+  CREATED_BY           Int
+  COMPANY_ID           Int
+  CREATED_AT           DateTime @default(now())
+
+  @@schema("GUARDIAN")
+}
+
+model EXTERNAL_NOTICE_ASSIGNMENTS {
+  ASSIGNMENT_ID    Int      @id @default(autoincrement())
+  NOTICE_ID        Int
+  EXTERNAL_USER_ID Int
+  AGENCY_NAME      String?  @db.NVarChar(255)
+  CREATED_AT       DateTime @default(now())
+
+  @@unique([NOTICE_ID, EXTERNAL_USER_ID])
+  @@schema("GUARDIAN")
+}
+
+model EXTERNAL_CALL_REQUESTS {
+  CALL_REQUEST_ID  Int      @id @default(autoincrement())
+  NOTICE_ID        Int
+  EXTERNAL_USER_ID Int
+  PROPOSED_TIMES   String   @db.NVarChar(Max)
+  MEETING_LINK     String?  @db.NVarChar(1024)
+  CREATED_AT       DateTime @default(now())
+
   @@schema("GUARDIAN")
 }
