@@ -13,7 +13,7 @@ import customTemplateService from '../../services/customTemplateService';
 import type { TemplateSummary, TemplateDetail, TemplateField } from '../../types/template';
 import CommonEditor from '../CommonEditor';
 import RecipientPicker, { type RecipientOption } from './RecipientPicker';
-import { FileText } from 'lucide-react';
+import { FileText, AlertTriangle } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -88,10 +88,30 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // PII acknowledgement modal — gates Step 1 → Step 2 when the chosen
+  // template is a Securities (SEC) notice. No persistence; advisory only.
+  const [showPiiAck, setShowPiiAck] = useState(false);
 
   const handleTitleChange = (v: string) => {
     setUserEditedTitle(true);
     setTitle(v);
+  };
+
+  const handleAdvanceToStep2 = () => {
+    if (selectedSummary?.NOTICE_CATEGORY === 'SEC') {
+      setShowPiiAck(true);
+      return;
+    }
+    setStep(2);
+  };
+
+  const acknowledgePii = () => {
+    setShowPiiAck(false);
+    setStep(2);
+  };
+
+  const cancelPiiAck = () => {
+    setShowPiiAck(false);
   };
 
   const selectedSummary = useMemo(
@@ -176,6 +196,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
     setTemplateValues({});
     setBody('');
     setError(null);
+    setShowPiiAck(false);
   };
 
   const handleClose = () => {
@@ -249,6 +270,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   };
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onRequestClose={handleClose}
@@ -341,7 +363,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
             <>
               <SecondaryBtn onClick={handleClose}>Cancel</SecondaryBtn>
               <PrimaryBtn
-                onClick={() => setStep(2)}
+                onClick={handleAdvanceToStep2}
                 disabled={!selectedId || templates.length === 0}
               >
                 Next
@@ -363,6 +385,80 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
         </div>
       </ModalFooter>
     </Modal>
+
+    <Modal
+      isOpen={showPiiAck}
+      onRequestClose={cancelPiiAck}
+      ariaHideApp={false}
+      style={{
+        overlay: {
+          backgroundColor: 'rgba(3, 36, 36, 0.7)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px 16px',
+        },
+        content: {
+          position: 'relative',
+          inset: 'auto',
+          width: '100%',
+          maxWidth: 480,
+          padding: 24,
+          border: '1px solid #E0E0E0',
+          borderRadius: 8,
+          background: '#FFFFFF',
+        },
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <div
+          aria-hidden="true"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: '#FEF2F2',
+            color: '#B91C1C',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <AlertTriangle size={22} />
+        </div>
+        <h3
+          style={{
+            margin: 0,
+            fontFamily: 'Montserrat, sans-serif',
+            fontSize: 17,
+            fontWeight: 600,
+            color: '#032424',
+          }}
+        >
+          No PII in Securities Notices
+        </h3>
+      </div>
+      <p
+        style={{
+          color: '#374151',
+          fontSize: 14,
+          lineHeight: 1.5,
+          margin: '0 0 20px',
+          fontFamily: 'Inter, sans-serif',
+        }}
+      >
+        PII (names, SSNs, DOBs, account numbers) is not permitted in Securities
+        notices. Confirm that you understand and will not include any personally
+        identifiable information when filling out this notice.
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <SecondaryBtn onClick={cancelPiiAck}>Cancel</SecondaryBtn>
+        <PrimaryBtn onClick={acknowledgePii}>I Acknowledge</PrimaryBtn>
+      </div>
+    </Modal>
+    </>
   );
 }
 
