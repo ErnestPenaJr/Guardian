@@ -29,6 +29,13 @@ import milestonesRoutes from './routes/milestones.js';
 import noticesRoutes from './routes/notices.js';
 import myNoticesRoutes from './routes/my-notices.js';
 import attachmentsRoutes from './routes/attachments.js';
+import platformAdminRoutes from './routes/platform-admin.js';
+import securitiesNoticesRoutes from './routes/securities-notices.js';
+import recipientsRoutes from './routes/recipients.js';
+import noticeTemplatesRoutes from './routes/notice-templates.js';
+import subpoenaRidersRoutes from './routes/subpoena-riders.js';
+import externalNoticesRoutes from './routes/external-notices.js';
+import auditRoutes from './routes/audit.js';
 // Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -138,6 +145,10 @@ app.get('/api/test', (req, res) => {
 console.log('[ROUTES] Registering API routes...');
 app.use('/api/forms', formsRoutes);
 console.log('[ROUTES] ✓ Forms routes registered at /api/forms');
+// Mount the assignment-scoped external-notices router (Phase 7 / US-SRB-03)
+// BEFORE the legacy /api/external router so its /notices/:id GET wins for
+// role-5 callers using the new portal flow.
+app.use('/api/external', externalNoticesRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/endpoint-viewer', endpointViewerRoutes);
 app.use('/api/fields', fieldsRoutes);
@@ -152,6 +163,12 @@ app.use('/api/field-lookups', fieldLookupsRoutes);
 // Notifications routes are handled directly in server.cjs (source of truth)
 app.use('/api/notices', noticesRoutes); // Notices routes
 app.use('/api/my-notices', myNoticesRoutes); // My Notices routes
+app.use('/api/platform', platformAdminRoutes); // JAFAR platform config (US-CCL-05)
+app.use('/api/securities-notices', securitiesNoticesRoutes); // Securities Fraud Notice workflow (Phase 5)
+app.use('/api/recipients', recipientsRoutes); // Recipient verification status (Phase 6 / US-CCL-03)
+app.use('/api/templates', noticeTemplatesRoutes); // Subpoena language templates (Phase 7 / US-SRB-01)
+app.use('/api/subpoena-riders', subpoenaRidersRoutes); // Subpoena rider generator (Phase 7 / US-SRB-02)
+app.use('/api/audit', auditRoutes); // Audit log + CSV/PDF export (Phase 8 / US-CCL-04)
 app.use('/api/attachments', attachmentsRoutes);
 app.use('/api', milestonesRoutes); // Milestone routes (includes /api/requests/:requestId/milestones and /api/milestones)
 console.log('[ROUTES] ✓ Milestone routes registered at /api');

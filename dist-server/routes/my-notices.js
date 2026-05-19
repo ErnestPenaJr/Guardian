@@ -576,6 +576,31 @@ router.patch("/:id", requireAuth, upload.array("attachment"), async (req, res) =
                     },
                 });
             }
+            // 4️⃣ Phase 6 / US-CCL-03 — upgrade the responder's verification status.
+            // Treat any response insert as acknowledgement per the MVP plan; this
+            // flips the recipient from FIRST_TIME → PREVIOUSLY_VERIFIED for the
+            // calling company, so future sends skip the first-time intercept modal.
+            if (patchUserId) {
+                await tx.rECIPIENT_VERIFICATIONS.upsert({
+                    where: {
+                        RECIPIENT_USER_ID_COMPANY_ID: {
+                            RECIPIENT_USER_ID: patchUserId,
+                            COMPANY_ID: patchCompanyId,
+                        },
+                    },
+                    update: {
+                        VERIFIED_STATUS: 'PREVIOUSLY_VERIFIED',
+                        VERIFIED_AT: new Date(),
+                    },
+                    create: {
+                        RECIPIENT_USER_ID: patchUserId,
+                        COMPANY_ID: patchCompanyId,
+                        VERIFIED_STATUS: 'PREVIOUSLY_VERIFIED',
+                        VERIFIED_AT: new Date(),
+                        FIRST_NOTICE_ID: noticeId,
+                    },
+                });
+            }
             return {
                 responseRecord,
                 attachmentIds,

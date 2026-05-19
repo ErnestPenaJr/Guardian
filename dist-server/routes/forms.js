@@ -1,6 +1,8 @@
 import express from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
+import { getLockedFields } from '../lib/jafarConfig.js';
+import { writeAudit } from '../lib/audit.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 // Define field type schema
@@ -16,7 +18,7 @@ const FieldTypeSchema = z.object({
     UPDATE_DATE: z.date().nullable(),
     UPDATE_USER_ID: z.number().nullable(),
 });
-// Define field schema
+// Define field schema (with compliance flags — all new flags optional for backward compatibility)
 const FieldSchema = z.object({
     FIELD_ID: z.number().optional(),
     FIELD_NAME: z.string(),
@@ -24,8 +26,12 @@ const FieldSchema = z.object({
     IS_REQUIRED: z.boolean(),
     OPTIONS: z.string().nullable().optional(),
     SEQUENCE: z.number().optional(),
+    // Compliance Control Layer additions (Phase 4 / US-CCL-01)
+    IS_PII: z.boolean().optional(),
+    IS_ENABLED: z.boolean().optional(),
+    IS_READ_ONLY: z.boolean().optional(),
 });
-// Define form schema
+// Define form schema (with notice-subtype + compliance additions — all new fields optional)
 const FormSchema = z.object({
     FORM_ID: z.number().optional(),
     FORM_NAME: z.string(),
@@ -33,7 +39,44 @@ const FormSchema = z.object({
     IS_PUBLIC: z.boolean(),
     IS_ACTIVE: z.boolean(),
     IS_DELETED: z.boolean(),
+    // Compliance Control Layer additions (Phase 4 / US-CCL-02)
+    NOTICE_SUBTYPE: z.enum(['SECURITIES_FRAUD', 'SUBPOENA_RIDER']).optional(),
+    FRAUD_TYPE: z.enum(['SECURITIES_MANIPULATION', 'ATO', 'CHECK_FRAUD', 'WIRE_FRAUD']).optional(),
+    REQUIRES_MANAGER_APPROVAL: z.boolean().optional(),
+    COMPLIANCE_DISCLAIMER_ENABLED: z.boolean().optional(),
+    TITLE_FORMAT: z.string().optional(),
 });
+/**
+ * Apply JAFAR locked-field intersection to an incoming field payload.
+ * If a field's name appears in the platform-wide locked list, force
+ * IS_ENABLED = false and IS_LOCKED_BY_JAFAR = true.
+ */
+function applyJafarLock(fieldName, flags, lockedFieldNames) {
+    const out = { ...flags };
+    if (lockedFieldNames.includes(fieldName)) {
+        out.IS_ENABLED = false;
+        out.IS_LOCKED_BY_JAFAR = true;
+    }
+    else if (out.IS_LOCKED_BY_JAFAR === undefined) {
+        out.IS_LOCKED_BY_JAFAR = false;
+    }
+    return out;
+}
+/**
+ * Fetch the existing FORMS_FIELDS row(s) for prev-state comparison during audits.
+ * FORMS_FIELDS is @@ignore in Prisma so we use $queryRaw.
+ */
+async function fetchExistingFormFields(formId) {
+    const rows = (await prisma.$queryRaw `
+    SELECT ff.FORM_ID, ff.FIELD_ID, ff.IS_REQUIRED, ff.SORT_ORDER,
+           ff.IS_PII, ff.IS_ENABLED, ff.IS_LOCKED_BY_JAFAR, ff.IS_READ_ONLY,
+           f.FIELD_NAME
+    FROM GUARDIAN.FORMS_FIELDS ff
+    JOIN GUARDIAN.FIELDS f ON f.FIELD_ID = ff.FIELD_ID
+    WHERE ff.FORM_ID = ${formId}
+  `);
+    return rows;
+}
 // Get all forms
 router.get('/', async (req, res) => {
     try {
@@ -68,7 +111,7 @@ router.get('/:id', async (req, res) => {
         let formFields = [];
         try {
             const result = await prisma.$queryRaw `
-        SELECT f.* 
+        SELECT f.*
         FROM GUARDIAN.FIELDS f
         JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
         WHERE ff.FORM_ID = ${parseInt(id)}
@@ -123,6 +166,16 @@ router.post('/', async (req, res) => {
     try {
         // Validate request body
         const { form, fields } = req.body;
+        const actorUserId = req.user?.id ?? null;
+        const actorRoleId = req.actorRoleId ?? null;
+        // Pre-resolve JAFAR locked fields (Phase 4 / Task 4.1 Step 2)
+        const lockedFieldNames = await getLockedFields();
+        // Default disclaimer ON for SECURITIES_FRAUD if undefined (Phase 4 / Task 4.2 Step 2)
+        const notice_subtype = form.NOTICE_SUBTYPE;
+        let complianceDisclaimerEnabled = form.COMPLIANCE_DISCLAIMER_ENABLED;
+        if (notice_subtype === 'SECURITIES_FRAUD' && complianceDisclaimerEnabled === undefined) {
+            complianceDisclaimerEnabled = true;
+        }
         // Create the form
         const createdForm = await prisma.fORMS.create({
             data: {
@@ -133,8 +186,44 @@ router.post('/', async (req, res) => {
                 IS_DELETED: form.IS_DELETED,
                 CREATE_USER_ID: req.user?.id || undefined,
                 UPDATE_USER_ID: req.user?.id || undefined,
+                // Compliance fields (only persisted if provided)
+                NOTICE_SUBTYPE: notice_subtype ?? undefined,
+                FRAUD_TYPE: form.FRAUD_TYPE ?? undefined,
+                REQUIRES_MANAGER_APPROVAL: form.REQUIRES_MANAGER_APPROVAL ?? undefined,
+                COMPLIANCE_DISCLAIMER_ENABLED: complianceDisclaimerEnabled ?? undefined,
+                TITLE_FORMAT: form.TITLE_FORMAT ?? undefined,
             },
         });
+        const companyId = createdForm.COMPANY_ID ?? null;
+        // Audit: disclaimer + manager-approval initial state on creation
+        // (compare against undefined prior-state; "DISCLAIMER_TOGGLED" on create only when explicitly set or defaulted)
+        if (complianceDisclaimerEnabled !== undefined) {
+            await writeAudit({
+                eventType: 'DISCLAIMER_TOGGLED',
+                actorUserId,
+                actorRoleId,
+                targetType: 'TEMPLATE',
+                targetId: createdForm.FORM_ID,
+                companyId,
+                disclaimerState: complianceDisclaimerEnabled,
+                detail: {
+                    prevState: null,
+                    newState: complianceDisclaimerEnabled,
+                    direction: complianceDisclaimerEnabled ? 'OFF_TO_ON' : 'ON_TO_OFF',
+                },
+            });
+        }
+        if (form.REQUIRES_MANAGER_APPROVAL !== undefined) {
+            await writeAudit({
+                eventType: 'MANAGER_APPROVAL_CONFIG_CHANGED',
+                actorUserId,
+                actorRoleId,
+                targetType: 'TEMPLATE',
+                targetId: createdForm.FORM_ID,
+                companyId,
+                detail: { toggleState: form.REQUIRES_MANAGER_APPROVAL, prevState: null },
+            });
+        }
         // Create the fields
         const createdFields = [];
         for (const field of fields) {
@@ -156,11 +245,47 @@ router.post('/', async (req, res) => {
                     UPDATE_USER_ID: req.user?.id || undefined,
                 },
             });
-            // Create the form-field association
+            // Resolve compliance flags with JAFAR-lock intersection (Phase 4 / Task 4.1)
+            const incomingFlags = {
+                IS_PII: field.IS_PII ?? false,
+                IS_ENABLED: field.IS_ENABLED ?? true,
+                IS_READ_ONLY: field.IS_READ_ONLY ?? false,
+            };
+            const resolvedFlags = applyJafarLock(field.FIELD_NAME, incomingFlags, lockedFieldNames);
+            // Create the form-field association (now persisting compliance flags)
             await prisma.$executeRaw `
-        INSERT INTO GUARDIAN.FORMS_FIELDS (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER, CREATE_USER_ID, UPDATE_USER_ID)
-        VALUES (${createdForm.FORM_ID}, ${createdField.FIELD_ID}, ${field.IS_REQUIRED}, ${field.SEQUENCE || 0}, ${req.user?.id || null}, ${req.user?.id || null})
+        INSERT INTO GUARDIAN.FORMS_FIELDS
+          (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
+           IS_PII, IS_ENABLED, IS_LOCKED_BY_JAFAR, IS_READ_ONLY,
+           CREATE_USER_ID, UPDATE_USER_ID)
+        VALUES
+          (${createdForm.FORM_ID}, ${createdField.FIELD_ID},
+           ${field.IS_REQUIRED}, ${field.SEQUENCE || 0},
+           ${resolvedFlags.IS_PII ?? false},
+           ${resolvedFlags.IS_ENABLED ?? true},
+           ${resolvedFlags.IS_LOCKED_BY_JAFAR ?? false},
+           ${resolvedFlags.IS_READ_ONLY ?? false},
+           ${req.user?.id || null}, ${req.user?.id || null})
       `;
+            // Audit: field restriction change on creation (prevState is null since this is brand new)
+            await writeAudit({
+                eventType: 'FIELD_RESTRICTION_CHANGED',
+                actorUserId,
+                actorRoleId,
+                targetType: 'TEMPLATE',
+                targetId: createdForm.FORM_ID,
+                companyId,
+                detail: {
+                    fieldName: field.FIELD_NAME,
+                    prevState: null,
+                    newState: {
+                        IS_PII: resolvedFlags.IS_PII ?? false,
+                        IS_ENABLED: resolvedFlags.IS_ENABLED ?? true,
+                        IS_LOCKED_BY_JAFAR: resolvedFlags.IS_LOCKED_BY_JAFAR ?? false,
+                        IS_READ_ONLY: resolvedFlags.IS_READ_ONLY ?? false,
+                    },
+                },
+            });
             // If the field has lookup values (dropdown/radio options), create them
             if (field.OPTIONS) {
                 const options = field.OPTIONS.split(',').map((option) => option.trim()).filter(Boolean);
@@ -190,14 +315,25 @@ router.post('/', async (req, res) => {
 // Update a form
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
+    const formId = parseInt(id);
     try {
         // Validate request body
         const { form, fields } = req.body;
         const validatedForm = FormSchema.parse(form);
+        const actorUserId = req.user?.id ?? null;
+        const actorRoleId = req.actorRoleId ?? null;
+        // Load prior FORMS row for compliance diff (Phase 4 / Task 4.2 Step 3-4)
+        const priorForm = await prisma.fORMS.findUnique({ where: { FORM_ID: formId } });
+        // Default disclaimer ON for SECURITIES_FRAUD if undefined (Phase 4 / Task 4.2 Step 2)
+        const notice_subtype = validatedForm.NOTICE_SUBTYPE;
+        let complianceDisclaimerEnabled = validatedForm.COMPLIANCE_DISCLAIMER_ENABLED;
+        if (notice_subtype === 'SECURITIES_FRAUD' && complianceDisclaimerEnabled === undefined) {
+            complianceDisclaimerEnabled = true;
+        }
         // Update the form
         const updatedForm = await prisma.fORMS.update({
             where: {
-                FORM_ID: parseInt(id),
+                FORM_ID: formId,
             },
             data: {
                 FORM_NAME: validatedForm.FORM_NAME,
@@ -206,8 +342,60 @@ router.put('/:id', async (req, res) => {
                 IS_ACTIVE: validatedForm.IS_ACTIVE,
                 IS_DELETED: validatedForm.IS_DELETED,
                 UPDATE_USER_ID: req.user?.id || undefined,
+                // Compliance fields — only update when present in payload
+                NOTICE_SUBTYPE: validatedForm.NOTICE_SUBTYPE ?? undefined,
+                FRAUD_TYPE: validatedForm.FRAUD_TYPE ?? undefined,
+                REQUIRES_MANAGER_APPROVAL: validatedForm.REQUIRES_MANAGER_APPROVAL ?? undefined,
+                COMPLIANCE_DISCLAIMER_ENABLED: complianceDisclaimerEnabled ?? undefined,
+                TITLE_FORMAT: validatedForm.TITLE_FORMAT ?? undefined,
             },
         });
+        const companyId = updatedForm.COMPANY_ID ?? priorForm?.COMPANY_ID ?? null;
+        // Audit: DISCLAIMER_TOGGLED if changed (Phase 4 / Task 4.2 Step 3)
+        if (complianceDisclaimerEnabled !== undefined &&
+            priorForm &&
+            Boolean(priorForm.COMPLIANCE_DISCLAIMER_ENABLED) !== Boolean(complianceDisclaimerEnabled)) {
+            const prevState = Boolean(priorForm.COMPLIANCE_DISCLAIMER_ENABLED);
+            const newState = Boolean(complianceDisclaimerEnabled);
+            await writeAudit({
+                eventType: 'DISCLAIMER_TOGGLED',
+                actorUserId,
+                actorRoleId,
+                targetType: 'TEMPLATE',
+                targetId: formId,
+                companyId,
+                disclaimerState: newState,
+                detail: {
+                    prevState,
+                    newState,
+                    direction: !prevState && newState ? 'OFF_TO_ON' : 'ON_TO_OFF',
+                },
+            });
+        }
+        // Audit: MANAGER_APPROVAL_CONFIG_CHANGED if changed (Phase 4 / Task 4.2 Step 4)
+        if (validatedForm.REQUIRES_MANAGER_APPROVAL !== undefined &&
+            priorForm &&
+            Boolean(priorForm.REQUIRES_MANAGER_APPROVAL) !== Boolean(validatedForm.REQUIRES_MANAGER_APPROVAL)) {
+            await writeAudit({
+                eventType: 'MANAGER_APPROVAL_CONFIG_CHANGED',
+                actorUserId,
+                actorRoleId,
+                targetType: 'TEMPLATE',
+                targetId: formId,
+                companyId,
+                detail: {
+                    prevState: Boolean(priorForm.REQUIRES_MANAGER_APPROVAL),
+                    toggleState: Boolean(validatedForm.REQUIRES_MANAGER_APPROVAL),
+                },
+            });
+        }
+        // Pre-resolve JAFAR locked fields once (Phase 4 / Task 4.1 Step 2)
+        const lockedFieldNames = await getLockedFields();
+        // Snapshot prior FORMS_FIELDS state keyed by FIELD_ID for audit diff (Phase 4 / Task 4.1 Step 3)
+        const priorFormFields = await fetchExistingFormFields(formId);
+        const priorByFieldId = new Map();
+        for (const r of priorFormFields)
+            priorByFieldId.set(r.FIELD_ID, r);
         // Update or create fields
         const updatedFields = [];
         for (const field of fields) {
@@ -245,6 +433,78 @@ router.put('/:id', async (req, res) => {
                     },
                 });
                 fieldId = createdField.FIELD_ID;
+            }
+            // Resolve compliance flags with JAFAR-lock intersection (Phase 4 / Task 4.1)
+            const incomingFlags = {
+                IS_PII: validatedField.IS_PII,
+                IS_ENABLED: validatedField.IS_ENABLED,
+                IS_READ_ONLY: validatedField.IS_READ_ONLY,
+            };
+            const resolvedFlags = applyJafarLock(validatedField.FIELD_NAME, incomingFlags, lockedFieldNames);
+            const prior = priorByFieldId.get(fieldId);
+            const newState = {
+                IS_PII: resolvedFlags.IS_PII ?? prior?.IS_PII ?? false,
+                IS_ENABLED: resolvedFlags.IS_ENABLED ?? prior?.IS_ENABLED ?? true,
+                IS_LOCKED_BY_JAFAR: resolvedFlags.IS_LOCKED_BY_JAFAR ?? prior?.IS_LOCKED_BY_JAFAR ?? false,
+                IS_READ_ONLY: resolvedFlags.IS_READ_ONLY ?? prior?.IS_READ_ONLY ?? false,
+            };
+            // Upsert FORMS_FIELDS row (FORMS_FIELDS is @@ignore in Prisma)
+            if (prior) {
+                await prisma.$executeRaw `
+          UPDATE GUARDIAN.FORMS_FIELDS
+          SET IS_REQUIRED = ${validatedField.IS_REQUIRED},
+              SORT_ORDER  = ${validatedField.SEQUENCE ?? prior.SORT_ORDER ?? 0},
+              IS_PII             = ${newState.IS_PII},
+              IS_ENABLED         = ${newState.IS_ENABLED},
+              IS_LOCKED_BY_JAFAR = ${newState.IS_LOCKED_BY_JAFAR},
+              IS_READ_ONLY       = ${newState.IS_READ_ONLY},
+              UPDATE_USER_ID     = ${req.user?.id || null},
+              UPDATE_DATE        = ${new Date()}
+          WHERE FORM_ID = ${formId} AND FIELD_ID = ${fieldId}
+        `;
+            }
+            else {
+                await prisma.$executeRaw `
+          INSERT INTO GUARDIAN.FORMS_FIELDS
+            (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
+             IS_PII, IS_ENABLED, IS_LOCKED_BY_JAFAR, IS_READ_ONLY,
+             CREATE_USER_ID, UPDATE_USER_ID)
+          VALUES
+            (${formId}, ${fieldId},
+             ${validatedField.IS_REQUIRED}, ${validatedField.SEQUENCE ?? 0},
+             ${newState.IS_PII}, ${newState.IS_ENABLED},
+             ${newState.IS_LOCKED_BY_JAFAR}, ${newState.IS_READ_ONLY},
+             ${req.user?.id || null}, ${req.user?.id || null})
+        `;
+            }
+            // Audit: FIELD_RESTRICTION_CHANGED if any of IS_PII/IS_ENABLED/IS_LOCKED_BY_JAFAR/IS_READ_ONLY changed
+            const restrictionChanged = !prior ||
+                Boolean(prior.IS_PII) !== Boolean(newState.IS_PII) ||
+                Boolean(prior.IS_ENABLED) !== Boolean(newState.IS_ENABLED) ||
+                Boolean(prior.IS_LOCKED_BY_JAFAR) !== Boolean(newState.IS_LOCKED_BY_JAFAR) ||
+                Boolean(prior.IS_READ_ONLY) !== Boolean(newState.IS_READ_ONLY);
+            if (restrictionChanged) {
+                const prevState = prior
+                    ? {
+                        IS_PII: Boolean(prior.IS_PII),
+                        IS_ENABLED: Boolean(prior.IS_ENABLED),
+                        IS_LOCKED_BY_JAFAR: Boolean(prior.IS_LOCKED_BY_JAFAR),
+                        IS_READ_ONLY: Boolean(prior.IS_READ_ONLY),
+                    }
+                    : null;
+                await writeAudit({
+                    eventType: 'FIELD_RESTRICTION_CHANGED',
+                    actorUserId,
+                    actorRoleId,
+                    targetType: 'TEMPLATE',
+                    targetId: formId,
+                    companyId,
+                    detail: {
+                        fieldName: validatedField.FIELD_NAME,
+                        prevState,
+                        newState,
+                    },
+                });
             }
             // If the field has lookup values, update them
             if (field.OPTIONS) {
