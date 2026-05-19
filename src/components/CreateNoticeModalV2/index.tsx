@@ -245,6 +245,12 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
       RESTRICTED: 'Mixed (Internal + External)',
     };
 
+    const templateValuesByFieldId: Record<string, string> = {};
+    for (const f of viewFields) {
+      const v = templateValues[f.id];
+      if (v) templateValuesByFieldId[f.id] = v;
+    }
+
     try {
       setSubmitting(true);
       await api.post('/api/my-notices', {
@@ -256,6 +262,8 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
         RECIPIENTS: recipients.filter((r) => r.kind === 'user').map((r) => r.id),
         contactGroups: recipients.filter((r) => r.kind === 'group').map((r) => r.id),
         SEND_NOTICE: status === 'PUBLISHED',
+        TEMPLATE_FORM_ID: selectedSummary.FORM_ID,
+        TEMPLATE_VALUES_JSON: JSON.stringify(templateValuesByFieldId),
       });
       toast.success(status === 'PUBLISHED' ? 'Notice sent' : 'Draft saved');
       onCreated?.();

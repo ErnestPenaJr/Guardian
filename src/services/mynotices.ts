@@ -79,6 +79,15 @@ export interface Notice {
 
   /** Generated download URL for attachment */
   attachmentUrl?: string | null;
+
+  /** Notice category (ANCM/SEC/GEN/TRGT) joined from FORMS.NOTICE_CATEGORY */
+  NOTICE_CATEGORY?: 'ANCM' | 'SEC' | 'GEN' | 'TRGT' | null;
+
+  /** FORM_ID of the notice template used to create this notice */
+  TEMPLATE_FORM_ID?: number | null;
+
+  /** Serialized {fieldId: value} map from when the notice was created — drives rider IDENTIFIER_BLOCK */
+  TEMPLATE_VALUES_JSON?: string | null;
 }
 
 export interface NoticesSummary {

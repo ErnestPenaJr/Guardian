@@ -23,6 +23,9 @@ import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
 import { can } from "../utils/permissions";
 import api from "../utils/api";
+import GenerateRiderModal from "../components/SubpoenaRider/GenerateRiderModal";
+import RiderViewerModal from "../components/SubpoenaRider/RiderViewerModal";
+import subpoenaRiderService, { type SubpoenaRider } from "../services/subpoenaRiderService";
 
 type ResponseFormValues = {
   response: string;
@@ -173,6 +176,12 @@ export default function ViewNotice({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Subpoena rider panel state — only relevant for SEC notices.
+  const [riders, setRiders] = useState<SubpoenaRider[]>([]);
+  const [ridersLoading, setRidersLoading] = useState(false);
+  const [showGenerateRider, setShowGenerateRider] = useState(false);
+  const [viewerRider, setViewerRider] = useState<SubpoenaRider | null>(null);
   const responseForm = useFormik<ResponseFormValues>({
     initialValues: { response: "", attachment: null },
     validate: validateResponseForm,
@@ -245,6 +254,41 @@ export default function ViewNotice({
 
     fetchNotice();
   }, [id]);
+
+  // Fetch any riders attached to this notice once the notice is loaded
+  // and confirmed to be a Securities (SEC) notice.
+  useEffect(() => {
+    if (!notice || notice.NOTICE_CATEGORY !== 'SEC') {
+      setRiders([]);
+      return;
+    }
+    let cancelled = false;
+    setRidersLoading(true);
+    subpoenaRiderService
+      .listByNotice(notice.NOTICE_ID)
+      .then((res) => {
+        if (!cancelled) setRiders(res.data?.riders ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setRiders([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRidersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [notice]);
+
+  const reloadRiders = async () => {
+    if (!notice || notice.NOTICE_CATEGORY !== 'SEC') return;
+    try {
+      const res = await subpoenaRiderService.listByNotice(notice.NOTICE_ID);
+      setRiders(res.data?.riders ?? []);
+    } catch {
+      // silent — toast already surfaced from the generation flow
+    }
+  };
   // No notice ID provided
   if (!id) {
     if (modalMode) return <p className="text-center text-gray-500 py-8">No notice selected.</p>;
@@ -544,6 +588,67 @@ export default function ViewNotice({
             );
           })()}
 
+          {/* SUBPOENA RIDER PANEL — Securities (SEC) notices only */}
+          {notice.NOTICE_CATEGORY === 'SEC' && (
+            <div className="border-t border-gray-200 mt-4 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <FileText size={14} className="text-blue-500" />
+                  Subpoena Rider
+                  <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">SEC</span>
+                </h3>
+              </div>
+              {ridersLoading ? (
+                <p className="text-xs text-gray-400 py-2">Loading riders…</p>
+              ) : riders.length === 0 ? (
+                <div className="flex items-center justify-between py-2">
+                  <p className="text-xs text-gray-500">
+                    No rider generated yet. Populate the JPMorgan-style rider from this notice's template values (PII fields are redacted in the output).
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerateRider(true)}
+                    className="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-blue-700"
+                  >
+                    Generate Subpoena Rider
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {riders.map((r) => (
+                    <div
+                      key={r.RIDER_ID}
+                      className="flex items-center justify-between border border-gray-200 rounded-md px-3 py-2"
+                    >
+                      <div className="text-xs">
+                        <div className="font-semibold text-gray-800">Rider #{r.RIDER_ID}</div>
+                        <div className="text-gray-500">
+                          {r.FRAUD_TYPE} · Generated {moment(r.CREATED_AT).format('YYYY-MM-DD HH:mm')}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setViewerRider(r)}
+                          className="text-xs px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowGenerateRider(true)}
+                          className="text-xs px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                          Regenerate
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* RECIPIENT RESPONSES – inside notice card, below body */}
           <div className="border-t border-gray-200 mt-4 pt-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -685,6 +790,27 @@ export default function ViewNotice({
             disabled={responseForm.isSubmitting}
           />
         </div>
+
+        {/* Subpoena Rider generation + viewer modals */}
+        {notice.NOTICE_CATEGORY === 'SEC' && (
+          <>
+            <GenerateRiderModal
+              show={showGenerateRider}
+              onHide={() => setShowGenerateRider(false)}
+              incidentNoticeId={notice.NOTICE_ID}
+              onGenerated={() => {
+                setShowGenerateRider(false);
+                void reloadRiders();
+              }}
+            />
+            <RiderViewerModal
+              show={!!viewerRider}
+              onHide={() => setViewerRider(null)}
+              rider={viewerRider}
+              noticeId={notice.NOTICE_ID}
+            />
+          </>
+        )}
       </div>
     </div>
   );

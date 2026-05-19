@@ -11504,7 +11504,7 @@ app.get('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
 // POST /api/my-notices — create a new notice
 app.post('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        const { NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, RECIPIENTS = [], contactGroups = [], SEND_NOTICE } = req.body;
+        const { NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, RECIPIENTS = [], contactGroups = [], SEND_NOTICE, TEMPLATE_FORM_ID, TEMPLATE_VALUES_JSON } = req.body;
         if (!NOTICE_TITLE || !SENSITIVITY_CLASSIFICATION || !BUTTON_STATUS) {
             return res.status(400).json({ error: 'NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, and BUTTON_STATUS are required' });
         }
@@ -11555,12 +11555,22 @@ app.post('/api/my-notices', getAuthenticatedUserCompany, async (req, res) => {
             }
         }
 
+        const templateFormIdSql =
+            TEMPLATE_FORM_ID != null && Number.isInteger(Number(TEMPLATE_FORM_ID))
+                ? String(parseInt(TEMPLATE_FORM_ID, 10))
+                : 'NULL';
+        const templateValuesJsonSql =
+            TEMPLATE_VALUES_JSON != null
+                ? `N'${String(TEMPLATE_VALUES_JSON).replace(/'/g, "''")}'`
+                : 'NULL';
+
         const result = await prisma.$queryRawUnsafe(`
-            INSERT INTO GUARDIAN.MY_NOTICES (NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, CREATE_USER_ID, COMPANY_ID, CREATE_DATE)
+            INSERT INTO GUARDIAN.MY_NOTICES (NOTICE_TITLE, SENSITIVITY_CLASSIFICATION, BUTTON_STATUS, DISTRIBUTION_TYPE, NOTICE_BODY, CREATE_USER_ID, COMPANY_ID, CREATE_DATE, TEMPLATE_FORM_ID, TEMPLATE_VALUES_JSON)
             OUTPUT INSERTED.NOTICE_ID
             VALUES ('${String(NOTICE_TITLE).replace(/'/g, "''")}', '${String(SENSITIVITY_CLASSIFICATION).replace(/'/g, "''")}',
                     '${String(BUTTON_STATUS).replace(/'/g, "''")}', '${String(DISTRIBUTION_TYPE || '').replace(/'/g, "''")}',
-                    '${String(NOTICE_BODY || '').replace(/'/g, "''")}', ${parseInt(req.userId, 10)}, ${parseInt(req.companyId, 10)}, GETDATE())
+                    '${String(NOTICE_BODY || '').replace(/'/g, "''")}', ${parseInt(req.userId, 10)}, ${parseInt(req.companyId, 10)}, GETDATE(),
+                    ${templateFormIdSql}, ${templateValuesJsonSql})
         `);
 
         const noticeId = result[0]?.NOTICE_ID;
@@ -11587,9 +11597,10 @@ app.get('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => 
             return res.status(400).json({ error: 'Invalid notice ID' });
         }
         const notices = await prisma.$queryRawUnsafe(`
-            SELECT n.*, u.FIRST_NAME AS CREATE_USER_NAME
+            SELECT n.*, u.FIRST_NAME AS CREATE_USER_NAME, f.NOTICE_CATEGORY
             FROM GUARDIAN.MY_NOTICES n
             LEFT JOIN GUARDIAN.USERS u ON n.CREATE_USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.FORMS f ON n.TEMPLATE_FORM_ID = f.FORM_ID
             WHERE n.NOTICE_ID = ${noticeId} AND n.COMPANY_ID = ${parseInt(req.companyId, 10)}
         `);
         if (!notices || notices.length === 0) return res.status(404).json({ error: 'Notice not found' });

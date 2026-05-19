@@ -49,6 +49,12 @@ export const subpoenaRiderService = {
   /** Fetch a previously-generated rider by id. */
   getRider: (id: number) =>
     api.get<{ rider: SubpoenaRider }>(`/api/subpoena-riders/${id}`),
+
+  /** List all riders attached to a given incident notice. */
+  listByNotice: (incidentNoticeId: number) =>
+    api.get<{ riders: SubpoenaRider[] }>(`/api/subpoena-riders`, {
+      params: { incidentNoticeId },
+    }),
 };
 
 export default subpoenaRiderService;
