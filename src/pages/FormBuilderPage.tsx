@@ -129,6 +129,15 @@ export default function FormBuilderPage() {
       // the request templates list (or vice versa).
       const normalizedType: 'notice' | 'request' =
         (formType || '').toLowerCase() === 'notice' ? 'notice' : 'request';
+      const NOTICE_CATEGORY_VALUES = ['ANCM', 'SEC', 'GEN', 'TRGT'] as const;
+      type NoticeCategory = typeof NOTICE_CATEGORY_VALUES[number];
+      const rawNoticeCategory = searchParams.get('noticeType');
+      const noticeCategory: NoticeCategory | null =
+        normalizedType === 'notice' &&
+        rawNoticeCategory != null &&
+        (NOTICE_CATEGORY_VALUES as readonly string[]).includes(rawNoticeCategory)
+          ? (rawNoticeCategory as NoticeCategory)
+          : null;
       const dbForm: DbForm = {
         FORM_NAME: data.name,
         FORM_DESCRIPTION: data.description,
@@ -138,6 +147,7 @@ export default function FormBuilderPage() {
         IS_ACTIVE: true,
         IS_DELETED: false,
         TEMPLATE_TYPE: normalizedType,
+        NOTICE_CATEGORY: noticeCategory,
       };
       const dbFields = formService.convertFormFieldsToDbFields(savableFields);
       const result = await formService.createForm(dbForm, dbFields);

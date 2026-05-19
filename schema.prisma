@@ -138,6 +138,8 @@ model FORMS {
   REQUIRES_MANAGER_APPROVAL     Boolean  @default(false)
   COMPLIANCE_DISCLAIMER_ENABLED Boolean  @default(false)
   TITLE_FORMAT                  String?  @db.NVarChar(255)
+  // Notice Type picker (ANCM | SEC | GEN | TRGT). NULL for non-notice templates.
+  NOTICE_CATEGORY               String?  @db.NVarChar(10)
   COMPANY          COMPANY? @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__COMPANY")
 }
 

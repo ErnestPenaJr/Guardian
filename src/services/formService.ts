@@ -38,6 +38,7 @@ export interface DbForm {
   IS_INTERNAL?: boolean;
   IS_EXTERNAL?: boolean;
   TEMPLATE_TYPE?: string | null;
+  NOTICE_CATEGORY?: 'ANCM' | 'SEC' | 'GEN' | 'TRGT' | null;
   CREATE_USER_ID?: number;
   UPDATE_USER_ID?: number;
 }

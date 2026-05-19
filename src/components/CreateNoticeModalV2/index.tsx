@@ -80,6 +80,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   const [detailLoading, setDetailLoading] = useState(false);
 
   const [title, setTitle] = useState('');
+  const [userEditedTitle, setUserEditedTitle] = useState(false);
   const [sensitivity, setSensitivity] = useState<Sensitivity>('MEDIUM');
   const [distribution, setDistribution] = useState<DistributionType>('INTERNAL');
   const [recipients, setRecipients] = useState<RecipientOption[]>([]);
@@ -87,6 +88,11 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleTitleChange = (v: string) => {
+    setUserEditedTitle(true);
+    setTitle(v);
+  };
 
   const selectedSummary = useMemo(
     () => templates.find((t) => t.FORM_ID === selectedId) || null,
@@ -132,11 +138,38 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
 
+  // Securities (SEC) notice templates: auto-compose the notice title from the
+  // template's "Security Symbols" and "Lost Exposure" fields. Stops respecting
+  // template values once the user types in the title field directly.
+  useEffect(() => {
+    setUserEditedTitle(false);
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (userEditedTitle) return;
+    if (detail?.form?.NOTICE_CATEGORY !== 'SEC') return;
+
+    const symbolLabels = new Set(['security symbols', 'security symbol', 'symbols', 'symbol']);
+    const exposureLabels = new Set(['lost exposure', 'loss exposure', 'exposure']);
+
+    const findValue = (labels: Set<string>) => {
+      const f = viewFields.find((vf) => labels.has(vf.label.trim().toLowerCase()));
+      return f ? (templateValues[f.id] || '').trim() : '';
+    };
+
+    const symbols = findValue(symbolLabels);
+    const exposure = findValue(exposureLabels);
+    const composed = [symbols, exposure].filter(Boolean).join(' - ');
+
+    if (composed !== title) setTitle(composed);
+  }, [detail, viewFields, templateValues, userEditedTitle, title]);
+
   const reset = () => {
     setStep(1);
     setSelectedId(templates[0]?.FORM_ID || null);
     setDetail(null);
     setTitle('');
+    setUserEditedTitle(false);
     setSensitivity('MEDIUM');
     setDistribution('INTERNAL');
     setRecipients([]);
@@ -284,7 +317,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
             fields={viewFields}
             detailLoading={detailLoading}
             title={title}
-            setTitle={setTitle}
+            setTitle={handleTitleChange}
             sensitivity={sensitivity}
             setSensitivity={setSensitivity}
             distribution={distribution}

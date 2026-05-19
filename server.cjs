@@ -8805,16 +8805,25 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const rawTemplateType = (form.TEMPLATE_TYPE || 'request').toString().toLowerCase();
         const templateType = rawTemplateType === 'notice' ? 'notice' : 'request';
 
+        // Notice Type picker — only persisted for notice templates and only
+        // when the value is in the allow-list. Inlined as a SQL literal, so
+        // the allow-list IS the SQL-injection guard.
+        const NOTICE_CATEGORY_ALLOW = ['ANCM', 'SEC', 'GEN', 'TRGT'];
+        const noticeCategorySql =
+            templateType === 'notice' && NOTICE_CATEGORY_ALLOW.includes(form.NOTICE_CATEGORY)
+                ? `'${form.NOTICE_CATEGORY}'`
+                : 'NULL';
+
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
-                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE,
+                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
                 '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
-                ${isInternal}, ${isExternal}, '${templateType}',
+                ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql},
                 GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
@@ -10638,6 +10647,7 @@ app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) =
             SELECT
                 f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
                 f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
+                f.NOTICE_CATEGORY,
                 f.CREATE_DATE, f.UPDATE_DATE,
                 COUNT(ff.FIELD_ID) as fieldCount
             FROM GUARDIAN.FORMS f
@@ -10648,6 +10658,7 @@ app.get('/api/custom-templates', getAuthenticatedUserCompany, async (req, res) =
             ${statusClause}
             GROUP BY f.FORM_ID, f.FORM_NAME, f.FORM_DESCRIPTION,
                      f.IS_ACTIVE, f.IS_PUBLIC, f.TEMPLATE_TYPE, f.STATUS,
+                     f.NOTICE_CATEGORY,
                      f.CREATE_DATE, f.UPDATE_DATE
             ORDER BY f.CREATE_DATE DESC, f.FORM_ID DESC
         `;
@@ -10676,7 +10687,7 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
 
         const forms = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, IS_ACTIVE, IS_PUBLIC,
-                   TEMPLATE_TYPE, STATUS, IS_DELETED, COMPANY_ID
+                   TEMPLATE_TYPE, STATUS, IS_DELETED, COMPANY_ID, NOTICE_CATEGORY
             FROM GUARDIAN.FORMS
             WHERE FORM_ID = ${templateId}
             AND COMPANY_ID = ${req.companyId}
@@ -10731,7 +10742,8 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
                 IS_PUBLIC: form.IS_PUBLIC,
                 TEMPLATE_TYPE: form.TEMPLATE_TYPE,
                 STATUS: form.STATUS,
-                COMPANY_ID: form.COMPANY_ID
+                COMPANY_ID: form.COMPANY_ID,
+                NOTICE_CATEGORY: form.NOTICE_CATEGORY ?? null
             },
             fields: fields
         };

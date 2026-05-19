@@ -61,6 +61,8 @@ const FormSchema = z.object({
   REQUIRES_MANAGER_APPROVAL: z.boolean().optional(),
   COMPLIANCE_DISCLAIMER_ENABLED: z.boolean().optional(),
   TITLE_FORMAT: z.string().optional(),
+  // Notice Type picker (Create New Template modal). NULL for non-notice templates.
+  NOTICE_CATEGORY: z.enum(['ANCM', 'SEC', 'GEN', 'TRGT']).optional(),
 });
 
 type ComplianceFieldFlags = {
@@ -240,6 +242,8 @@ router.post('/', async (req, res) => {
         REQUIRES_MANAGER_APPROVAL?: boolean;
         COMPLIANCE_DISCLAIMER_ENABLED?: boolean;
         TITLE_FORMAT?: string;
+        // Notice Type picker (Create New Template modal)
+        NOTICE_CATEGORY?: 'ANCM' | 'SEC' | 'GEN' | 'TRGT';
       },
       fields: Array<{
         FIELD_NAME: string;
@@ -283,6 +287,7 @@ router.post('/', async (req, res) => {
         REQUIRES_MANAGER_APPROVAL: form.REQUIRES_MANAGER_APPROVAL ?? undefined,
         COMPLIANCE_DISCLAIMER_ENABLED: complianceDisclaimerEnabled ?? undefined,
         TITLE_FORMAT: form.TITLE_FORMAT ?? undefined,
+        NOTICE_CATEGORY: form.NOTICE_CATEGORY ?? undefined,
       },
     });
 

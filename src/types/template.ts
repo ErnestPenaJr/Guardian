@@ -1,5 +1,6 @@
 export type TemplateType = 'notice' | 'request';
 export type TemplateStatus = 'draft' | 'active' | 'inactive';
+export type NoticeCategory = 'ANCM' | 'SEC' | 'GEN' | 'TRGT';
 
 export type TemplateFieldType =
   | 'text'
@@ -33,6 +34,7 @@ export interface TemplateSummary {
   IS_PUBLIC: boolean;
   CREATE_DATE: string;
   UPDATE_DATE: string;
+  NOTICE_CATEGORY?: NoticeCategory | null;
   fieldCount?: number;
 }
 
@@ -46,6 +48,7 @@ export interface TemplateDetail {
     IS_ACTIVE: boolean;
     IS_PUBLIC: boolean;
     COMPANY_ID: number;
+    NOTICE_CATEGORY?: NoticeCategory | null;
   };
   fields: TemplateField[];
 }

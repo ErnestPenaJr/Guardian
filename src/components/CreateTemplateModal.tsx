@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Globe, FileText, X } from 'lucide-react';
+import { Lock, Globe, FileText, X, AlertTriangle } from 'lucide-react';
 import '../styles/CreateTemplateModal.css';
 
 export interface CreateTemplateModalProps {
@@ -18,6 +18,15 @@ const TYPE_OPTIONS: { value: TemplateType; label: string }[] = [
   { value: 'Other', label: 'Other' },
 ];
 
+type NoticeType = 'ANCM' | 'SEC' | 'GEN' | 'TRGT';
+
+const NOTICE_TYPE_OPTIONS: { value: NoticeType; label: string }[] = [
+  { value: 'ANCM', label: 'Announcement (ANCM)' },
+  { value: 'SEC', label: 'Securities (SEC)' },
+  { value: 'GEN', label: 'General (GEN)' },
+  { value: 'TRGT', label: 'Target (TRGT)' },
+];
+
 const MAX_DESCRIPTION = 500;
 
 const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClose }) => {
@@ -25,19 +34,45 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClo
 
   const [name, setName] = useState('');
   const [type, setType] = useState<TemplateType>('Notice');
+  const [noticeType, setNoticeType] = useState<NoticeType>('ANCM');
   const [description, setDescription] = useState('');
   const [internal, setInternal] = useState(false);
   const [external, setExternal] = useState(false);
+  // PII acknowledgement modal — gates the switch to Securities so the
+  // user has to actively confirm before SEC is committed. No persistence.
+  const [showPiiAck, setShowPiiAck] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setName('');
       setType('Notice');
+      setNoticeType('ANCM');
       setDescription('');
       setInternal(false);
       setExternal(false);
+      setShowPiiAck(false);
     }
   }, [isOpen]);
+
+  const handleNoticeTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value as NoticeType;
+    // Don't commit SEC until the user clicks Acknowledge; the controlled
+    // select will reconcile back to the prior value if they cancel.
+    if (next === 'SEC' && noticeType !== 'SEC') {
+      setShowPiiAck(true);
+      return;
+    }
+    setNoticeType(next);
+  };
+
+  const acknowledgePii = () => {
+    setNoticeType('SEC');
+    setShowPiiAck(false);
+  };
+
+  const cancelPiiAck = () => {
+    setShowPiiAck(false);
+  };
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -82,6 +117,9 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClo
       returnTo: '/home',
       returnSection: 'admin',
     });
+    if (type === 'Notice') {
+      params.set('noticeType', noticeType);
+    }
     navigate(`/form-builder/new?${params.toString()}`);
     onClose();
   };
@@ -146,6 +184,27 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClo
             </select>
             <p className="ctm-helper">Select the primary use case for this template</p>
           </div>
+
+          {type === 'Notice' && (
+            <div className="ctm-field">
+              <label className="ctm-label" htmlFor="ctm-notice-type">
+                Notice Type
+              </label>
+              <select
+                id="ctm-notice-type"
+                className="ctm-input"
+                value={noticeType}
+                onChange={handleNoticeTypeChange}
+              >
+                {NOTICE_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <p className="ctm-helper">Select the notice category for this template</p>
+            </div>
+          )}
 
           <div className="ctm-field">
             <label className="ctm-label" htmlFor="ctm-description">
@@ -214,6 +273,47 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({ isOpen, onClo
           </button>
         </div>
       </div>
+
+      {showPiiAck && (
+        <div
+          className="ctm-confirm-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ctm-pii-ack-title"
+        >
+          <div className="ctm-confirm-card">
+            <div className="ctm-confirm-header">
+              <div className="ctm-confirm-icon" aria-hidden="true">
+                <AlertTriangle size={22} />
+              </div>
+              <h3 id="ctm-pii-ack-title" className="ctm-confirm-title">
+                No PII in Securities Notice Templates
+              </h3>
+            </div>
+            <p className="ctm-confirm-body">
+              PII (names, SSNs, DOBs, account numbers) is not permitted in Securities
+              notice templates. Confirm that you understand and will not include any
+              personally identifiable information in this template.
+            </p>
+            <div className="ctm-confirm-footer">
+              <button
+                type="button"
+                className="ctm-btn ctm-btn-secondary"
+                onClick={cancelPiiAck}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ctm-btn ctm-btn-primary"
+                onClick={acknowledgePii}
+              >
+                I Acknowledge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
