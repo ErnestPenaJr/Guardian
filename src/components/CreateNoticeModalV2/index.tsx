@@ -98,6 +98,8 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   };
 
   const handleAdvanceToStep2 = () => {
+    // [SEC-debug] TEMPORARY
+    console.log('[SEC-debug] Next clicked — selectedSummary:', selectedSummary, 'NOTICE_CATEGORY:', selectedSummary?.NOTICE_CATEGORY);
     if (selectedSummary?.NOTICE_CATEGORY === 'SEC') {
       setShowPiiAck(true);
       return;
@@ -153,7 +155,11 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
     setDetailLoading(true);
     customTemplateService
       .getById(selectedId)
-      .then(setDetail)
+      .then((d) => {
+        // [SEC-debug] TEMPORARY
+        console.log('[SEC-debug] detail loaded — form:', d?.form, 'NOTICE_CATEGORY:', d?.form?.NOTICE_CATEGORY);
+        setDetail(d);
+      })
       .catch((e) => setError(e?.response?.data?.error || 'Failed to load template fields'))
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
@@ -167,6 +173,10 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
 
   useEffect(() => {
     if (userEditedTitle) return;
+    // [SEC-debug] TEMPORARY
+    if (detail?.form) {
+      console.log('[SEC-debug] auto-fill effect tick — NOTICE_CATEGORY:', detail.form.NOTICE_CATEGORY, 'fieldLabels:', viewFields.map((f) => f.label));
+    }
     if (detail?.form?.NOTICE_CATEGORY !== 'SEC') return;
 
     const symbolLabels = new Set(['security symbols', 'security symbol', 'symbols', 'symbol']);
@@ -181,6 +191,8 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
     const exposure = findValue(exposureLabels);
     const composed = [symbols, exposure].filter(Boolean).join(' - ');
 
+    // [SEC-debug] TEMPORARY
+    console.log('[SEC-debug] composed:', composed, 'symbols:', symbols, 'exposure:', exposure);
     if (composed !== title) setTitle(composed);
   }, [detail, viewFields, templateValues, userEditedTitle, title]);
 
