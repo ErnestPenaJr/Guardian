@@ -42,6 +42,49 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-05-19-securities-notice-mvp',
+    date: '2026-05-19',
+    title: 'Securities Fraud Notices, Subpoena Riders, and a full audit trail',
+    highlights: [
+      {
+        text: 'A new Securities Fraud Notice template lets admins build a notice form preloaded with the right fields — security symbol, loss exposure, incident time, victim count, and securities involved.',
+        category: 'new',
+      },
+      {
+        text: 'Processors can send notices directly when the template allows it, or submit for manager approval when it doesn\'t — with a built-in approval queue and one-click approve/reject + reason.',
+        category: 'new',
+      },
+      {
+        text: 'First-time recipient warning: sending to someone you\'ve never sent to before now prompts you to confirm, and the confirmation is logged.',
+        category: 'new',
+      },
+      {
+        text: 'Subpoena Rider Builder — pick a fraud type, auto-populate non-PII tokens from the incident, and attach a rider to your outbound notice. Real-time PII scanning blocks names, SSNs, DOBs, and account numbers before save.',
+        category: 'new',
+      },
+      {
+        text: 'External User portal for law enforcement — a scoped inbox where agencies can view their notice, attach an executed subpoena (PDF/TIFF/DOCX), or request a call.',
+        category: 'new',
+      },
+      {
+        text: 'Compliance Disclaimer Injection — Securities Fraud templates default to including the platform disclaimer; turning it off requires confirmation and is recorded.',
+        category: 'new',
+      },
+      {
+        text: 'PII Field Restrictions — admins can disable sensitive fields per template, and JAFAR-locked fields are grayed out across all tenants.',
+        category: 'new',
+      },
+      {
+        text: 'Full Audit Log — filter by date, event type, actor, or target and export to CSV or PDF. Captures template changes, approvals, sends, subpoena receipts, records releases, and more.',
+        category: 'new',
+      },
+      {
+        text: 'JAFAR Platform Config page — update the disclaimer text, lock fields globally, and manage permitted subpoena file types from one screen.',
+        category: 'new',
+      },
+    ],
+  },
+  {
     id: '2026-04-22-rename-company',
     date: '2026-04-22',
     title: 'Rename your company anytime',
