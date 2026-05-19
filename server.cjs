@@ -11783,12 +11783,15 @@ app.get('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => 
             WHERE nr.NOTICE_ID = ${noticeId}
         `);
 
-        // Get responses
+        // Get responses (with attachment file name joined in so the UI can
+        // render the filename + a working download link)
         const responses = await prisma.$queryRawUnsafe(`
             SELECT r.RESPONSE_MY_NOTICE_ID, r.RESPONSE_TEXT, r.CREATE_DATE, r.ATTACHMENT_ID,
-                   u.FIRST_NAME, u.USER_ID, u.EMAIL
+                   u.FIRST_NAME, u.USER_ID, u.EMAIL,
+                   a.FILE_NAME AS ATTACHMENT_FILE_NAME
             FROM GUARDIAN.RESPONSE_MY_NOTICE r
             LEFT JOIN GUARDIAN.USERS u ON r.USER_ID = u.USER_ID
+            LEFT JOIN GUARDIAN.ATTACHMENTS a ON r.ATTACHMENT_ID = a.ATTACHMENT_ID
             WHERE r.MY_NOTICE_ID = ${noticeId}
         `);
 
@@ -11801,7 +11804,11 @@ app.get('/api/my-notices/:id', getAuthenticatedUserCompany, async (req, res) => 
                 RESPONSE_TEXT: r.RESPONSE_TEXT,
                 CREATE_DATE: r.CREATE_DATE,
                 USER: { FIRST_NAME: r.FIRST_NAME, USER_ID: r.USER_ID, EMAIL: r.EMAIL },
-                ATTACHMENT: r.ATTACHMENT_ID ? { ATTACHMENT_ID: r.ATTACHMENT_ID } : null,
+                ATTACHMENT: r.ATTACHMENT_ID ? {
+                    ATTACHMENT_ID: r.ATTACHMENT_ID,
+                    FILE_NAME: r.ATTACHMENT_FILE_NAME || `attachment-${r.ATTACHMENT_ID}`,
+                    downloadUrl: `/api/attachments/${r.ATTACHMENT_ID}/download`,
+                } : null,
             })),
             RESPONSES_COUNT: responses.length,
             TOTAL_ATTACHMENTS: responses.filter(r => r.ATTACHMENT_ID).length,
