@@ -10609,6 +10609,175 @@ app.get('/api/platform/audit', getAuthenticatedUserCompany, requireJafar, async 
     }
 });
 
+// ============================================================================
+// Mirror of server/routes/notice-templates.ts + server/routes/subpoena-riders.ts
+//
+// The TS server (dist-server/index.js) isn't actually started in IIS — only
+// this legacy server is — so these have to live here for the Subpoena Rider
+// feature to work in production. Pattern matches the platform-admin mirror
+// above. Audit-log writes are deferred (skipped) on this path; revisit if
+// auditing the rider flow becomes required.
+// ============================================================================
+
+const __RIDER_PII_PATTERNS = [
+    { label: 'SSN', re: /\b\d{3}-\d{2}-\d{4}\b/ },
+    { label: 'DOB', re: /\b(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])\/(?:19|20)\d{2}\b/ },
+    { label: 'ACCOUNT_NUMBER', re: /\b\d{7,12}\b/ },
+    { label: 'CUSTOMER_NAME', re: /(?<!\[)\b[A-Z][a-z]{1,}\s[A-Z][a-z]{1,}\b(?![\w-]*\])/ },
+];
+
+function __riderScanForPII(text) {
+    for (const { label, re } of __RIDER_PII_PATTERNS) {
+        if (re.test(text)) return { hit: true, label };
+    }
+    return { hit: false };
+}
+
+const __RIDER_PII_LABEL_HINTS = ['name', 'ssn', 'social security', 'dob', 'date of birth', 'account', 'debit card', 'credit card', 'phone', 'email'];
+function __riderLooksLikePiiLabel(label) {
+    const s = String(label || '').trim().toLowerCase();
+    return __RIDER_PII_LABEL_HINTS.some((h) => s.includes(h));
+}
+
+async function __riderBuildIdentifierBlock(noticeId, companyId) {
+    const rows = await prisma.$queryRawUnsafe(
+        `SELECT TEMPLATE_FORM_ID, TEMPLATE_VALUES_JSON FROM GUARDIAN.MY_NOTICES WHERE NOTICE_ID = ${parseInt(noticeId, 10)} AND COMPANY_ID = ${parseInt(companyId, 10)}`
+    );
+    const notice = rows[0];
+    if (!notice || !notice.TEMPLATE_FORM_ID || !notice.TEMPLATE_VALUES_JSON) return '';
+    let values;
+    try {
+        values = JSON.parse(notice.TEMPLATE_VALUES_JSON);
+    } catch {
+        return '';
+    }
+    const fieldIds = Object.keys(values).map((k) => parseInt(k, 10)).filter(Number.isFinite);
+    if (fieldIds.length === 0) return '';
+    const fields = await prisma.$queryRawUnsafe(
+        `SELECT f.FIELD_ID, f.FIELD_NAME, f.IS_PII, ff.SORT_ORDER
+         FROM GUARDIAN.FIELDS f
+         INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+         WHERE ff.FORM_ID = ${parseInt(notice.TEMPLATE_FORM_ID, 10)} AND f.FIELD_ID IN (${fieldIds.join(',')})
+         ORDER BY ff.SORT_ORDER, f.FIELD_ID`
+    );
+    const out = [];
+    for (const f of fields) {
+        const raw = (values[String(f.FIELD_ID)] || '').trim();
+        if (!raw) continue;
+        const isPii = f.IS_PII || __riderLooksLikePiiLabel(f.FIELD_NAME) || __riderScanForPII(raw).hit;
+        out.push({ label: f.FIELD_NAME, value: isPii ? '[REDACTED]' : raw });
+    }
+    if (out.length === 0) return '';
+    const labelWidth = Math.max(...out.map((r) => r.label.length)) + 1;
+    return out.map((r) => `         ${(r.label + ':').padEnd(labelWidth + 1)}  ${r.value}`).join('\n');
+}
+
+const __RIDER_ALLOWED_FRAUD_TYPES = new Set(['SECURITIES_MANIPULATION', 'ATO', 'CHECK_FRAUD', 'WIRE_FRAUD']);
+
+// GET /api/templates/subpoena/:fraudType — fetch the language template for the caller's company
+app.get('/api/templates/subpoena/:fraudType', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const fraudType = req.params.fraudType;
+        if (!__RIDER_ALLOWED_FRAUD_TYPES.has(fraudType)) return res.status(400).json({ error: 'Invalid fraud type' });
+        const rows = await prisma.$queryRawUnsafe(
+            `SELECT TOP 1 * FROM GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES WHERE COMPANY_ID = ${parseInt(req.companyId, 10)} AND FRAUD_TYPE = '${fraudType}'`
+        );
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'No subpoena template configured for this fraud type.' });
+        }
+        res.json({ template: rows[0] });
+    } catch (err) {
+        console.error('GET /api/templates/subpoena/:fraudType failed:', err);
+        res.status(500).json({ error: 'Failed to load subpoena language template' });
+    }
+});
+
+// GET /api/subpoena-riders?incidentNoticeId=X — list riders attached to a notice
+app.get('/api/subpoena-riders', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const incidentNoticeId = parseInt(req.query.incidentNoticeId, 10);
+        if (!Number.isFinite(incidentNoticeId)) return res.status(400).json({ error: 'incidentNoticeId query param is required' });
+        const riders = await prisma.$queryRawUnsafe(
+            `SELECT * FROM GUARDIAN.SUBPOENA_RIDERS WHERE INCIDENT_NOTICE_ID = ${incidentNoticeId} AND COMPANY_ID = ${parseInt(req.companyId, 10)} ORDER BY CREATED_AT DESC`
+        );
+        res.json({ riders });
+    } catch (err) {
+        console.error('GET /api/subpoena-riders failed:', err);
+        res.status(500).json({ error: 'Failed to list subpoena riders' });
+    }
+});
+
+// GET /api/subpoena-riders/:id — fetch a single rider
+app.get('/api/subpoena-riders/:id', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid rider id' });
+        const rows = await prisma.$queryRawUnsafe(
+            `SELECT * FROM GUARDIAN.SUBPOENA_RIDERS WHERE RIDER_ID = ${id} AND COMPANY_ID = ${parseInt(req.companyId, 10)}`
+        );
+        if (!rows || rows.length === 0) return res.status(404).json({ error: 'Not found' });
+        res.json({ rider: rows[0] });
+    } catch (err) {
+        console.error('GET /api/subpoena-riders/:id failed:', err);
+        res.status(500).json({ error: 'Failed to load subpoena rider' });
+    }
+});
+
+// POST /api/subpoena-riders — generate a rider from the per-fraud-type language template
+app.post('/api/subpoena-riders', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const fraudType = body.fraudType;
+        const incidentNoticeId = body.incidentNoticeId != null ? parseInt(body.incidentNoticeId, 10) : null;
+        const tokenValues = body.tokenValues && typeof body.tokenValues === 'object' ? body.tokenValues : {};
+        if (!__RIDER_ALLOWED_FRAUD_TYPES.has(fraudType)) return res.status(400).json({ error: 'Invalid fraudType' });
+
+        for (const [k, v] of Object.entries(tokenValues)) {
+            const r = __riderScanForPII(String(v));
+            if (r.hit) {
+                return res.status(400).json({
+                    error: 'PII is not permitted in subpoena rider language. Remove the detected value before proceeding.',
+                    field: k,
+                    label: r.label,
+                });
+            }
+        }
+
+        const templateRows = await prisma.$queryRawUnsafe(
+            `SELECT TOP 1 * FROM GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES WHERE COMPANY_ID = ${parseInt(req.companyId, 10)} AND FRAUD_TYPE = '${fraudType}'`
+        );
+        if (!templateRows || templateRows.length === 0) {
+            return res.status(404).json({ error: 'No subpoena template is configured for this fraud type. Contact your User Admin to create one.' });
+        }
+        const tmpl = templateRows[0];
+
+        let populated = String(tmpl.BASE_LANGUAGE || '');
+        for (const [k, v] of Object.entries(tokenValues)) {
+            populated = populated.split(`[${k}]`).join(String(v));
+        }
+        if (populated.includes('[IDENTIFIER_BLOCK]') && incidentNoticeId) {
+            const block = await __riderBuildIdentifierBlock(incidentNoticeId, req.companyId);
+            populated = populated.split('[IDENTIFIER_BLOCK]').join(block);
+        }
+
+        const tokenValuesJsonEscaped = JSON.stringify(tokenValues).replace(/'/g, "''");
+        const populatedEscaped = populated.replace(/'/g, "''");
+        const result = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.SUBPOENA_RIDERS
+                (LANGUAGE_TEMPLATE_ID, FRAUD_TYPE, POPULATED_LANGUAGE, TOKEN_VALUES_JSON, INCIDENT_NOTICE_ID, CREATED_BY, COMPANY_ID, CREATED_AT)
+            OUTPUT INSERTED.*
+            VALUES (${parseInt(tmpl.LANGUAGE_TEMPLATE_ID, 10)}, '${fraudType}', N'${populatedEscaped}', N'${tokenValuesJsonEscaped}',
+                    ${incidentNoticeId === null ? 'NULL' : incidentNoticeId}, ${parseInt(req.userId, 10)}, ${parseInt(req.companyId, 10)}, GETDATE())
+        `);
+        const rider = result[0];
+
+        res.status(201).json({ rider });
+    } catch (err) {
+        console.error('POST /api/subpoena-riders failed:', err);
+        res.status(500).json({ error: 'Failed to generate subpoena rider' });
+    }
+});
+
 // === CUSTOM TEMPLATE ENDPOINTS (JAFAR ROLE ONLY) ===
 
 // Get custom templates - only for role_id 6 (JAFAR)
