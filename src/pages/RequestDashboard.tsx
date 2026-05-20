@@ -1397,7 +1397,33 @@ const RequestDashboard: React.FC = () => {
                                 </label>
                                 
                                 {/* Handle field types based on field name and type ID */}
-                                {(field.FIELD_NAME && (field.FIELD_NAME.toLowerCase().includes('dob') || field.FIELD_NAME.toLowerCase().includes('date'))) || 
+                                {/* DateTime check must come before the date-name match so a DateTime
+                                    field named e.g. "Event Date" doesn't get rendered as plain date. */}
+                                {(field.FIELD_TYPE_ID === 8 || field.fieldTypeId === 8 ||
+                                  field.fieldType === 'datetime' || field.fieldType === 'date_time') ? (
+                                  <input
+                                    type="datetime-local"
+                                    className="form-control form-control-sm"
+                                    value={fulfillmentFormValues[field.FIELD_ID || field.dbFieldId || ''] || ''}
+                                    onChange={(e) => setFulfillmentFormValues(prev => ({
+                                      ...prev,
+                                      [field.FIELD_ID || field.dbFieldId || '']: e.target.value
+                                    }))}
+                                    required={field.IS_REQUIRED || field.required}
+                                  />
+                                ) : (field.FIELD_TYPE_ID === 7 || field.fieldTypeId === 7 ||
+                                  field.fieldType === 'time') ? (
+                                  <input
+                                    type="time"
+                                    className="form-control form-control-sm"
+                                    value={fulfillmentFormValues[field.FIELD_ID || field.dbFieldId || ''] || ''}
+                                    onChange={(e) => setFulfillmentFormValues(prev => ({
+                                      ...prev,
+                                      [field.FIELD_ID || field.dbFieldId || '']: e.target.value
+                                    }))}
+                                    required={field.IS_REQUIRED || field.required}
+                                  />
+                                ) : (field.FIELD_NAME && (field.FIELD_NAME.toLowerCase().includes('dob') || field.FIELD_NAME.toLowerCase().includes('date'))) ||
                                  (field.FIELD_TYPE_ID === 3 || field.fieldTypeId === 3) && !(field.FIELD_NAME && field.FIELD_NAME.toLowerCase().includes('zip')) ? (
                                   // Date field (but not ZIP code even if wrongly marked as date type)
                                   <input

@@ -762,8 +762,24 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
                     />
                   )}
                   {(field.fieldType === 'date' || field.fieldType === 'dob') && (
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
+                      className="form-control"
+                      onChange={(e) => handleFieldValueChange(field.id, e.target.value)}
+                      required={field.required}
+                    />
+                  )}
+                  {field.fieldType === 'time' && (
+                    <input
+                      type="time"
+                      className="form-control"
+                      onChange={(e) => handleFieldValueChange(field.id, e.target.value)}
+                      required={field.required}
+                    />
+                  )}
+                  {(field.fieldType === 'datetime' || field.fieldType === 'date_time') && (
+                    <input
+                      type="datetime-local"
                       className="form-control"
                       onChange={(e) => handleFieldValueChange(field.id, e.target.value)}
                       required={field.required}

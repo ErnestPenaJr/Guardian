@@ -951,7 +951,31 @@ const RequestFulfillmentDashboard: React.FC = () => {
                     {field.IS_REQUIRED && <span className="text-red-500 ml-1">*</span>}
                   </label>
                   
-                  {field.FIELD_TYPE_ID === 3 ? (
+                  {field.FIELD_TYPE_ID === 8 ? (
+                    // DateTime field
+                    <Input
+                      type="datetime-local"
+                      value={formValues[field.FIELD_ID] || ''}
+                      onChange={(e) => setFormValues(prev => ({
+                        ...prev,
+                        [field.FIELD_ID]: e.target.value
+                      }))}
+                      required={field.IS_REQUIRED}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  ) : field.FIELD_TYPE_ID === 7 ? (
+                    // Time field
+                    <Input
+                      type="time"
+                      value={formValues[field.FIELD_ID] || ''}
+                      onChange={(e) => setFormValues(prev => ({
+                        ...prev,
+                        [field.FIELD_ID]: e.target.value
+                      }))}
+                      required={field.IS_REQUIRED}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  ) : field.FIELD_TYPE_ID === 3 || field.FIELD_TYPE_ID === 6 ? (
                     // Date field
                     <Input
                       type="date"

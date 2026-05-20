@@ -34,6 +34,9 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
       case 'textarea': return 'bi-textarea-t';
       case 'number': return 'bi-123';
       case 'date': return 'bi-calendar';
+      case 'time': return 'bi-clock';
+      case 'datetime':
+      case 'date_time': return 'bi-calendar-event';
       case 'select': return 'bi-list';
       case 'checkbox': return 'bi-check-square';
       case 'radio': return 'bi-circle';
@@ -48,6 +51,9 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
       case 'textarea': return 'Text Area';
       case 'number': return 'Number';
       case 'date': return 'Date';
+      case 'time': return 'Time';
+      case 'datetime':
+      case 'date_time': return 'Date & Time';
       case 'select': return 'Dropdown';
       case 'checkbox': return 'Checkbox';
       case 'radio': return 'Radio Buttons';
@@ -89,6 +95,11 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
       case 'date':
       case 'dob':
         return <input type="date" className="form-control form-control-sm" disabled />;
+      case 'time':
+        return <input type="time" className="form-control form-control-sm" disabled />;
+      case 'datetime':
+      case 'date_time':
+        return <input type="datetime-local" className="form-control form-control-sm" disabled />;
       case 'select':
         return (
           <select className="form-select form-select-sm" disabled>
@@ -200,6 +211,8 @@ const FormFieldItem: React.FC<FormFieldItemProps> = ({ field, onRemove, onUpdate
               <option value="textarea">Text Area</option>
               <option value="number">Number</option>
               <option value="date">Date</option>
+              <option value="time">Time</option>
+              <option value="datetime">Date & Time</option>
               <option value="select">Dropdown</option>
               <option value="checkbox">Checkbox</option>
               <option value="radio">Radio Buttons</option>

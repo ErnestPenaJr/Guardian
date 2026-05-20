@@ -766,11 +766,30 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       case 'date':
       case 'dob':
         return (
-          <input 
-            type="date" 
-            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" 
+          <input
+            type="date"
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
             style={{ borderRadius: '6px' }}
-            disabled 
+            disabled
+          />
+        );
+      case 'time':
+        return (
+          <input
+            type="time"
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+            style={{ borderRadius: '6px' }}
+            disabled
+          />
+        );
+      case 'datetime':
+      case 'date_time':
+        return (
+          <input
+            type="datetime-local"
+            className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+            style={{ borderRadius: '6px' }}
+            disabled
           />
         );
       case 'ssn':

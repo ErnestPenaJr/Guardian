@@ -242,10 +242,27 @@ const EnhancedFormBuilder: React.FC<EnhancedFormBuilderProps> = ({
       case 'date':
       case 'dob':
         return (
-          <input 
-            type="date" 
-            className="form-control" 
-            disabled 
+          <input
+            type="date"
+            className="form-control"
+            disabled
+          />
+        );
+      case 'time':
+        return (
+          <input
+            type="time"
+            className="form-control"
+            disabled
+          />
+        );
+      case 'datetime':
+      case 'date_time':
+        return (
+          <input
+            type="datetime-local"
+            className="form-control"
+            disabled
           />
         );
       case 'ssn':

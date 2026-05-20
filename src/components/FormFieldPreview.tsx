@@ -41,6 +41,11 @@ const FormFieldPreview: React.FC<FormFieldPreviewProps> = ({ field }) => {
       case 'date':
       case 'dob':
         return <input type="date" className="form-control form-control-sm" disabled />;
+      case 'time':
+        return <input type="time" className="form-control form-control-sm" disabled />;
+      case 'datetime':
+      case 'date_time':
+        return <input type="datetime-local" className="form-control form-control-sm" disabled />;
       case 'select':
         return (
           <select className="form-select form-select-sm" disabled>

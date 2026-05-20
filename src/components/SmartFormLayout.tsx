@@ -70,8 +70,13 @@ function isTextareaField(f: FormField): boolean {
 }
 
 function getInputType(f: FormField): string {
-  const desc = (f.FIELD_TYPE_DESC ?? '').toLowerCase();
+  const desc = (f.FIELD_TYPE_DESC ?? '').toLowerCase().replace(/\s+/g, '');
   const name = f.FIELD_NAME.toLowerCase();
+  // Check DateTime / Time FIRST so they take precedence over the date-name match below.
+  // Without this, a DateTime field named e.g. "Event Date" would fall through to type="date"
+  // and silently strip the time portion.
+  if (desc === 'datetime' || desc === 'date_time') return 'datetime-local';
+  if (desc === 'time') return 'time';
   if (desc === 'date' || name.includes('date') || name.includes('dob') || name.includes('birth'))
     return 'date';
   if (name.includes('email') || desc === 'email') return 'email';
