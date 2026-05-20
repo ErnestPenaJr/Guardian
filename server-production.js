@@ -10656,18 +10656,30 @@ async function __riderBuildIdentifierBlock(noticeId, companyId) {
     }
     const fieldIds = Object.keys(values).map((k) => parseInt(k, 10)).filter(Number.isFinite);
     if (fieldIds.length === 0) return '';
-    const fields = await prisma.$queryRawUnsafe(
-        `SELECT f.FIELD_ID, f.FIELD_NAME, f.IS_PII, ff.SORT_ORDER
-         FROM GUARDIAN.FIELDS f
-         INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-         WHERE ff.FORM_ID = ${parseInt(notice.TEMPLATE_FORM_ID, 10)} AND f.FIELD_ID IN (${fieldIds.join(',')})
-         ORDER BY ff.SORT_ORDER, f.FIELD_ID`
-    );
+    let fields;
+    try {
+        fields = await prisma.$queryRawUnsafe(
+            `SELECT f.FIELD_ID, f.FIELD_NAME, f.IS_PII, ff.SORT_ORDER
+             FROM GUARDIAN.FIELDS f
+             INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+             WHERE ff.FORM_ID = ${parseInt(notice.TEMPLATE_FORM_ID, 10)} AND f.FIELD_ID IN (${fieldIds.join(',')})
+             ORDER BY ff.SORT_ORDER, f.FIELD_ID`
+        );
+    } catch (e) {
+        console.warn('[rider] IS_PII column unavailable, falling back to label/content-only redaction:', e?.message || e);
+        fields = await prisma.$queryRawUnsafe(
+            `SELECT f.FIELD_ID, f.FIELD_NAME, ff.SORT_ORDER
+             FROM GUARDIAN.FIELDS f
+             INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
+             WHERE ff.FORM_ID = ${parseInt(notice.TEMPLATE_FORM_ID, 10)} AND f.FIELD_ID IN (${fieldIds.join(',')})
+             ORDER BY ff.SORT_ORDER, f.FIELD_ID`
+        );
+    }
     const out = [];
     for (const f of fields) {
         const raw = (values[String(f.FIELD_ID)] || '').trim();
         if (!raw) continue;
-        const isPii = f.IS_PII || __riderLooksLikePiiLabel(f.FIELD_NAME) || __riderScanForPII(raw).hit;
+        const isPii = !!f.IS_PII || __riderLooksLikePiiLabel(f.FIELD_NAME) || __riderScanForPII(raw).hit;
         out.push({ label: f.FIELD_NAME, value: isPii ? '[REDACTED]' : raw });
     }
     if (out.length === 0) return '';
