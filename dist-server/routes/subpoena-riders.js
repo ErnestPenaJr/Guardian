@@ -109,8 +109,20 @@ router.post('/', requireAuth, requireRole('subpoenaRider.generate', 'generate su
                 error: 'No subpoena template is configured for this fraud type. Contact your User Admin to create one.',
             });
         }
-        // PII scan on each token value (Processor-supplied)
+        // PII scan on each token value (Processor-supplied) — exempt the
+        // rider-chrome tokens whose values are intentionally numeric or
+        // date-like (institution metadata, records-period date).
+        const TOKEN_PII_EXEMPT = new Set([
+            'INSTITUTION_NAME',
+            'INSTITUTION_DEPARTMENT',
+            'INSTITUTION_ADDRESS_LINE_1',
+            'INSTITUTION_CITY_STATE_ZIP',
+            'INSTITUTION_FAX',
+            'PERIOD_START_DATE',
+        ]);
         for (const [k, v] of Object.entries(p.tokenValues)) {
+            if (TOKEN_PII_EXEMPT.has(k))
+                continue;
             const r = scanForPII(String(v));
             if (r.hit) {
                 return res.status(400).json({

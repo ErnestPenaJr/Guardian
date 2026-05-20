@@ -10681,7 +10681,103 @@ async function __riderBuildIdentifierBlock(noticeId, companyId) {
 
 const __RIDER_ALLOWED_FRAUD_TYPES = new Set(['SECURITIES_MANIPULATION', 'ATO', 'CHECK_FRAUD', 'WIRE_FRAUD']);
 
-// GET /api/templates/subpoena/:fraudType — fetch the language template for the caller's company
+// Tokens whose values are intentionally numeric or date-like and would
+// otherwise trip the naive ACCOUNT_NUMBER / DOB regexes. They're rider
+// chrome (institution metadata, records-period date), not subject PII.
+const __RIDER_TOKEN_PII_EXEMPT = new Set([
+    'INSTITUTION_NAME',
+    'INSTITUTION_DEPARTMENT',
+    'INSTITUTION_ADDRESS_LINE_1',
+    'INSTITUTION_CITY_STATE_ZIP',
+    'INSTITUTION_FAX',
+    'PERIOD_START_DATE',
+]);
+
+// Built-in fallback templates so every company can generate a rider without
+// per-tenant seeding. Body matches migrations/seed_securities_manipulation_rider_template.sql.
+// Admins can override per-company via POST /api/templates/subpoena; that
+// writes a DB row which then wins over this default for their company.
+const __RIDER_DEFAULT_TEMPLATES = {
+    SECURITIES_MANIPULATION: {
+        BASE_LANGUAGE:
+`                                  RIDER
+
+BY FAX
+[INSTITUTION_NAME]
+Attn: [INSTITUTION_DEPARTMENT]
+[INSTITUTION_ADDRESS_LINE_1]
+[INSTITUTION_CITY_STATE_ZIP]
+Fax: [INSTITUTION_FAX]
+
+For the period of [PERIOD_START_DATE] the date of this subpoena, all
+documents relating to the following individuals, entities, and/or
+accounts:
+
+[IDENTIFIER_BLOCK]
+
+This should include, but not be limited to, the following documents and data:
+
+  1. All savings, checking, loan and credit card accounts for the above
+     listed accounts, individuals and businesses;
+
+  2. The associated financial institution and account numbers;
+
+  3. The associated dates of transaction;
+
+  4. All account opening documentation;
+
+  5. Savings accounts - signature cards, items of deposit, deposit tickets,
+     items of withdrawal, withdrawal tickets, statement of account, 1099's
+     issued or other correspondence sent indicating interest earned, and all
+     correspondence and notes of telephone conversations or discussions;
+
+  6. Certificates of deposit - signature cards, items of deposit, deposit
+     tickets, items of withdrawal, withdrawal tickets, items of payoff,
+     payoff ticket, statements of account, 1099's issued or other
+     correspondence sent indicating interest earned, and all correspondence
+     and notes of telephone conversations or discussions.`,
+        TOKENS_JSON: JSON.stringify([
+            { token: 'INSTITUTION_NAME', description: 'Receiving institution legal name', autoPopulateFromIncident: false },
+            { token: 'INSTITUTION_DEPARTMENT', description: 'Subpoena processing department', autoPopulateFromIncident: false },
+            { token: 'INSTITUTION_ADDRESS_LINE_1', description: 'Street address line 1', autoPopulateFromIncident: false },
+            { token: 'INSTITUTION_CITY_STATE_ZIP', description: 'City, State ZIP', autoPopulateFromIncident: false },
+            { token: 'INSTITUTION_FAX', description: 'Fax number', autoPopulateFromIncident: false },
+            { token: 'PERIOD_START_DATE', description: 'Records period start date (e.g. January 1, 2019)', autoPopulateFromIncident: false },
+        ]),
+    },
+};
+
+function __riderGetDefaultTemplate(fraudType) {
+    return __RIDER_DEFAULT_TEMPLATES[fraudType] || null;
+}
+
+// Returns a real SUBPOENA_LANGUAGE_TEMPLATES row for (companyId, fraudType),
+// auto-cloning from the hardcoded default if the company doesn't have one
+// yet. Needed because SUBPOENA_RIDERS.LANGUAGE_TEMPLATE_ID is a FK — we
+// can't insert a rider against an in-memory-only default.
+async function __riderEnsureDbTemplate(companyId, fraudType, userId) {
+    const existing = await prisma.$queryRawUnsafe(
+        `SELECT TOP 1 * FROM GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES WHERE COMPANY_ID = ${parseInt(companyId, 10)} AND FRAUD_TYPE = '${fraudType}'`
+    );
+    if (existing && existing.length > 0) return existing[0];
+
+    const def = __riderGetDefaultTemplate(fraudType);
+    if (!def) return null;
+
+    const baseEsc = String(def.BASE_LANGUAGE).replace(/'/g, "''");
+    const tokensEsc = String(def.TOKENS_JSON).replace(/'/g, "''");
+    const inserted = await prisma.$queryRawUnsafe(`
+        INSERT INTO GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES
+            (COMPANY_ID, FRAUD_TYPE, BASE_LANGUAGE, TOKENS_JSON, CREATED_BY, CREATED_AT, UPDATED_AT)
+        OUTPUT INSERTED.*
+        VALUES (${parseInt(companyId, 10)}, '${fraudType}', N'${baseEsc}', N'${tokensEsc}', ${parseInt(userId, 10)}, GETDATE(), GETDATE())
+    `);
+    return inserted[0];
+}
+
+// GET /api/templates/subpoena/:fraudType — fetch the language template for the caller's company.
+// Returns the company's DB row if it exists; otherwise returns the built-in
+// default (read-only — no DB row created on GET).
 app.get('/api/templates/subpoena/:fraudType', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const fraudType = req.params.fraudType;
@@ -10689,10 +10785,20 @@ app.get('/api/templates/subpoena/:fraudType', getAuthenticatedUserCompany, async
         const rows = await prisma.$queryRawUnsafe(
             `SELECT TOP 1 * FROM GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES WHERE COMPANY_ID = ${parseInt(req.companyId, 10)} AND FRAUD_TYPE = '${fraudType}'`
         );
-        if (!rows || rows.length === 0) {
-            return res.status(404).json({ error: 'No subpoena template configured for this fraud type.' });
-        }
-        res.json({ template: rows[0] });
+        if (rows && rows.length > 0) return res.json({ template: rows[0] });
+
+        const def = __riderGetDefaultTemplate(fraudType);
+        if (!def) return res.status(404).json({ error: 'No subpoena template configured for this fraud type.' });
+        return res.json({
+            template: {
+                LANGUAGE_TEMPLATE_ID: null,
+                COMPANY_ID: parseInt(req.companyId, 10),
+                FRAUD_TYPE: fraudType,
+                BASE_LANGUAGE: def.BASE_LANGUAGE,
+                TOKENS_JSON: def.TOKENS_JSON,
+                isDefault: true,
+            },
+        });
     } catch (err) {
         console.error('GET /api/templates/subpoena/:fraudType failed:', err);
         res.status(500).json({ error: 'Failed to load subpoena language template' });
@@ -10796,6 +10902,7 @@ app.post('/api/subpoena-riders', getAuthenticatedUserCompany, async (req, res) =
         if (!__RIDER_ALLOWED_FRAUD_TYPES.has(fraudType)) return res.status(400).json({ error: 'Invalid fraudType' });
 
         for (const [k, v] of Object.entries(tokenValues)) {
+            if (__RIDER_TOKEN_PII_EXEMPT.has(k)) continue;
             const r = __riderScanForPII(String(v));
             if (r.hit) {
                 return res.status(400).json({
@@ -10806,13 +10913,14 @@ app.post('/api/subpoena-riders', getAuthenticatedUserCompany, async (req, res) =
             }
         }
 
-        const templateRows = await prisma.$queryRawUnsafe(
-            `SELECT TOP 1 * FROM GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES WHERE COMPANY_ID = ${parseInt(req.companyId, 10)} AND FRAUD_TYPE = '${fraudType}'`
-        );
-        if (!templateRows || templateRows.length === 0) {
+        // Get-or-seed: on first generation for a company, the built-in default
+        // is cloned into a real SUBPOENA_LANGUAGE_TEMPLATES row so the
+        // SUBPOENA_RIDERS FK has something to reference. Subsequent generations
+        // reuse that row; admins can later customize it via POST /api/templates/subpoena.
+        const tmpl = await __riderEnsureDbTemplate(req.companyId, fraudType, req.userId);
+        if (!tmpl) {
             return res.status(404).json({ error: 'No subpoena template is configured for this fraud type. Contact your User Admin to create one.' });
         }
-        const tmpl = templateRows[0];
 
         let populated = String(tmpl.BASE_LANGUAGE || '');
         for (const [k, v] of Object.entries(tokenValues)) {

@@ -24,6 +24,18 @@ const FRAUD_TYPES: { value: FraudType; label: string }[] = [
   { value: 'WIRE_FRAUD', label: 'Wire Fraud' },
 ];
 
+// Tokens whose values are intentionally numeric or date-like — they're
+// rider chrome (institution metadata, records-period date), not subject PII.
+// Server uses the same allowlist; keep these in sync.
+const TOKEN_PII_EXEMPT = new Set([
+  'INSTITUTION_NAME',
+  'INSTITUTION_DEPARTMENT',
+  'INSTITUTION_ADDRESS_LINE_1',
+  'INSTITUTION_CITY_STATE_ZIP',
+  'INSTITUTION_FAX',
+  'PERIOD_START_DATE',
+]);
+
 export interface IncidentTokenValues {
   /** Auto-populated values pulled from the incident notice (e.g. DATE_TIME_RANGE). */
   [key: string]: string | undefined;
@@ -116,6 +128,7 @@ const GenerateRiderModal: React.FC<Props> = ({
     const hits: Record<string, string | undefined> = {};
     for (const spec of tokenSpecs) {
       if (spec.autoPopulateFromIncident) continue; // auto values come from a clean source
+      if (TOKEN_PII_EXEMPT.has(spec.token)) continue; // rider chrome — not subject PII
       const value = tokenValues[spec.token] ?? '';
       if (!value) continue;
       const r = scanForPII(value);
