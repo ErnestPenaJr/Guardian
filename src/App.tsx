@@ -44,6 +44,7 @@ import FormBuilderPage from './pages/FormBuilderPage';
 import WorkflowTemplatesAdmin from './pages/admin/WorkflowTemplatesAdmin';
 import ExportPage from './pages/ExportPage';
 import SecuritiesNoticeTemplateAdmin from './pages/SecuritiesNoticeTemplateAdmin';
+import SubpoenaLanguageTemplatesAdmin from './pages/SubpoenaLanguageTemplatesAdmin';
 import SecuritiesNoticeSend from './pages/SecuritiesNoticeSend';
 import SecuritiesNoticeApprovalQueue from './pages/SecuritiesNoticeApprovalQueue';
 import ExternalUserInbox from './pages/ExternalUserInbox';
@@ -105,6 +106,7 @@ function App() {
             <Route path="/export/:type" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
             {/* Securities Fraud Notice MVP — Phase 5 */}
             <Route path="/securities-notice-templates/new" element={<ProtectedRoute><SecuritiesNoticeTemplateAdmin /></ProtectedRoute>} />
+            <Route path="/admin/subpoena-language-templates" element={<ProtectedRoute><SubpoenaLanguageTemplatesAdmin /></ProtectedRoute>} />
             <Route path="/securities-notices/new" element={<ProtectedRoute><SecuritiesNoticeSend /></ProtectedRoute>} />
             <Route path="/securities-notices/approvals" element={<ProtectedRoute><SecuritiesNoticeApprovalQueue /></ProtectedRoute>} />
             {/* Phase 7 / US-SRB-03 — External user portal (role 5) */}

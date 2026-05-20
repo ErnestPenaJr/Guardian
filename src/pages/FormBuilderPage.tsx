@@ -151,10 +151,30 @@ export default function FormBuilderPage() {
       };
       const dbFields = formService.convertFormFieldsToDbFields(savableFields);
       const result = await formService.createForm(dbForm, dbFields);
-      if (result.form.FORM_ID) {
-        setNumericFormId(result.form.FORM_ID);
+      const newFormId = result.form.FORM_ID;
+      if (newFormId) {
+        setNumericFormId(newFormId);
       }
-      toast.success('Form created successfully');
+      // GUARDIAN.FORMS has DEFAULT 'draft' on STATUS, and the Create Notice
+      // picker filters status=active. Without this publish step, new notice
+      // templates land in draft and are invisible to the picker, which also
+      // breaks downstream features that key off NOTICE_CATEGORY (e.g. the
+      // Securities Rider button in ViewNotice). Matches the UPDATE branch.
+      let publishSucceeded = true;
+      if (newFormId) {
+        try {
+          await customTemplateService.publish(newFormId);
+        } catch (e) {
+          publishSucceeded = false;
+          console.error('publish-on-create failed:', e);
+          toast.error(
+            "Saved, but couldn't publish. Template is still a draft and won't appear in pickers. Open it from the templates list and try saving again."
+          );
+        }
+      }
+      if (publishSucceeded) {
+        toast.success('Form created successfully');
+      }
     }
 
     navigate(returnTo, { state: { activeSection: returnSection } });

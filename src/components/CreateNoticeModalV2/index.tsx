@@ -21,7 +21,7 @@ interface Props {
   onCreated?: () => void;
 }
 
-type FieldKind = 'text' | 'textarea' | 'number' | 'email' | 'dropdown' | 'radio' | 'checkbox' | 'date' | 'file_upload';
+type FieldKind = 'text' | 'textarea' | 'number' | 'email' | 'dropdown' | 'radio' | 'checkbox' | 'date' | 'time' | 'datetime' | 'file_upload';
 
 interface ViewField {
   id: string;
@@ -39,6 +39,11 @@ function mapFieldType(raw: string | null | undefined): FieldKind {
   if (s.includes('dropdown') || s === 'select') return 'dropdown';
   if (s.includes('radio')) return 'radio';
   if (s.includes('checkbox')) return 'checkbox';
+  // DateTime / Time must come BEFORE the plain-date check — 'datetime' contains
+  // 'date', so without ordering these first a DateTime field gets rendered as
+  // a date input and the time portion is silently dropped.
+  if (s.includes('datetime') || s === 'date_time' || s === 'date time') return 'datetime';
+  if (s.includes('time')) return 'time';
   if (s.includes('date')) return 'date';
   if (s.includes('file')) return 'file_upload';
   return 'text';
@@ -823,6 +828,10 @@ function FieldInput({ field, value, onChange, disabled }: { field: ViewField; va
       return <TextInput type="email" value={value} onChange={onChange} disabled={disabled} />;
     case 'date':
       return <TextInput type="date" value={value} onChange={onChange} disabled={disabled} />;
+    case 'time':
+      return <TextInput type="time" value={value} onChange={onChange} disabled={disabled} />;
+    case 'datetime':
+      return <TextInput type="datetime-local" value={value} onChange={onChange} disabled={disabled} />;
     case 'dropdown':
       return (
         <SelectInput

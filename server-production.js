@@ -10694,6 +10694,59 @@ app.get('/api/templates/subpoena/:fraudType', getAuthenticatedUserCompany, async
     }
 });
 
+// POST /api/templates/subpoena — admin creates/updates per-fraud-type rider language.
+// Mirror of server/routes/notice-templates.ts (Phase 7 / US-SRB-01). PII patterns
+// are kept in sync with server/lib/piiGuard.ts. Access is gated by the central
+// permission matrix (`subpoenaRider.configureLanguage` in lib/permissions.cjs)
+// rather than hard-coded role IDs, so JAFAR overrides flow through.
+app.post('/api/templates/subpoena', getAuthenticatedUserCompany, requirePermission('subpoenaRider.configureLanguage'), async (req, res) => {
+    try {
+        const { FRAUD_TYPE, BASE_LANGUAGE, TOKENS } = req.body || {};
+
+        if (!__RIDER_ALLOWED_FRAUD_TYPES.has(FRAUD_TYPE)) {
+            return res.status(400).json({ error: 'Invalid fraud type' });
+        }
+        if (typeof BASE_LANGUAGE !== 'string' || BASE_LANGUAGE.trim().length === 0) {
+            return res.status(400).json({ error: 'Base language is required' });
+        }
+        if (!Array.isArray(TOKENS)) {
+            return res.status(400).json({ error: 'TOKENS must be an array' });
+        }
+
+        const PII_PATTERNS = [
+            { label: 'SSN', re: /\b\d{3}-\d{2}-\d{4}\b/ },
+            { label: 'DOB', re: /\b(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])\/(?:19|20)\d{2}\b/ },
+            { label: 'ACCOUNT_NUMBER', re: /\b\d{7,12}\b/ },
+            { label: 'CUSTOMER_NAME', re: /(?<!\[)\b[A-Z][a-z]{1,}\s[A-Z][a-z]{1,}\b(?![\w-]*\])/ },
+        ];
+        const hit = PII_PATTERNS.find(p => p.re.test(BASE_LANGUAGE));
+        if (hit) {
+            return res.status(400).json({
+                error: `PII tokens are not permitted in subpoena language templates. Remove ${hit.label} before saving.`,
+                label: hit.label,
+            });
+        }
+
+        const tokensJson = JSON.stringify(TOKENS);
+
+        await prisma.$executeRaw`
+            DELETE FROM GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES
+            WHERE COMPANY_ID = ${req.companyId} AND FRAUD_TYPE = ${FRAUD_TYPE}
+        `;
+        const result = await prisma.$queryRaw`
+            INSERT INTO GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES
+                (FRAUD_TYPE, BASE_LANGUAGE, TOKENS_JSON, CREATED_BY, COMPANY_ID, CREATED_AT)
+            OUTPUT INSERTED.*
+            VALUES (${FRAUD_TYPE}, ${BASE_LANGUAGE}, ${tokensJson}, ${req.userId}, ${req.companyId}, GETDATE())
+        `;
+
+        res.status(201).json({ template: result[0] });
+    } catch (err) {
+        console.error('POST /api/templates/subpoena failed:', err);
+        res.status(500).json({ error: 'Failed to save subpoena language template' });
+    }
+});
+
 app.get('/api/subpoena-riders', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const incidentNoticeId = parseInt(req.query.incidentNoticeId, 10);
@@ -10774,6 +10827,34 @@ app.post('/api/subpoena-riders', getAuthenticatedUserCompany, async (req, res) =
     } catch (err) {
         console.error('POST /api/subpoena-riders failed:', err);
         res.status(500).json({ error: 'Failed to generate subpoena rider' });
+    }
+});
+
+// Phase 6 / US-CCL-03 — Recipient verification status. Mirror of
+// server/routes/recipients.ts so the RecipientPicker stops 404ing under
+// the legacy CommonJS server. Defaults to FIRST_TIME on missing row, and
+// also when the underlying table isn't present yet (SN MVP migrations
+// not applied in this env), so the picker still renders the safer badge.
+app.get('/api/recipients/:id/verification', getAuthenticatedUserCompany, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!id || Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid recipient id' });
+    }
+    try {
+        const rows = await prisma.$queryRawUnsafe(`
+            SELECT TOP 1 VERIFIED_STATUS, VERIFIED_AT
+            FROM GUARDIAN.RECIPIENT_VERIFICATIONS
+            WHERE RECIPIENT_USER_ID = ${parseInt(id, 10)}
+              AND COMPANY_ID = ${parseInt(req.companyId, 10)}
+        `);
+        const v = rows[0];
+        return res.json({
+            verifiedStatus: v?.VERIFIED_STATUS ?? 'FIRST_TIME',
+            verifiedAt: v?.VERIFIED_AT ?? null,
+        });
+    } catch (err) {
+        console.warn('[recipients/verification] falling back to FIRST_TIME:', err?.message);
+        return res.json({ verifiedStatus: 'FIRST_TIME', verifiedAt: null });
     }
 });
 

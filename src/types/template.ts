@@ -11,6 +11,8 @@ export type TemplateFieldType =
   | 'radio'
   | 'checkbox'
   | 'date'
+  | 'time'
+  | 'datetime'
   | 'file_upload';
 
 export interface TemplateField {
