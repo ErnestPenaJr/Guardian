@@ -713,16 +713,23 @@ const connectWithTimeout = () => {
   ]);
 };
 
+// Kick off the permission cache init independently of $connect. Azure SQL
+// Serverless can be paused at boot; if $connect times out we still want the
+// cache module to hold a prisma reference so cache.invalidate() (called from
+// PUT /api/admin/permissions) can refresh on demand, and so the 30s refresh
+// interval gets set up. loadFromDb() inside init() has its own try/catch.
+try {
+  const { cache } = require('./lib/permissions.cjs');
+  cache.init(prisma)
+    .then(() => console.log('✅ Permission cache loaded'))
+    .catch(err => console.warn('⚠️ Permission cache initial load failed (will retry on TTL):', err.message));
+} catch (err) {
+  console.warn('⚠️ Permission cache module failed to load:', err.message);
+}
+
 connectWithTimeout()
-  .then(async () => {
+  .then(() => {
     console.log('✅ Database connected successfully');
-    try {
-      const { cache } = require('./lib/permissions.cjs');
-      await cache.init(prisma);
-      console.log('✅ Permission cache loaded');
-    } catch (err) {
-      console.warn('⚠️ Permission cache failed to initialize, defaults will apply:', err.message);
-    }
   })
   .catch(err => {
     console.error('❌ Database connection failed:', err.message);
