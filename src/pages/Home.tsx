@@ -24,7 +24,6 @@ import withReactContent from 'sweetalert2-react-content';
 import SendInvitesForm from '../components/SendInvitesForm';
 import NotificationDropdown from '../components/NotificationDropdown';
 import WhatsNewDropdown from '../components/WhatsNewDropdown';
-import RoleSwitcher from '../components/UserProfileSwitcher';
 import JafarCompanySwitcher from '../components/JafarCompanySwitcher';
 import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
@@ -1179,12 +1178,6 @@ function Home() {
           {/* JAFAR Company Switcher - Only visible to role 6 users */}
           <JafarCompanySwitcher className="mr-2" />
 
-          {/* Role Switcher - Show for testing purposes */}
-          {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' ||
-            localStorage.getItem('roleSwitcherEnabled') === 'true') && (
-            <RoleSwitcher className="mr-2" />
-          )}
-          
           <div className="flex items-center gap-2 md:gap-3 relative cursor-pointer border border-gray-200 rounded-lg px-2 mr-4" onClick={() => setProfileMenuOpen(v => !v)} tabIndex={0} role="button" aria-haspopup="true" aria-expanded={profileMenuOpen}>
             {/* Profile */}
            
