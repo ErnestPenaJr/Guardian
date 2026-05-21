@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronDown, Building2, Eye, RotateCcw, Search } from 'lucide-react';
+import { ChevronDown, Building2, Eye, RotateCcw, Search, ArrowLeft, User as UserIcon } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -10,6 +10,14 @@ interface JafarCompany {
   CREATED_AT?: string | null;
 }
 
+interface JafarUser {
+  USER_ID: number;
+  FIRST_NAME: string;
+  LAST_NAME: string;
+  EMAIL: string;
+  ROLE_IDS: number[];
+}
+
 const formatCreatedAt = (raw?: string | null): string => {
   if (!raw) return 'Unknown date';
   const d = new Date(raw);
@@ -17,47 +25,74 @@ const formatCreatedAt = (raw?: string | null): string => {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
+const ROLE_LABEL: Record<number, string> = {
+  1: 'Administrator',
+  2: 'General User',
+  3: 'Processor',
+  4: 'Manager',
+  5: 'External User',
+  6: 'Super Admin',
+};
+const roleLabelsFor = (ids: number[]): string =>
+  ids.length === 0 ? 'No role' : ids.map((id) => ROLE_LABEL[id] || `Role ${id}`).join(', ');
+
 interface JafarCompanySwitcherProps {
   className?: string;
 }
 
-const JAFAR_COMPANY_ID_KEY = 'jafarActiveCompanyId';
-const JAFAR_COMPANY_NAME_KEY = 'jafarActiveCompanyName';
-const JAFAR_HOME_COMPANY_ID_KEY = 'jafarHomeCompanyId';
-const JAFAR_HOME_COMPANY_NAME_KEY = 'jafarHomeCompanyName';
+// Active impersonation
+const KEY_USER_ID = 'jafarImpersonateUserId';
+const KEY_USER_NAME = 'jafarImpersonateUserName';
+const KEY_COMPANY_ID = 'jafarImpersonateCompanyId';
+const KEY_COMPANY_NAME = 'jafarImpersonateCompanyName';
+// Stash of the JAFAR home identity (one-time, restored on exit)
+const KEY_HOME_COMPANY_ID = 'jafarHomeCompanyId';
+const KEY_HOME_COMPANY_NAME = 'jafarHomeCompanyName';
+const KEY_HOME_ROLES = 'jafarHomeRoles';
+// Legacy keys from the old "view as company" model — wiped on mount
+const LEGACY_KEYS = ['jafarActiveCompanyId', 'jafarActiveCompanyName'];
 
-// Mirror the override into the cached user object + localStorage.companyId so
-// the many frontend components that filter on user.companyId / user.COMPANY_ID
-// / localStorage.companyId follow the override too. We stash the real home
-// values once so "Return to JAFAR view" can restore them.
-const applyCompanyOverrideToLocalUser = (companyId: number, companyName: string) => {
+// Mirror the impersonation override into the cached user object + localStorage.companyId
+// so the many components that gate on user.companyId / user.roles also follow it.
+const applyImpersonationToLocalUser = (
+  companyId: number,
+  companyName: string,
+  roleIds: number[],
+) => {
   try {
     const rawUser = localStorage.getItem('user');
     if (!rawUser) return;
     const parsed = JSON.parse(rawUser);
 
-    if (!localStorage.getItem(JAFAR_HOME_COMPANY_ID_KEY)) {
+    // One-time stash of the JAFAR home identity so "Return to home" can restore it.
+    if (!localStorage.getItem(KEY_HOME_COMPANY_ID)) {
       const homeId = parsed.COMPANY_ID ?? parsed.companyId ?? localStorage.getItem('companyId');
-      if (homeId != null) localStorage.setItem(JAFAR_HOME_COMPANY_ID_KEY, String(homeId));
+      if (homeId != null) localStorage.setItem(KEY_HOME_COMPANY_ID, String(homeId));
       const homeName = parsed.COMPANY_NAME ?? parsed.companyName;
-      if (homeName) localStorage.setItem(JAFAR_HOME_COMPANY_NAME_KEY, String(homeName));
+      if (homeName) localStorage.setItem(KEY_HOME_COMPANY_NAME, String(homeName));
+      const homeRoles = parsed.roles ?? (parsed.role != null ? [{ id: Number(parsed.role) }] : []);
+      localStorage.setItem(KEY_HOME_ROLES, JSON.stringify(homeRoles));
     }
 
     parsed.COMPANY_ID = companyId;
     parsed.companyId = companyId;
     parsed.COMPANY_NAME = companyName;
     parsed.companyName = companyName;
+    parsed.roles = roleIds.map((id) => ({ id, name: ROLE_LABEL[id] || `Role ${id}` }));
+    parsed.role = roleIds.length > 0 ? String(roleIds[0]) : undefined;
+
     localStorage.setItem('user', JSON.stringify(parsed));
     localStorage.setItem('companyId', String(companyId));
   } catch (err) {
-    console.error('[JAFAR SWITCHER] Failed to apply override to local user:', err);
+    console.error('[JAFAR SWITCHER] Failed to apply impersonation to local user:', err);
   }
 };
 
 const restoreLocalUserToHome = () => {
   try {
-    const homeId = localStorage.getItem(JAFAR_HOME_COMPANY_ID_KEY);
-    const homeName = localStorage.getItem(JAFAR_HOME_COMPANY_NAME_KEY);
+    const homeId = localStorage.getItem(KEY_HOME_COMPANY_ID);
+    const homeName = localStorage.getItem(KEY_HOME_COMPANY_NAME);
+    const homeRolesRaw = localStorage.getItem(KEY_HOME_ROLES);
     if (!homeId) return;
     const rawUser = localStorage.getItem('user');
     if (rawUser) {
@@ -69,20 +104,35 @@ const restoreLocalUserToHome = () => {
         parsed.COMPANY_NAME = homeName;
         parsed.companyName = homeName;
       }
+      if (homeRolesRaw) {
+        try {
+          const homeRoles = JSON.parse(homeRolesRaw);
+          parsed.roles = homeRoles;
+          if (Array.isArray(homeRoles) && homeRoles.length > 0) {
+            const firstId = homeRoles[0]?.id ?? homeRoles[0];
+            if (firstId != null) parsed.role = String(firstId);
+          }
+        } catch {
+          /* ignore parse failure */
+        }
+      }
       localStorage.setItem('user', JSON.stringify(parsed));
     }
     localStorage.setItem('companyId', homeId);
   } catch (err) {
-    console.error('[JAFAR SWITCHER] Failed to restore home company on local user:', err);
+    console.error('[JAFAR SWITCHER] Failed to restore home identity on local user:', err);
   } finally {
-    localStorage.removeItem(JAFAR_HOME_COMPANY_ID_KEY);
-    localStorage.removeItem(JAFAR_HOME_COMPANY_NAME_KEY);
+    localStorage.removeItem(KEY_HOME_COMPANY_ID);
+    localStorage.removeItem(KEY_HOME_COMPANY_NAME);
+    localStorage.removeItem(KEY_HOME_ROLES);
   }
 };
 
 const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className = '' }) => {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<JafarCompany[]>([]);
+  const [users, setUsers] = useState<JafarUser[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<JafarCompany | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -94,50 +144,49 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
     return String(user.role) === '6';
   }, [user]);
 
-  const activeOverrideId = localStorage.getItem(JAFAR_COMPANY_ID_KEY);
-  const activeOverrideName = localStorage.getItem(JAFAR_COMPANY_NAME_KEY);
-  const stashedHomeIdRaw = localStorage.getItem(JAFAR_HOME_COMPANY_ID_KEY);
-  const stashedHomeId = stashedHomeIdRaw ? parseInt(stashedHomeIdRaw, 10) : null;
-  // While an override is active the cached user.COMPANY_ID has been rewritten,
-  // so fall back to the stashed real home id for the "Home" badge.
-  const homeCompanyId = (stashedHomeId && Number.isFinite(stashedHomeId))
-    ? stashedHomeId
-    : user?.COMPANY_ID;
+  const activeUserId = localStorage.getItem(KEY_USER_ID);
+  const activeUserName = localStorage.getItem(KEY_USER_NAME);
+  const activeCompanyId = localStorage.getItem(KEY_COMPANY_ID);
+  const activeCompanyName = localStorage.getItem(KEY_COMPANY_NAME);
+  const isImpersonating = !!activeUserId;
+
+  // One-time cleanup of legacy "view-as-company" localStorage keys.
+  useEffect(() => {
+    let touched = false;
+    for (const k of LEGACY_KEYS) {
+      if (localStorage.getItem(k)) {
+        localStorage.removeItem(k);
+        touched = true;
+      }
+    }
+    if (touched) console.log('[JAFAR SWITCHER] Cleared legacy view-as-company keys.');
+  }, []);
 
   useEffect(() => {
     if (!isJafar) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSelectedCompany(null);
+        setSearch('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isJafar]);
 
-  // Self-heal stale sessions: if jafarActiveCompanyId was set before the
-  // user-object-mirroring helper existed, the cached user.companyId still
-  // points at the home company and frontend post-filters strip the override
-  // company's data. Detect that and apply the override retroactively, then
-  // reload so all components pick up the corrected user object.
   useEffect(() => {
-    if (!isJafar) return;
-    const overrideId = localStorage.getItem(JAFAR_COMPANY_ID_KEY);
-    if (!overrideId) return;
-    const overrideIdNum = parseInt(overrideId, 10);
-    if (!Number.isFinite(overrideIdNum)) return;
-    const cachedCompanyId = user?.companyId ?? user?.COMPANY_ID;
-    if (cachedCompanyId === overrideIdNum) return;
-    const overrideName = localStorage.getItem(JAFAR_COMPANY_NAME_KEY) || `Company ${overrideIdNum}`;
-    applyCompanyOverrideToLocalUser(overrideIdNum, overrideName);
-    window.location.reload();
-  }, [isJafar, user?.companyId, user?.COMPANY_ID]);
-
-  useEffect(() => {
-    if (!isJafar || !isOpen || companies.length > 0) return;
+    if (!isJafar || !isOpen || selectedCompany || companies.length > 0) return;
     fetchCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isJafar, isOpen]);
+  }, [isJafar, isOpen, selectedCompany]);
+
+  useEffect(() => {
+    if (!selectedCompany) return;
+    fetchUsersForCompany(selectedCompany.COMPANY_ID);
+    setSearch('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompany]);
 
   const fetchCompanies = async () => {
     try {
@@ -152,19 +201,51 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
     }
   };
 
+  const fetchUsersForCompany = async (companyId: number) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/api/jafar-admin/companies/${companyId}/users`);
+      const data = res.data?.data || res.data || [];
+      if (Array.isArray(data)) setUsers(data);
+    } catch (err) {
+      console.error('[JAFAR SWITCHER] Failed to load users for company:', err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSelectCompany = (company: JafarCompany) => {
-    localStorage.setItem(JAFAR_COMPANY_ID_KEY, String(company.COMPANY_ID));
-    localStorage.setItem(JAFAR_COMPANY_NAME_KEY, company.NAME);
-    applyCompanyOverrideToLocalUser(company.COMPANY_ID, company.NAME);
+    setSelectedCompany(company);
+  };
+
+  const handleBackToCompanies = () => {
+    setSelectedCompany(null);
+    setUsers([]);
+    setSearch('');
+  };
+
+  const handleSelectUser = (u: JafarUser) => {
+    if (!selectedCompany) return;
+    const displayName = `${u.FIRST_NAME ?? ''} ${u.LAST_NAME ?? ''}`.trim() || u.EMAIL;
+    localStorage.setItem(KEY_USER_ID, String(u.USER_ID));
+    localStorage.setItem(KEY_USER_NAME, displayName);
+    localStorage.setItem(KEY_COMPANY_ID, String(selectedCompany.COMPANY_ID));
+    localStorage.setItem(KEY_COMPANY_NAME, selectedCompany.NAME);
+    applyImpersonationToLocalUser(selectedCompany.COMPANY_ID, selectedCompany.NAME, u.ROLE_IDS);
     setIsOpen(false);
+    setSelectedCompany(null);
     window.location.reload();
   };
 
   const handleReturnToHome = () => {
     restoreLocalUserToHome();
-    localStorage.removeItem(JAFAR_COMPANY_ID_KEY);
-    localStorage.removeItem(JAFAR_COMPANY_NAME_KEY);
+    localStorage.removeItem(KEY_USER_ID);
+    localStorage.removeItem(KEY_USER_NAME);
+    localStorage.removeItem(KEY_COMPANY_ID);
+    localStorage.removeItem(KEY_COMPANY_NAME);
     setIsOpen(false);
+    setSelectedCompany(null);
     window.location.reload();
   };
 
@@ -174,11 +255,19 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
     return companies.filter((c) => c.NAME?.toLowerCase().includes(q) || String(c.COMPANY_ID).includes(q));
   }, [companies, search]);
 
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      const name = `${u.FIRST_NAME ?? ''} ${u.LAST_NAME ?? ''}`.toLowerCase();
+      return name.includes(q) || (u.EMAIL ?? '').toLowerCase().includes(q);
+    });
+  }, [users, search]);
+
   if (!isJafar) return null;
 
-  const isOverridden = !!activeOverrideId;
-  const displayLabel = isOverridden
-    ? activeOverrideName || `Company #${activeOverrideId}`
+  const displayLabel = isImpersonating
+    ? `${activeUserName || 'User'} @ ${activeCompanyName || `Company #${activeCompanyId}`}`
     : 'JAFAR Home View';
 
   return (
@@ -186,27 +275,27 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
       <button
         onClick={() => setIsOpen((v) => !v)}
         className={`flex items-center gap-2 px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-          isOverridden
+          isImpersonating
             ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
             : 'border-gray-200 hover:bg-gray-50'
         }`}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        title={isOverridden ? `Viewing as company ${activeOverrideId}` : 'JAFAR home view (all companies)'}
+        title={isImpersonating ? `Impersonating user ${activeUserId}` : 'JAFAR home view'}
       >
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isOverridden ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
-          {isOverridden ? <Eye size={18} /> : <Building2 size={18} />}
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isImpersonating ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
+          {isImpersonating ? <Eye size={18} /> : <Building2 size={18} />}
         </div>
         <div className="flex flex-col items-start text-sm">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900 max-w-[180px] truncate">{displayLabel}</span>
-            {isOverridden && (
+            <span className="font-medium text-gray-900 max-w-[220px] truncate">{displayLabel}</span>
+            {isImpersonating && (
               <span className="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
-                Viewing as
+                Impersonating
               </span>
             )}
           </div>
-          <span className="text-xs text-gray-500">JAFAR Company Switcher</span>
+          <span className="text-xs text-gray-500">JAFAR Switcher</span>
         </div>
         <ChevronDown
           size={16}
@@ -215,12 +304,30 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[28rem] flex flex-col">
+        <div className="absolute right-0 top-full mt-2 w-[26rem] bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[32rem] flex flex-col">
           <div className="p-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">Switch Company View</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Browse the platform as a member of any company. Your audit identity stays as JAFAR.
-            </p>
+            <div className="flex items-center gap-2">
+              {selectedCompany && (
+                <button
+                  type="button"
+                  onClick={handleBackToCompanies}
+                  className="p-1 rounded hover:bg-gray-100 text-gray-500"
+                  title="Back to companies"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+              )}
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {selectedCompany ? `Pick a user in ${selectedCompany.NAME}` : 'Pick a company'}
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedCompany
+                    ? 'You will act as the selected user — their roles, their data, their writes.'
+                    : 'Only companies with at least one active user are shown.'}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="p-3 border-b border-gray-100">
@@ -230,7 +337,7 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search companies..."
+                placeholder={selectedCompany ? 'Search users...' : 'Search companies...'}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 autoFocus
               />
@@ -238,59 +345,92 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            <button
-              onClick={handleReturnToHome}
-              disabled={!isOverridden}
-              className={`w-full px-4 py-3 text-left flex items-center gap-3 border-b border-gray-100 transition-colors ${
-                isOverridden ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 text-gray-700">
-                <RotateCcw size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-900">Return to JAFAR Home View</div>
-                <div className="text-xs text-gray-500">
-                  {isOverridden ? 'Clear company override' : 'Already on home view'}
+            {!selectedCompany && (
+              <button
+                onClick={handleReturnToHome}
+                disabled={!isImpersonating}
+                className={`w-full px-4 py-3 text-left flex items-center gap-3 border-b border-gray-100 transition-colors ${
+                  isImpersonating ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100 text-gray-700">
+                  <RotateCcw size={18} />
                 </div>
-              </div>
-            </button>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900">Return to JAFAR Home View</div>
+                  <div className="text-xs text-gray-500">
+                    {isImpersonating ? 'End impersonation' : 'Not currently impersonating'}
+                  </div>
+                </div>
+              </button>
+            )}
 
             {loading ? (
               <div className="p-4 text-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-500 mx-auto"></div>
-                <p className="text-sm text-gray-500 mt-2">Loading companies...</p>
+                <p className="text-sm text-gray-500 mt-2">Loading...</p>
               </div>
+            ) : selectedCompany ? (
+              filteredUsers.length === 0 ? (
+                <div className="p-4 text-center text-sm text-gray-500">
+                  {search ? 'No matching users' : 'No active users in this company'}
+                </div>
+              ) : (
+                filteredUsers.map((u) => {
+                  const displayName = `${u.FIRST_NAME ?? ''} ${u.LAST_NAME ?? ''}`.trim() || u.EMAIL;
+                  const isActive = String(u.USER_ID) === activeUserId;
+                  return (
+                    <button
+                      key={u.USER_ID}
+                      onClick={() => handleSelectUser(u)}
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+                        isActive ? 'bg-amber-50 border-l-4 border-amber-500' : ''
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActive ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
+                        <UserIcon size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-gray-900 truncate">{displayName}</span>
+                          {isActive && (
+                            <span className="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {u.EMAIL} · {roleLabelsFor(u.ROLE_IDS)}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )
             ) : filteredCompanies.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
-                {search ? 'No matching companies' : 'No companies found'}
+                {search ? 'No matching companies' : 'No companies with users found'}
               </div>
             ) : (
               filteredCompanies.map((company) => {
-                const isActive = String(company.COMPANY_ID) === activeOverrideId;
-                const isHome = company.COMPANY_ID === homeCompanyId;
+                const isActiveCompany = String(company.COMPANY_ID) === activeCompanyId;
                 return (
                   <button
                     key={company.COMPANY_ID}
                     onClick={() => handleSelectCompany(company)}
                     className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 ${
-                      isActive ? 'bg-amber-50 border-l-4 border-amber-500' : ''
+                      isActiveCompany ? 'bg-amber-50 border-l-4 border-amber-500' : ''
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActive ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActiveCompany ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-700'}`}>
                       <Building2 size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-gray-900 truncate">{company.NAME}</span>
-                        {isActive && (
+                        {isActiveCompany && (
                           <span className="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
                             Active
-                          </span>
-                        )}
-                        {isHome && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                            Home
                           </span>
                         )}
                       </div>

@@ -66,17 +66,18 @@ api.interceptors.request.use(
       });
     }
 
-    // JAFAR "view as company" override — backend honors this only when the
-    // authenticated user has role 6, so it's safe to attach unconditionally.
-    // Skipped for the companies-list endpoint so the dropdown always sees the
-    // full list regardless of the currently selected view.
-    const jafarCompanyOverride = localStorage.getItem('jafarActiveCompanyId');
+    // JAFAR impersonation — backend honors this only when the authenticated
+    // user has role 6. While impersonating, downstream requests act as the
+    // target user (their permissions, their company, their data scope).
+    // Skip for the JAFAR-admin endpoints themselves so the switcher dropdown
+    // is never tainted by an active impersonation.
+    const jafarImpersonateUserId = localStorage.getItem('jafarImpersonateUserId');
     if (
-      jafarCompanyOverride &&
+      jafarImpersonateUserId &&
       config.headers &&
-      !config.url?.includes('/api/jafar-admin/companies')
+      !config.url?.includes('/api/jafar-admin/')
     ) {
-      config.headers['X-Jafar-Company-Id'] = jafarCompanyOverride;
+      config.headers['X-Jafar-Impersonate-User-Id'] = jafarImpersonateUserId;
     }
 
     return config;

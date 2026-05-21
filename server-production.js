@@ -1187,17 +1187,35 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         req.homeCompanyId = user.COMPANY_ID;
         req.userRoleIds = user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : [];
 
-        // JAFAR company-view override: allow role-6 users to "view as" any company
-        // by sending an X-Jafar-Company-Id header. req.user.COMPANY_ID (home company)
-        // stays intact for audit / identity; only req.companyId is rewritten so
-        // downstream company-scoped queries follow the override.
-        const jafarOverrideHeader = req.headers['x-jafar-company-id'];
-        if (jafarOverrideHeader && req.userRoleIds.includes(6)) {
-            const overrideId = parseInt(jafarOverrideHeader, 10);
-            if (Number.isInteger(overrideId) && overrideId > 0) {
-                req.companyId = overrideId;
-                req.jafarViewingAsCompanyId = overrideId;
-                console.log(`🛡️  [JAFAR] User ${user.USER_ID} viewing as company ${overrideId} (home: ${user.COMPANY_ID})`);
+        // JAFAR impersonation: see server.cjs for full doc-block.
+        const impersonateHeader = req.headers['x-jafar-impersonate-user-id'];
+        if (impersonateHeader && req.userRoleIds.includes(6)) {
+            const targetUserId = parseInt(impersonateHeader, 10);
+            if (Number.isInteger(targetUserId) && targetUserId > 0 && targetUserId !== user.USER_ID) {
+                const targets = await prisma.$queryRaw`
+                    SELECT u.USER_ID, u.COMPANY_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME,
+                           STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
+                    FROM GUARDIAN.USERS u
+                    LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
+                    WHERE u.USER_ID = ${targetUserId} AND u.STATUS = 'A'
+                    GROUP BY u.USER_ID, u.COMPANY_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME
+                `;
+                const target = targets.length > 0 ? targets[0] : null;
+                if (target) {
+                    req.jafarImpersonatorUserId = user.USER_ID;
+                    req.jafarImpersonatorCompanyId = user.COMPANY_ID;
+                    req.jafarImpersonatorRoleIds = [...req.userRoleIds];
+                    req.user = target;
+                    req.userId = target.USER_ID;
+                    req.companyId = target.COMPANY_ID;
+                    req.homeCompanyId = target.COMPANY_ID;
+                    req.userRoleIds = target.ROLE_IDS
+                        ? target.ROLE_IDS.split(',').map((id) => parseInt(id, 10)).filter((n) => Number.isFinite(n))
+                        : [];
+                    console.log(`🛡️  [JAFAR] User ${req.jafarImpersonatorUserId} impersonating user ${target.USER_ID} (company ${target.COMPANY_ID}, roles ${req.userRoleIds.join(',')})`);
+                } else {
+                    console.warn(`⚠️  [JAFAR] Impersonation target user ${targetUserId} not found or inactive — staying as JAFAR`);
+                }
             }
         }
 
@@ -16149,6 +16167,7 @@ app.get('/api/jafar-admin/companies', getAuthenticatedUserCompany, checkJafarRol
     try {
         const query = String(req.query.q || '').trim();
         const filter = query ? `AND c.NAME LIKE ${sqlQuote(`%${query}%`)}` : '';
+        // Only return companies with at least one active user.
         const companies = await prisma.$queryRawUnsafe(`
             SELECT TOP 250
                 c.COMPANY_ID,
@@ -16156,10 +16175,11 @@ app.get('/api/jafar-admin/companies', getAuthenticatedUserCompany, checkJafarRol
                 c.CREATED_AT,
                 COUNT(u.USER_ID) AS USER_COUNT
             FROM GUARDIAN.COMPANY c
-            LEFT JOIN GUARDIAN.USERS u ON TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID
+            INNER JOIN GUARDIAN.USERS u ON TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID AND u.STATUS = 'A'
             WHERE 1 = 1
               ${filter}
             GROUP BY c.COMPANY_ID, c.NAME, c.CREATED_AT
+            HAVING COUNT(u.USER_ID) > 0
             ORDER BY c.CREATED_AT DESC, c.COMPANY_ID DESC
         `);
 
@@ -16173,6 +16193,41 @@ app.get('/api/jafar-admin/companies', getAuthenticatedUserCompany, checkJafarRol
     } catch (error) {
         console.error('❌ [JAFAR ADMIN] Failed to load companies:', error);
         res.status(500).json({ error: 'Failed to load companies' });
+    }
+});
+
+// List active users in a given company — drives step 2 of the JAFAR
+// impersonation picker. See server.cjs for full doc-block.
+app.get('/api/jafar-admin/companies/:companyId/users', getAuthenticatedUserCompany, checkJafarRole, async (req, res) => {
+    try {
+        const companyId = parseInt(req.params.companyId, 10);
+        if (!companyId || Number.isNaN(companyId)) {
+            return res.status(400).json({ error: 'Invalid company id' });
+        }
+        const users = await prisma.$queryRaw`
+            SELECT u.USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL,
+                   STRING_AGG(ur.ROLE_ID, ',') as ROLE_IDS
+            FROM GUARDIAN.USERS u
+            LEFT JOIN GUARDIAN.USER_ROLES ur ON u.USER_ID = ur.USER_ID AND ur.STATUS = 'P'
+            WHERE TRY_CONVERT(INT, u.COMPANY_ID) = ${companyId} AND u.STATUS = 'A'
+            GROUP BY u.USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL
+            ORDER BY u.LAST_NAME, u.FIRST_NAME
+        `;
+        res.json({
+            success: true,
+            data: users.map((u) => ({
+                USER_ID: u.USER_ID,
+                FIRST_NAME: u.FIRST_NAME,
+                LAST_NAME: u.LAST_NAME,
+                EMAIL: u.EMAIL,
+                ROLE_IDS: u.ROLE_IDS
+                    ? u.ROLE_IDS.split(',').map((id) => parseInt(id, 10)).filter((n) => Number.isFinite(n))
+                    : [],
+            })),
+        });
+    } catch (error) {
+        console.error('❌ [JAFAR ADMIN] Failed to load company users:', error);
+        res.status(500).json({ error: 'Failed to load company users' });
     }
 });
 
