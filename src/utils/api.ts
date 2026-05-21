@@ -106,6 +106,34 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// Native fetch() patch — components like SimpleFormBuilder, CustomWorkflow
+// TemplateModal, etc. call window.fetch directly (not axios). Wrap it so
+// the impersonation header travels with those calls too. Idempotent.
+if (typeof window !== 'undefined' && !(window.fetch as any).__jafarImpersonationPatched) {
+  const originalFetch = window.fetch.bind(window);
+  const patched = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request).url;
+    const impersonateUserId = localStorage.getItem('jafarImpersonateUserId');
+    if (impersonateUserId && url && !url.includes('/api/jafar-admin/')) {
+      const newInit: RequestInit = init ? { ...init } : {};
+      const headers = new Headers(
+        newInit.headers ?? (input instanceof Request ? input.headers : undefined),
+      );
+      headers.set('X-Jafar-Impersonate-User-Id', impersonateUserId);
+      newInit.headers = headers;
+      return originalFetch(input, newInit);
+    }
+    return originalFetch(input, init);
+  };
+  (patched as any).__jafarImpersonationPatched = true;
+  window.fetch = patched as typeof window.fetch;
+}
+
 // Add a response interceptor to handle token expiration and HTML responses
 api.interceptors.response.use(
   (response) => {
