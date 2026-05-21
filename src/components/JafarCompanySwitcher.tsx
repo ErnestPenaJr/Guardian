@@ -49,15 +49,20 @@ const KEY_COMPANY_NAME = 'jafarImpersonateCompanyName';
 const KEY_HOME_COMPANY_ID = 'jafarHomeCompanyId';
 const KEY_HOME_COMPANY_NAME = 'jafarHomeCompanyName';
 const KEY_HOME_ROLES = 'jafarHomeRoles';
+const KEY_HOME_IDENTITY = 'jafarHomeIdentity';
 // Legacy keys from the old "view as company" model — wiped on mount
 const LEGACY_KEYS = ['jafarActiveCompanyId', 'jafarActiveCompanyName'];
 
 // Mirror the impersonation override into the cached user object + localStorage.companyId
-// so the many components that gate on user.companyId / user.roles also follow it.
+// so the many components that gate on user.companyId / user.roles / user.firstName
+// also follow it. The target user's identity becomes the visible identity.
 const applyImpersonationToLocalUser = (
   companyId: number,
   companyName: string,
   roleIds: number[],
+  firstName: string,
+  lastName: string,
+  email: string,
 ) => {
   try {
     const rawUser = localStorage.getItem('user');
@@ -72,6 +77,19 @@ const applyImpersonationToLocalUser = (
       if (homeName) localStorage.setItem(KEY_HOME_COMPANY_NAME, String(homeName));
       const homeRoles = parsed.roles ?? (parsed.role != null ? [{ id: Number(parsed.role) }] : []);
       localStorage.setItem(KEY_HOME_ROLES, JSON.stringify(homeRoles));
+      localStorage.setItem(
+        KEY_HOME_IDENTITY,
+        JSON.stringify({
+          firstName: parsed.firstName ?? null,
+          lastName: parsed.lastName ?? null,
+          fullName: parsed.fullName ?? null,
+          name: parsed.name ?? null,
+          email: parsed.email ?? null,
+          FIRST_NAME: parsed.FIRST_NAME ?? null,
+          LAST_NAME: parsed.LAST_NAME ?? null,
+          EMAIL: parsed.EMAIL ?? null,
+        }),
+      );
     }
 
     parsed.COMPANY_ID = companyId;
@@ -80,6 +98,19 @@ const applyImpersonationToLocalUser = (
     parsed.companyName = companyName;
     parsed.roles = roleIds.map((id) => ({ id, name: ROLE_LABEL[id] || `Role ${id}` }));
     parsed.role = roleIds.length > 0 ? String(roleIds[0]) : undefined;
+
+    // Override visible identity to the target user's. Audit-side, the backend
+    // already knows the real impersonator via the X-Jafar-Impersonate-User-Id
+    // header path.
+    const fullName = `${firstName ?? ''} ${lastName ?? ''}`.trim() || email;
+    parsed.firstName = firstName;
+    parsed.lastName = lastName;
+    parsed.fullName = fullName;
+    parsed.name = fullName;
+    parsed.email = email;
+    parsed.FIRST_NAME = firstName;
+    parsed.LAST_NAME = lastName;
+    parsed.EMAIL = email;
 
     localStorage.setItem('user', JSON.stringify(parsed));
     localStorage.setItem('companyId', String(companyId));
@@ -116,6 +147,19 @@ const restoreLocalUserToHome = () => {
           /* ignore parse failure */
         }
       }
+      const homeIdentityRaw = localStorage.getItem(KEY_HOME_IDENTITY);
+      if (homeIdentityRaw) {
+        try {
+          const homeIdentity = JSON.parse(homeIdentityRaw);
+          for (const key of Object.keys(homeIdentity)) {
+            if (homeIdentity[key] !== null && homeIdentity[key] !== undefined) {
+              parsed[key] = homeIdentity[key];
+            }
+          }
+        } catch {
+          /* ignore parse failure */
+        }
+      }
       localStorage.setItem('user', JSON.stringify(parsed));
     }
     localStorage.setItem('companyId', homeId);
@@ -125,6 +169,7 @@ const restoreLocalUserToHome = () => {
     localStorage.removeItem(KEY_HOME_COMPANY_ID);
     localStorage.removeItem(KEY_HOME_COMPANY_NAME);
     localStorage.removeItem(KEY_HOME_ROLES);
+    localStorage.removeItem(KEY_HOME_IDENTITY);
   }
 };
 
@@ -138,10 +183,25 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Keep the switcher visible while an impersonation is active even though
+  // user.roles has been swapped to the target user's roles (so role-6 isn't
+  // present in the cached user object anymore). The stashed home roles tell
+  // us the real user is JAFAR.
   const isJafar = useMemo(() => {
-    if (!user) return false;
-    if (Array.isArray(user.roles) && user.roles.some((r) => r?.id === 6)) return true;
-    return String(user.role) === '6';
+    if (Array.isArray(user?.roles) && user!.roles.some((r) => r?.id === 6)) return true;
+    if (String(user?.role) === '6') return true;
+    if (localStorage.getItem(KEY_USER_ID)) {
+      const stashedRolesRaw = localStorage.getItem(KEY_HOME_ROLES);
+      if (stashedRolesRaw) {
+        try {
+          const stashed = JSON.parse(stashedRolesRaw);
+          if (Array.isArray(stashed) && stashed.some((r) => (r?.id ?? r) === 6)) return true;
+        } catch {
+          /* ignore parse failure */
+        }
+      }
+    }
+    return false;
   }, [user]);
 
   const activeUserId = localStorage.getItem(KEY_USER_ID);
@@ -232,7 +292,14 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
     localStorage.setItem(KEY_USER_NAME, displayName);
     localStorage.setItem(KEY_COMPANY_ID, String(selectedCompany.COMPANY_ID));
     localStorage.setItem(KEY_COMPANY_NAME, selectedCompany.NAME);
-    applyImpersonationToLocalUser(selectedCompany.COMPANY_ID, selectedCompany.NAME, u.ROLE_IDS);
+    applyImpersonationToLocalUser(
+      selectedCompany.COMPANY_ID,
+      selectedCompany.NAME,
+      u.ROLE_IDS,
+      u.FIRST_NAME ?? '',
+      u.LAST_NAME ?? '',
+      u.EMAIL ?? '',
+    );
     setIsOpen(false);
     setSelectedCompany(null);
     window.location.reload();
