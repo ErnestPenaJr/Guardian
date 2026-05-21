@@ -65,7 +65,20 @@ api.interceptors.request.use(
         reason: !token ? 'No token in localStorage' : 'No headers object'
       });
     }
-    
+
+    // JAFAR "view as company" override — backend honors this only when the
+    // authenticated user has role 6, so it's safe to attach unconditionally.
+    // Skipped for the companies-list endpoint so the dropdown always sees the
+    // full list regardless of the currently selected view.
+    const jafarCompanyOverride = localStorage.getItem('jafarActiveCompanyId');
+    if (
+      jafarCompanyOverride &&
+      config.headers &&
+      !config.url?.includes('/api/jafar-admin/companies')
+    ) {
+      config.headers['X-Jafar-Company-Id'] = jafarCompanyOverride;
+    }
+
     return config;
   },
   (error) => {

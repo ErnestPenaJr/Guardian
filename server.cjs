@@ -1187,7 +1187,23 @@ const getAuthenticatedUserCompany = async (req, res, next) => {
         req.user = user;
         req.userId = user.USER_ID;
         req.companyId = user.COMPANY_ID;
+        req.homeCompanyId = user.COMPANY_ID;
         req.userRoleIds = user.ROLE_IDS ? user.ROLE_IDS.split(',').map(id => parseInt(id)) : [];
+
+        // JAFAR company-view override: allow role-6 users to "view as" any company
+        // by sending an X-Jafar-Company-Id header. req.user.COMPANY_ID (home company)
+        // stays intact for audit / identity; only req.companyId is rewritten so
+        // downstream company-scoped queries follow the override.
+        const jafarOverrideHeader = req.headers['x-jafar-company-id'];
+        if (jafarOverrideHeader && req.userRoleIds.includes(6)) {
+            const overrideId = parseInt(jafarOverrideHeader, 10);
+            if (Number.isInteger(overrideId) && overrideId > 0) {
+                req.companyId = overrideId;
+                req.jafarViewingAsCompanyId = overrideId;
+                console.log(`🛡️  [JAFAR] User ${user.USER_ID} viewing as company ${overrideId} (home: ${user.COMPANY_ID})`);
+            }
+        }
+
         next();
     } catch (error) {
         safeErrorLog('❌ Authentication error details:', {
@@ -2461,8 +2477,8 @@ app.get('/api/requests', getAuthenticatedUserCompany, requirePermission('request
                 LEFT JOIN GUARDIAN.USERS creator ON r.CREATE_USER_ID = creator.USER_ID AND creator.COMPANY_ID = ${req.companyId}
                 LEFT JOIN GUARDIAN.WORKSPACES w ON r.WORKSPACE_ID = w.WORKSPACE_ID
                 WHERE r.COMPANY_ID = ${req.companyId}
-                  AND (r.WORKSPACE_ID = ${activeWorkspaceId || null} OR r.WORKSPACE_ID IS NULL)
-                  AND (r.CREATE_USER_ID = ${req.userId} OR r.REQUESTOR_ID = ${req.userId} OR r.ASSIGNED_ID = ${req.userId})
+                  AND (${req.jafarViewingAsCompanyId ? 1 : 0} = 1 OR r.WORKSPACE_ID = ${activeWorkspaceId || null} OR r.WORKSPACE_ID IS NULL)
+                  AND (${req.jafarViewingAsCompanyId ? 1 : 0} = 1 OR r.CREATE_USER_ID = ${req.userId} OR r.REQUESTOR_ID = ${req.userId} OR r.ASSIGNED_ID = ${req.userId})
                 ORDER BY r.CREATE_DATE DESC
             `,
             new Promise((_, reject) => 

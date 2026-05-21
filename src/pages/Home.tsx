@@ -25,6 +25,7 @@ import SendInvitesForm from '../components/SendInvitesForm';
 import NotificationDropdown from '../components/NotificationDropdown';
 import WhatsNewDropdown from '../components/WhatsNewDropdown';
 import RoleSwitcher from '../components/UserProfileSwitcher';
+import JafarCompanySwitcher from '../components/JafarCompanySwitcher';
 import RequestDashboard from './RequestDashboard';
 import RequestFulfillmentDashboard from './RequestFulfillmentDashboard';
 import AdminDashboard from './AdminDashboard';
@@ -1174,9 +1175,12 @@ function Home() {
           
           {/* Workspace Selector */}
           <WorkspaceSelector />
-          
+
+          {/* JAFAR Company Switcher - Only visible to role 6 users */}
+          <JafarCompanySwitcher className="mr-2" />
+
           {/* Role Switcher - Show for testing purposes */}
-          {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' || 
+          {(user?.roles?.some((role: any) => role.id === 1 || role.id === 6) || user?.role === '1' || user?.role === '6' ||
             localStorage.getItem('roleSwitcherEnabled') === 'true') && (
             <RoleSwitcher className="mr-2" />
           )}
