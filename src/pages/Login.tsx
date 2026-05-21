@@ -6,6 +6,20 @@ import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import errorCapture from '../utils/errorCapture';
 import LegalModal from '../components/LegalModal';
 
+const DEMO_PASSWORD = 'demo123';
+const DEMO_ROLE_OPTIONS = [
+  { value: 'demo.admin@guardian-demo.local',     label: 'Admin' },
+  { value: 'demo.user@guardian-demo.local',      label: 'General User' },
+  { value: 'demo.processor@guardian-demo.local', label: 'Processor' },
+  { value: 'demo.manager@guardian-demo.local',   label: 'Manager' },
+  { value: 'demo.external@guardian-demo.local',  label: 'External User' },
+];
+const isDemoEnv = (() => {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h.includes('guardian-staging');
+})();
+
 function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -351,6 +365,35 @@ function Login() {
     }
   };
 
+  const handleDemoLogin = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const email = e.target.value;
+    e.target.value = '';
+    if (!email) return;
+    setIsLoading(true);
+    try {
+      const response = await api.post('/api/login', { email, password: DEMO_PASSWORD });
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const { companyId, companyName } = response.data.user || {};
+      if (companyId) localStorage.setItem('companyId', companyId.toString());
+      if (companyName) localStorage.setItem('companyName', companyName);
+      navigate('/home');
+    } catch (err: any) {
+      console.error('Demo login failed:', err);
+      await Swal.fire({
+        title: 'Demo Login Failed',
+        text: err.response?.data?.message || 'Could not sign in as demo user. Has the seed script been run?',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        customClass: { popup: 'swal2-popup', title: 'swal2-title', htmlContainer: 'swal2-html-container', confirmButton: 'swal2-confirm' },
+        buttonsStyling: false,
+        confirmButtonColor: '#032424',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials(prev => ({
@@ -391,6 +434,25 @@ function Login() {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isDemoEnv && (
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-md">
+              <label htmlFor="demo-role" className="block text-xs font-semibold text-amber-800 mb-1 uppercase tracking-wide">
+                Demo · sign in as role
+              </label>
+              <select
+                id="demo-role"
+                defaultValue=""
+                onChange={handleDemoLogin}
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-amber-300 bg-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">— Select a role —</option>
+                {DEMO_ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
