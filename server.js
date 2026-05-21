@@ -16154,13 +16154,14 @@ app.get('/api/jafar-admin/companies', getAuthenticatedUserCompany, checkJafarRol
             SELECT TOP 250
                 c.COMPANY_ID,
                 c.NAME,
+                c.CREATED_AT,
                 COUNT(u.USER_ID) AS USER_COUNT
             FROM GUARDIAN.COMPANY c
             LEFT JOIN GUARDIAN.USERS u ON TRY_CONVERT(INT, u.COMPANY_ID) = c.COMPANY_ID
             WHERE 1 = 1
               ${filter}
-            GROUP BY c.COMPANY_ID, c.NAME
-            ORDER BY c.NAME ASC
+            GROUP BY c.COMPANY_ID, c.NAME, c.CREATED_AT
+            ORDER BY c.CREATED_AT DESC, c.COMPANY_ID DESC
         `);
 
         res.json({

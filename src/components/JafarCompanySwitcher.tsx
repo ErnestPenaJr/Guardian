@@ -7,7 +7,15 @@ interface JafarCompany {
   COMPANY_ID: number;
   NAME: string;
   USER_COUNT: number;
+  CREATED_AT?: string | null;
 }
+
+const formatCreatedAt = (raw?: string | null): string => {
+  if (!raw) return 'Unknown date';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
 interface JafarCompanySwitcherProps {
   className?: string;
@@ -287,7 +295,7 @@ const JafarCompanySwitcher: React.FC<JafarCompanySwitcherProps> = ({ className =
                         )}
                       </div>
                       <div className="text-xs text-gray-500">
-                        ID: {company.COMPANY_ID} · {company.USER_COUNT ?? 0} user{company.USER_COUNT === 1 ? '' : 's'}
+                        ID: {company.COMPANY_ID} · {company.USER_COUNT ?? 0} user{company.USER_COUNT === 1 ? '' : 's'} · Created {formatCreatedAt(company.CREATED_AT)}
                       </div>
                     </div>
                   </button>
