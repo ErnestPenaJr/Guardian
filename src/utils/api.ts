@@ -88,6 +88,24 @@ api.interceptors.request.use(
   }
 );
 
+// Global axios interceptor — many components call raw `axios.get/post/...`
+// (e.g. Home.tsx fetchRequests, services/mynotices.ts, AdminFields, etc.)
+// instead of the configured `api` client. Without this, JAFAR impersonation
+// would silently bypass those calls and return the impersonator's data.
+// Auth headers are still set per-call by those callers; we only add the
+// impersonation header here.
+axios.interceptors.request.use((config) => {
+  const impersonateUserId = localStorage.getItem('jafarImpersonateUserId');
+  if (
+    impersonateUserId &&
+    config.headers &&
+    !config.url?.includes('/api/jafar-admin/')
+  ) {
+    config.headers['X-Jafar-Impersonate-User-Id'] = impersonateUserId;
+  }
+  return config;
+});
+
 // Add a response interceptor to handle token expiration and HTML responses
 api.interceptors.response.use(
   (response) => {
