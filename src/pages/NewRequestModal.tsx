@@ -471,12 +471,6 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({ isOpen, onClose, onSa
           padding: '20px',
           maxHeight: '95vh',
           overflow: 'auto',
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          right: 'auto',
-          bottom: 'auto',
-          transform: 'translate(-50%, -50%)',
           border: '1px solid #ccc',
           boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
         },
