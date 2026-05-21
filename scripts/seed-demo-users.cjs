@@ -81,12 +81,14 @@ async function upsertDemoUser(spec, companyId, passwordHash) {
 }
 
 async function ensureRoleAssignment(userId, roleId) {
+  // Guardian convention: USER_ROLES.STATUS='P' is the active/valid state
+  // (auth middleware filters on STATUS='P' in server.cjs line 1175). USERS.STATUS='A' is active.
   const existing = await prisma.uSER_ROLES.findFirst({ where: { USER_ID: userId, ROLE_ID: roleId } });
   if (existing) {
-    if (existing.STATUS !== 'A') {
+    if (existing.STATUS !== 'P') {
       await prisma.uSER_ROLES.update({
         where: { USER_ROLE_ID: existing.USER_ROLE_ID },
-        data: { STATUS: 'A', UPDATE_DATE: new Date() },
+        data: { STATUS: 'P', UPDATE_DATE: new Date() },
       });
       console.log(`  ↺ Reactivated USER_ROLES (USER_ID=${userId}, ROLE_ID=${roleId})`);
     }
@@ -96,7 +98,7 @@ async function ensureRoleAssignment(userId, roleId) {
     data: {
       USER_ID: userId,
       ROLE_ID: roleId,
-      STATUS: 'A',
+      STATUS: 'P',
       CREATE_DATE: new Date(),
       UPDATE_DATE: new Date(),
     },
