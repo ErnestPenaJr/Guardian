@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient, Prisma } = require('@prisma/client');
 const { requirePermission, can, canViewForm, canViewNoticeType, ROLE } = require('./lib/permissions.cjs');
+const { isGlobalForm, GLOBAL_AUDIT_EVENTS } = require('./lib/globalForms.cjs');
 
 // Production Environment Detection and Security Configuration
 const isProduction = process.env.NODE_ENV === 'production' || 
@@ -10562,6 +10563,25 @@ async function __writePlatformAudit(eventType, actorUserId, targetId, detail) {
         actorUserId,
         targetId,
         detail == null ? null : JSON.stringify(detail)
+    );
+}
+
+// Audit helper for JAFAR global workflow templates. COMPANY_ID is NULL for
+// platform-level events (create / edit / delete by JAFAR) and the cloning
+// company's id for the company-scoped CLONED event. Modeled on
+// __writePlatformAudit but parameterized so it can write either.
+async function __writeGlobalTemplateAudit({ eventType, actorUserId, actorRoleId, formId, companyId, detail }) {
+    await prisma.$executeRawUnsafe(
+        `INSERT INTO GUARDIAN.AUDIT_LOG
+            (EVENT_TYPE, ACTOR_USER_ID, ACTOR_ROLE_ID, TARGET_TYPE, TARGET_ID, EVENT_DETAIL, COMPANY_ID, CREATED_AT)
+         VALUES
+            (@P1, @P2, @P3, 'TEMPLATE', @P4, @P5, @P6, SYSUTCDATETIME());`,
+        eventType,
+        actorUserId,
+        actorRoleId == null ? null : actorRoleId,
+        String(formId),
+        detail == null ? null : JSON.stringify(detail),
+        companyId == null ? null : companyId
     );
 }
 
