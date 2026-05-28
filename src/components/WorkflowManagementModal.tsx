@@ -50,8 +50,12 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
   };
 
   // Helper: true for forms that are platform-wide global templates
+  // IS_PUBLIC can arrive as boolean (Prisma-coerced) or number 1 (raw BIT), so accept both —
+  // matches lib/globalForms.cjs::isGlobalForm. Without this, the badge/lock/clone never render.
   const isGlobalForm = (form: DbForm): boolean =>
-    form.COMPANY_ID == null && form.ORGANIZATION_ID == null && form.IS_PUBLIC === true;
+    form.COMPANY_ID == null &&
+    form.ORGANIZATION_ID == null &&
+    ((form.IS_PUBLIC as unknown) === 1 || form.IS_PUBLIC === true);
 
   // Fetch forms when modal opens
   useEffect(() => {
