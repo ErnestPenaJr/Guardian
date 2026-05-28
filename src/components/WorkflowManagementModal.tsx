@@ -338,7 +338,7 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
                             {isGlobalForm(form) && (
                               <button
                                 type="button"
-                                className="btn btn-sm btn-outline-secondary"
+                                className="btn btn-sm btn-outline-info"
                                 onClick={() => handleCloneTemplate(form)}
                                 title="Create an editable copy in your company"
                                 data-testid={`clone-global-${form.FORM_ID}`}
