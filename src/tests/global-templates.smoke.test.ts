@@ -16,6 +16,10 @@
 //   TEST_ADMIN_EMAIL      — a role-1 admin (non-JAFAR) account
 //   TEST_ADMIN_PASSWORD   — that user's password
 //
+// Optional env vars (cross-company isolation case):
+//   TEST_ADMIN_B_EMAIL    — a role-1 admin from a DIFFERENT company than TEST_ADMIN_EMAIL
+//   TEST_ADMIN_B_PASSWORD — that user's password
+//
 // Exits 0 if all assertions pass, 1 if any assertion fails.
 
 import { config as dotenvConfig } from 'dotenv';
@@ -29,6 +33,8 @@ const JAFAR_EMAIL = process.env.TEST_JAFAR_EMAIL;
 const JAFAR_PASSWORD = process.env.TEST_JAFAR_PASSWORD;
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+const ADMIN_B_EMAIL = process.env.TEST_ADMIN_B_EMAIL;
+const ADMIN_B_PASSWORD = process.env.TEST_ADMIN_B_PASSWORD;
 
 if (!JAFAR_EMAIL || !JAFAR_PASSWORD) {
   console.error(
@@ -44,6 +50,12 @@ if (!JAFAR_EMAIL || !JAFAR_PASSWORD) {
 if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
   console.warn(
     '⚠️  TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set — non-JAFAR 403 test will be skipped.',
+  );
+}
+
+if (!ADMIN_B_EMAIL || !ADMIN_B_PASSWORD) {
+  console.warn(
+    '⚠️  TEST_ADMIN_B_EMAIL / TEST_ADMIN_B_PASSWORD not set — cross-company isolation test will be skipped.',
   );
 }
 
@@ -413,6 +425,76 @@ const main = async () => {
           assert('Clone survives after global is deleted', survivor.length === 1, { survivor });
         }
       }
+    }
+
+    // -------------------------------------------------------------------------
+    // Case 11: Cross-company isolation regression — Company A and Company B both
+    // see the same global, neither sees the other's private templates.
+    // -------------------------------------------------------------------------
+    if (ADMIN_EMAIL && ADMIN_PASSWORD && ADMIN_B_EMAIL && ADMIN_B_PASSWORD) {
+      console.log('\n🌐 Case 11: cross-company isolation regression');
+
+      // JAFAR creates a global
+      const isoGlobalRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(jafarToken),
+        body: JSON.stringify({
+          form: { FORM_NAME: `Iso Global ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+          fields: [],
+        }),
+      });
+      const isoGlobalBody = await isoGlobalRes.json() as { form?: { FORM_ID?: number } };
+      const isoGlobalId = isoGlobalBody?.form?.FORM_ID;
+      assert('Created isolation-test global', typeof isoGlobalId === 'number' && isoGlobalId > 0);
+      if (typeof isoGlobalId === 'number' && isoGlobalId > 0) createdGlobalIds.push(isoGlobalId);
+
+      if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+      const adminBToken = await login(ADMIN_B_EMAIL, ADMIN_B_PASSWORD);
+
+      // Company A admin creates a private template
+      const aPrivRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(adminToken),
+        body: JSON.stringify({
+          form: { FORM_NAME: `Iso A ${Date.now()}`, TEMPLATE_TYPE: 'request' },
+          fields: [],
+        }),
+      });
+      const aPrivBody = await aPrivRes.json() as { form?: { FORM_ID?: number } };
+      const aPrivId = aPrivBody?.form?.FORM_ID;
+      assert('Created Company A private template', typeof aPrivId === 'number' && aPrivId > 0);
+      if (typeof aPrivId === 'number' && aPrivId > 0) createdGlobalIds.push(aPrivId);
+
+      // Company B admin creates a private template
+      const bPrivRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(adminBToken),
+        body: JSON.stringify({
+          form: { FORM_NAME: `Iso B ${Date.now()}`, TEMPLATE_TYPE: 'request' },
+          fields: [],
+        }),
+      });
+      const bPrivBody = await bPrivRes.json() as { form?: { FORM_ID?: number } };
+      const bPrivId = bPrivBody?.form?.FORM_ID;
+      assert('Created Company B private template', typeof bPrivId === 'number' && bPrivId > 0);
+      if (typeof bPrivId === 'number' && bPrivId > 0) createdGlobalIds.push(bPrivId);
+
+      // Each admin lists /api/forms
+      const listARes = await fetch(`${API_BASE}/api/forms`, { headers: authed(adminToken) });
+      const listBRes = await fetch(`${API_BASE}/api/forms`, { headers: authed(adminBToken) });
+      const listABody = await listARes.json() as Array<{ FORM_ID: number }>;
+      const listBBody = await listBRes.json() as Array<{ FORM_ID: number }>;
+      const idsA = listABody.map(f => f.FORM_ID);
+      const idsB = listBBody.map(f => f.FORM_ID);
+
+      assert('Company A sees the global', idsA.includes(isoGlobalId as number));
+      assert('Company B sees the global', idsB.includes(isoGlobalId as number));
+      assert('Company A sees its own private template', idsA.includes(aPrivId as number));
+      assert('Company B does NOT see Company A\'s private template', !idsB.includes(aPrivId as number));
+      assert('Company B sees its own private template', idsB.includes(bPrivId as number));
+      assert('Company A does NOT see Company B\'s private template', !idsA.includes(bPrivId as number));
+    } else {
+      console.log('\n⚠️  Skipping Case 11 (cross-company isolation) — TEST_ADMIN_EMAIL/PASSWORD and/or TEST_ADMIN_B_EMAIL/PASSWORD not set');
     }
 
   } finally {
