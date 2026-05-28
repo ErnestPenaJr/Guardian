@@ -37,6 +37,7 @@ export interface DbForm {
   IS_DELETED: boolean;
   IS_INTERNAL?: boolean;
   IS_EXTERNAL?: boolean;
+  IS_GLOBAL?: boolean;
   TEMPLATE_TYPE?: string | null;
   NOTICE_CATEGORY?: 'ANCM' | 'SEC' | 'GEN' | 'TRGT' | null;
   CREATE_USER_ID?: number;
@@ -221,6 +222,36 @@ const formService = {
       console.error('❌ Error fetching all forms:', error);
       // Return empty array instead of throwing error
       return [];
+    }
+  },
+
+  // Get all global (JAFAR-managed) form templates
+  getGlobalForms: async (): Promise<DbForm[]> => {
+    try {
+      const response = await api.get('/api/forms/global');
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        throw new Error('JAFAR access required');
+      }
+      console.error('Error fetching global forms:', error);
+      throw new Error(`Failed to load global templates (${error.response?.status ?? 'unknown'})`);
+    }
+  },
+
+  // Clone a global template into the current user's company
+  cloneForm: async (formId: number): Promise<{
+    FORM_ID: number;
+    FORM_NAME: string;
+    TEMPLATE_TYPE: string;
+    fields: Array<{ FIELD_ID: number; FIELD_NAME: string; FIELD_TYPE_ID: number; SORT_ORDER: number }>;
+  }> => {
+    try {
+      const response = await api.post(`/api/forms/${formId}/clone`, {});
+      return response.data;
+    } catch (error: any) {
+      console.error(`Error cloning form ${formId}:`, error);
+      throw new Error(`Failed to clone template (${error.response?.status ?? 'unknown'})`);
     }
   },
 
