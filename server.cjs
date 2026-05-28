@@ -8830,63 +8830,64 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
 app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const { form, fields } = req.body;
-        console.log('📝 Creating new form with fields for company:', req.companyId);
+        const wantsGlobal = form && form.IS_GLOBAL === true;
 
-        if (!form || !form.FORM_NAME) {
-            return res.status(400).json({
-                error: 'Form name is required'
-            });
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        if (wantsGlobal && !userRoleIds.includes(6)) {
+            return res.status(403).json({ error: 'JAFAR access required to create global templates' });
         }
 
-        // Insert the form first - escape strings properly for SQL injection prevention
+        console.log(`📝 Creating new form (global=${wantsGlobal}) for company: ${req.companyId}`);
+
+        if (!form || !form.FORM_NAME) {
+            return res.status(400).json({ error: 'Form name is required' });
+        }
+
         const escapedFormName = form.FORM_NAME.replace(/'/g, "''");
         const escapedFormDescription = (form.FORM_DESCRIPTION || '').replace(/'/g, "''");
-        
-        // Audience flags default to 1 (visible) if the caller omits them,
-        // matching the DB default and keeping legacy callers working.
+
         const isInternal = form.IS_INTERNAL === false ? 0 : 1;
         const isExternal = form.IS_EXTERNAL === false ? 0 : 1;
 
-        // Stamp TEMPLATE_TYPE on create so notice templates never leak into
-        // the request templates list (which queries this same table).
         const rawTemplateType = (form.TEMPLATE_TYPE || 'request').toString().toLowerCase();
         const templateType = rawTemplateType === 'notice' ? 'notice' : 'request';
 
-        // Notice Type picker — only persisted for notice templates and only
-        // when the value is in the allow-list. Inlined as a SQL literal, so
-        // the allow-list IS the SQL-injection guard.
         const NOTICE_CATEGORY_ALLOW = ['ANCM', 'SEC', 'GEN', 'TRGT'];
         const noticeCategorySql =
             templateType === 'notice' && NOTICE_CATEGORY_ALLOW.includes(form.NOTICE_CATEGORY)
                 ? `'${form.NOTICE_CATEGORY}'`
                 : 'NULL';
 
+        // Globals get NULL company/organization and IS_PUBLIC = 1; non-globals
+        // get the caller's company stamped on both columns and IS_PUBLIC = whatever
+        // the caller passed (default 0).
+        const companyIdSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+        const organizationIdSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+        const isPublicValue = wantsGlobal ? 1 : (form.IS_PUBLIC ? 1 : 0);
+        const orgIdForFieldsSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
-                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
                 IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
-                '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
+                '${escapedFormName}', '${escapedFormDescription}', ${companyIdSql}, ${organizationIdSql}, ${isPublicValue}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
                 ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql},
                 GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
 
         const formId = formResult[0].FORM_ID;
-        console.log(`✅ Created form with ID: ${formId}`);
+        console.log(`✅ Created form ${formId} (global=${wantsGlobal})`);
 
-        // Insert fields if provided
         const createdFields = [];
         if (fields && Array.isArray(fields) && fields.length > 0) {
             for (let i = 0; i < fields.length; i++) {
                 const field = fields[i];
-                
-                // First, create the field in GUARDIAN.FIELDS table - escape strings for SQL injection prevention
                 const escapedFieldName = field.FIELD_NAME.replace(/'/g, "''");
-                
                 const escapedOptions = field.OPTIONS != null ? `'${String(field.OPTIONS).replace(/'/g, "''")}'` : 'NULL';
 
                 const fieldResult = await prisma.$queryRawUnsafe(`
@@ -8897,13 +8898,12 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                     OUTPUT INSERTED.FIELD_ID
                     VALUES (
                         '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, ${escapedOptions},
-                        GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
+                        GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${orgIdForFieldsSql}
                     )
                 `);
-                
+
                 const fieldId = fieldResult[0].FIELD_ID;
-                
-                // Then, create the relationship in GUARDIAN.FORMS_FIELDS junction table
+
                 await prisma.$queryRawUnsafe(`
                     INSERT INTO GUARDIAN.FORMS_FIELDS (
                         FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
@@ -8914,32 +8914,37 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                     )
                 `);
 
-                createdFields.push({
-                    ...field,
-                    FIELD_ID: fieldId,
-                    FORM_ID: formId
-                });
+                createdFields.push({ ...field, FIELD_ID: fieldId, FORM_ID: formId });
             }
         }
 
-        console.log(`✅ Created ${createdFields.length} fields for form ${formId}`);
+        // Audit: only globals get a platform-level audit row.
+        if (wantsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.CREATED,
+                actorUserId: req.userId,
+                actorRoleId: 6,
+                formId,
+                companyId: null,
+                detail: { formName: form.FORM_NAME, templateType, isInternal: !!isInternal, isExternal: !!isExternal },
+            });
+        }
 
         res.json({
             success: true,
             form: {
                 ...form,
                 FORM_ID: formId,
-                COMPANY_ID: req.companyId
+                COMPANY_ID: wantsGlobal ? null : req.companyId,
+                ORGANIZATION_ID: wantsGlobal ? null : req.companyId,
+                IS_PUBLIC: isPublicValue,
             },
-            fields: createdFields
+            fields: createdFields,
         });
 
     } catch (error) {
         console.error('❌ Error creating form:', error);
-        res.status(500).json({
-            error: 'Failed to create form',
-            message: error.message
-        });
+        res.status(500).json({ error: 'Failed to create form', message: error.message });
     }
 });
 

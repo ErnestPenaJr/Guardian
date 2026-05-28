@@ -1,4 +1,4 @@
-// Global workflow templates smoke test — Task 3 (failing gate for Task 4).
+// Global workflow templates smoke test — Task 3 (pass-gate for Task 4) + Task 4 non-JAFAR 403 case.
 // Standalone Bun script — no test runner required.
 //
 // Usage:
@@ -8,15 +8,15 @@
 //   bun src/tests/global-templates.smoke.test.ts
 //
 // Required env vars:
-//   TEST_API_BASE       — default http://localhost:3001
-//   TEST_JAFAR_EMAIL    — a user with role 6 (Super Admin / JAFAR)
-//   TEST_JAFAR_PASSWORD — that user's password
+//   TEST_API_BASE         — default http://localhost:3001
+//   TEST_JAFAR_EMAIL      — a user with role 6 (Super Admin / JAFAR)
+//   TEST_JAFAR_PASSWORD   — that user's password
+//
+// Optional env vars (non-JAFAR 403 case):
+//   TEST_ADMIN_EMAIL      — a role-1 admin (non-JAFAR) account
+//   TEST_ADMIN_PASSWORD   — that user's password
 //
 // Exits 0 if all assertions pass, 1 if any assertion fails.
-//
-// NOTE: The assertion 'Response body says COMPANY_ID is null (global)' is
-// EXPECTED TO FAIL until Task 4 extends POST /api/forms to honour IS_GLOBAL.
-// That is the point of this test — it is the pass-gate for Task 4.
 
 import { config as dotenvConfig } from 'dotenv';
 import { resolve as pathResolve } from 'path';
@@ -27,6 +27,8 @@ dotenvConfig({ path: pathResolve(__dirname, '../../.env') });
 const API_BASE = process.env.TEST_API_BASE || 'http://localhost:3001';
 const JAFAR_EMAIL = process.env.TEST_JAFAR_EMAIL;
 const JAFAR_PASSWORD = process.env.TEST_JAFAR_PASSWORD;
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
 
 if (!JAFAR_EMAIL || !JAFAR_PASSWORD) {
   console.error(
@@ -37,6 +39,12 @@ if (!JAFAR_EMAIL || !JAFAR_PASSWORD) {
       '     bun src/tests/global-templates.smoke.test.ts',
   );
   process.exit(1);
+}
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  console.warn(
+    '⚠️  TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set — non-JAFAR 403 test will be skipped.',
+  );
 }
 
 const prisma = new PrismaClient();
@@ -123,14 +131,36 @@ const main = async () => {
 
     if (createBody?.form?.FORM_ID) createdFormId = createBody.form.FORM_ID as number;
 
-    // Step 5: This assertion is EXPECTED TO FAIL right now (Task 4 not applied).
-    // The current POST /api/forms stamps req.companyId regardless of IS_GLOBAL,
-    // so createBody.form?.COMPANY_ID will be a non-null company id, not null.
     assert(
-      'Response body says COMPANY_ID is null (global) — EXPECTED FAIL until Task 4',
+      'Response body says COMPANY_ID is null (global)',
       createBody.form?.COMPANY_ID === null,
       { actualCompanyId: createBody.form?.COMPANY_ID },
     );
+
+    // -------------------------------------------------------------------------
+    // Case 2: non-JAFAR (role 1) gets 403 when sending IS_GLOBAL: true
+    // -------------------------------------------------------------------------
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      console.log('\n🔐 Logging in as non-JAFAR admin...');
+      const adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+      const forbiddenRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(adminToken),
+        body: JSON.stringify({
+          form: {
+            FORM_NAME: `Smoke Should Fail ${Date.now()}`,
+            TEMPLATE_TYPE: 'request',
+            IS_GLOBAL: true,
+          },
+          fields: [],
+        }),
+      });
+      assert('non-JAFAR POST /api/forms with IS_GLOBAL returns 403', forbiddenRes.status === 403, { status: forbiddenRes.status });
+      const forbiddenBody = await forbiddenRes.json().catch(() => ({}));
+      assert('403 body mentions JAFAR', /jafar/i.test(forbiddenBody?.error || ''), { error: forbiddenBody?.error });
+    } else {
+      console.log('\n⚠️  Skipping non-JAFAR 403 test (TEST_ADMIN_EMAIL/PASSWORD not set)');
+    }
   } finally {
     // -------------------------------------------------------------------------
     // Cleanup: soft-delete the created form so the test is idempotent.
