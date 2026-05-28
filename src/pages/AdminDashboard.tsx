@@ -12,6 +12,8 @@ import AdminFields from '../pages/AdminFields';
 import WorkflowManagementModal from '../components/WorkflowManagementModal';
 import FormTemplateEditorModal from '../components/FormTemplateEditorModal';
 import CustomWorkflowTemplateModal from '../components/CustomWorkflowTemplateModal';
+import GlobalTemplatesCard from '../components/admin/GlobalTemplatesCard';
+import GlobalTemplatesModal from '../components/admin/GlobalTemplatesModal';
 import formService from '../services/formService';
 import { toast } from 'react-toastify';
 
@@ -39,6 +41,7 @@ const AdminDashboard: React.FC<{
   const [workflowManagementModalOpen, setWorkflowManagementModalOpen] = useState(false);
   const [templateEditorModalOpen, setTemplateEditorModalOpen] = useState(false);
   const [customTemplateModalOpen, setCustomTemplateModalOpen] = useState(false);
+  const [globalTemplatesModalOpen, setGlobalTemplatesModalOpen] = useState(false);
   const [editingFormId, setEditingFormId] = useState<number | undefined>(undefined);
   const [editingFormData, setEditingFormData] = useState<any>(null);
   
@@ -308,6 +311,11 @@ const AdminDashboard: React.FC<{
           </a>
         )}
 
+        {/* Global Workflow Templates Card - JAFAR only */}
+        {isJafarUser() && (
+          <GlobalTemplatesCard onOpenManager={() => setGlobalTemplatesModalOpen(true)} />
+        )}
+
         {/* Style Guide Card - Hidden */}
         {/*
         <a
@@ -438,6 +446,24 @@ const AdminDashboard: React.FC<{
         isOpen={customTemplateModalOpen}
         onClose={() => setCustomTemplateModalOpen(false)}
         onCreateNew={handleCreateNewTemplate}
+      />
+
+      {/* Global Workflow Templates Modal - JAFAR only */}
+      <GlobalTemplatesModal
+        isOpen={globalTemplatesModalOpen}
+        onClose={() => setGlobalTemplatesModalOpen(false)}
+        onCreateGlobal={(templateType) => {
+          setGlobalTemplatesModalOpen(false);
+          navigate('/form-builder/new', {
+            state: { isGlobalTemplate: true, templateType, mode: 'create' },
+          });
+        }}
+        onEditGlobal={(formId) => {
+          setGlobalTemplatesModalOpen(false);
+          navigate(`/form-builder/${formId}`, {
+            state: { isGlobalTemplate: true, mode: 'edit' },
+          });
+        }}
       />
     </div>
   );
