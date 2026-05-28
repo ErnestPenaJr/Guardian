@@ -140,9 +140,10 @@ const main = async () => {
     // -------------------------------------------------------------------------
     // Case 2: non-JAFAR (role 1) gets 403 when sending IS_GLOBAL: true
     // -------------------------------------------------------------------------
+    let adminToken: string | undefined;
     if (ADMIN_EMAIL && ADMIN_PASSWORD) {
       console.log('\n🔐 Logging in as non-JAFAR admin...');
-      const adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+      adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
       const forbiddenRes = await fetch(`${API_BASE}/api/forms`, {
         method: 'POST',
         headers: authed(adminToken),
@@ -160,6 +161,39 @@ const main = async () => {
       assert('403 body mentions JAFAR', /jafar/i.test(forbiddenBody?.error || ''), { error: forbiddenBody?.error });
     } else {
       console.log('\n⚠️  Skipping non-JAFAR 403 test (TEST_ADMIN_EMAIL/PASSWORD not set)');
+    }
+
+    // -------------------------------------------------------------------------
+    // Case 3: JAFAR GET /api/forms/global returns 200 + array of globals
+    // -------------------------------------------------------------------------
+    console.log('\n📋 Case 3: JAFAR GET /api/forms/global');
+    const listRes = await fetch(`${API_BASE}/api/forms/global`, {
+      method: 'GET',
+      headers: authed(jafarToken),
+    });
+    assert('GET /api/forms/global returns 200', listRes.status === 200, { status: listRes.status });
+    const listBody = await listRes.json().catch(() => null);
+    assert('GET /api/forms/global returns array', Array.isArray(listBody), { typeofBody: typeof listBody });
+    if (Array.isArray(listBody) && listBody.length > 0) {
+      // All returned rows must satisfy the global predicate
+      const allGlobal = listBody.every((row: any) => row.COMPANY_ID === null && row.ORGANIZATION_ID === null);
+      assert('Every returned row has COMPANY_ID null and ORGANIZATION_ID null', allGlobal);
+    }
+
+    // -------------------------------------------------------------------------
+    // Case 4: non-JAFAR GET /api/forms/global returns 403
+    // -------------------------------------------------------------------------
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      console.log('\n🔒 Case 4: non-JAFAR GET /api/forms/global → 403');
+      // Reuse adminToken obtained in Case 2 — avoids a redundant login round-trip.
+      const tokenForCase4 = adminToken ?? (await login(ADMIN_EMAIL, ADMIN_PASSWORD));
+      const forbiddenListRes = await fetch(`${API_BASE}/api/forms/global`, {
+        method: 'GET',
+        headers: authed(tokenForCase4),
+      });
+      assert('non-JAFAR GET /api/forms/global returns 403', forbiddenListRes.status === 403, { status: forbiddenListRes.status });
+    } else {
+      console.log('\n⚠️  Skipping Case 4 (non-JAFAR GET) — TEST_ADMIN_EMAIL/PASSWORD not set');
     }
   } finally {
     // -------------------------------------------------------------------------

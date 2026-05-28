@@ -8826,6 +8826,37 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// JAFAR-only: list all active global workflow templates (platform-wide).
+app.get('/api/forms/global', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        if (!userRoleIds.includes(6)) {
+            return res.status(403).json({ error: 'JAFAR access required' });
+        }
+
+        const rows = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, TEMPLATE_TYPE,
+                   IS_INTERNAL, IS_EXTERNAL, NOTICE_CATEGORY,
+                   ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC,
+                   CREATE_DATE, CREATE_USER_ID, UPDATE_DATE
+            FROM GUARDIAN.FORMS
+            WHERE COMPANY_ID IS NULL
+              AND ORGANIZATION_ID IS NULL
+              AND IS_PUBLIC = 1
+              AND IS_DELETED = 0
+              AND TEMPLATE_TYPE IN ('request', 'notice')
+            ORDER BY TEMPLATE_TYPE, CREATE_DATE DESC, FORM_ID DESC
+        `;
+
+        // Belt-and-suspenders: filter through isGlobalForm in case the predicate ever drifts.
+        const globals = rows.filter(isGlobalForm);
+        res.json(globals);
+    } catch (error) {
+        console.error('❌ Error listing global templates:', error);
+        res.status(500).json({ error: 'Failed to list global templates', message: error.message });
+    }
+});
+
 // Create a new form with fields
 app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     try {
