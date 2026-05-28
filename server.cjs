@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { PrismaClient, Prisma } = require('@prisma/client');
 const { requirePermission, can, canViewForm, canViewNoticeType, ROLE } = require('./lib/permissions.cjs');
+const { isGlobalForm, GLOBAL_AUDIT_EVENTS } = require('./lib/globalForms.cjs');
 
 // Production Environment Detection and Security Configuration
 const isProduction = process.env.NODE_ENV === 'production' || 
@@ -7497,45 +7498,40 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get user's roles to check for admin access
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
+        // Load the target row (no company filter yet — we need to know if it's global).
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
         `;
-        
-        const roleIds = userRoles.map(role => role.ROLE_ID);
-        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
-        
-        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
-        
-        // Check if form exists and user has permission to edit it
-        let existingForm;
-        
-        if (isAdmin) {
-            // Admin users can edit both company forms and global forms
-            existingForm = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
-            `;
-        } else {
-            // Regular users can only edit their company's forms
-            existingForm = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND ORGANIZATION_ID = ${req.companyId}
-            `;
+
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            console.log(`❌ Form ${formId} not found`);
+            return res.status(404).json({ error: 'Form not found' });
         }
 
-        if (!existingForm.length) {
-            console.log(`❌ Form ${formId} not found or access denied for company ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
+        const target = targetRow[0];
+        const targetIsGlobal = isGlobalForm(target);
+
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        const isJafar = userRoleIds.includes(6);
+
+        if (targetIsGlobal) {
+            // Only JAFAR can mutate a global template.
+            if (!isJafar) {
+                console.log(`❌ User ${req.userId} (roles ${userRoleIds.join(',')}) tried to edit global form ${formId}`);
+                return res.status(403).json({ error: 'JAFAR access required to edit global templates' });
+            }
+        } else {
+            // Non-global: caller must own the row's company.
+            if (target.COMPANY_ID !== req.companyId && target.ORGANIZATION_ID !== req.companyId) {
+                console.log(`❌ Form ${formId} not accessible to company ${req.companyId}`);
+                return res.status(404).json({ error: 'Form not found or access denied' });
+            }
         }
+
+        // Used by the rest of the existing handler.
+        const existingForm = targetRow;
 
         // Update form basic details
         await prisma.$queryRaw`
@@ -7548,6 +7544,17 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         `;
 
         console.log(`✅ Form ${formId} basic details updated successfully`);
+
+        if (targetIsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.MODIFIED,
+                actorUserId: req.userId,
+                actorRoleId: 6,
+                formId,
+                companyId: null,
+                detail: { prevName: target.FORM_NAME, newName: name.trim() },
+            });
+        }
 
         // Handle form fields update if provided
         if (formFields && Array.isArray(formFields)) {
@@ -8825,67 +8832,99 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// JAFAR-only: list all active global workflow templates (platform-wide).
+app.get('/api/forms/global', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        if (!userRoleIds.includes(6)) {
+            return res.status(403).json({ error: 'JAFAR access required' });
+        }
+
+        const rows = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, TEMPLATE_TYPE,
+                   IS_INTERNAL, IS_EXTERNAL, NOTICE_CATEGORY,
+                   ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC,
+                   CREATE_DATE, CREATE_USER_ID, UPDATE_DATE
+            FROM GUARDIAN.FORMS
+            WHERE COMPANY_ID IS NULL
+              AND ORGANIZATION_ID IS NULL
+              AND IS_PUBLIC = 1
+              AND IS_DELETED = 0
+              AND TEMPLATE_TYPE IN ('request', 'notice')
+            ORDER BY TEMPLATE_TYPE, CREATE_DATE DESC, FORM_ID DESC
+        `;
+
+        // Belt-and-suspenders: filter through isGlobalForm in case the predicate ever drifts.
+        const globals = rows.filter(isGlobalForm);
+        res.json(globals);
+    } catch (error) {
+        console.error('❌ Error listing global templates:', error);
+        res.status(500).json({ error: 'Failed to list global templates', message: error.message });
+    }
+});
+
 // Create a new form with fields
 app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
     try {
         const { form, fields } = req.body;
-        console.log('📝 Creating new form with fields for company:', req.companyId);
+        const wantsGlobal = form && form.IS_GLOBAL === true;
 
-        if (!form || !form.FORM_NAME) {
-            return res.status(400).json({
-                error: 'Form name is required'
-            });
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        if (wantsGlobal && !userRoleIds.includes(6)) {
+            return res.status(403).json({ error: 'JAFAR access required to create global templates' });
         }
 
-        // Insert the form first - escape strings properly for SQL injection prevention
+        console.log(`📝 Creating new form (global=${wantsGlobal}) for company: ${req.companyId}`);
+
+        if (!form || !form.FORM_NAME) {
+            return res.status(400).json({ error: 'Form name is required' });
+        }
+
         const escapedFormName = form.FORM_NAME.replace(/'/g, "''");
         const escapedFormDescription = (form.FORM_DESCRIPTION || '').replace(/'/g, "''");
-        
-        // Audience flags default to 1 (visible) if the caller omits them,
-        // matching the DB default and keeping legacy callers working.
+
         const isInternal = form.IS_INTERNAL === false ? 0 : 1;
         const isExternal = form.IS_EXTERNAL === false ? 0 : 1;
 
-        // Stamp TEMPLATE_TYPE on create so notice templates never leak into
-        // the request templates list (which queries this same table).
         const rawTemplateType = (form.TEMPLATE_TYPE || 'request').toString().toLowerCase();
         const templateType = rawTemplateType === 'notice' ? 'notice' : 'request';
 
-        // Notice Type picker — only persisted for notice templates and only
-        // when the value is in the allow-list. Inlined as a SQL literal, so
-        // the allow-list IS the SQL-injection guard.
         const NOTICE_CATEGORY_ALLOW = ['ANCM', 'SEC', 'GEN', 'TRGT'];
         const noticeCategorySql =
             templateType === 'notice' && NOTICE_CATEGORY_ALLOW.includes(form.NOTICE_CATEGORY)
                 ? `'${form.NOTICE_CATEGORY}'`
                 : 'NULL';
 
+        // Globals get NULL company/organization and IS_PUBLIC = 1; non-globals
+        // get the caller's company stamped on both columns and IS_PUBLIC = whatever
+        // the caller passed (default 0).
+        const companyIdSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+        const organizationIdSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+        const isPublicValue = wantsGlobal ? 1 : (form.IS_PUBLIC ? 1 : 0);
+        const orgIdForFieldsSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
-                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
                 IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
-                '${escapedFormName}', '${escapedFormDescription}', ${req.companyId}, ${form.IS_PUBLIC ? 1 : 0}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
+                '${escapedFormName}', '${escapedFormDescription}', ${companyIdSql}, ${organizationIdSql}, ${isPublicValue}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
                 ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql},
                 GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
 
         const formId = formResult[0].FORM_ID;
-        console.log(`✅ Created form with ID: ${formId}`);
+        console.log(`✅ Created form ${formId} (global=${wantsGlobal})`);
 
-        // Insert fields if provided
         const createdFields = [];
         if (fields && Array.isArray(fields) && fields.length > 0) {
             for (let i = 0; i < fields.length; i++) {
                 const field = fields[i];
-                
-                // First, create the field in GUARDIAN.FIELDS table - escape strings for SQL injection prevention
                 const escapedFieldName = field.FIELD_NAME.replace(/'/g, "''");
-                
                 const escapedOptions = field.OPTIONS != null ? `'${String(field.OPTIONS).replace(/'/g, "''")}'` : 'NULL';
 
                 const fieldResult = await prisma.$queryRawUnsafe(`
@@ -8896,13 +8935,12 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                     OUTPUT INSERTED.FIELD_ID
                     VALUES (
                         '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, ${escapedOptions},
-                        GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
+                        GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${orgIdForFieldsSql}
                     )
                 `);
-                
+
                 const fieldId = fieldResult[0].FIELD_ID;
-                
-                // Then, create the relationship in GUARDIAN.FORMS_FIELDS junction table
+
                 await prisma.$queryRawUnsafe(`
                     INSERT INTO GUARDIAN.FORMS_FIELDS (
                         FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
@@ -8913,32 +8951,37 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                     )
                 `);
 
-                createdFields.push({
-                    ...field,
-                    FIELD_ID: fieldId,
-                    FORM_ID: formId
-                });
+                createdFields.push({ ...field, FIELD_ID: fieldId, FORM_ID: formId });
             }
         }
 
-        console.log(`✅ Created ${createdFields.length} fields for form ${formId}`);
+        // Audit: only globals get a platform-level audit row.
+        if (wantsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.CREATED,
+                actorUserId: req.userId,
+                actorRoleId: 6,
+                formId,
+                companyId: null,
+                detail: { formName: form.FORM_NAME, templateType, isInternal: !!isInternal, isExternal: !!isExternal },
+            });
+        }
 
         res.json({
             success: true,
             form: {
                 ...form,
                 FORM_ID: formId,
-                COMPANY_ID: req.companyId
+                COMPANY_ID: wantsGlobal ? null : req.companyId,
+                ORGANIZATION_ID: wantsGlobal ? null : req.companyId,
+                IS_PUBLIC: isPublicValue,
             },
-            fields: createdFields
+            fields: createdFields,
         });
 
     } catch (error) {
         console.error('❌ Error creating form:', error);
-        res.status(500).json({
-            error: 'Failed to create form',
-            message: error.message
-        });
+        res.status(500).json({ error: 'Failed to create form', message: error.message });
     }
 });
 
@@ -8954,39 +8997,41 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Check if user has permission to delete (Admin or Super Admin roles: 1, 6)
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
-        `;
-        
-        const roleIds = userRoles.map(role => role.ROLE_ID);
-        const canDelete = roleIds.includes(1) || roleIds.includes(6);
-        
-        if (!canDelete) {
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        const isJafar = userRoleIds.includes(6);
+        const isAdminRole1 = userRoleIds.includes(1);
+
+        if (!isJafar && !isAdminRole1) {
             console.log(`❌ User ${req.userId} lacks permission to delete forms`);
-            return res.status(403).json({
-                error: 'You do not have permission to delete forms'
-            });
+            return res.status(403).json({ error: 'You do not have permission to delete forms' });
         }
 
-        // Check if the form exists and belongs to the company (or is global with null COMPANY_ID)
-        const existingForm = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
         `;
 
-        if (!existingForm.length) {
-            console.log(`❌ Form ${formId} not found for company ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            console.log(`❌ Form ${formId} not found`);
+            return res.status(404).json({ error: 'Form not found' });
         }
 
+        const target = targetRow[0];
+        const targetIsGlobal = isGlobalForm(target);
+
+        if (targetIsGlobal && !isJafar) {
+            console.log(`❌ User ${req.userId} cannot delete global form ${formId} (not JAFAR)`);
+            return res.status(403).json({ error: 'JAFAR access required to delete global templates' });
+        }
+        if (!targetIsGlobal && target.COMPANY_ID !== req.companyId) {
+            console.log(`❌ Form ${formId} not in company ${req.companyId}`);
+            return res.status(404).json({ error: 'Form not found or access denied' });
+        }
+
+        const existingForm = targetRow;
         const form = existingForm[0];
-        console.log(`📋 Found form to delete: ${form.FORM_NAME}`);
+        console.log(`📋 Found form to delete: ${form.FORM_NAME} (global=${targetIsGlobal})`);
 
         // CASCADING DELETE - Remove all related data in the correct order to handle foreign key constraints
         
@@ -9078,6 +9123,17 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             WHERE FORM_ID = ${formId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
 
+        if (targetIsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.DELETED,
+                actorUserId: req.userId,
+                actorRoleId: 6,
+                formId,
+                companyId: null,
+                detail: { formName: form.FORM_NAME },
+            });
+        }
+
         console.log(`✅ Successfully deleted form ${formId}: ${form.FORM_NAME} and all related data`);
 
         res.json({
@@ -9091,6 +9147,139 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             error: 'Failed to delete form',
             message: error.message
         });
+    }
+});
+
+// Any authenticated caller can clone a template they can see, into their own company.
+// Visibility predicate matches GET /api/forms.
+app.post('/api/forms/:id/clone', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const sourceId = parseInt(req.params.id);
+        if (!sourceId || isNaN(sourceId)) {
+            return res.status(400).json({ error: 'Valid form ID is required' });
+        }
+
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        const callerIsExternal = userRoleIds.includes(5);
+
+        // External users (role 5) can't clone in MVP.
+        if (callerIsExternal) {
+            return res.status(403).json({ error: 'External users cannot clone templates' });
+        }
+
+        // Load the source row.
+        const sourceRows = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID,
+                   IS_PUBLIC, IS_DELETED, IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${sourceId}
+        `;
+        if (!sourceRows.length || sourceRows[0].IS_DELETED) {
+            return res.status(404).json({ error: 'Source template not found' });
+        }
+        const source = sourceRows[0];
+        const sourceIsGlobal = isGlobalForm(source);
+
+        // Visibility: globals visible to all; company templates visible only to that company.
+        const ownedByCaller = source.COMPANY_ID === req.companyId || source.ORGANIZATION_ID === req.companyId;
+        if (!sourceIsGlobal && !ownedByCaller) {
+            return res.status(404).json({ error: 'Source template not visible to your company' });
+        }
+        if (typeof canViewForm === 'function' && !canViewForm(req, sourceId)) {
+            return res.status(403).json({ error: 'You do not have permission to clone this template' });
+        }
+
+        // Load source fields via the junction table.
+        const sourceFields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED, f.IS_ACTIVE, f.[OPTIONS],
+                   ff.SORT_ORDER, ff.IS_REQUIRED AS FF_IS_REQUIRED
+            FROM GUARDIAN.FORMS_FIELDS ff
+            INNER JOIN GUARDIAN.FIELDS f ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${sourceId}
+            ORDER BY ff.SORT_ORDER
+        `;
+
+        // Resolve a non-colliding name in the caller's company.
+        let cloneName = source.FORM_NAME;
+        const nameCheck = await prisma.$queryRaw`
+            SELECT COUNT(*) AS HITS FROM GUARDIAN.FORMS
+            WHERE FORM_NAME = ${cloneName} AND IS_DELETED = 0
+              AND (COMPANY_ID = ${req.companyId} OR ORGANIZATION_ID = ${req.companyId})
+        `;
+        if (nameCheck[0].HITS > 0) {
+            cloneName = `${source.FORM_NAME} (Copy)`;
+        }
+
+        const escapedName = cloneName.replace(/'/g, "''");
+        const escapedDesc = (source.FORM_DESCRIPTION || '').replace(/'/g, "''");
+        const noticeCategorySql = source.NOTICE_CATEGORY
+            ? `'${String(source.NOTICE_CATEGORY).replace(/'/g, "''")}'`
+            : 'NULL';
+        const templateType = source.TEMPLATE_TYPE === 'notice' ? 'notice' : 'request';
+
+        const inserted = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.FORMS (
+                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
+                CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+            )
+            OUTPUT INSERTED.FORM_ID
+            VALUES (
+                '${escapedName}', '${escapedDesc}', ${req.companyId}, ${req.companyId}, 0, 1, 0,
+                ${source.IS_INTERNAL ? 1 : 0}, ${source.IS_EXTERNAL ? 1 : 0}, '${templateType}', ${noticeCategorySql},
+                GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+            )
+        `);
+        const cloneId = inserted[0].FORM_ID;
+
+        const clonedFields = [];
+        for (let i = 0; i < sourceFields.length; i++) {
+            const f = sourceFields[i];
+            const escapedFieldName = f.FIELD_NAME.replace(/'/g, "''");
+            const escapedOptions = f.OPTIONS != null ? `'${String(f.OPTIONS).replace(/'/g, "''")}'` : 'NULL';
+
+            const newField = await prisma.$queryRawUnsafe(`
+                INSERT INTO GUARDIAN.FIELDS (
+                    FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED, [OPTIONS],
+                    CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID, ORGANIZATION_ID
+                )
+                OUTPUT INSERTED.FIELD_ID
+                VALUES (
+                    '${escapedFieldName}', ${f.FIELD_TYPE_ID}, ${f.IS_REQUIRED ? 1 : 0}, ${f.IS_ACTIVE ? 1 : 0}, 0, ${escapedOptions},
+                    GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
+                )
+            `);
+            const newFieldId = newField[0].FIELD_ID;
+
+            await prisma.$queryRawUnsafe(`
+                INSERT INTO GUARDIAN.FORMS_FIELDS (
+                    FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
+                    CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                )
+                VALUES (
+                    ${cloneId}, ${newFieldId}, ${f.FF_IS_REQUIRED ? 1 : 0}, ${f.SORT_ORDER || i + 1}, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+                )
+            `);
+            clonedFields.push({ FIELD_ID: newFieldId, FIELD_NAME: f.FIELD_NAME, FIELD_TYPE_ID: f.FIELD_TYPE_ID, SORT_ORDER: f.SORT_ORDER });
+        }
+
+        // Audit only when source is global. Cloning a company-owned template is silent.
+        if (sourceIsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.CLONED,
+                actorUserId: req.userId,
+                actorRoleId: userRoleIds[0] || null,
+                formId: cloneId,
+                companyId: req.companyId,
+                detail: { sourceFormId: sourceId, sourceFormName: source.FORM_NAME, cloneFormName: cloneName },
+            });
+        }
+
+        console.log(`✅ Cloned form ${sourceId} → ${cloneId} (${clonedFields.length} fields) for company ${req.companyId}`);
+        res.json({ FORM_ID: cloneId, FORM_NAME: cloneName, TEMPLATE_TYPE: templateType, fields: clonedFields });
+    } catch (error) {
+        console.error('❌ Error cloning form:', error);
+        res.status(500).json({ error: 'Failed to clone form', message: error.message });
     }
 });
 
@@ -10562,6 +10751,25 @@ async function __writePlatformAudit(eventType, actorUserId, targetId, detail) {
         actorUserId,
         targetId,
         detail == null ? null : JSON.stringify(detail)
+    );
+}
+
+// Audit helper for JAFAR global workflow templates. COMPANY_ID is NULL for
+// platform-level events (create / edit / delete by JAFAR) and the cloning
+// company's id for the company-scoped CLONED event. Modeled on
+// __writePlatformAudit but parameterized so it can write either.
+async function __writeGlobalTemplateAudit({ eventType, actorUserId, actorRoleId, formId, companyId, detail }) {
+    await prisma.$executeRawUnsafe(
+        `INSERT INTO GUARDIAN.AUDIT_LOG
+            (EVENT_TYPE, ACTOR_USER_ID, ACTOR_ROLE_ID, TARGET_TYPE, TARGET_ID, EVENT_DETAIL, COMPANY_ID, CREATED_AT)
+         VALUES
+            (@P1, @P2, @P3, 'TEMPLATE', @P4, @P5, @P6, SYSUTCDATETIME());`,
+        eventType,
+        actorUserId,
+        actorRoleId == null ? null : actorRoleId,
+        String(formId),
+        detail == null ? null : JSON.stringify(detail),
+        companyId == null ? null : companyId
     );
 }
 

@@ -50,6 +50,8 @@ interface SimpleFormBuilderProps {
   formFields: FormField[];
   onChange: (fields: FormField[]) => void;
   formId?: number;
+  isGlobalTemplate?: boolean;
+  preselectedTemplateType?: 'request' | 'notice';
 }
 
 interface DraggableFormFieldProps {
@@ -163,7 +165,11 @@ const DraggableFormField: React.FC<DraggableFormFieldProps> = ({
 const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   formFields,
   onChange,
-  formId
+  formId,
+  isGlobalTemplate,
+  // preselectedTemplateType is accepted for API parity but not consumed inside SimpleFormBuilder;
+  // the parent FormBuilderPage uses it when constructing the createForm payload.
+  preselectedTemplateType: _preselectedTemplateType,
 }) => {
   const { user } = useAuth();
   const [fields, setFields] = useState<FormField[]>(formFields);
@@ -918,6 +924,15 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   };
   
   return (
+    <>
+      {isGlobalTemplate && (
+        <div className="alert alert-info d-flex align-items-center mb-3" role="alert" data-testid="global-template-banner">
+          <span style={{ fontSize: '1.2rem' }} className="me-2">🌐</span>
+          <div>
+            <strong>Editing Global Template</strong> — visible to all companies once saved.
+          </div>
+        </div>
+      )}
     <div className="form-builder-container">
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
@@ -1122,11 +1137,12 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       {renderFieldEditor()}
       
       {/* Form Builder Tour */}
-      <FormBuilderTour 
-        run={showTour} 
+      <FormBuilderTour
+        run={showTour}
         onTourEnd={handleTourEnd}
       />
     </div>
+    </>
   );
 };
 
