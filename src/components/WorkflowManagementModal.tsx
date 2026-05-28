@@ -3,7 +3,7 @@ import Modal from 'react-modal';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import formService from '../services/formService';
-import { FaSpinner, FaEdit, FaTrash, FaEye, FaPlus } from 'react-icons/fa';
+import { FaSpinner, FaEdit, FaTrash, FaEye, FaPlus, FaCopy } from 'react-icons/fa';
 import { useAuth } from '../hooks/useAuth';
 import { DbForm } from '../services/formService';
 
@@ -148,6 +148,18 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
           icon: 'error'
         });
       }
+    }
+  };
+
+  const handleCloneTemplate = async (form: DbForm) => {
+    if (!form.FORM_ID) return;
+    try {
+      const result = await formService.cloneForm(form.FORM_ID);
+      toast.success(`Template cloned as "${result.FORM_NAME}". Edit it from your company templates.`);
+      await fetchForms();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to clone template';
+      toast.error(msg);
     }
   };
 
@@ -322,6 +334,18 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
                             >
                               <FaTrash />
                             </button>
+
+                            {isGlobalForm(form) && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => handleCloneTemplate(form)}
+                                title="Create an editable copy in your company"
+                                data-testid={`clone-global-${form.FORM_ID}`}
+                              >
+                                <FaCopy className="me-1" />Clone
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
