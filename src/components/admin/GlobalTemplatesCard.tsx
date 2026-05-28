@@ -1,65 +1,42 @@
 // src/components/admin/GlobalTemplatesCard.tsx
-import React, { useEffect, useState } from 'react';
-import { FaGlobe, FaCog } from 'react-icons/fa';
-import formService from '../../services/formService';
+//
+// JAFAR-only dashboard card. Rendered as an inline-anchor that matches the
+// styling of every other AdminDashboard card (Tailwind utility classes,
+// top-border accent, large icon, bullet list, full-card click target).
+//
+// Clicking opens the GlobalTemplatesModal to manage platform-wide templates.
+
+import React from 'react';
+import { FaGlobe } from 'react-icons/fa';
 
 interface Props {
   onOpenManager: () => void;
 }
 
-const GlobalTemplatesCard: React.FC<Props> = ({ onOpenManager }) => {
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const list = await formService.getGlobalForms();
-        if (!cancelled) setCount(list.length);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Failed to load count';
-        if (!cancelled) setError(msg);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <div className="card admin-card mb-3" data-testid="global-templates-card">
-      <div className="card-body">
-        <div className="d-flex align-items-center mb-2">
-          <FaGlobe size={22} className="me-2 text-primary" />
-          <h5 className="card-title mb-0">Global Templates</h5>
-        </div>
-        <p className="text-muted small mb-2">
-          JAFAR access only — visible to all companies
-        </p>
-        <p className="mb-3">
-          {error ? (
-            <span className="text-danger">{error}</span>
-          ) : count == null ? (
-            <span className="text-muted">Loading…</span>
-          ) : (
-            <span>
-              <strong>{count}</strong> active global template{count === 1 ? '' : 's'}
-            </span>
-          )}
-        </p>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={onOpenManager}
-          data-testid="open-global-templates-manager"
-        >
-          <FaCog className="me-2" />
-          Manage Global Templates
-        </button>
-      </div>
-    </div>
-  );
-};
+const GlobalTemplatesCard: React.FC<Props> = ({ onOpenManager }) => (
+  <a
+    href="#"
+    className="bg-white shadow-sm p-6 flex flex-col items-center transition-colors duration-200 border border-gray-200 border-t-4 border-t-cyan-500"
+    style={{
+      borderRadius: '6px',
+      backgroundColor: '#FFFFFF',
+    }}
+    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#ecfeff')}
+    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+    onClick={(e) => {
+      e.preventDefault();
+      onOpenManager();
+    }}
+    data-testid="global-templates-card"
+  >
+    <FaGlobe className="h-12 w-12 text-cyan-500 mb-4" />
+    <h3 className="text-lg font-semibold mb-2">Global Templates</h3>
+    <ul className="text-gray-600">
+      <li>Create platform-wide templates</li>
+      <li>Visible to all companies</li>
+      <li>JAFAR access only</li>
+    </ul>
+  </a>
+);
 
 export default GlobalTemplatesCard;
