@@ -8997,39 +8997,41 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Check if user has permission to delete (Admin or Super Admin roles: 1, 6)
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
-        `;
-        
-        const roleIds = userRoles.map(role => role.ROLE_ID);
-        const canDelete = roleIds.includes(1) || roleIds.includes(6);
-        
-        if (!canDelete) {
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        const isJafar = userRoleIds.includes(6);
+        const isAdminRole1 = userRoleIds.includes(1);
+
+        if (!isJafar && !isAdminRole1) {
             console.log(`❌ User ${req.userId} lacks permission to delete forms`);
-            return res.status(403).json({
-                error: 'You do not have permission to delete forms'
-            });
+            return res.status(403).json({ error: 'You do not have permission to delete forms' });
         }
 
-        // Check if the form exists and belongs to the company (or is global with null COMPANY_ID)
-        const existingForm = await prisma.$queryRaw`
-            SELECT FORM_ID, FORM_NAME, COMPANY_ID
-            FROM GUARDIAN.FORMS 
-            WHERE FORM_ID = ${formId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
         `;
 
-        if (!existingForm.length) {
-            console.log(`❌ Form ${formId} not found for company ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            console.log(`❌ Form ${formId} not found`);
+            return res.status(404).json({ error: 'Form not found' });
         }
 
+        const target = targetRow[0];
+        const targetIsGlobal = isGlobalForm(target);
+
+        if (targetIsGlobal && !isJafar) {
+            console.log(`❌ User ${req.userId} cannot delete global form ${formId} (not JAFAR)`);
+            return res.status(403).json({ error: 'JAFAR access required to delete global templates' });
+        }
+        if (!targetIsGlobal && target.COMPANY_ID !== req.companyId) {
+            console.log(`❌ Form ${formId} not in company ${req.companyId}`);
+            return res.status(404).json({ error: 'Form not found or access denied' });
+        }
+
+        const existingForm = targetRow;
         const form = existingForm[0];
-        console.log(`📋 Found form to delete: ${form.FORM_NAME}`);
+        console.log(`📋 Found form to delete: ${form.FORM_NAME} (global=${targetIsGlobal})`);
 
         // CASCADING DELETE - Remove all related data in the correct order to handle foreign key constraints
         
@@ -9120,6 +9122,17 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
             DELETE FROM GUARDIAN.FORMS
             WHERE FORM_ID = ${formId} AND (COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
         `;
+
+        if (targetIsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.DELETED,
+                actorUserId: req.userId,
+                actorRoleId: 6,
+                formId,
+                companyId: null,
+                detail: { formName: form.FORM_NAME },
+            });
+        }
 
         console.log(`✅ Successfully deleted form ${formId}: ${form.FORM_NAME} and all related data`);
 

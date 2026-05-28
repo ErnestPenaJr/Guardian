@@ -249,6 +249,67 @@ const main = async () => {
         console.log('\n⚠️  Skipping Case 6 (non-JAFAR PUT) — TEST_ADMIN_EMAIL/PASSWORD not set');
       }
     }
+    // -------------------------------------------------------------------------
+    // Case 7: JAFAR can soft-delete a global; audit row is written.
+    // -------------------------------------------------------------------------
+    console.log('\n🗑️  Case 7: JAFAR DELETE /api/forms/:id (global)');
+    const delSrcRes = await fetch(`${API_BASE}/api/forms`, {
+      method: 'POST',
+      headers: authed(jafarToken),
+      body: JSON.stringify({
+        form: { FORM_NAME: `Delete Smoke ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+        fields: [],
+      }),
+    });
+    const delSrcBody = await delSrcRes.json() as { form?: { FORM_ID?: number } };
+    const delFormId = delSrcBody?.form?.FORM_ID;
+    assert('Created global for delete case', typeof delFormId === 'number' && delFormId > 0, { delFormId });
+
+    if (typeof delFormId === 'number' && delFormId > 0) {
+      createdGlobalIds.push(delFormId);  // belt-and-suspenders cleanup if test fails mid-flight
+      const delRes = await fetch(`${API_BASE}/api/forms/${delFormId}`, {
+        method: 'DELETE',
+        headers: authed(jafarToken),
+      });
+      assert('JAFAR DELETE returns 200 for global', delRes.status === 200, { status: delRes.status });
+
+      const delAuditRows = await prisma.$queryRawUnsafe<{ EVENT_TYPE: string }[]>(
+        `SELECT TOP 1 EVENT_TYPE FROM GUARDIAN.AUDIT_LOG WHERE EVENT_TYPE = 'GLOBAL_TEMPLATE_DELETED' AND TARGET_ID = @P1`,
+        String(delFormId)
+      );
+      assert('GLOBAL_TEMPLATE_DELETED audit row exists', delAuditRows.length === 1, { delAuditRows });
+    }
+
+    // -------------------------------------------------------------------------
+    // Case 8: role-1 admin gets 403 when deleting a global template
+    // -------------------------------------------------------------------------
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      console.log('\n🔒 Case 8: role-1 admin DELETE on global → 403');
+      // Create a fresh global to attempt deletion against
+      const forbidSrcRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(jafarToken),
+        body: JSON.stringify({
+          form: { FORM_NAME: `Delete Forbidden ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+          fields: [],
+        }),
+      });
+      const forbidSrcBody = await forbidSrcRes.json() as { form?: { FORM_ID?: number } };
+      const forbidFormId = forbidSrcBody?.form?.FORM_ID;
+      assert('Created global for forbidden-delete case', typeof forbidFormId === 'number' && forbidFormId > 0, { forbidFormId });
+
+      if (typeof forbidFormId === 'number' && forbidFormId > 0) {
+        createdGlobalIds.push(forbidFormId);
+        if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        const forbiddenDelRes = await fetch(`${API_BASE}/api/forms/${forbidFormId}`, {
+          method: 'DELETE',
+          headers: authed(adminToken),
+        });
+        assert('role-1 admin DELETE on global returns 403', forbiddenDelRes.status === 403, { status: forbiddenDelRes.status });
+      }
+    } else {
+      console.log('\n⚠️  Skipping Case 8 (role-1 admin DELETE) — TEST_ADMIN_EMAIL/PASSWORD not set');
+    }
   } finally {
     // -------------------------------------------------------------------------
     // Cleanup: soft-delete the created form so the test is idempotent.
