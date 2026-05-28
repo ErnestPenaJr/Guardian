@@ -44,21 +44,14 @@ export default function FormBuilderPage() {
         setFieldTypes(types);
 
         if (!isNew && formId) {
-          try {
-            const tpl = await customTemplateService.getById(Number(formId));
-            setFormName(tpl.form.FORM_NAME);
-            setFormDescription(tpl.form.FORM_DESCRIPTION || '');
-            setTemplateType(tpl.form.TEMPLATE_TYPE);
-            setTemplateStatus(tpl.form.STATUS);
-            const converted = formService.convertDbFieldsToFormFields(tpl.fields as any);
-            setInitialFields(converted);
-          } catch {
+          // Helper: load via the regular forms endpoint (works for company + global rows).
+          const loadViaForms = async () => {
             const data = await formService.getFormById(Number(formId));
             setFormName(data.form.FORM_NAME);
             setFormDescription(data.form.FORM_DESCRIPTION || '');
-            // Pull TEMPLATE_TYPE/STATUS through the fallback path too, so the
+            // Pull TEMPLATE_TYPE/STATUS through this path too, so the
             // draft->active publish step in handleSave doesn't get silently skipped
-            // when the custom-templates GET throws.
+            // when we skip / fall back from custom-templates.
             if (data.form.TEMPLATE_TYPE) {
               setTemplateType(data.form.TEMPLATE_TYPE as TemplateType);
             }
@@ -67,6 +60,25 @@ export default function FormBuilderPage() {
             }
             const converted = formService.convertDbFieldsToFormFields(data.fields);
             setInitialFields(converted);
+          };
+
+          if (isGlobalTemplate) {
+            // Editing a JAFAR global — skip the customTemplateService probe entirely.
+            // Globals are never in /api/custom-templates, and the probe-then-404
+            // pattern triggers the API error logger + errorCapture noise.
+            await loadViaForms();
+          } else {
+            try {
+              const tpl = await customTemplateService.getById(Number(formId));
+              setFormName(tpl.form.FORM_NAME);
+              setFormDescription(tpl.form.FORM_DESCRIPTION || '');
+              setTemplateType(tpl.form.TEMPLATE_TYPE);
+              setTemplateStatus(tpl.form.STATUS);
+              const converted = formService.convertDbFieldsToFormFields(tpl.fields as any);
+              setInitialFields(converted);
+            } catch {
+              await loadViaForms();
+            }
           }
         }
       } catch (error) {
