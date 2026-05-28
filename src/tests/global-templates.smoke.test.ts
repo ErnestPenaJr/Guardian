@@ -71,77 +71,85 @@ const authed = (token: string) => ({
 });
 
 const main = async () => {
-  console.log('🔐 Logging in as JAFAR...');
-  const jafarToken = await login(JAFAR_EMAIL!, JAFAR_PASSWORD!);
+  let createdFormId: number | undefined;
 
-  // -------------------------------------------------------------------------
-  // Case 1: POST /api/forms with IS_GLOBAL: true as JAFAR
-  //   Steps 2-5 from the task spec. The IS_GLOBAL flag is currently ignored by
-  //   the server (Task 4 not yet applied), so COMPANY_ID will be the caller's
-  //   company id rather than null. Assertion 5 therefore FAILS until Task 4.
-  // -------------------------------------------------------------------------
-  console.log('\n🌐 Case 1: JAFAR POST /api/forms with IS_GLOBAL=true');
+  try {
+    console.log('🔐 Logging in as JAFAR...');
+    const jafarToken = await login(JAFAR_EMAIL, JAFAR_PASSWORD);
 
-  const formName = `Smoke Global ${Date.now()}`;
-  const createRes = await fetch(`${API_BASE}/api/forms`, {
-    method: 'POST',
-    headers: authed(jafarToken),
-    body: JSON.stringify({
-      form: {
-        FORM_NAME: formName,
-        FORM_DESCRIPTION: 'created by smoke test',
-        TEMPLATE_TYPE: 'request',
-        IS_GLOBAL: true,
-        IS_INTERNAL: true,
-        IS_EXTERNAL: false,
-      },
-      fields: [],
-    }),
-  });
+    // -------------------------------------------------------------------------
+    // Case 1: POST /api/forms with IS_GLOBAL: true as JAFAR
+    //   Steps 2-5 from the task spec. The IS_GLOBAL flag is currently ignored by
+    //   the server (Task 4 not yet applied), so COMPANY_ID will be the caller's
+    //   company id rather than null. Assertion 5 therefore FAILS until Task 4.
+    // -------------------------------------------------------------------------
+    console.log('\n🌐 Case 1: JAFAR POST /api/forms with IS_GLOBAL=true');
 
-  assert('POST /api/forms returns 200', createRes.status === 200, {
-    status: createRes.status,
-  });
+    const formName = `Smoke Global ${Date.now()}`;
+    const createRes = await fetch(`${API_BASE}/api/forms`, {
+      method: 'POST',
+      headers: authed(jafarToken),
+      body: JSON.stringify({
+        form: {
+          FORM_NAME: formName,
+          FORM_DESCRIPTION: 'created by smoke test',
+          TEMPLATE_TYPE: 'request',
+          IS_GLOBAL: true,
+          IS_INTERNAL: true,
+          IS_EXTERNAL: false,
+        },
+        fields: [],
+      }),
+    });
 
-  const createBody = (await createRes.json().catch(() => ({}))) as {
-    form?: { FORM_ID?: number; COMPANY_ID?: number | null };
-  };
+    assert('POST /api/forms returns 200', createRes.status === 200, {
+      status: createRes.status,
+    });
 
-  assert(
-    'Response body has form.FORM_ID > 0',
-    typeof createBody.form?.FORM_ID === 'number' && createBody.form.FORM_ID > 0,
-    { form: createBody.form },
-  );
+    const createBody = (await createRes.json().catch(() => ({}))) as {
+      success?: boolean;
+      form?: { FORM_ID?: number; COMPANY_ID?: number | null };
+    };
 
-  // Step 5: This assertion is EXPECTED TO FAIL right now (Task 4 not applied).
-  // The current POST /api/forms stamps req.companyId regardless of IS_GLOBAL,
-  // so createBody.form?.COMPANY_ID will be a non-null company id, not null.
-  assert(
-    'Response body says COMPANY_ID is null (global) — EXPECTED FAIL until Task 4',
-    createBody.form?.COMPANY_ID === null,
-    { actualCompanyId: createBody.form?.COMPANY_ID },
-  );
+    assert('Response body has success: true', createBody?.success === true, {
+      actualSuccess: createBody?.success,
+    });
 
-  // -------------------------------------------------------------------------
-  // Cleanup: soft-delete the created form so the test is idempotent.
-  // Only runs if the create actually returned a valid FORM_ID.
-  // -------------------------------------------------------------------------
-  const createdFormId = createBody.form?.FORM_ID;
-  if (typeof createdFormId === 'number' && createdFormId > 0) {
-    console.log(`\n🧹 Cleanup: soft-deleting form ${createdFormId}...`);
-    try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE GUARDIAN.FORMS SET IS_DELETED = 1 WHERE FORM_ID = ${createdFormId}`,
-      );
-      console.log(`  ✅ Form ${createdFormId} soft-deleted`);
-    } catch (cleanupErr) {
-      console.error(`  ⚠️  Cleanup failed for form ${createdFormId}:`, cleanupErr);
+    assert(
+      'Response body has form.FORM_ID > 0',
+      typeof createBody.form?.FORM_ID === 'number' && createBody.form.FORM_ID > 0,
+      { form: createBody.form },
+    );
+
+    if (createBody?.form?.FORM_ID) createdFormId = createBody.form.FORM_ID as number;
+
+    // Step 5: This assertion is EXPECTED TO FAIL right now (Task 4 not applied).
+    // The current POST /api/forms stamps req.companyId regardless of IS_GLOBAL,
+    // so createBody.form?.COMPANY_ID will be a non-null company id, not null.
+    assert(
+      'Response body says COMPANY_ID is null (global) — EXPECTED FAIL until Task 4',
+      createBody.form?.COMPANY_ID === null,
+      { actualCompanyId: createBody.form?.COMPANY_ID },
+    );
+  } finally {
+    // -------------------------------------------------------------------------
+    // Cleanup: soft-delete the created form so the test is idempotent.
+    // Runs in finally so leaks are prevented even if an assertion throws.
+    // -------------------------------------------------------------------------
+    if (typeof createdFormId === 'number' && createdFormId > 0) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE GUARDIAN.FORMS SET IS_DELETED = 1 WHERE FORM_ID = ${createdFormId}`,
+        );
+        console.log(`🧹 Soft-deleted fixture FORM_ID=${createdFormId}`);
+      } catch (err) {
+        console.error(`⚠️  Cleanup failed for FORM_ID=${createdFormId}:`, err);
+      }
     }
+    await prisma.$disconnect();
   }
 
-  await prisma.$disconnect();
-
-  console.log(`\n${failed === 0 ? '✅' : '❌'} ${passed} passed, ${failed} failed`);
+  console.log(`\nPassed: ${passed}  Failed: ${failed}`);
   process.exit(failed === 0 ? 0 : 1);
 };
 
