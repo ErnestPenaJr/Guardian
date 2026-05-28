@@ -28,18 +28,30 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
   // Helper function to check if user has admin or JAFAR role
   const hasAdminRole = () => {
     if (!user) return false;
-    
+
     // Check roles array (objects with id property)
     // Admin (1), JAFAR (6)
-    const hasRoleInArray = user.roles?.some((role: any) => 
+    const hasRoleInArray = user.roles?.some((role: any) =>
       role.id === 1 || role.id === 6
     );
-    
+
     // Check role string property
     const hasRoleAsString = user.role === '1' || user.role === '6';
-    
+
     return hasRoleInArray || hasRoleAsString;
   };
+
+  // Helper: true only for Super Admin / JAFAR (role 6)
+  const isJafarUser = (): boolean => {
+    if (!user) return false;
+    if (user.roles && user.roles.some((r: any) => r.id === 6)) return true;
+    if (user.role === '6') return true;
+    return false;
+  };
+
+  // Helper: true for forms that are platform-wide global templates
+  const isGlobalForm = (form: DbForm): boolean =>
+    form.COMPANY_ID == null && form.ORGANIZATION_ID == null && form.IS_PUBLIC === true;
 
   // Fetch forms when modal opens
   useEffect(() => {
@@ -254,7 +266,17 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
                 {filteredForms.map((form) => (
                   <tr key={form.FORM_ID}>
                     <td>
-                      <strong>{form.FORM_NAME}</strong>
+                      <span className="d-inline-flex align-items-center">
+                        <strong>{form.FORM_NAME}</strong>
+                        {isGlobalForm(form) && (
+                          <span
+                            className="badge bg-primary ms-2"
+                            data-testid={`global-badge-${form.FORM_ID}`}
+                          >
+                            🌐 Global
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td>
                       <span className="text-muted">
@@ -286,15 +308,17 @@ const WorkflowManagementModal: React.FC<WorkflowManagementModalProps> = ({
                             <button
                               className="btn btn-sm btn-outline-secondary"
                               onClick={() => handleEditTemplate(form)}
-                              title="Edit Template"
+                              disabled={isGlobalForm(form) && !isJafarUser()}
+                              title={isGlobalForm(form) && !isJafarUser() ? 'Only JAFAR users can edit global templates' : 'Edit Template'}
                             >
                               <FaEdit />
                             </button>
-                            
+
                             <button
                               className="btn btn-sm btn-outline-danger"
                               onClick={() => handleDeleteTemplate(form.FORM_ID || 0, form.FORM_NAME)}
-                              title="Delete Template"
+                              disabled={isGlobalForm(form) && !isJafarUser()}
+                              title={isGlobalForm(form) && !isJafarUser() ? 'Only JAFAR users can delete global templates' : 'Delete Template'}
                             >
                               <FaTrash />
                             </button>
