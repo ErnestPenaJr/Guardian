@@ -9150,6 +9150,139 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// Any authenticated caller can clone a template they can see, into their own company.
+// Visibility predicate matches GET /api/forms.
+app.post('/api/forms/:id/clone', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const sourceId = parseInt(req.params.id);
+        if (!sourceId || isNaN(sourceId)) {
+            return res.status(400).json({ error: 'Valid form ID is required' });
+        }
+
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        const callerIsExternal = userRoleIds.includes(5);
+
+        // External users (role 5) can't clone in MVP.
+        if (callerIsExternal) {
+            return res.status(403).json({ error: 'External users cannot clone templates' });
+        }
+
+        // Load the source row.
+        const sourceRows = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID,
+                   IS_PUBLIC, IS_DELETED, IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${sourceId}
+        `;
+        if (!sourceRows.length || sourceRows[0].IS_DELETED) {
+            return res.status(404).json({ error: 'Source template not found' });
+        }
+        const source = sourceRows[0];
+        const sourceIsGlobal = isGlobalForm(source);
+
+        // Visibility: globals visible to all; company templates visible only to that company.
+        const ownedByCaller = source.COMPANY_ID === req.companyId || source.ORGANIZATION_ID === req.companyId;
+        if (!sourceIsGlobal && !ownedByCaller) {
+            return res.status(404).json({ error: 'Source template not visible to your company' });
+        }
+        if (typeof canViewForm === 'function' && !canViewForm(req, sourceId)) {
+            return res.status(403).json({ error: 'You do not have permission to clone this template' });
+        }
+
+        // Load source fields via the junction table.
+        const sourceFields = await prisma.$queryRaw`
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED, f.IS_ACTIVE, f.[OPTIONS],
+                   ff.SORT_ORDER, ff.IS_REQUIRED AS FF_IS_REQUIRED
+            FROM GUARDIAN.FORMS_FIELDS ff
+            INNER JOIN GUARDIAN.FIELDS f ON f.FIELD_ID = ff.FIELD_ID
+            WHERE ff.FORM_ID = ${sourceId}
+            ORDER BY ff.SORT_ORDER
+        `;
+
+        // Resolve a non-colliding name in the caller's company.
+        let cloneName = source.FORM_NAME;
+        const nameCheck = await prisma.$queryRaw`
+            SELECT COUNT(*) AS HITS FROM GUARDIAN.FORMS
+            WHERE FORM_NAME = ${cloneName} AND IS_DELETED = 0
+              AND (COMPANY_ID = ${req.companyId} OR ORGANIZATION_ID = ${req.companyId})
+        `;
+        if (nameCheck[0].HITS > 0) {
+            cloneName = `${source.FORM_NAME} (Copy)`;
+        }
+
+        const escapedName = cloneName.replace(/'/g, "''");
+        const escapedDesc = (source.FORM_DESCRIPTION || '').replace(/'/g, "''");
+        const noticeCategorySql = source.NOTICE_CATEGORY
+            ? `'${String(source.NOTICE_CATEGORY).replace(/'/g, "''")}'`
+            : 'NULL';
+        const templateType = source.TEMPLATE_TYPE === 'notice' ? 'notice' : 'request';
+
+        const inserted = await prisma.$queryRawUnsafe(`
+            INSERT INTO GUARDIAN.FORMS (
+                FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
+                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
+                CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+            )
+            OUTPUT INSERTED.FORM_ID
+            VALUES (
+                '${escapedName}', '${escapedDesc}', ${req.companyId}, ${req.companyId}, 0, 1, 0,
+                ${source.IS_INTERNAL ? 1 : 0}, ${source.IS_EXTERNAL ? 1 : 0}, '${templateType}', ${noticeCategorySql},
+                GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+            )
+        `);
+        const cloneId = inserted[0].FORM_ID;
+
+        const clonedFields = [];
+        for (let i = 0; i < sourceFields.length; i++) {
+            const f = sourceFields[i];
+            const escapedFieldName = f.FIELD_NAME.replace(/'/g, "''");
+            const escapedOptions = f.OPTIONS != null ? `'${String(f.OPTIONS).replace(/'/g, "''")}'` : 'NULL';
+
+            const newField = await prisma.$queryRawUnsafe(`
+                INSERT INTO GUARDIAN.FIELDS (
+                    FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED, [OPTIONS],
+                    CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID, ORGANIZATION_ID
+                )
+                OUTPUT INSERTED.FIELD_ID
+                VALUES (
+                    '${escapedFieldName}', ${f.FIELD_TYPE_ID}, ${f.IS_REQUIRED ? 1 : 0}, ${f.IS_ACTIVE ? 1 : 0}, 0, ${escapedOptions},
+                    GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${req.companyId}
+                )
+            `);
+            const newFieldId = newField[0].FIELD_ID;
+
+            await prisma.$queryRawUnsafe(`
+                INSERT INTO GUARDIAN.FORMS_FIELDS (
+                    FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
+                    CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
+                )
+                VALUES (
+                    ${cloneId}, ${newFieldId}, ${f.FF_IS_REQUIRED ? 1 : 0}, ${f.SORT_ORDER || i + 1}, GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
+                )
+            `);
+            clonedFields.push({ FIELD_ID: newFieldId, FIELD_NAME: f.FIELD_NAME, FIELD_TYPE_ID: f.FIELD_TYPE_ID, SORT_ORDER: f.SORT_ORDER });
+        }
+
+        // Audit only when source is global. Cloning a company-owned template is silent.
+        if (sourceIsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.CLONED,
+                actorUserId: req.userId,
+                actorRoleId: userRoleIds[0] || null,
+                formId: cloneId,
+                companyId: req.companyId,
+                detail: { sourceFormId: sourceId, sourceFormName: source.FORM_NAME, cloneFormName: cloneName },
+            });
+        }
+
+        console.log(`✅ Cloned form ${sourceId} → ${cloneId} (${clonedFields.length} fields) for company ${req.companyId}`);
+        res.json({ FORM_ID: cloneId, FORM_NAME: cloneName, TEMPLATE_TYPE: templateType, fields: clonedFields });
+    } catch (error) {
+        console.error('❌ Error cloning form:', error);
+        res.status(500).json({ error: 'Failed to clone form', message: error.message });
+    }
+});
+
 // Logout endpoint
 app.post('/logout', async (req, res) => {
     try {

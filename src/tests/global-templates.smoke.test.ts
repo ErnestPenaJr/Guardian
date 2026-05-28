@@ -310,6 +310,111 @@ const main = async () => {
     } else {
       console.log('\n⚠️  Skipping Case 8 (role-1 admin DELETE) — TEST_ADMIN_EMAIL/PASSWORD not set');
     }
+    // -------------------------------------------------------------------------
+    // Case 9: company admin clones a global into their company as an independent copy
+    // -------------------------------------------------------------------------
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      console.log('\n📋 Case 9: company admin clones a global');
+      // Create a fresh global with two fields to clone
+      const cloneSrcRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(jafarToken),
+        body: JSON.stringify({
+          form: { FORM_NAME: `Clone Source ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+          fields: [
+            { FIELD_NAME: 'fieldA', FIELD_TYPE_ID: 1, IS_REQUIRED: true, SEQUENCE: 1 },
+            { FIELD_NAME: 'fieldB', FIELD_TYPE_ID: 1, IS_REQUIRED: false, SEQUENCE: 2 },
+          ],
+        }),
+      });
+      const cloneSrcBody = await cloneSrcRes.json() as { form?: { FORM_ID?: number } };
+      const cloneSourceId = cloneSrcBody?.form?.FORM_ID;
+      assert('Created global for clone case', typeof cloneSourceId === 'number' && cloneSourceId > 0, { cloneSourceId });
+
+      if (typeof cloneSourceId === 'number' && cloneSourceId > 0) {
+        createdGlobalIds.push(cloneSourceId);
+
+        if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        const cloneRes = await fetch(`${API_BASE}/api/forms/${cloneSourceId}/clone`, {
+          method: 'POST',
+          headers: authed(adminToken),
+          body: '{}',
+        });
+        assert('clone returns 200', cloneRes.status === 200, { status: cloneRes.status });
+        const cloneBody = await cloneRes.json() as { FORM_ID?: number; fields?: any[] };
+        assert('clone returns FORM_ID > 0', typeof cloneBody.FORM_ID === 'number' && cloneBody.FORM_ID > 0);
+        assert('clone FORM_ID differs from source', cloneBody.FORM_ID !== cloneSourceId);
+        assert('clone has both fields', Array.isArray(cloneBody.fields) && cloneBody.fields.length === 2);
+
+        if (cloneBody.FORM_ID) {
+          createdGlobalIds.push(cloneBody.FORM_ID);  // also cleanup the clone
+
+          // Verify clone row has caller's COMPANY_ID, IS_PUBLIC = 0
+          const cloneRow = await prisma.$queryRawUnsafe<{ COMPANY_ID: number | null; ORGANIZATION_ID: number | null; IS_PUBLIC: number }[]>(
+            `SELECT COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC FROM GUARDIAN.FORMS WHERE FORM_ID = @P1`,
+            cloneBody.FORM_ID
+          );
+          assert('Clone has non-null COMPANY_ID', cloneRow[0]?.COMPANY_ID != null, cloneRow[0]);
+          assert('Clone has IS_PUBLIC = 0', cloneRow[0]?.IS_PUBLIC === 0, cloneRow[0]);
+
+          // Verify audit row written
+          const cloneAudit = await prisma.$queryRawUnsafe<{ COMPANY_ID: number | null }[]>(
+            `SELECT TOP 1 COMPANY_ID FROM GUARDIAN.AUDIT_LOG WHERE EVENT_TYPE = 'GLOBAL_TEMPLATE_CLONED' AND TARGET_ID = @P1`,
+            String(cloneBody.FORM_ID)
+          );
+          assert('GLOBAL_TEMPLATE_CLONED audit row exists', cloneAudit.length === 1, { cloneAudit });
+          assert('Clone audit COMPANY_ID is non-null (company-scoped)', cloneAudit[0]?.COMPANY_ID != null, cloneAudit[0]);
+        }
+      }
+    } else {
+      console.log('\n⚠️  Skipping Case 9 (clone) — TEST_ADMIN_EMAIL/PASSWORD not set');
+    }
+
+    // -------------------------------------------------------------------------
+    // Case 10: deleting a global leaves existing clones intact
+    // -------------------------------------------------------------------------
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      console.log('\n🛡️  Case 10: deleting global leaves clones intact');
+      const c10SrcRes = await fetch(`${API_BASE}/api/forms`, {
+        method: 'POST',
+        headers: authed(jafarToken),
+        body: JSON.stringify({
+          form: { FORM_NAME: `Clone Survives ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+          fields: [],
+        }),
+      });
+      const c10SrcBody = await c10SrcRes.json() as { form?: { FORM_ID?: number } };
+      const c10SourceId = c10SrcBody?.form?.FORM_ID;
+
+      if (typeof c10SourceId === 'number' && c10SourceId > 0) {
+        createdGlobalIds.push(c10SourceId);
+        if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        const c10CloneRes = await fetch(`${API_BASE}/api/forms/${c10SourceId}/clone`, {
+          method: 'POST',
+          headers: authed(adminToken),
+          body: '{}',
+        });
+        const c10CloneBody = await c10CloneRes.json() as { FORM_ID?: number };
+        const c10CloneId = c10CloneBody?.FORM_ID;
+        assert('Case 10 clone created', typeof c10CloneId === 'number' && c10CloneId > 0);
+        if (typeof c10CloneId === 'number' && c10CloneId > 0) {
+          createdGlobalIds.push(c10CloneId);
+          // JAFAR deletes the global
+          const c10DelRes = await fetch(`${API_BASE}/api/forms/${c10SourceId}`, {
+            method: 'DELETE',
+            headers: authed(jafarToken),
+          });
+          assert('Delete source global returns 200', c10DelRes.status === 200);
+          // Clone should still exist (not deleted)
+          const survivor = await prisma.$queryRawUnsafe<{ FORM_ID: number }[]>(
+            `SELECT FORM_ID FROM GUARDIAN.FORMS WHERE FORM_ID = @P1 AND IS_DELETED = 0`,
+            c10CloneId
+          );
+          assert('Clone survives after global is deleted', survivor.length === 1, { survivor });
+        }
+      }
+    }
+
   } finally {
     // -------------------------------------------------------------------------
     // Cleanup: soft-delete the created form so the test is idempotent.
