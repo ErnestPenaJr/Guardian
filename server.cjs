@@ -7358,8 +7358,10 @@ app.delete('/api/requests/:id', getAuthenticatedUserCompany, async (req, res) =>
 // is not captured as the :id parameter (parseInt('global') → NaN → 400).
 app.get('/api/forms/global', getAuthenticatedUserCompany, async (req, res) => {
     try {
-        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
-        if (!userRoleIds.includes(6)) {
+        if (!isJafarActor(req)) {
+            const direct = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+            const impersonator = Array.isArray(req.jafarImpersonatorRoleIds) ? req.jafarImpersonatorRoleIds : [];
+            console.warn(`⛔ GET /api/forms/global denied for user ${req.userId} — direct roles=[${direct.join(',')}] impersonator roles=[${impersonator.join(',')}]`);
             return res.status(403).json({ error: 'JAFAR access required' });
         }
 
@@ -7546,16 +7548,10 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         const target = targetRow[0];
         const targetIsGlobal = isGlobalForm(target);
 
-        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
-        const isJafar = userRoleIds.includes(6);
-
-        if (targetIsGlobal) {
-            // Only JAFAR can mutate a global template.
-            if (!isJafar) {
-                console.log(`❌ User ${req.userId} (roles ${userRoleIds.join(',')}) tried to edit global form ${formId}`);
-                return res.status(403).json({ error: 'JAFAR access required to edit global templates' });
-            }
-        } else {
+        if (targetIsGlobal && !isJafarActor(req)) {
+            console.log(`❌ User ${req.userId} (roles ${(req.userRoleIds || []).join(',')}) tried to edit global form ${formId}`);
+            return res.status(403).json({ error: 'JAFAR access required to edit global templates' });
+        } else if (!targetIsGlobal) {
             // Non-global: caller must own the row's company.
             if (target.COMPANY_ID !== req.companyId && target.ORGANIZATION_ID !== req.companyId) {
                 console.log(`❌ Form ${formId} not accessible to company ${req.companyId}`);
@@ -7581,7 +7577,7 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         if (targetIsGlobal) {
             await __writeGlobalTemplateAudit({
                 eventType: GLOBAL_AUDIT_EVENTS.MODIFIED,
-                actorUserId: req.userId,
+                actorUserId: actorUserId(req),
                 actorRoleId: 6,
                 formId,
                 companyId: null,
@@ -8871,8 +8867,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const { form, fields } = req.body;
         const wantsGlobal = form && form.IS_GLOBAL === true;
 
-        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
-        if (wantsGlobal && !userRoleIds.includes(6)) {
+        if (wantsGlobal && !isJafarActor(req)) {
             return res.status(403).json({ error: 'JAFAR access required to create global templates' });
         }
 
@@ -8961,7 +8956,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         if (wantsGlobal) {
             await __writeGlobalTemplateAudit({
                 eventType: GLOBAL_AUDIT_EVENTS.CREATED,
-                actorUserId: req.userId,
+                actorUserId: actorUserId(req),
                 actorRoleId: 6,
                 formId,
                 companyId: null,
@@ -9000,10 +8995,10 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         }
 
         const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
-        const isJafar = userRoleIds.includes(6);
+        const isJafarLocal = isJafarActor(req);
         const isAdminRole1 = userRoleIds.includes(1);
 
-        if (!isJafar && !isAdminRole1) {
+        if (!isJafarLocal && !isAdminRole1) {
             console.log(`❌ User ${req.userId} lacks permission to delete forms`);
             return res.status(403).json({ error: 'You do not have permission to delete forms' });
         }
@@ -9022,7 +9017,7 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         const target = targetRow[0];
         const targetIsGlobal = isGlobalForm(target);
 
-        if (targetIsGlobal && !isJafar) {
+        if (targetIsGlobal && !isJafarLocal) {
             console.log(`❌ User ${req.userId} cannot delete global form ${formId} (not JAFAR)`);
             return res.status(403).json({ error: 'JAFAR access required to delete global templates' });
         }
@@ -9128,7 +9123,7 @@ app.delete('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
         if (targetIsGlobal) {
             await __writeGlobalTemplateAudit({
                 eventType: GLOBAL_AUDIT_EVENTS.DELETED,
-                actorUserId: req.userId,
+                actorUserId: actorUserId(req),
                 actorRoleId: 6,
                 formId,
                 companyId: null,
@@ -9269,7 +9264,7 @@ app.post('/api/forms/:id/clone', getAuthenticatedUserCompany, async (req, res) =
         if (sourceIsGlobal) {
             await __writeGlobalTemplateAudit({
                 eventType: GLOBAL_AUDIT_EVENTS.CLONED,
-                actorUserId: req.userId,
+                actorUserId: actorUserId(req),
                 actorRoleId: userRoleIds[0] || null,
                 formId: cloneId,
                 companyId: req.companyId,
@@ -10773,6 +10768,24 @@ async function __writeGlobalTemplateAudit({ eventType, actorUserId, actorRoleId,
         detail == null ? null : JSON.stringify(detail),
         companyId == null ? null : companyId
     );
+}
+
+// Returns true if the current request is being made by a JAFAR (role 6) user,
+// either directly or as the impersonator behind a JAFAR impersonation. Platform-
+// level admin endpoints (global templates, JAFAR settings) should use this rather
+// than checking req.userRoleIds directly, so JAFAR retains platform powers even
+// while impersonating a non-JAFAR target.
+function isJafarActor(req) {
+    const direct = Array.isArray(req.userRoleIds) && req.userRoleIds.includes(6);
+    const viaImpersonation = Array.isArray(req.jafarImpersonatorRoleIds) && req.jafarImpersonatorRoleIds.includes(6);
+    return direct || viaImpersonation;
+}
+
+// For audit purposes — returns the REAL actor's user ID. Under JAFAR
+// impersonation, req.userId has been rewritten to the target user; the
+// impersonator's real ID lives at req.jafarImpersonatorUserId.
+function actorUserId(req) {
+    return req.jafarImpersonatorUserId || req.userId;
 }
 
 // PUT /api/platform/disclaimer — set compliance disclaimer text.
