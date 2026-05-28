@@ -50,6 +50,8 @@ interface SimpleFormBuilderProps {
   formFields: FormField[];
   onChange: (fields: FormField[]) => void;
   formId?: number;
+  isGlobalTemplate?: boolean;
+  preselectedTemplateType?: 'request' | 'notice';
 }
 
 interface DraggableFormFieldProps {
@@ -163,7 +165,9 @@ const DraggableFormField: React.FC<DraggableFormFieldProps> = ({
 const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   formFields,
   onChange,
-  formId
+  formId,
+  isGlobalTemplate,
+  preselectedTemplateType: _preselectedTemplateType,
 }) => {
   const { user } = useAuth();
   const [fields, setFields] = useState<FormField[]>(formFields);
@@ -919,6 +923,14 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   
   return (
     <div className="form-builder-container">
+      {isGlobalTemplate && (
+        <div className="alert alert-info d-flex align-items-center mb-3" role="alert" data-testid="global-template-banner" style={{ gridColumn: '1 / -1' }}>
+          <span style={{ fontSize: '1.2rem' }} className="me-2">🌐</span>
+          <div>
+            <strong>Editing Global Template</strong> — visible to all companies once saved.
+          </div>
+        </div>
+      )}
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
         {/* Custom Workflow Templates section - Only for JAFAR users (role_id 6) */}

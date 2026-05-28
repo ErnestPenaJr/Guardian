@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import FormBuilder from '../components/FormBuilder';
 import { FormField } from '../types/formBuilder';
 import { UiFieldType } from '../services/fieldTypeService';
@@ -15,6 +15,10 @@ export default function FormBuilderPage() {
   const { formId } = useParams<{ formId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isGlobalTemplate = !!(location.state && (location.state as any).isGlobalTemplate);
+  const preselectedTemplateType = (location.state && (location.state as any).templateType) as 'request' | 'notice' | undefined;
 
   const isNew = !formId || formId === 'new';
   const returnTo = searchParams.get('returnTo') || '/home';
@@ -146,8 +150,9 @@ export default function FormBuilderPage() {
         IS_EXTERNAL: initialIsExternal,
         IS_ACTIVE: true,
         IS_DELETED: false,
-        TEMPLATE_TYPE: normalizedType,
+        TEMPLATE_TYPE: preselectedTemplateType || normalizedType,
         NOTICE_CATEGORY: noticeCategory,
+        ...(isGlobalTemplate ? { IS_GLOBAL: true } : {}),
       };
       const dbFields = formService.convertFormFieldsToDbFields(savableFields);
       const result = await formService.createForm(dbForm, dbFields);
