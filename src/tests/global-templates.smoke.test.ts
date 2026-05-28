@@ -79,7 +79,7 @@ const authed = (token: string) => ({
 });
 
 const main = async () => {
-  let createdFormId: number | undefined;
+  const createdGlobalIds: number[] = [];
 
   try {
     console.log('🔐 Logging in as JAFAR...');
@@ -129,7 +129,7 @@ const main = async () => {
       { form: createBody.form },
     );
 
-    if (createBody?.form?.FORM_ID) createdFormId = createBody.form.FORM_ID as number;
+    if (createBody?.form?.FORM_ID) createdGlobalIds.push(createBody.form.FORM_ID as number);
 
     assert(
       'Response body says COMPANY_ID is null (global)',
@@ -195,19 +195,71 @@ const main = async () => {
     } else {
       console.log('\n⚠️  Skipping Case 4 (non-JAFAR GET) — TEST_ADMIN_EMAIL/PASSWORD not set');
     }
+
+    // -------------------------------------------------------------------------
+    // Case 5: JAFAR can edit a global template; audit row is written.
+    // -------------------------------------------------------------------------
+    console.log('\n✏️  Case 5: JAFAR PUT /api/forms/:id (global)');
+    // Create a global to edit
+    const editSrcRes = await fetch(`${API_BASE}/api/forms`, {
+      method: 'POST',
+      headers: authed(jafarToken),
+      body: JSON.stringify({
+        form: { FORM_NAME: `Edit Smoke ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+        fields: [],
+      }),
+    });
+    const editSrcBody = await editSrcRes.json() as { form?: { FORM_ID?: number } };
+    const editFormId = editSrcBody?.form?.FORM_ID;
+    assert('Created global for edit case', typeof editFormId === 'number' && editFormId > 0, { editFormId });
+
+    if (typeof editFormId === 'number' && editFormId > 0) {
+      const newName = `Edited ${Date.now()}`;
+      const editRes = await fetch(`${API_BASE}/api/forms/${editFormId}`, {
+        method: 'PUT',
+        headers: authed(jafarToken),
+        body: JSON.stringify({ name: newName, description: 'edited by smoke', formFields: [] }),
+      });
+      assert('JAFAR PUT returns 200 for global', editRes.status === 200, { status: editRes.status });
+
+      // Verify audit row written
+      const auditRows = await prisma.$queryRawUnsafe<{ EVENT_TYPE: string; COMPANY_ID: number | null }[]>(
+        `SELECT TOP 1 EVENT_TYPE, COMPANY_ID FROM GUARDIAN.AUDIT_LOG WHERE EVENT_TYPE = 'GLOBAL_TEMPLATE_MODIFIED' AND TARGET_ID = @P1 ORDER BY ENTRY_ID DESC`,
+        String(editFormId)
+      );
+      assert('GLOBAL_TEMPLATE_MODIFIED audit row exists', auditRows.length === 1, { auditRows });
+      assert('Audit row COMPANY_ID is null (platform-level)', auditRows[0]?.COMPANY_ID === null, { actualCompanyId: auditRows[0]?.COMPANY_ID });
+
+      // Track for cleanup
+      createdGlobalIds.push(editFormId);
+
+      // -----------------------------------------------------------------------
+      // Case 6 (env-gated): non-JAFAR PUT on global → 403
+      // -----------------------------------------------------------------------
+      if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+        console.log('\n🔒 Case 6: non-JAFAR PUT on global → 403');
+        if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        const forbiddenEditRes = await fetch(`${API_BASE}/api/forms/${editFormId}`, {
+          method: 'PUT',
+          headers: authed(adminToken),
+          body: JSON.stringify({ name: 'should-not-apply', description: '', formFields: [] }),
+        });
+        assert('non-JAFAR PUT on global returns 403', forbiddenEditRes.status === 403, { status: forbiddenEditRes.status });
+      } else {
+        console.log('\n⚠️  Skipping Case 6 (non-JAFAR PUT) — TEST_ADMIN_EMAIL/PASSWORD not set');
+      }
+    }
   } finally {
     // -------------------------------------------------------------------------
     // Cleanup: soft-delete the created form so the test is idempotent.
     // Runs in finally so leaks are prevented even if an assertion throws.
     // -------------------------------------------------------------------------
-    if (typeof createdFormId === 'number' && createdFormId > 0) {
+    for (const id of createdGlobalIds) {
       try {
-        await prisma.$executeRawUnsafe(
-          `UPDATE GUARDIAN.FORMS SET IS_DELETED = 1 WHERE FORM_ID = ${createdFormId}`,
-        );
-        console.log(`🧹 Soft-deleted fixture FORM_ID=${createdFormId}`);
+        await prisma.$executeRawUnsafe(`UPDATE GUARDIAN.FORMS SET IS_DELETED = 1 WHERE FORM_ID = ${id}`);
+        console.log(`🧹 Soft-deleted fixture FORM_ID=${id}`);
       } catch (err) {
-        console.error(`⚠️  Cleanup failed for FORM_ID=${createdFormId}:`, err);
+        console.error(`⚠️  Cleanup failed for FORM_ID=${id}:`, err);
       }
     }
     await prisma.$disconnect();

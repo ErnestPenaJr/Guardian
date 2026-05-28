@@ -7498,45 +7498,40 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
             });
         }
 
-        // Get user's roles to check for admin access
-        const userRoles = await prisma.$queryRaw`
-            SELECT ur.ROLE_ID 
-            FROM GUARDIAN.USER_ROLES ur 
-            WHERE ur.USER_ID = ${req.userId}
+        // Load the target row (no company filter yet — we need to know if it's global).
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
         `;
-        
-        const roleIds = userRoles.map(role => role.ROLE_ID);
-        const isAdmin = roleIds.includes(6); // Role ID 6 can edit global forms
-        
-        console.log(`👤 User ${req.userId} roles: [${roleIds.join(', ')}], isAdmin: ${isAdmin}`);
-        
-        // Check if form exists and user has permission to edit it
-        let existingForm;
-        
-        if (isAdmin) {
-            // Admin users can edit both company forms and global forms
-            existingForm = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL)
-            `;
-        } else {
-            // Regular users can only edit their company's forms
-            existingForm = await prisma.$queryRaw`
-                SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID
-                FROM GUARDIAN.FORMS 
-                WHERE FORM_ID = ${formId} 
-                AND ORGANIZATION_ID = ${req.companyId}
-            `;
+
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            console.log(`❌ Form ${formId} not found`);
+            return res.status(404).json({ error: 'Form not found' });
         }
 
-        if (!existingForm.length) {
-            console.log(`❌ Form ${formId} not found or access denied for company ${req.companyId}`);
-            return res.status(404).json({
-                error: 'Form not found or access denied'
-            });
+        const target = targetRow[0];
+        const targetIsGlobal = isGlobalForm(target);
+
+        const userRoleIds = Array.isArray(req.userRoleIds) ? req.userRoleIds : [];
+        const isJafar = userRoleIds.includes(6);
+
+        if (targetIsGlobal) {
+            // Only JAFAR can mutate a global template.
+            if (!isJafar) {
+                console.log(`❌ User ${req.userId} (roles ${userRoleIds.join(',')}) tried to edit global form ${formId}`);
+                return res.status(403).json({ error: 'JAFAR access required to edit global templates' });
+            }
+        } else {
+            // Non-global: caller must own the row's company.
+            if (target.COMPANY_ID !== req.companyId && target.ORGANIZATION_ID !== req.companyId) {
+                console.log(`❌ Form ${formId} not accessible to company ${req.companyId}`);
+                return res.status(404).json({ error: 'Form not found or access denied' });
+            }
         }
+
+        // Used by the rest of the existing handler.
+        const existingForm = targetRow;
 
         // Update form basic details
         await prisma.$queryRaw`
@@ -7549,6 +7544,17 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
         `;
 
         console.log(`✅ Form ${formId} basic details updated successfully`);
+
+        if (targetIsGlobal) {
+            await __writeGlobalTemplateAudit({
+                eventType: GLOBAL_AUDIT_EVENTS.MODIFIED,
+                actorUserId: req.userId,
+                actorRoleId: 6,
+                formId,
+                companyId: null,
+                detail: { prevName: target.FORM_NAME, newName: name.trim() },
+            });
+        }
 
         // Handle form fields update if provided
         if (formFields && Array.isArray(formFields)) {
