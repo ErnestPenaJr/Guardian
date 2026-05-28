@@ -167,6 +167,8 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   onChange,
   formId,
   isGlobalTemplate,
+  // preselectedTemplateType is accepted for API parity but not consumed inside SimpleFormBuilder;
+  // the parent FormBuilderPage uses it when constructing the createForm payload.
   preselectedTemplateType: _preselectedTemplateType,
 }) => {
   const { user } = useAuth();
@@ -922,15 +924,16 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
   };
   
   return (
-    <div className="form-builder-container">
+    <>
       {isGlobalTemplate && (
-        <div className="alert alert-info d-flex align-items-center mb-3" role="alert" data-testid="global-template-banner" style={{ gridColumn: '1 / -1' }}>
+        <div className="alert alert-info d-flex align-items-center mb-3" role="alert" data-testid="global-template-banner">
           <span style={{ fontSize: '1.2rem' }} className="me-2">🌐</span>
           <div>
             <strong>Editing Global Template</strong> — visible to all companies once saved.
           </div>
         </div>
       )}
+    <div className="form-builder-container">
       {/* Left sidebar with field types */}
       <div className="form-builder-sidebar">
         {/* Custom Workflow Templates section - Only for JAFAR users (role_id 6) */}
@@ -1134,11 +1137,12 @@ const SimpleFormBuilder: React.FC<SimpleFormBuilderProps> = ({
       {renderFieldEditor()}
       
       {/* Form Builder Tour */}
-      <FormBuilderTour 
-        run={showTour} 
+      <FormBuilderTour
+        run={showTour}
         onTourEnd={handleTourEnd}
       />
     </div>
+    </>
   );
 };
 
