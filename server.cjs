@@ -8779,7 +8779,13 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             WHERE (
                 ORGANIZATION_ID = ${req.companyId}
                 OR COMPANY_ID = ${req.companyId}
-                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL AND IS_PUBLIC = 1)
+                OR (
+                    ORGANIZATION_ID IS NULL
+                    AND COMPANY_ID IS NULL
+                    AND IS_PUBLIC = 1
+                    AND STATUS = 'active'
+                    AND IS_ACTIVE = 1
+                )
             )
             AND IS_DELETED = 0
             AND TEMPLATE_TYPE = 'request'
