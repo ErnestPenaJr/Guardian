@@ -41,6 +41,7 @@ const FieldSchema = z.object({
   IS_REQUIRED: z.boolean(),
   OPTIONS: z.string().nullable().optional(),
   SEQUENCE: z.number().optional(),
+  VALIDATION: z.string().nullable().optional(),
   // Compliance Control Layer additions (Phase 4 / US-CCL-01)
   IS_PII: z.boolean().optional(),
   IS_ENABLED: z.boolean().optional(),
@@ -252,6 +253,7 @@ router.post('/', async (req, res) => {
         IS_REQUIRED: boolean;
         OPTIONS?: string;
         SEQUENCE: number;
+        VALIDATION?: string | null;
         // Phase 4 / US-CCL-01 — all optional
         IS_PII?: boolean;
         IS_ENABLED?: boolean;
@@ -336,6 +338,7 @@ router.post('/', async (req, res) => {
           // Store options in a format compatible with the database schema
           DISPLAY_FORMAT: field.OPTIONS || undefined,
           HAS_LOOKUP: field.OPTIONS ? true : false,
+          VALIDATION: field.VALIDATION ?? null,
           IS_PUBLIC: true,
           IS_ACTIVE: true,
           IS_DELETED: false,
@@ -533,6 +536,7 @@ router.put('/:id', async (req, res) => {
             FIELD_NAME: validatedField.FIELD_NAME,
             FIELD_TYPE_ID: validatedField.FIELD_TYPE_ID,
             IS_REQUIRED: validatedField.IS_REQUIRED,
+            VALIDATION: validatedField.VALIDATION ?? null,
             UPDATE_USER_ID: req.user?.id || undefined,
           },
         });
@@ -544,6 +548,7 @@ router.put('/:id', async (req, res) => {
             FIELD_NAME: validatedField.FIELD_NAME,
             FIELD_TYPE_ID: validatedField.FIELD_TYPE_ID,
             IS_REQUIRED: validatedField.IS_REQUIRED,
+            VALIDATION: validatedField.VALIDATION ?? null,
             IS_PUBLIC: true,
             IS_ACTIVE: true,
             IS_DELETED: false,

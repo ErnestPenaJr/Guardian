@@ -1619,7 +1619,7 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             placeholder="— Select —"
           />
         </div>
-        <div className="sw-date-cell">
+        <div className={`sw-date-cell${errClass('Dollar Loss Amount')}`}>
           <span className="sw-date-label">Dollar Loss:</span>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             <span style={{ fontWeight: 600, marginRight: 2, color: '#333' }}>$</span>
