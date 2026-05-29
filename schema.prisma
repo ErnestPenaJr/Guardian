@@ -62,6 +62,7 @@ model FIELDS {
   FIELD_NAME                   String   @db.VarChar(50)
   FIELD_TYPE_ID                Int
   DISPLAY_FORMAT               String?  @db.VarChar(30)
+  VALIDATION                   String?  @db.NVarChar(255)
   HAS_LOOKUP                   Boolean  @default(false, map: "DF__FIELDS__HAS_LOOK__52AE4273")
   IS_PUBLIC                    Boolean  @default(false, map: "DF__FIELDS__IS_PUBLI__53A266AC")
   IS_ACTIVE                    Boolean  @default(false, map: "DF__FIELDS__IS_ACTIV__54968AE5")
