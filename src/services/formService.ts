@@ -32,6 +32,7 @@ export interface DbForm {
   FORM_DESCRIPTION?: string;
   ORGANIZATION_ID?: number;
   COMPANY_ID?: number;
+  STATUS?: 'draft' | 'active' | 'inactive' | string | null;
   IS_PUBLIC: boolean;
   IS_ACTIVE: boolean;
   IS_DELETED: boolean;
@@ -252,6 +253,26 @@ const formService = {
     } catch (error: any) {
       console.error(`Error cloning form ${formId}:`, error);
       throw new Error(`Failed to clone template (${error.response?.status ?? 'unknown'})`);
+    }
+  },
+
+  publishGlobal: async (formId: number): Promise<{ FORM_ID: number; STATUS: 'active'; IS_ACTIVE: boolean }> => {
+    try {
+      const response = await api.put(`/api/forms/${formId}/publish`);
+      return response.data;
+    } catch (error) {
+      console.error('Error publishing global template:', error);
+      throw error;
+    }
+  },
+
+  setGlobalActive: async (formId: number, isActive: boolean): Promise<{ FORM_ID: number; STATUS: 'active'; IS_ACTIVE: boolean }> => {
+    try {
+      const response = await api.put(`/api/forms/${formId}/active`, { isActive });
+      return response.data;
+    } catch (error) {
+      console.error('Error toggling global active state:', error);
+      throw error;
     }
   },
 
