@@ -482,6 +482,14 @@ Both environments support the same complete set of API endpoints:
 - **Custom Validation Rules**: Field-specific validation patterns and requirements
 - **Bulk Operations**: Support for batch field creation and updates
 
+### Field Validation Configuration (Added 2026-05-29)
+- **Where**: Form Builder → field selected → **Properties** tab, under the Required toggle (the old non-functional **Validation** and **Conditions** tabs were removed). Shown only for text/number-type fields.
+- **Controls**: a **Format** dropdown (None / Email / Website URL / Number / Currency ($) / Letters only) plus **Min**/**Max** boxes (interpreted as character length for text formats, numeric value for Number/Currency).
+- **Storage**: persisted as compact JSON in the new `GUARDIAN.FIELDS.VALIDATION` column (NVARCHAR(255)), e.g. `{"format":"currency","min":0,"max":1000000}`. Migration: `migrations/add_validation_to_fields.sql` (idempotent, **apply manually staging-first, then prod before pushing origin**).
+- **Single source of truth**: `src/utils/fieldValidation.ts` (`parseValidation`/`serializeValidation`, `validateField`/`validateAll`, `maskCurrencyInput`/`parseCurrency`/`formatCurrency`). Currency stores the **raw** numeric string and only displays `$1,234.56` formatting.
+- **Enforcement**: inline errors + blocked submit across all four fill paths — `SmartFormLayout` (requests), `FidelitySubjectFormLayout` (Fidelity-Subject), `CreateNoticeModalV2` (notices), `SendNoticeForm` (securities). Draft saves / silent auto-saves intentionally skip validation.
+- **Threaded through**: `VALIDATION` is read/written by `POST`/`PUT /api/forms`, `POST`/`PUT /api/fields`, `GET /api/forms/:id`, `GET /api/requests/:id/form`, `GET /api/fields`, `GET`/`PUT /api/custom-templates/:id` across `server.cjs`/`server.js`/`server-production.js`, and by the TS route `server/routes/forms.ts`.
+
 ### Notifications (New - 2025-07-26)
 - `GET /api/notifications` - Get user notifications (company-filtered)
 - `GET /api/notifications/count` - Get unread notification count
