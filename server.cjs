@@ -11507,6 +11507,7 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
         const fields = await prisma.$queryRaw`
             SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.IS_REQUIRED,
                    ff.SORT_ORDER, ft.FIELD_TYPE_DESC as fieldType, f.DISPLAY_FORMAT,
+                   f.VALIDATION,
                    f.HAS_LOOKUP, f.IS_SENSITIVE, f.CAN_SELECT_MULIPLE, f.[OPTIONS],
                    f.ORGANIZATION_ID, f.IS_PUBLIC, f.IS_ACTIVE
             FROM GUARDIAN.FIELDS f
@@ -11516,9 +11517,9 @@ app.get('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
             AND f.IS_DELETED = 0
             ORDER BY ff.SORT_ORDER, f.FIELD_ID
         `;
-        
+
         console.log(`✅ Found custom template ${templateId} with ${fields.length} fields`);
-        
+
         const response = {
             form: {
                 FORM_ID: form.FORM_ID,
@@ -11794,41 +11795,43 @@ app.put('/api/custom-templates/:id', getAuthenticatedUserCompany, async (req, re
                         // Create new field for this company
                         await prisma.$executeRaw`
                             INSERT INTO GUARDIAN.FIELDS (
-                                FIELD_NAME, 
-                                FIELD_TYPE_ID, 
-                                DISPLAY_FORMAT, 
-                                HAS_LOOKUP, 
-                                IS_PUBLIC, 
-                                IS_ACTIVE, 
-                                IS_DELETED, 
-                                IS_REQUIRED, 
-                                IS_SENSITIVE, 
-                                CREATE_DATE, 
-                                UPDATE_DATE, 
+                                FIELD_NAME,
+                                FIELD_TYPE_ID,
+                                DISPLAY_FORMAT,
+                                VALIDATION,
+                                HAS_LOOKUP,
+                                IS_PUBLIC,
+                                IS_ACTIVE,
+                                IS_DELETED,
+                                IS_REQUIRED,
+                                IS_SENSITIVE,
+                                CREATE_DATE,
+                                UPDATE_DATE,
                                 CREATE_USER_ID,
                                 UPDATE_USER_ID,
                                 ORGANIZATION_ID
                             ) VALUES (
-                                ${field.FIELD_NAME.trim()}, 
-                                ${field.FIELD_TYPE_ID || 1}, 
-                                'text', 
-                                0, 
-                                1, 
-                                1, 
-                                0, 
-                                ${field.IS_REQUIRED || false}, 
-                                0, 
-                                GETDATE(), 
-                                GETDATE(), 
+                                ${field.FIELD_NAME.trim()},
+                                ${field.FIELD_TYPE_ID || 1},
+                                'text',
+                                ${field.VALIDATION || null},
+                                0,
+                                1,
+                                1,
+                                0,
+                                ${field.IS_REQUIRED || false},
+                                0,
+                                GETDATE(),
+                                GETDATE(),
                                 ${req.userId},
                                 ${req.userId},
                                 ${req.companyId}
                             )
                         `;
-                        
+
                         // Get the newly created field ID
                         const newField = await prisma.$queryRaw`
-                            SELECT FIELD_ID FROM GUARDIAN.FIELDS 
+                            SELECT FIELD_ID FROM GUARDIAN.FIELDS
                             WHERE FIELD_NAME = ${field.FIELD_NAME.trim()}
                             AND ORGANIZATION_ID = ${req.companyId}
                             ORDER BY CREATE_DATE DESC
