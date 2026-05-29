@@ -14,6 +14,7 @@ import type { TemplateSummary, TemplateDetail, TemplateField } from '../../types
 import CommonEditor from '../CommonEditor';
 import RecipientPicker, { type RecipientOption } from './RecipientPicker';
 import { FileText, AlertTriangle } from 'lucide-react';
+import { parseValidation, validateAll, maskCurrencyInput, formatCurrency } from '../../utils/fieldValidation';
 
 interface Props {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface ViewField {
   kind: FieldKind;
   required: boolean;
   options: string[];
+  validation?: string | null;
 }
 
 function mapFieldType(raw: string | null | undefined): FieldKind {
@@ -65,6 +67,7 @@ function toViewField(f: TemplateField): ViewField {
     kind: mapFieldType(f.fieldType),
     required: !!f.IS_REQUIRED,
     options,
+    validation: f.VALIDATION,
   };
 }
 
@@ -93,6 +96,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   // PII acknowledgement modal — gates Step 1 → Step 2 when the chosen
   // template is a Securities (SEC) notice. No persistence; advisory only.
   const [showPiiAck, setShowPiiAck] = useState(false);
@@ -201,6 +205,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
     setTemplateValues({});
     setBody('');
     setError(null);
+    setFieldErrors({});
     setShowPiiAck(false);
   };
 
@@ -212,16 +217,19 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
 
   const submit = async (status: 'DRAFT' | 'PUBLISHED') => {
     setError(null);
+    setFieldErrors({});
     if (!selectedSummary || !detail) return setError('Select a template');
     if (status === 'PUBLISHED') {
       if (!title.trim()) return setError('Notice title is required');
       if (recipients.length === 0) return setError('At least one recipient is required');
 
-      const missing = viewFields
-        .filter((f) => f.required && !(templateValues[f.id] || '').trim())
-        .map((f) => f.label);
-      if (missing.length) {
-        return setError(`Required template fields: ${missing.join(', ')}`);
+      const fieldValidationErrors = validateAll(
+        viewFields.map((f) => ({ key: f.id, rules: parseValidation(f.validation), required: f.required })),
+        templateValues,
+      );
+      if (Object.keys(fieldValidationErrors).length) {
+        setFieldErrors(fieldValidationErrors);
+        return setError('Please fix the highlighted fields.');
       }
     }
 
@@ -365,6 +373,7 @@ export default function CreateNoticeModalV2({ isOpen, onClose, onCreated }: Prop
             setBody={setBody}
             disabled={submitting}
             templateName={selectedSummary?.FORM_NAME || ''}
+            fieldErrors={fieldErrors}
           />
         )}
       </div>
@@ -733,11 +742,13 @@ interface Step2Props {
   setBody: (v: string) => void;
   disabled: boolean;
   templateName: string;
+  fieldErrors: Record<string, string>;
 }
 
 function Step2(p: Step2Props) {
-  const setVal = (id: string, v: string) =>
+  const setVal = (id: string, v: string) => {
     p.setTemplateValues((prev) => ({ ...prev, [id]: v }));
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -805,7 +816,7 @@ function Step2(p: Step2Props) {
                   {f.label}
                   {f.required && <span style={{ color: '#C10000' }}> *</span>}
                 </label>
-                <FieldInput field={f} value={p.templateValues[f.id] || ''} onChange={(v) => setVal(f.id, v)} disabled={p.disabled} />
+                <FieldInput field={f} value={p.templateValues[f.id] || ''} onChange={(v) => setVal(f.id, v)} disabled={p.disabled} errors={p.fieldErrors} />
               </div>
             );
           })}
@@ -818,22 +829,71 @@ function Step2(p: Step2Props) {
   );
 }
 
-function FieldInput({ field, value, onChange, disabled }: { field: ViewField; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+function FieldInput({
+  field,
+  value,
+  onChange,
+  disabled,
+  errors = {},
+}: {
+  field: ViewField;
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  errors?: Record<string, string>;
+}) {
+  const rules = parseValidation(field.validation);
+  const fieldError = errors[field.id];
+  const errorEl = fieldError ? (
+    <div style={{ color: '#C10000', fontSize: 12, fontFamily: 'Inter, sans-serif', marginTop: 4 }}>
+      {fieldError}
+    </div>
+  ) : null;
+
+  // Currency masking: store raw numeric string, display formatted
+  if (rules.format === 'currency') {
+    return (
+      <>
+        <input
+          type="text"
+          value={value ? formatCurrency(value) : ''}
+          onChange={(e) => onChange(maskCurrencyInput(e.target.value))}
+          disabled={disabled}
+          placeholder="$0.00"
+          style={{
+            ...inputStyle,
+            borderColor: fieldError ? '#C10000' : '#E0E0E0',
+          }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = fieldError ? '#C10000' : '#2F8CED')}
+          onBlur={(e) => (e.currentTarget.style.borderColor = fieldError ? '#C10000' : '#E0E0E0')}
+        />
+        {errorEl}
+      </>
+    );
+  }
+
+  let inputEl: React.ReactNode;
   switch (field.kind) {
     case 'textarea':
-      return <TextArea value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextArea value={value} onChange={onChange} disabled={disabled} />;
+      break;
     case 'number':
-      return <TextInput type="number" value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextInput type="number" value={value} onChange={onChange} disabled={disabled} />;
+      break;
     case 'email':
-      return <TextInput type="email" value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextInput type="email" value={value} onChange={onChange} disabled={disabled} />;
+      break;
     case 'date':
-      return <TextInput type="date" value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextInput type="date" value={value} onChange={onChange} disabled={disabled} />;
+      break;
     case 'time':
-      return <TextInput type="time" value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextInput type="time" value={value} onChange={onChange} disabled={disabled} />;
+      break;
     case 'datetime':
-      return <TextInput type="datetime-local" value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextInput type="datetime-local" value={value} onChange={onChange} disabled={disabled} />;
+      break;
     case 'dropdown':
-      return (
+      inputEl = (
         <SelectInput
           value={value}
           onChange={onChange}
@@ -841,8 +901,9 @@ function FieldInput({ field, value, onChange, disabled }: { field: ViewField; va
           options={[{ value: '', label: 'Select…' }, ...field.options.map((o) => ({ value: o, label: o }))]}
         />
       );
+      break;
     case 'radio':
-      return (
+      inputEl = (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           {field.options.map((o) => (
             <label key={o} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#1F1F1F', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -852,13 +913,14 @@ function FieldInput({ field, value, onChange, disabled }: { field: ViewField; va
           ))}
         </div>
       );
+      break;
     case 'checkbox': {
       const checked = new Set(value ? value.split('|') : []);
       const toggle = (o: string) => {
         if (checked.has(o)) checked.delete(o); else checked.add(o);
         onChange(Array.from(checked).join('|'));
       };
-      return (
+      inputEl = (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           {field.options.map((o) => (
             <label key={o} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#1F1F1F', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -868,12 +930,21 @@ function FieldInput({ field, value, onChange, disabled }: { field: ViewField; va
           ))}
         </div>
       );
+      break;
     }
     case 'file_upload':
-      return <input type="file" disabled={disabled} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13 }} />;
+      inputEl = <input type="file" disabled={disabled} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13 }} />;
+      break;
     default:
-      return <TextInput value={value} onChange={onChange} disabled={disabled} />;
+      inputEl = <TextInput value={value} onChange={onChange} disabled={disabled} />;
   }
+
+  return (
+    <>
+      {inputEl}
+      {errorEl}
+    </>
+  );
 }
 
 /* ---------- Shared form primitives ---------- */

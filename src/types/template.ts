@@ -24,6 +24,7 @@ export interface TemplateField {
   SORT_ORDER?: number;
   OPTIONS?: string | null;
   DISPLAY_FORMAT?: string | null;
+  VALIDATION?: string | null;
 }
 
 export interface TemplateSummary {
