@@ -7360,7 +7360,7 @@ app.get('/api/forms/global', getAuthenticatedUserCompany, async (req, res) => {
         const rows = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, TEMPLATE_TYPE,
                    IS_INTERNAL, IS_EXTERNAL, NOTICE_CATEGORY,
-                   ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC,
+                   ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, STATUS, IS_ACTIVE,
                    CREATE_DATE, CREATE_USER_ID, UPDATE_DATE
             FROM GUARDIAN.FORMS
             WHERE COMPANY_ID IS NULL
@@ -7721,6 +7721,125 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
             error: 'Failed to update form template',
             message: error.message
         });
+    }
+});
+
+// JAFAR-only: Publish a global template (draft → active or inactive → active).
+// Refuses to no-op an already-active global (returns 409 instead). Audits via
+// the standard GLOBAL_TEMPLATE_MODIFIED event with detail.action='publish'.
+app.put('/api/forms/:id/publish', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({ error: 'Valid form ID is required' });
+        }
+
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED, STATUS
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
+        `;
+
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            return res.status(404).json({ error: 'Form not found' });
+        }
+
+        const target = targetRow[0];
+        if (!isGlobalForm(target)) {
+            return res.status(403).json({ error: 'Publish action is only valid on global templates' });
+        }
+        if (!isJafarActor(req)) {
+            return res.status(403).json({ error: 'JAFAR access required to publish global templates' });
+        }
+        if (target.STATUS === 'active') {
+            return res.status(409).json({ error: 'Already published', currentStatus: target.STATUS });
+        }
+
+        await prisma.$executeRawUnsafe(
+            `UPDATE GUARDIAN.FORMS
+             SET STATUS = 'active', IS_ACTIVE = 1, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = @P1
+             WHERE FORM_ID = @P2`,
+            req.userId,
+            formId
+        );
+
+        await __writeGlobalTemplateAudit({
+            eventType: GLOBAL_AUDIT_EVENTS.MODIFIED,
+            actorUserId: actorUserId(req),
+            actorRoleId: 6,
+            formId,
+            companyId: null,
+            detail: { action: 'publish', prevStatus: target.STATUS, newStatus: 'active', formName: target.FORM_NAME },
+        });
+
+        res.json({ FORM_ID: formId, STATUS: 'active', IS_ACTIVE: true });
+    } catch (error) {
+        console.error('❌ Error publishing global form:', error);
+        res.status(500).json({ error: 'Failed to publish global template', message: error.message });
+    }
+});
+
+// JAFAR-only: Activate or deactivate a published global. Requires STATUS='active'
+// (drafts must be Published first, legacy 'inactive' rows must also be Published
+// to enter the lifecycle). Audits via GLOBAL_TEMPLATE_MODIFIED with detail.action.
+app.put('/api/forms/:id/active', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({ error: 'Valid form ID is required' });
+        }
+
+        if (!req.body || typeof req.body.isActive !== 'boolean') {
+            return res.status(400).json({ error: 'Body must include isActive (boolean)' });
+        }
+        const isActive = req.body.isActive === true;
+
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED, STATUS
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
+        `;
+
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            return res.status(404).json({ error: 'Form not found' });
+        }
+
+        const target = targetRow[0];
+        if (!isGlobalForm(target)) {
+            return res.status(403).json({ error: 'Active toggle is only valid on global templates' });
+        }
+        if (!isJafarActor(req)) {
+            return res.status(403).json({ error: 'JAFAR access required to toggle global active state' });
+        }
+        if (target.STATUS !== 'active') {
+            return res.status(409).json({
+                error: 'Cannot activate/deactivate a non-published global — publish it first',
+                currentStatus: target.STATUS,
+            });
+        }
+
+        await prisma.$executeRawUnsafe(
+            `UPDATE GUARDIAN.FORMS
+             SET IS_ACTIVE = @P1, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = @P2
+             WHERE FORM_ID = @P3`,
+            isActive ? 1 : 0,
+            req.userId,
+            formId
+        );
+
+        await __writeGlobalTemplateAudit({
+            eventType: GLOBAL_AUDIT_EVENTS.MODIFIED,
+            actorUserId: actorUserId(req),
+            actorRoleId: 6,
+            formId,
+            companyId: null,
+            detail: { action: isActive ? 'activate' : 'deactivate', isActive, formName: target.FORM_NAME },
+        });
+
+        res.json({ FORM_ID: formId, STATUS: 'active', IS_ACTIVE: isActive });
+    } catch (error) {
+        console.error('❌ Error toggling global active state:', error);
+        res.status(500).json({ error: 'Failed to update global active state', message: error.message });
     }
 });
 
@@ -8771,7 +8890,13 @@ app.get('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
             WHERE (
                 ORGANIZATION_ID = ${req.companyId}
                 OR COMPANY_ID = ${req.companyId}
-                OR (ORGANIZATION_ID IS NULL AND COMPANY_ID IS NULL AND IS_PUBLIC = 1)
+                OR (
+                    ORGANIZATION_ID IS NULL
+                    AND COMPANY_ID IS NULL
+                    AND IS_PUBLIC = 1
+                    AND STATUS = 'active'
+                    AND IS_ACTIVE = 1
+                )
             )
             AND IS_DELETED = 0
             AND TEMPLATE_TYPE = 'request'
@@ -8891,17 +9016,21 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const organizationIdSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
         const isPublicValue = wantsGlobal ? 1 : (form.IS_PUBLIC ? 1 : 0);
         const orgIdForFieldsSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+        // Lifecycle defaults: globals start as draft (must be explicitly Published
+        // by JAFAR before companies can see them). Non-globals leave STATUS NULL
+        // — that's the existing/legacy behavior for company-owned rows.
+        const statusSql = wantsGlobal ? `'draft'` : 'NULL';
 
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
-                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
+                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY, STATUS,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
                 '${escapedFormName}', '${escapedFormDescription}', ${companyIdSql}, ${organizationIdSql}, ${isPublicValue}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
-                ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql},
+                ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql}, ${statusSql},
                 GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
@@ -8952,7 +9081,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 actorRoleId: 6,
                 formId,
                 companyId: null,
-                detail: { formName: form.FORM_NAME, templateType, isInternal: !!isInternal, isExternal: !!isExternal },
+                detail: { formName: form.FORM_NAME, templateType, isInternal: !!isInternal, isExternal: !!isExternal, status: 'draft' },
             });
         }
 
