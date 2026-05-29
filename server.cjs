@@ -8899,17 +8899,21 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
         const organizationIdSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
         const isPublicValue = wantsGlobal ? 1 : (form.IS_PUBLIC ? 1 : 0);
         const orgIdForFieldsSql = wantsGlobal ? 'NULL' : `${req.companyId}`;
+        // Lifecycle defaults: globals start as draft (must be explicitly Published
+        // by JAFAR before companies can see them). Non-globals leave STATUS NULL
+        // — that's the existing/legacy behavior for company-owned rows.
+        const statusSql = wantsGlobal ? `'draft'` : 'NULL';
 
         const formResult = await prisma.$queryRawUnsafe(`
             INSERT INTO GUARDIAN.FORMS (
                 FORM_NAME, FORM_DESCRIPTION, COMPANY_ID, ORGANIZATION_ID, IS_PUBLIC, IS_ACTIVE, IS_DELETED,
-                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY,
+                IS_INTERNAL, IS_EXTERNAL, TEMPLATE_TYPE, NOTICE_CATEGORY, STATUS,
                 CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
             )
             OUTPUT INSERTED.FORM_ID
             VALUES (
                 '${escapedFormName}', '${escapedFormDescription}', ${companyIdSql}, ${organizationIdSql}, ${isPublicValue}, ${form.IS_ACTIVE !== false ? 1 : 0}, 0,
-                ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql},
+                ${isInternal}, ${isExternal}, '${templateType}', ${noticeCategorySql}, ${statusSql},
                 GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
             )
         `);
@@ -8960,7 +8964,7 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 actorRoleId: 6,
                 formId,
                 companyId: null,
-                detail: { formName: form.FORM_NAME, templateType, isInternal: !!isInternal, isExternal: !!isExternal },
+                detail: { formName: form.FORM_NAME, templateType, isInternal: !!isInternal, isExternal: !!isExternal, status: 'draft' },
             });
         }
 
