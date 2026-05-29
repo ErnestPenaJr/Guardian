@@ -7368,7 +7368,7 @@ app.get('/api/forms/global', getAuthenticatedUserCompany, async (req, res) => {
         const rows = await prisma.$queryRaw`
             SELECT FORM_ID, FORM_NAME, FORM_DESCRIPTION, TEMPLATE_TYPE,
                    IS_INTERNAL, IS_EXTERNAL, NOTICE_CATEGORY,
-                   ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC,
+                   ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, STATUS, IS_ACTIVE,
                    CREATE_DATE, CREATE_USER_ID, UPDATE_DATE
             FROM GUARDIAN.FORMS
             WHERE COMPANY_ID IS NULL
