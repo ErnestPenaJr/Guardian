@@ -552,6 +552,133 @@ const main = async () => {
     assert('Republishing returns 409', dupePubRes.status === 409, { status: dupePubRes.status });
   }
 
+  // Case 14: JAFAR can deactivate a published global; companies stop seeing it.
+  console.log('\n🛑 Case 14: JAFAR deactivates published global');
+  const c14SrcRes = await fetch(`${API_BASE}/api/forms`, {
+    method: 'POST',
+    headers: authed(jafarToken),
+    body: JSON.stringify({
+      form: { FORM_NAME: `Deactivate Smoke ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+      fields: [],
+    }),
+  });
+  const c14SrcBody = await c14SrcRes.json() as { form?: { FORM_ID?: number } };
+  const c14Id = c14SrcBody?.form?.FORM_ID;
+  if (typeof c14Id === 'number' && c14Id > 0) {
+    createdGlobalIds.push(c14Id);
+
+    // Publish first
+    const c14Pub = await fetch(`${API_BASE}/api/forms/${c14Id}/publish`, { method: 'PUT', headers: authed(jafarToken) });
+    assert('Case 14 publish prereq', c14Pub.status === 200);
+
+    const deactRes = await fetch(`${API_BASE}/api/forms/${c14Id}/active`, {
+      method: 'PUT',
+      headers: authed(jafarToken),
+      body: JSON.stringify({ isActive: false }),
+    });
+    assert('Deactivate returns 200', deactRes.status === 200, { status: deactRes.status });
+
+    const after = await prisma.$queryRawUnsafe<{ IS_ACTIVE: boolean | number }[]>(
+      `SELECT IS_ACTIVE FROM GUARDIAN.FORMS WHERE FORM_ID = @P1`, c14Id);
+    assert('Deactivated: IS_ACTIVE=false', after[0]?.IS_ACTIVE === false || after[0]?.IS_ACTIVE === 0, { row: after[0] });
+
+    const deactAudit = await prisma.$queryRawUnsafe<{ EVENT_DETAIL: string | null }[]>(
+      `SELECT TOP 1 EVENT_DETAIL FROM GUARDIAN.AUDIT_LOG
+       WHERE EVENT_TYPE = 'GLOBAL_TEMPLATE_MODIFIED' AND TARGET_ID = @P1
+       ORDER BY ENTRY_ID DESC`,
+      String(c14Id)
+    );
+    const deactDetail = deactAudit[0]?.EVENT_DETAIL ? JSON.parse(deactAudit[0].EVENT_DETAIL) : {};
+    assert('Deactivate audit detail.action=deactivate', deactDetail.action === 'deactivate', { deactDetail });
+
+    // Case 15: JAFAR reactivates
+    console.log('\n♻️  Case 15: JAFAR reactivates deactivated global');
+    const reactRes = await fetch(`${API_BASE}/api/forms/${c14Id}/active`, {
+      method: 'PUT',
+      headers: authed(jafarToken),
+      body: JSON.stringify({ isActive: true }),
+    });
+    assert('Reactivate returns 200', reactRes.status === 200);
+
+    const afterReact = await prisma.$queryRawUnsafe<{ IS_ACTIVE: boolean | number }[]>(
+      `SELECT IS_ACTIVE FROM GUARDIAN.FORMS WHERE FORM_ID = @P1`, c14Id);
+    assert('Reactivated: IS_ACTIVE=true', afterReact[0]?.IS_ACTIVE === true || afterReact[0]?.IS_ACTIVE === 1);
+  }
+
+  // Case 18: active toggle on a draft → 409 (must publish first)
+  console.log('\n🚫 Case 18: activate on a draft → 409');
+  const c18Src = await fetch(`${API_BASE}/api/forms`, {
+    method: 'POST',
+    headers: authed(jafarToken),
+    body: JSON.stringify({
+      form: { FORM_NAME: `Draft No-Toggle ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+      fields: [],
+    }),
+  });
+  const c18Body = await c18Src.json() as { form?: { FORM_ID?: number } };
+  const c18Id = c18Body?.form?.FORM_ID;
+  if (typeof c18Id === 'number' && c18Id > 0) {
+    createdGlobalIds.push(c18Id);
+    const wrongActRes = await fetch(`${API_BASE}/api/forms/${c18Id}/active`, {
+      method: 'PUT',
+      headers: authed(jafarToken),
+      body: JSON.stringify({ isActive: true }),
+    });
+    assert('Activate on draft returns 409', wrongActRes.status === 409, { status: wrongActRes.status });
+  }
+
+  // Case 19: active toggle with bad body → 400
+  console.log('\n🚫 Case 19: active toggle with non-boolean → 400');
+  if (typeof c18Id === 'number' && c18Id > 0) {
+    const badBodyRes = await fetch(`${API_BASE}/api/forms/${c18Id}/active`, {
+      method: 'PUT',
+      headers: authed(jafarToken),
+      body: JSON.stringify({ isActive: 'yes' }),
+    });
+    assert('Bad-body active returns 400', badBodyRes.status === 400, { status: badBodyRes.status });
+  }
+
+  // Case 16: non-JAFAR (role 1) → 403 on publish AND active
+  if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+    console.log('\n🔒 Case 16: non-JAFAR publish/active → 403');
+    if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+    if (typeof c14Id === 'number' && c14Id > 0) {
+      const npubRes = await fetch(`${API_BASE}/api/forms/${c14Id}/publish`, {
+        method: 'PUT',
+        headers: authed(adminToken),
+      });
+      assert('non-JAFAR publish → 403', npubRes.status === 403, { status: npubRes.status });
+
+      const nactRes = await fetch(`${API_BASE}/api/forms/${c14Id}/active`, {
+        method: 'PUT',
+        headers: authed(adminToken),
+        body: JSON.stringify({ isActive: false }),
+      });
+      assert('non-JAFAR active → 403', nactRes.status === 403, { status: nactRes.status });
+    }
+  } else {
+    console.log('\n⚠️  Skipping Case 16 (non-JAFAR publish/active) — TEST_ADMIN_EMAIL/PASSWORD not set');
+  }
+
+  // Case 12: company-side visibility — published+active globals visible,
+  // drafts and deactivated NOT visible. Requires ADMIN creds.
+  if (ADMIN_EMAIL && ADMIN_PASSWORD && typeof c14Id === 'number' && c14Id > 0 && typeof c18Id === 'number' && c18Id > 0) {
+    console.log('\n👁️  Case 12: company-side visibility filter on globals');
+    if (!adminToken) adminToken = await login(ADMIN_EMAIL, ADMIN_PASSWORD);
+    // Re-activate c14 first so it should be visible
+    await fetch(`${API_BASE}/api/forms/${c14Id}/active`, {
+      method: 'PUT', headers: authed(jafarToken),
+      body: JSON.stringify({ isActive: true }),
+    });
+    const listRes = await fetch(`${API_BASE}/api/forms`, { headers: authed(adminToken) });
+    const listBody = await listRes.json() as Array<{ FORM_ID: number }>;
+    const ids = listBody.map(f => f.FORM_ID);
+    assert('Published+active global appears in company list', ids.includes(c14Id), { sample: ids.slice(0, 5) });
+    assert('Draft global does NOT appear in company list', !ids.includes(c18Id), { c18Id });
+  } else {
+    console.log('\n⚠️  Skipping Case 12 (visibility) — fixtures or creds missing');
+  }
+
   } finally {
     // -------------------------------------------------------------------------
     // Cleanup: soft-delete the created form so the test is idempotent.
