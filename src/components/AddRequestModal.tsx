@@ -372,6 +372,47 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
         });
         return;
       }
+      // Format / min / max enforcement using shared validateAll util, keyed by FIELD_NAME
+      // (fidelityValidationErrors Set is keyed by name, matching errClass in FidelitySubjectFormLayout)
+      const fidelityFieldsForValidation = templateFields
+        .filter((f: any) => f.FIELD_NAME && f.FIELD_NAME !== 'Request Status');
+
+      // Build a name→value lookup (fieldValues are keyed by String(FIELD_ID))
+      const nameToValue: Record<string, string> = {};
+      for (const f of fidelityFieldsForValidation) {
+        nameToValue[f.FIELD_NAME as string] = fieldValues[String(f.FIELD_ID)] ?? '';
+      }
+
+      const fmtErrors = validateAll(
+        fidelityFieldsForValidation.map((f: any) => ({
+          key: f.FIELD_NAME as string,
+          rules: parseValidation(f.VALIDATION as string | null | undefined),
+          required: !!f.IS_REQUIRED,
+        })),
+        nameToValue,
+      );
+
+      if (Object.keys(fmtErrors).length > 0) {
+        setFidelityValidationErrors(prev => {
+          const next = new Set(prev);
+          for (const name of Object.keys(fmtErrors)) next.add(name);
+          return next;
+        });
+        const fmtItems = Object.entries(fmtErrors)
+          .map(([name, msg]) => `<li style="margin-bottom:4px"><strong>${name}</strong>: ${msg}</li>`)
+          .join('');
+        await MySwal.fire({
+          icon: 'warning',
+          title: 'Validation Errors',
+          html: `
+            <p style="margin-bottom:10px">Please fix the following field errors before submitting:</p>
+            <ul style="text-align:left;margin:0;padding-left:20px">${fmtItems}</ul>`,
+          confirmButtonText: 'Go Back & Fix',
+          confirmButtonColor: '#032424',
+        });
+        return;
+      }
+
       setFidelityValidationErrors(new Set());
     }
 

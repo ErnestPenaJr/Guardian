@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/FidelitySubjectForm.css';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { parseValidation, maskCurrencyInput, formatCurrency } from '../utils/fieldValidation';
 
 interface FormField {
   FIELD_ID: number;
@@ -194,6 +195,9 @@ interface DocInputProps {
   placeholder?: string;
   type?: string;
   style?: React.CSSProperties;
+  /** When true, displays the stored raw value as a formatted currency string (e.g. $1,234.50).
+   *  The onChange still receives the raw typed value — the set() helper applies maskCurrencyInput. */
+  currency?: boolean;
 }
 
 const DocInput: React.FC<DocInputProps> = ({
@@ -203,11 +207,12 @@ const DocInput: React.FC<DocInputProps> = ({
   placeholder,
   type = 'text',
   style,
+  currency = false,
 }) => (
   <input
     type={type}
     className="sw-input"
-    value={value}
+    value={currency ? (value ? formatCurrency(value) : '') : value}
     placeholder={readOnly ? '' : placeholder}
     onChange={e => onChange(e.target.value)}
     readOnly={readOnly}
@@ -1498,9 +1503,16 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     }
   };
 
+  /** Returns true when the field identified by name carries format=currency in its VALIDATION JSON */
+  const isCurrencyField = (name: string): boolean =>
+    parseValidation((fm.get(name.trim().toLowerCase()) as any)?.VALIDATION).format === 'currency';
+
   const set = (name: string, v: string) => {
     const f = getF(name);
-    if (f) onChange(String(f.FIELD_ID), v);
+    if (!f) return;
+    // Apply currency masking centrally so every DocInput writing through set() is covered.
+    const stored = isCurrencyField(name) ? maskCurrencyInput(v) : v;
+    onChange(String(f.FIELD_ID), stored);
   };
 
   // Sync subject name in the title bar
@@ -1607,9 +1619,10 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
             <span style={{ fontWeight: 600, marginRight: 2, color: '#333' }}>$</span>
             <DocInput
               value={val('Dollar Loss Amount')}
-              onChange={v => set('Dollar Loss Amount', v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
+              onChange={v => set('Dollar Loss Amount', v)}
               readOnly={readOnly}
               placeholder="0.00"
+              currency={isCurrencyField('Dollar Loss Amount')}
             />
           </div>
         </div>
