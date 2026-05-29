@@ -1,5 +1,6 @@
 import api from '../utils/api';
 import { FormField } from '../types/formBuilder';
+import { parseValidation, serializeValidation } from '../utils/fieldValidation';
 
 // Define types for database interactions
 export interface FieldType {
@@ -19,6 +20,7 @@ export interface DbField {
   FORM_ID?: number;
   IS_REQUIRED: boolean;
   OPTIONS?: string | null;
+  VALIDATION?: string | null;
   SEQUENCE: number;
   IS_ACTIVE: boolean;
   IS_DELETED: boolean;
@@ -331,6 +333,7 @@ const formService = {
         FIELD_TYPE_ID: fieldTypeId,
         IS_REQUIRED: field.required,
         OPTIONS: field.options || null,
+        VALIDATION: serializeValidation({ format: field.format, min: field.min, max: field.max }),
         SEQUENCE: field.sequence || index + 1, // Use field sequence or fallback to index
         IS_ACTIVE: true,
         IS_DELETED: false
@@ -351,6 +354,7 @@ const formService = {
         fieldTypeId: field.FIELD_TYPE_ID,
         required: field.IS_REQUIRED,
         options: field.OPTIONS || '',
+        ...(() => { const r = parseValidation(field.VALIDATION); return { format: r.format, min: r.min, max: r.max }; })(),
         sequence: field.SEQUENCE || index + 1,
         dbFieldId: field.FIELD_ID,
         canDelete: true

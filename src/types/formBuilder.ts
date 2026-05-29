@@ -8,7 +8,10 @@ export interface FormField {
   canDelete?: boolean; // Whether the field can be deleted
   placeholder?: string; // Placeholder text for the field
   helpText?: string; // Help text for the field
-  validation?: string; // Validation rules for the field
+  // Validation config (replaces the old inert `validation` string)
+  format?: 'none' | 'email' | 'url' | 'number' | 'currency' | 'letters';
+  min?: number; // characters (text formats) or value (number/currency)
+  max?: number;
   defaultValue?: string; // Default value for the field
   sequence?: number; // Field order/sequence in the form
   isActive?: boolean; // Whether the field is active
