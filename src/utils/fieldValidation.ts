@@ -31,3 +31,32 @@ export function serializeValidation(rules: Partial<FieldRules>): string | null {
   if (hasMax) out.max = rules.max;
   return JSON.stringify(out);
 }
+
+// Restrict raw typed text to digits + at most one dot + 2 decimal places.
+export function maskCurrencyInput(raw: string): string {
+  let s = (raw ?? '').replace(/[^0-9.]/g, '');
+  const firstDot = s.indexOf('.');
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+    const [int, dec = ''] = s.split('.');
+    s = int + '.' + dec.slice(0, 2);
+  }
+  return s;
+}
+
+// "$1,234.50" -> "1234.50" (value to store)
+export function parseCurrency(display: string): string {
+  if (!display) return '';
+  const s = String(display).replace(/[^0-9.]/g, '');
+  return s;
+}
+
+// "1234.5" -> "$1,234.50" (display only)
+export function formatCurrency(raw: string): string {
+  if (raw === '' || raw == null) return '';
+  const stripped = parseCurrency(String(raw));
+  if (stripped === '') return '';
+  const n = Number(stripped);
+  if (Number.isNaN(n)) return '';
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
