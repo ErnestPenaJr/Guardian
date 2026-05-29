@@ -1,6 +1,6 @@
 // src/components/admin/GlobalTemplatesModal.tsx
 import React, { useEffect, useState } from 'react';
-import { FaGlobe, FaSpinner } from 'react-icons/fa';
+import { FaGlobe, FaSpinner, FaUpload, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import {
   Search,
   Filter,
@@ -18,7 +18,11 @@ import GlobalTemplateTypePicker from './GlobalTemplateTypePicker';
 
 // The API returns CREATE_DATE which is not in the base DbForm interface.
 // Extend locally so we can display it without touching formService.ts.
-type GlobalForm = DbForm & { CREATE_DATE?: string };
+type GlobalForm = DbForm & {
+  CREATE_DATE?: string;
+  STATUS?: 'draft' | 'active' | 'inactive' | string | null;
+  IS_ACTIVE?: boolean;
+};
 
 interface Props {
   isOpen: boolean;
@@ -38,6 +42,7 @@ const GlobalTemplatesModal: React.FC<Props> = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'request' | 'notice'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'active' | 'deactivated' | 'inactive'>('all');
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   const refresh = async () => {
@@ -57,19 +62,26 @@ const GlobalTemplatesModal: React.FC<Props> = ({
     if (isOpen) {
       setSearchTerm('');
       setTypeFilter('all');
+      setStatusFilter('all');
       refresh();
     }
   }, [isOpen]);
 
   // ── Derived state ───────────────────────────────────────────────────────────
   const visible = globals.filter((f) => {
-    const matchesType = typeFilter === 'all' || f.TEMPLATE_TYPE === typeFilter;
+    if (typeFilter !== 'all' && f.TEMPLATE_TYPE !== typeFilter) return false;
     const search = searchTerm.trim().toLowerCase();
     const matchesSearch =
       !search ||
       f.FORM_NAME.toLowerCase().includes(search) ||
       (f.FORM_DESCRIPTION ?? '').toLowerCase().includes(search);
-    return matchesType && matchesSearch;
+    if (!matchesSearch) return false;
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'draft') return f.STATUS === 'draft';
+    if (statusFilter === 'active') return f.STATUS === 'active' && f.IS_ACTIVE === true;
+    if (statusFilter === 'deactivated') return f.STATUS === 'active' && f.IS_ACTIVE === false;
+    if (statusFilter === 'inactive') return f.STATUS !== 'draft' && f.STATUS !== 'active';
+    return true;
   });
 
   const requestCount = globals.filter((f) => f.TEMPLATE_TYPE === 'request').length;
@@ -94,11 +106,72 @@ const GlobalTemplatesModal: React.FC<Props> = ({
     }
   };
 
+  const handlePublish = async (f: GlobalForm) => {
+    if (!f.FORM_ID) return;
+    try {
+      await formService.publishGlobal(f.FORM_ID);
+      toast.success(`"${f.FORM_NAME}" published — companies can now see it`);
+      refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Publish failed';
+      toast.error(msg);
+    }
+  };
+
+  const handleSetActive = async (f: GlobalForm, isActive: boolean) => {
+    if (!f.FORM_ID) return;
+    try {
+      await formService.setGlobalActive(f.FORM_ID, isActive);
+      toast.success(isActive
+        ? `"${f.FORM_NAME}" activated`
+        : `"${f.FORM_NAME}" deactivated — hidden from companies`);
+      refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Status change failed';
+      toast.error(msg);
+    }
+  };
+
   const handleClose = () => {
     setPickerOpen(false);
     setSearchTerm('');
     setTypeFilter('all');
+    setStatusFilter('all');
     onClose();
+  };
+
+  // ── Status badge renderer ───────────────────────────────────────────────────
+  const renderStatusBadge = (g: GlobalForm) => {
+    if (g.STATUS === 'draft') {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800" title="Draft globals are hidden from companies until published">
+          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5" />
+          Draft
+        </span>
+      );
+    }
+    if (g.STATUS === 'active' && g.IS_ACTIVE === true) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5" />
+          Active
+        </span>
+      );
+    }
+    if (g.STATUS === 'active' && g.IS_ACTIVE === false) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5" />
+          Deactivated
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5" />
+        Inactive
+      </span>
+    );
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -169,11 +242,22 @@ const GlobalTemplatesModal: React.FC<Props> = ({
                       <option value="request">Request Only</option>
                       <option value="notice">Notice Only</option>
                     </select>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="draft">Draft</option>
+                      <option value="active">Active</option>
+                      <option value="deactivated">Deactivated</option>
+                      <option value="inactive">Inactive (legacy)</option>
+                    </select>
                   </div>
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center space-x-6 text-sm">
+                <div className="flex items-center space-x-6 text-sm flex-wrap gap-y-2">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-cyan-500 rounded-full" />
                     <span className="text-gray-600">Total: {globals.length}</span>
@@ -185,6 +269,14 @@ const GlobalTemplatesModal: React.FC<Props> = ({
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-sky-500 rounded-full" />
                     <span className="text-gray-600">Notice: {noticeCount}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                    <span className="text-gray-600">Draft: {globals.filter((g) => g.STATUS === 'draft').length}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                    <span className="text-gray-600">Deactivated: {globals.filter((g) => g.STATUS === 'active' && g.IS_ACTIVE === false).length}</span>
                   </div>
                 </div>
               </div>
@@ -275,6 +367,7 @@ const GlobalTemplatesModal: React.FC<Props> = ({
                                     External
                                   </span>
                                 )}
+                                {renderStatusBadge(f)}
                               </div>
                             </div>
                           </div>
@@ -316,6 +409,43 @@ const GlobalTemplatesModal: React.FC<Props> = ({
                             <Edit3 className="w-3 h-3 mr-1.5" />
                             Edit Fields
                           </button>
+
+                          {(f.STATUS === 'draft' || (f.STATUS !== 'active' && f.STATUS !== 'draft')) && (
+                            <button
+                              type="button"
+                              className="flex items-center px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200"
+                              onClick={() => handlePublish(f)}
+                              title="Publish this global to make it visible to all companies"
+                              data-testid={`publish-global-${f.FORM_ID}`}
+                            >
+                              <FaUpload className="w-3 h-3 mr-1.5" />
+                              Publish
+                            </button>
+                          )}
+                          {f.STATUS === 'active' && f.IS_ACTIVE === true && (
+                            <button
+                              type="button"
+                              className="flex items-center px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-50 rounded-lg hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all duration-200"
+                              onClick={() => handleSetActive(f, false)}
+                              title="Hide this global from companies (keeps the template for future reactivation)"
+                              data-testid={`deactivate-global-${f.FORM_ID}`}
+                            >
+                              <FaToggleOff className="w-3 h-3 mr-1.5" />
+                              Deactivate
+                            </button>
+                          )}
+                          {f.STATUS === 'active' && f.IS_ACTIVE === false && (
+                            <button
+                              type="button"
+                              className="flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200"
+                              onClick={() => handleSetActive(f, true)}
+                              title="Show this global to companies again"
+                              data-testid={`activate-global-${f.FORM_ID}`}
+                            >
+                              <FaToggleOn className="w-3 h-3 mr-1.5" />
+                              Activate
+                            </button>
+                          )}
 
                           <button
                             className="flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200"
