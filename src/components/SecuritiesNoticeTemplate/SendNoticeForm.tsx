@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../utils/api';
 import FirstTimeRecipientModal from './FirstTimeRecipientModal';
+import { parseValidation, validateAll, maskCurrencyInput, formatCurrency } from '../../utils/fieldValidation';
 
 /**
  * Phase 5 / US-SNT-03 + US-SNT-04 — SendNoticeForm
@@ -31,6 +32,7 @@ interface TemplateField {
   IS_PII?: boolean;
   IS_ENABLED?: boolean;
   IS_READ_ONLY?: boolean;
+  VALIDATION?: string | null;
 }
 
 interface TemplateSummary {
@@ -70,6 +72,7 @@ const SendNoticeForm: React.FC<Props> = ({ templateId }) => {
   const [error, setError] = useState<string | null>(null);
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<Record<string, unknown> | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Load template + recipients on mount
   useEffect(() => {
@@ -143,6 +146,20 @@ const SendNoticeForm: React.FC<Props> = ({ templateId }) => {
       );
       return null;
     }
+    const fErrors = validateAll(
+      fields.map((f) => ({
+        key: f.FIELD_NAME,
+        rules: parseValidation(f.VALIDATION),
+        required: f.FIELD_NAME === 'SECURITY_SYMBOL' || !!f.IS_REQUIRED,
+      })),
+      values,
+    );
+    if (Object.keys(fErrors).length) {
+      setFieldErrors(fErrors);
+      setError('Please fix the highlighted fields.');
+      return null;
+    }
+    setFieldErrors({});
     return {
       templateFormId: templateId,
       fields: values,
@@ -273,21 +290,46 @@ const SendNoticeForm: React.FC<Props> = ({ templateId }) => {
           )}
         </Card.Header>
         <Card.Body className="d-flex flex-column gap-3">
-          {fields.map((f) => (
-            <Form.Group key={f.FIELD_NAME} controlId={`field-${f.FIELD_NAME}`}>
-              <Form.Label>
-                {f.FIELD_LABEL ?? f.FIELD_NAME}
-                {f.FIELD_NAME === 'SECURITY_SYMBOL' || f.IS_REQUIRED ? ' *' : ''}
-              </Form.Label>
-              <Form.Control
-                type="text"
-                value={values[f.FIELD_NAME] ?? ''}
-                onChange={(e) => handleFieldChange(f.FIELD_NAME, e.target.value)}
-                readOnly={f.IS_READ_ONLY}
-                required={f.FIELD_NAME === 'SECURITY_SYMBOL' || f.IS_REQUIRED}
-              />
-            </Form.Group>
-          ))}
+          {fields.map((f) => {
+            const rules = parseValidation(f.VALIDATION);
+            const isCurrency = rules.format === 'currency';
+            const hasError = !!fieldErrors[f.FIELD_NAME];
+            return (
+              <Form.Group key={f.FIELD_NAME} controlId={`field-${f.FIELD_NAME}`}>
+                <Form.Label>
+                  {f.FIELD_LABEL ?? f.FIELD_NAME}
+                  {f.FIELD_NAME === 'SECURITY_SYMBOL' || f.IS_REQUIRED ? ' *' : ''}
+                </Form.Label>
+                {isCurrency ? (
+                  <Form.Control
+                    type="text"
+                    value={values[f.FIELD_NAME] ? formatCurrency(values[f.FIELD_NAME]) : ''}
+                    onChange={(e) =>
+                      handleFieldChange(f.FIELD_NAME, maskCurrencyInput(e.target.value))
+                    }
+                    readOnly={f.IS_READ_ONLY}
+                    required={f.FIELD_NAME === 'SECURITY_SYMBOL' || f.IS_REQUIRED}
+                    placeholder="$0.00"
+                    isInvalid={hasError}
+                  />
+                ) : (
+                  <Form.Control
+                    type="text"
+                    value={values[f.FIELD_NAME] ?? ''}
+                    onChange={(e) => handleFieldChange(f.FIELD_NAME, e.target.value)}
+                    readOnly={f.IS_READ_ONLY}
+                    required={f.FIELD_NAME === 'SECURITY_SYMBOL' || f.IS_REQUIRED}
+                    isInvalid={hasError}
+                  />
+                )}
+                {hasError && (
+                  <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>
+                    {fieldErrors[f.FIELD_NAME]}
+                  </div>
+                )}
+              </Form.Group>
+            );
+          })}
         </Card.Body>
       </Card>
 

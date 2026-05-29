@@ -183,6 +183,7 @@ router.get('/:id', async (req, res) => {
       IS_REQUIRED: boolean;
       DISPLAY_FORMAT: string | null;
       OPTIONS?: string;
+      VALIDATION?: string | null;
     }>;
 
     console.log(`[FORMS GET] Processing ${typedFormFields.length} fields for lookups...`);
