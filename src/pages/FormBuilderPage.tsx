@@ -8,6 +8,7 @@ import formService, { DbForm } from '../services/formService';
 import customTemplateService from '../services/customTemplateService';
 import type { TemplateType, TemplateStatus } from '../types/template';
 import { toast } from 'react-toastify';
+import { serializeValidation } from '../utils/fieldValidation';
 
 const LAYOUT_TYPES = ['header', 'divider'];
 
@@ -104,10 +105,14 @@ export default function FormBuilderPage() {
     if (numericFormId) {
       // Server PUT expects { name, description, formFields } with camelCase field objects
       // (fieldName, fieldTypeId, dbFieldId, required)
+      const fieldsForUpdate = savableFields.map((f) => ({
+        ...f,
+        VALIDATION: serializeValidation({ format: f.format, min: f.min, max: f.max }),
+      }));
       await formService.updateFormTemplate(numericFormId, {
         name: data.name,
         description: data.description,
-        formFields: savableFields,
+        formFields: fieldsForUpdate,
       });
 
       // If this is a draft custom template, also publish it (draft -> active).

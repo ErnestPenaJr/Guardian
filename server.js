@@ -6783,8 +6783,8 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
         // Get fields specific to this form using the FORMS_FIELDS junction table
         console.log(`🔍 Querying fields for form ${request.FORM_ID} using junction table`);
         const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE, 
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.VALIDATION, f.HAS_LOOKUP,
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_SENSITIVE,
                    f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID,
                    ff.IS_REQUIRED as FORM_IS_REQUIRED, ff.SORT_ORDER
             FROM GUARDIAN.FIELDS f
@@ -6892,6 +6892,7 @@ app.get('/api/requests/:id/form', getAuthenticatedUserCompany, async (req, res) 
                 FIELD_NAME: field.FIELD_NAME,
                 FIELD_TYPE_ID: field.FIELD_TYPE_ID,
                 DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                VALIDATION: field.VALIDATION,
                 HAS_LOOKUP: field.HAS_LOOKUP,
                 IS_PUBLIC: field.IS_PUBLIC,
                 IS_ACTIVE: field.IS_ACTIVE,
@@ -7451,8 +7452,8 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
 
         // Get the form fields - join with FORMS_FIELDS to get only fields that belong to this specific form
         const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, ff.IS_REQUIRED, f.IS_SENSITIVE, 
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.VALIDATION, f.HAS_LOOKUP,
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, ff.IS_REQUIRED, f.IS_SENSITIVE,
                    f.CREATE_DATE, f.UPDATE_DATE, f.ORGANIZATION_ID, ff.SORT_ORDER
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
@@ -7479,6 +7480,7 @@ app.get('/api/forms/:id', getAuthenticatedUserCompany, async (req, res) => {
                 FIELD_NAME: field.FIELD_NAME,
                 FIELD_TYPE_ID: field.FIELD_TYPE_ID,
                 DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                VALIDATION: field.VALIDATION,
                 HAS_LOOKUP: field.HAS_LOOKUP,
                 IS_PUBLIC: field.IS_PUBLIC,
                 IS_ACTIVE: field.IS_ACTIVE,
@@ -7609,13 +7611,13 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
                     const insertResult = await prisma.$queryRaw`
                         INSERT INTO GUARDIAN.FIELDS (
                             FIELD_NAME, FIELD_TYPE_ID, ORGANIZATION_ID, IS_ACTIVE, IS_DELETED, IS_PUBLIC, IS_SENSITIVE,
-                            [OPTIONS],
+                            [OPTIONS], VALIDATION,
                             CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID
                         )
                         OUTPUT INSERTED.FIELD_ID
                         VALUES (
                             ${field.fieldName}, ${field.fieldTypeId || 1}, ${req.companyId}, 1, 0, 1, 0,
-                            ${field.options || null},
+                            ${field.options || null}, ${field.VALIDATION || null},
                             GETDATE(), GETDATE(), ${req.userId}, ${req.userId}
                         )
                     `;
@@ -7665,6 +7667,7 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
                             FIELD_NAME = ${field.fieldName},
                             FIELD_TYPE_ID = ${field.fieldTypeId || 1},
                             [OPTIONS] = ${field.options || null},
+                            VALIDATION = ${field.VALIDATION || null},
                             UPDATE_DATE = GETDATE(),
                             UPDATE_USER_ID = ${req.userId}
                         WHERE FIELD_ID = ${field.dbFieldId} AND ORGANIZATION_ID = ${req.companyId}
@@ -8343,8 +8346,8 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
         console.log('📝 Fetching fields from database for company:', req.companyId);
 
         const fields = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.VALIDATION, f.HAS_LOOKUP,
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE,
                    f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
@@ -8371,6 +8374,7 @@ app.get('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             FIELD_NAME: field.FIELD_NAME,
             FIELD_TYPE_ID: field.FIELD_TYPE_ID,
             DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+            VALIDATION: field.VALIDATION,
             HAS_LOOKUP: field.HAS_LOOKUP,
             IS_PUBLIC: field.IS_PUBLIC,
             IS_ACTIVE: field.IS_ACTIVE,
@@ -8407,6 +8411,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             FIELD_NAME,
             FIELD_TYPE_ID,
             DISPLAY_FORMAT,
+            VALIDATION,
             HAS_LOOKUP,
             IS_PUBLIC,
             IS_ACTIVE,
@@ -8415,7 +8420,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
             CAN_SELECT_MULIPLE,
             SORT_ORDER
         } = req.body;
-        
+
         // Validation
         if (!FIELD_NAME || !FIELD_NAME.trim()) {
             return res.status(400).json({
@@ -8451,18 +8456,19 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
         // Insert the field and get the ID
         const insertResult = await prisma.$queryRaw`
             DECLARE @InsertedId INT;
-            
+
             INSERT INTO GUARDIAN.FIELDS (
-                FIELD_NAME, FIELD_TYPE_ID, DISPLAY_FORMAT, HAS_LOOKUP,
-                IS_PUBLIC, IS_ACTIVE, IS_REQUIRED, IS_SENSITIVE, 
+                FIELD_NAME, FIELD_TYPE_ID, DISPLAY_FORMAT, VALIDATION, HAS_LOOKUP,
+                IS_PUBLIC, IS_ACTIVE, IS_REQUIRED, IS_SENSITIVE,
                 CAN_SELECT_MULIPLE, SORT_ORDER, ORGANIZATION_ID,
-                IS_DELETED, CREATE_DATE, UPDATE_DATE, 
+                IS_DELETED, CREATE_DATE, UPDATE_DATE,
                 CREATE_USER_ID, UPDATE_USER_ID
             )
             VALUES (
                 ${FIELD_NAME.trim()},
                 ${FIELD_TYPE_ID},
                 ${DISPLAY_FORMAT || null},
+                ${VALIDATION || null},
                 ${HAS_LOOKUP || false},
                 ${IS_PUBLIC !== undefined ? IS_PUBLIC : true},
                 ${IS_ACTIVE !== undefined ? IS_ACTIVE : true},
@@ -8477,7 +8483,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                 ${req.userId},
                 ${req.userId}
             );
-            
+
             SET @InsertedId = SCOPE_IDENTITY();
             SELECT @InsertedId AS FIELD_ID;
         `;
@@ -8494,15 +8500,15 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
         
         // Get the newly created field with field type information
         const newField = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.VALIDATION, f.HAS_LOOKUP,
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE,
                    f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
             INNER JOIN GUARDIAN.FIELD_TYPE ft ON f.FIELD_TYPE_ID = ft.FIELD_TYPE_ID
             WHERE f.FIELD_ID = ${insertedId}
         `;
-        
+
         if (newField.length > 0) {
             const field = newField[0];
             const formattedField = {
@@ -8510,6 +8516,7 @@ app.post('/api/fields', getAuthenticatedUserCompany, async (req, res) => {
                 FIELD_NAME: field.FIELD_NAME,
                 FIELD_TYPE_ID: field.FIELD_TYPE_ID,
                 DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                VALIDATION: field.VALIDATION,
                 HAS_LOOKUP: field.HAS_LOOKUP,
                 IS_PUBLIC: field.IS_PUBLIC,
                 IS_ACTIVE: field.IS_ACTIVE,
@@ -8550,6 +8557,7 @@ app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) =>
             FIELD_NAME,
             FIELD_TYPE_ID,
             DISPLAY_FORMAT,
+            VALIDATION,
             HAS_LOOKUP,
             IS_PUBLIC,
             IS_ACTIVE,
@@ -8580,11 +8588,12 @@ app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) =>
 
         // Update the field
         await prisma.$executeRaw`
-            UPDATE GUARDIAN.FIELDS 
-            SET 
+            UPDATE GUARDIAN.FIELDS
+            SET
                 FIELD_NAME = ${FIELD_NAME},
                 FIELD_TYPE_ID = ${FIELD_TYPE_ID || null},
                 DISPLAY_FORMAT = ${DISPLAY_FORMAT || null},
+                VALIDATION = ${VALIDATION || null},
                 HAS_LOOKUP = ${HAS_LOOKUP || false},
                 IS_PUBLIC = ${IS_PUBLIC !== undefined ? IS_PUBLIC : true},
                 IS_ACTIVE = ${IS_ACTIVE !== undefined ? IS_ACTIVE : true},
@@ -8601,8 +8610,8 @@ app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) =>
 
         // Return the updated field
         const updatedField = await prisma.$queryRaw`
-            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.HAS_LOOKUP, 
-                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE, 
+            SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, f.DISPLAY_FORMAT, f.VALIDATION, f.HAS_LOOKUP,
+                   f.IS_PUBLIC, f.IS_ACTIVE, f.IS_DELETED, f.IS_REQUIRED, f.IS_SENSITIVE,
                    f.CAN_SELECT_MULIPLE, f.ORGANIZATION_ID, f.SORT_ORDER,
                    ft.FIELD_TYPE_DESC
             FROM GUARDIAN.FIELDS f
@@ -8617,6 +8626,7 @@ app.put('/api/fields/:fieldId', getAuthenticatedUserCompany, async (req, res) =>
                 FIELD_NAME: field.FIELD_NAME,
                 FIELD_TYPE_ID: field.FIELD_TYPE_ID,
                 DISPLAY_FORMAT: field.DISPLAY_FORMAT,
+                VALIDATION: field.VALIDATION,
                 HAS_LOOKUP: field.HAS_LOOKUP,
                 IS_PUBLIC: field.IS_PUBLIC,
                 IS_ACTIVE: field.IS_ACTIVE,
@@ -9044,15 +9054,16 @@ app.post('/api/forms', getAuthenticatedUserCompany, async (req, res) => {
                 const field = fields[i];
                 const escapedFieldName = field.FIELD_NAME.replace(/'/g, "''");
                 const escapedOptions = field.OPTIONS != null ? `'${String(field.OPTIONS).replace(/'/g, "''")}'` : 'NULL';
+                const escapedValidation = field.VALIDATION != null ? `'${String(field.VALIDATION).replace(/'/g, "''")}'` : 'NULL';
 
                 const fieldResult = await prisma.$queryRawUnsafe(`
                     INSERT INTO GUARDIAN.FIELDS (
-                        FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED, [OPTIONS],
+                        FIELD_NAME, FIELD_TYPE_ID, IS_REQUIRED, IS_ACTIVE, IS_DELETED, [OPTIONS], VALIDATION,
                         CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID, ORGANIZATION_ID
                     )
                     OUTPUT INSERTED.FIELD_ID
                     VALUES (
-                        '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, ${escapedOptions},
+                        '${escapedFieldName}', ${field.FIELD_TYPE_ID}, ${field.IS_REQUIRED ? 1 : 0}, ${field.IS_ACTIVE !== false ? 1 : 0}, 0, ${escapedOptions}, ${escapedValidation},
                         GETDATE(), GETDATE(), ${req.userId}, ${req.userId}, ${orgIdForFieldsSql}
                     )
                 `);
