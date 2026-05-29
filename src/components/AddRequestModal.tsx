@@ -13,6 +13,7 @@ import SectionedFormRenderer from './SectionedFormRenderer';
 import api from '../utils/api';
 import { requestStateManager } from '../hooks/useRequestState';
 import { isFidelitySubjectFormName } from '../utils/formIdentity';
+import { parseValidation, validateAll } from '../utils/fieldValidation';
 
 // Set the app element for accessibility
 Modal.setAppElement('#root');
@@ -46,6 +47,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
   const [loadingFields, setLoadingFields] = useState(false);
   const [priorityLevel, setPriorityLevel] = useState('Standard');
   const [fidelityValidationErrors, setFidelityValidationErrors] = useState<Set<string>>(new Set());
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draftRequestId, setDraftRequestId] = useState<number | null>(null);
   
   // Get icon for user-created templates (using a generic workflow icon)
@@ -467,7 +469,29 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
       request_status: status
     };
     setFieldValues(updatedFieldValues);
-    
+
+    // Run field-level validation before submitting (skip for Fidelity which has its own validator)
+    if (!isFidelitySubjectTemplate) {
+      const errors = validateAll(
+        templateFields
+          .filter((f: any) => f.FIELD_NAME !== 'Request Status')
+          .map((f: any) => ({
+            key: String(f.FIELD_ID),
+            rules: parseValidation(f.VALIDATION as string | null | undefined),
+            required: !!f.IS_REQUIRED,
+          })),
+        Object.fromEntries(
+          Object.entries(updatedFieldValues).map(([k, v]) => [k, String(v ?? '')])
+        ),
+      );
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        toast.error('Please fix the highlighted fields.');
+        return;
+      }
+      setFieldErrors({});
+    }
+
     // Perform the actual submission with the specific status
     try {
       setIsSubmitting(true);
@@ -648,6 +672,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
     setPriorityLevel('Standard');
     setDraftRequestId(null);
     setFidelityValidationErrors(new Set());
+    setFieldErrors({});
   };
 
   // Helper functions for input field formatting and validation
@@ -858,6 +883,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
               onChange={(id, val) => handleFieldValueChange(id, val)}
               onAutoSave={saveDraftRequestAndForm}
               validationErrors={fidelityValidationErrors}
+              fieldErrors={fieldErrors}
               requestId={draftRequestId ?? undefined}
             />
           )}
@@ -1060,6 +1086,7 @@ const AddRequestModal: React.FC<AddRequestModalProps> = ({ isOpen, onClose, onSu
                   fields={templateFields.filter(field => field.FIELD_NAME !== 'Request Status')}
                   fieldValues={fieldValues}
                   onChange={(id, val) => handleFieldValueChange(id, val)}
+                  fieldErrors={fieldErrors}
                 />
               )}
               

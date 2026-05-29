@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import '../styles/FidelitySubjectForm.css'; // reuse sw-* document classes
+import { parseValidation, maskCurrencyInput, formatCurrency } from '../utils/fieldValidation';
 
 // ── Types ─────────────────────────────────────────────────────────
 interface FormField {
@@ -19,6 +20,8 @@ interface Props {
   fieldValues: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
   readOnly?: boolean;
+  /** Per-field error messages keyed by String(FIELD_ID) */
+  fieldErrors?: Record<string, string>;
 }
 
 // ── Layout row types ──────────────────────────────────────────────
@@ -110,13 +113,16 @@ interface FieldCellProps {
   fieldValues: Record<string, string>;
   onChange: (id: string, value: string) => void;
   readOnly: boolean;
+  fieldErrors?: Record<string, string>;
 }
 
-const FieldCell: React.FC<FieldCellProps> = ({ field, fieldValues, onChange, readOnly }) => {
+const FieldCell: React.FC<FieldCellProps> = ({ field, fieldValues, onChange, readOnly, fieldErrors }) => {
   const id = String(field.FIELD_ID);
   const value = fieldValues[id] ?? '';
   const set = (v: string) => onChange(id, v);
   const isSensitive = field.IS_SENSITIVE === true;
+  const error = fieldErrors?.[id];
+  const rules = parseValidation((field as any).VALIDATION as string | null | undefined);
 
   // Label hint for sensitive fields
   const lockIcon = isSensitive ? (
@@ -126,21 +132,24 @@ const FieldCell: React.FC<FieldCellProps> = ({ field, fieldValues, onChange, rea
   // Radio field
   if (isRadioField(field)) {
     return (
-      <div className="sw-gender-group" style={{ padding: '4px 6px' }}>
-        {RADIO_OPTS.map(opt => (
-          <label key={opt} className="sw-radio-opt">
-            <input
-              type="radio"
-              name={`sfl-${id}`}
-              value={opt}
-              checked={value === opt}
-              onChange={() => !readOnly && set(opt)}
-              disabled={readOnly}
-            />
-            {opt}
-          </label>
-        ))}
-        {lockIcon}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="sw-gender-group" style={{ padding: '4px 6px' }}>
+          {RADIO_OPTS.map(opt => (
+            <label key={opt} className="sw-radio-opt">
+              <input
+                type="radio"
+                name={`sfl-${id}`}
+                value={opt}
+                checked={value === opt}
+                onChange={() => !readOnly && set(opt)}
+                disabled={readOnly}
+              />
+              {opt}
+            </label>
+          ))}
+          {lockIcon}
+        </div>
+        {error && <div className="sw-field-error" style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</div>}
       </div>
     );
   }
@@ -151,17 +160,21 @@ const FieldCell: React.FC<FieldCellProps> = ({ field, fieldValues, onChange, rea
       ? field.OPTIONS.split(',').map(o => o.trim()).filter(Boolean)
       : [];
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-        <select
-          className="sw-select"
-          value={value}
-          onChange={e => set(e.target.value)}
-          disabled={readOnly}
-        >
-          <option value="">— Select {field.FIELD_NAME} —</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        {lockIcon}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <select
+            className="sw-select"
+            value={value}
+            onChange={e => set(e.target.value)}
+            disabled={readOnly}
+            style={error ? { borderColor: '#dc2626' } : undefined}
+          >
+            <option value="">— Select {field.FIELD_NAME} —</option>
+            {options.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          {lockIcon}
+        </div>
+        {error && <div className="sw-field-error" style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</div>}
       </div>
     );
   }
@@ -177,24 +190,50 @@ const FieldCell: React.FC<FieldCellProps> = ({ field, fieldValues, onChange, rea
           onChange={e => set(e.target.value)}
           readOnly={readOnly}
           rows={4}
-          style={{ padding: '5px 6px' }}
+          style={{ padding: '5px 6px', ...(error ? { borderColor: '#dc2626' } : {}) }}
         />
+        {error && <div className="sw-field-error" style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</div>}
+      </div>
+    );
+  }
+
+  // Currency field
+  if (rules.format === 'currency') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            type="text"
+            className="sw-input"
+            value={value !== '' ? formatCurrency(value) : ''}
+            placeholder={readOnly ? '' : '$0.00'}
+            onChange={e => set(maskCurrencyInput(e.target.value))}
+            readOnly={readOnly}
+            style={error ? { borderColor: '#dc2626' } : undefined}
+          />
+          {lockIcon}
+        </div>
+        {error && <div className="sw-field-error" style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</div>}
       </div>
     );
   }
 
   // Default text / date / tel / url / email
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-      <input
-        type={getInputType(field)}
-        className="sw-input"
-        value={value}
-        placeholder={readOnly ? '' : `Enter ${field.FIELD_NAME}`}
-        onChange={e => set(e.target.value)}
-        readOnly={readOnly}
-      />
-      {lockIcon}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <input
+          type={getInputType(field)}
+          className="sw-input"
+          value={value}
+          placeholder={readOnly ? '' : `Enter ${field.FIELD_NAME}`}
+          onChange={e => set(e.target.value)}
+          readOnly={readOnly}
+          style={error ? { borderColor: '#dc2626' } : undefined}
+        />
+        {lockIcon}
+      </div>
+      {error && <div className="sw-field-error" style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</div>}
     </div>
   );
 };
@@ -217,6 +256,7 @@ const SmartFormLayout: React.FC<Props> = ({
   fieldValues,
   onChange,
   readOnly = false,
+  fieldErrors,
 }) => {
   const rows = useMemo(() => buildRows(fields), [fields]);
 
@@ -264,6 +304,7 @@ const SmartFormLayout: React.FC<Props> = ({
                   fieldValues={fieldValues}
                   onChange={onChange}
                   readOnly={readOnly}
+                  fieldErrors={fieldErrors}
                 />
               </div>
             </div>
@@ -283,6 +324,7 @@ const SmartFormLayout: React.FC<Props> = ({
                 fieldValues={fieldValues}
                 onChange={onChange}
                 readOnly={readOnly}
+                fieldErrors={fieldErrors}
               />
             </div>
             <LabelCell field={row.right} borderLeft />
@@ -292,6 +334,7 @@ const SmartFormLayout: React.FC<Props> = ({
                 fieldValues={fieldValues}
                 onChange={onChange}
                 readOnly={readOnly}
+                fieldErrors={fieldErrors}
               />
             </div>
           </div>

@@ -11,6 +11,7 @@ import { Upload, MessageSquare, CheckCircle, FileText, Send, Download, Save, X }
 import './RequestModal.css';
 import SectionedFormRenderer from './SectionedFormRenderer';
 import { isFidelitySubjectFormName } from '../utils/formIdentity';
+import { parseValidation, validateAll } from '../utils/fieldValidation';
 
 interface User {
   USER_ID: number;
@@ -124,6 +125,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
   const [isSavingForm, setIsSavingForm] = useState<boolean>(false);
   const [formHasChanges, setFormHasChanges] = useState<boolean>(false);
   const [hasPersistedFormData, setHasPersistedFormData] = useState<boolean>(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   
   // Work management state
   const [workActionLoading, setWorkActionLoading] = useState<boolean>(false);
@@ -804,6 +806,29 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
 
   // Save form data to the server
   const handleSaveFormData = async (options?: { silent?: boolean }) => {
+    // Run field-level validation on explicit (non-silent) saves for non-Fidelity forms
+    const formTemplateName = formTemplate?.name ?? '';
+    const isFidelityForm = isFidelitySubjectFormName(formTemplateName);
+    if (!options?.silent && !isFidelityForm && formFields.length > 0) {
+      const valuesSnapshot = Object.fromEntries(
+        Object.entries(currentFieldValues).map(([k, v]) => [k, String(v ?? '')])
+      );
+      const errors = validateAll(
+        formFields.map((f: any) => ({
+          key: String(f.FIELD_ID),
+          rules: parseValidation(f.VALIDATION as string | null | undefined),
+          required: !!f.IS_REQUIRED,
+        })),
+        valuesSnapshot,
+      );
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        toast.error('Please fix the highlighted fields.');
+        return;
+      }
+      setFieldErrors({});
+    }
+
     try {
       setIsSavingForm(true);
       const silent = options?.silent === true;
@@ -1534,6 +1559,7 @@ const RequestModal: React.FC<Props> = ({ request, show, onHide, onUpdate }) => {
           onAutoSave={() => handleSaveFormData({ silent: true })}
           readOnly={request.STATUS === 'C'}
           requestId={request.REQUEST_ID}
+          fieldErrors={fieldErrors}
         />
       ) : formTemplate ? (
         <div className="alert alert-info">

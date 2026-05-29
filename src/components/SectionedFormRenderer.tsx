@@ -24,6 +24,8 @@ interface Props {
   readOnly?: boolean;
   /** Set of field names that failed validation — used to highlight required fields */
   validationErrors?: Set<string>;
+  /** Per-field error messages keyed by String(FIELD_ID) — for request form validation */
+  fieldErrors?: Record<string, string>;
   /** Request ID — passed to Fidelity form for attachments + print */
   requestId?: number;
 }
@@ -36,6 +38,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
   onAutoSave,
   readOnly = false,
   validationErrors,
+  fieldErrors,
   requestId,
 }) => {
   // Fidelity-Subject gets its custom document-style layout
@@ -61,6 +64,7 @@ const SectionedFormRenderer: React.FC<Props> = ({
       fieldValues={fieldValues}
       onChange={onChange}
       readOnly={readOnly}
+      fieldErrors={fieldErrors}
     />
   );
 };
