@@ -13308,10 +13308,19 @@ app.get('/api/notices/templates', getAuthenticatedUserCompany, async (req, res) 
                 ORGANIZATION_ID,
                 COMPANY_ID,
                 CREATE_DATE
-            FROM GUARDIAN.FORMS 
-            WHERE (ORGANIZATION_ID = ${req.companyId} OR ORGANIZATION_ID IS NULL OR COMPANY_ID = ${req.companyId} OR COMPANY_ID IS NULL)
-            AND IS_DELETED = 0
+            FROM GUARDIAN.FORMS
+            WHERE IS_DELETED = 0
             AND IS_ACTIVE = 1
+            AND (
+                ORGANIZATION_ID = ${req.companyId}
+                OR COMPANY_ID = ${req.companyId}
+                OR (
+                    ORGANIZATION_ID IS NULL
+                    AND COMPANY_ID IS NULL
+                    AND IS_PUBLIC = 1
+                    AND STATUS = 'active'
+                )
+            )
             ORDER BY FORM_NAME
         `;
         
