@@ -21,7 +21,7 @@ interface FormBuilderProps {
 
 type View = 'editor' | 'preview';
 type LeftTab = 'elements' | 'tree';
-type SubTab = 'properties' | 'data' | 'layout' | 'validation' | 'conditions';
+type SubTab = 'properties' | 'data' | 'layout';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -51,7 +51,6 @@ function mkField(type: string, fieldTypeId?: number): FormField {
     options: '',
     placeholder: '',
     helpText: '',
-    validation: '',
     defaultValue: '',
     sequence: 0,
     isActive: true,
@@ -188,6 +187,8 @@ const GLOBAL_CSS = `
 .fb-plbl2{display:block;font-size:12px;font-weight:500;color:var(--fb-t2);margin-bottom:5px}
 .fb-pinp{width:100%;padding:7px 10px;border:1.5px solid var(--fb-border);border-radius:7px;font-size:13px;color:var(--fb-t);background:var(--fb-input);outline:none;font-family:inherit}
 .fb-pinp:focus{border-color:var(--fb-accent);box-shadow:0 0 0 3px var(--fb-ag)}
+.fb-valsection{margin-top:14px;border-top:1px solid var(--fb-border);padding-top:12px}
+.fb-valhdr{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--fb-t3);margin-bottom:8px}
 .fb-mono{font-family:monospace;font-size:12px}
 .fb-togrow{display:flex;align-items:center;gap:8px;cursor:pointer}
 .fb-togwrap{position:relative;width:36px;height:20px;flex-shrink:0}
@@ -418,8 +419,10 @@ function PreviewMode({ rows: previewRows }: { rows: FormField[][] }) {
 /*  PropsPanel — right panel properties editor                         */
 /* ------------------------------------------------------------------ */
 
-const VALIDATION_RULES = ['required', 'min', 'max', 'email', 'url', 'regex', 'numeric', 'alpha'];
 const OPTION_FIELD_TYPES = ['dropdown', 'select', 'radio', 'radio_button', 'checkbox', 'checkboxes'];
+
+// Field types where Format/Min/Max validation makes sense.
+const VALIDATABLE_FIELD_TYPES = ['text', 'text_input', 'textarea', 'number', 'email', 'phone', 'url', 'password'];
 
 function PropsPanel({
   field,
@@ -433,17 +436,11 @@ function PropsPanel({
   onChange: (f: FormField) => void;
 }) {
   const opts = (field.options || '').split(',').map((o) => o.trim()).filter(Boolean);
-  const valRules = (field.validation || '').split(',').map((v) => v.trim()).filter(Boolean);
-
-  const toggleValidation = (rule: string) => {
-    const next = valRules.includes(rule) ? valRules.filter((r) => r !== rule) : [...valRules, rule];
-    onChange({ ...field, validation: next.join(',') });
-  };
 
   return (
     <>
       <div className="fb-stabs">
-        {(['properties', 'data', 'layout', 'validation', 'conditions'] as SubTab[]).map((t) => (
+        {(['properties', 'data', 'layout'] as SubTab[]).map((t) => (
           <button
             key={t}
             className={`fb-stab ${subTab === t ? 'active' : ''}`}
@@ -495,6 +492,48 @@ function PropsPanel({
                 <span className="fb-toglbl">Required</span>
               </label>
             </div>
+            {VALIDATABLE_FIELD_TYPES.includes(field.fieldType) && (
+              <div className="fb-valsection">
+                <div className="fb-valhdr">Validation</div>
+                <div className="fb-prow">
+                  <label className="fb-plbl2">Format</label>
+                  <select
+                    className="fb-pinp"
+                    value={field.format || 'none'}
+                    onChange={(e) => onChange({ ...field, format: e.target.value as FormField['format'] })}
+                  >
+                    <option value="none">None</option>
+                    <option value="email">Email</option>
+                    <option value="url">Website URL</option>
+                    <option value="number">Number</option>
+                    <option value="currency">Currency ($)</option>
+                    <option value="letters">Letters only</option>
+                  </select>
+                </div>
+                <div className="fb-prow">
+                  <label className="fb-plbl2">
+                    {field.format === 'number' || field.format === 'currency' ? 'Min value' : 'Min characters'}
+                  </label>
+                  <input
+                    className="fb-pinp"
+                    type="number"
+                    value={field.min ?? ''}
+                    onChange={(e) => onChange({ ...field, min: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  />
+                </div>
+                <div className="fb-prow">
+                  <label className="fb-plbl2">
+                    {field.format === 'number' || field.format === 'currency' ? 'Max value' : 'Max characters'}
+                  </label>
+                  <input
+                    className="fb-pinp"
+                    type="number"
+                    value={field.max ?? ''}
+                    onChange={(e) => onChange({ ...field, max: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -553,27 +592,6 @@ function PropsPanel({
           </>
         )}
 
-        {subTab === 'validation' && (
-          <>
-            {VALIDATION_RULES.map((rule) => (
-              <label key={rule} className="fb-valrule">
-                <input
-                  type="checkbox"
-                  checked={valRules.includes(rule)}
-                  onChange={() => toggleValidation(rule)}
-                />
-                {rule}
-              </label>
-            ))}
-          </>
-        )}
-
-        {subTab === 'conditions' && (
-          <>
-            <button className="fb-stubbtn">+ Add condition</button>
-            <p className="fb-muted">No conditions</p>
-          </>
-        )}
       </div>
     </>
   );
@@ -630,6 +648,9 @@ function FieldPreview({ field }: { field: FormField }) {
     case 'date_time':
       return <input className="fb-fi" type="datetime-local" readOnly />;
     default:
+      if (field.format === 'currency') {
+        return <input className="fb-fi" type="text" placeholder="$0.00" readOnly />;
+      }
       return <input className="fb-fi" type="text" placeholder={field.placeholder || ''} readOnly />;
   }
 }
