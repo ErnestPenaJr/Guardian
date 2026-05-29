@@ -1503,9 +1503,15 @@ const FidelitySubjectFormLayout: React.FC<Props> = ({
     }
   };
 
-  /** Returns true when the field identified by name carries format=currency in its VALIDATION JSON */
-  const isCurrencyField = (name: string): boolean =>
-    parseValidation((fm.get(name.trim().toLowerCase()) as any)?.VALIDATION).format === 'currency';
+  /** Field names that are unconditionally treated as currency regardless of DB VALIDATION. */
+  const ALWAYS_CURRENCY_FIELDS = new Set(['dollar loss amount']);
+
+  /** Returns true when the field is a known currency field OR its DB VALIDATION JSON specifies format=currency. */
+  const isCurrencyField = (name: string): boolean => {
+    const key = name.trim().toLowerCase();
+    if (ALWAYS_CURRENCY_FIELDS.has(key)) return true;
+    return parseValidation((fm.get(key) as any)?.VALIDATION).format === 'currency';
+  };
 
   const set = (name: string, v: string) => {
     const f = getF(name);
