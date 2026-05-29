@@ -10,21 +10,6 @@ const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
-// Helper function to generate military call signs
-const generateCallSign = (): string => {
-  const callSignPrefixes = [
-    'GUARDIAN', 'SHIELD', 'DRAGON', 'PHOENIX', 'EAGLE', 'FALCON', 'WARRIOR',
-    'THUNDER', 'LIGHTNING', 'STORM', 'BLADE', 'STEEL', 'IRON', 'TITAN',
-    'VIPER', 'HAWK', 'RAVEN', 'WOLF', 'BEAR', 'LION', 'KNIGHT', 'SABER',
-    'GHOST', 'SHADOW', 'RANGER', 'SCOUT', 'HUNTER', 'ARCHER', 'SNIPER'
-  ];
-  
-  const randomPrefix = callSignPrefixes[Math.floor(Math.random() * callSignPrefixes.length)];
-  const randomNumber = Math.floor(Math.random() * 90) + 10; // Generate 2-digit number (10-99)
-  
-  return `${randomPrefix}-${randomNumber}`;
-};
-
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -181,12 +166,6 @@ const VerifyEmail = () => {
       if (response.data.success) {
         showToast.success('Email verified successfully!');
         setVerificationComplete(true);
-        
-        // Pre-populate workspace field with generated call sign when verification is complete
-        if (!formData.workspace) {
-          const generatedCallSign = generateCallSign();
-          setFormData(prev => ({ ...prev, workspace: generatedCallSign }));
-        }
       } else {
         setError(response.data.error || 'Verification failed.');
       }
@@ -288,8 +267,7 @@ const VerifyEmail = () => {
       const response = await axios.post('/api/complete-registration', payload);
       if (response.data.success) {
         // Show simple success toast and redirect to login
-        const callSign = response.data.callSign || 'GUARDIAN-XX';
-        showToast.success(`Registration completed! Welcome to ${callSign}. Please sign in to continue.`);
+        showToast.success(`Registration completed! Welcome to ${formData.workspace}. Please sign in to continue.`);
         
         // Clear registration data from localStorage
         localStorage.removeItem('registrationData');
@@ -626,7 +604,7 @@ const VerifyEmail = () => {
         
         <div>
           <label htmlFor="workspace" className="block text-body-sm font-medium text-gray-1 mb-2">
-            Workspace
+            Workspace <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -634,13 +612,12 @@ const VerifyEmail = () => {
             value={formData.workspace}
             onChange={(e) => setFormData({ ...formData, workspace: e.target.value })}
             placeholder="Your organization/workspace name"
+            required
             className="w-full px-4 py-3 border border-gray-5 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
             style={{ borderRadius: '6px' }}
           />
           <p className="text-gray-2 text-body-sm mt-1">
-            {formData.workspace && formData.workspace.match(/^[A-Z]+-\d{2}$/) 
-              ? 'Pre-generated call sign - you can modify this or use as-is (changeable later in settings)' 
-              : 'Enter a unique name for your workspace (you can change this later in settings)'}
+            Enter a unique name for your workspace (you can change this later in settings)
           </p>
         </div>
         

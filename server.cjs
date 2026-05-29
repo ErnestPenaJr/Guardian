@@ -10080,16 +10080,16 @@ app.post('/api/complete-registration', async (req, res) => {
         console.log(`🔍 DEBUG - customWorkspaceName type: ${typeof customWorkspaceName}`);
         console.log(`🔍 DEBUG - customWorkspaceName truthy: ${!!customWorkspaceName}`);
 
-        // Use custom workspace name if provided, otherwise auto-generate military call sign
-        const workspaceName = customWorkspaceName || await generateMilitaryCallSign();
-        console.log(`🎖️ Using workspace name: "${workspaceName}" ${customWorkspaceName ? '(custom)' : '(auto-generated)'}`);
+        // Require a user-provided workspace name (no auto-generation)
+        const workspaceName = (customWorkspaceName || '').trim();
+        console.log(`🏢 Using workspace name: "${workspaceName}"`);
 
-        // Validate required fields (workspaceName now auto-generated)
+        // Validate required fields (workspace name must be provided by the user)
         console.log(`✅ Field validation - email: ${!!email}, password: ${!!password}, fullName: ${!!fullName}, workspaceName: ${!!workspaceName}`);
-        if (!email || !password || !fullName) {
+        if (!email || !password || !fullName || !workspaceName) {
             console.log(`❌ Missing required fields for complete-registration`);
             return res.status(400).json({
-                error: 'Email, password, and full name are required'
+                error: 'Email, password, full name, and workspace name are required'
             });
         }
 
