@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { parseValidation } from './fieldValidation';
+import { parseValidation, serializeValidation } from './fieldValidation';
 import { maskCurrencyInput, parseCurrency, formatCurrency } from './fieldValidation';
 import { validateField, validateAll } from './fieldValidation';
 
@@ -71,5 +71,33 @@ describe('validateAll', () => {
     ];
     const values: Record<string, string> = { '1': 'bad', '2': '' };
     expect(validateAll(fields, values)).toEqual({ '1': 'Enter a valid email address.' });
+  });
+});
+
+describe('hardening', () => {
+  it('url rejects numeric TLD and bare words, accepts plain domains', () => {
+    expect(validateField('ver.10', { format: 'url' }, false)).toBe('Enter a valid web address (URL).');
+    expect(validateField('nope', { format: 'url' }, false)).toBe('Enter a valid web address (URL).');
+    expect(validateField('google.com', { format: 'url' }, false)).toBeNull();
+    expect(validateField('https://x.com/path', { format: 'url' }, false)).toBeNull();
+  });
+  it('email rejects single-char TLD', () => {
+    expect(validateField('a@b.c', { format: 'email' }, false)).toBe('Enter a valid email address.');
+  });
+  it('mask normalizes a leading dot', () => {
+    expect(maskCurrencyInput('.45')).toBe('0.45');
+  });
+  it('parseCurrency collapses multiple dots', () => {
+    expect(parseCurrency('$1.2.3')).toBe('1.23');
+  });
+  it('number format rejects scientific notation and non-numbers', () => {
+    expect(validateField('1e308', { format: 'number' }, false)).toBe('Enter a valid number.');
+    expect(validateField('abc', { format: 'number' }, false)).toBe('Enter a valid number.');
+    expect(validateField('5', { format: 'number' }, false)).toBeNull();
+    expect(validateField('-3.5', { format: 'number' }, false)).toBeNull();
+  });
+  it('serialize/parse round-trip', () => {
+    expect(parseValidation(serializeValidation({ format: 'currency', min: 0, max: 100 }))).toEqual({ format: 'currency', min: 0, max: 100 });
+    expect(serializeValidation({ format: 'none' })).toBeNull();
   });
 });

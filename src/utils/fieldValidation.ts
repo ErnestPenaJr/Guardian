@@ -41,13 +41,18 @@ export function maskCurrencyInput(raw: string): string {
     const [int, dec = ''] = s.split('.');
     s = int + '.' + dec.slice(0, 2);
   }
+  if (s.startsWith('.')) s = '0' + s;
   return s;
 }
 
 // "$1,234.50" -> "1234.50" (value to store)
 export function parseCurrency(display: string): string {
   if (!display) return '';
-  const s = String(display).replace(/[^0-9.]/g, '');
+  let s = String(display).replace(/[^0-9.]/g, '');
+  const firstDot = s.indexOf('.');
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+  }
   return s;
 }
 
@@ -61,8 +66,8 @@ export function formatCurrency(raw: string): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const URL_RE = /^(https?:\/\/)?[^\s.]+\.[^\s]{2,}$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const URL_RE = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
 const LETTERS_RE = /^[A-Za-z\s]+$/;
 
 export function validateField(value: string, rules: FieldRules, required: boolean): string | null {
@@ -81,6 +86,7 @@ export function validateField(value: string, rules: FieldRules, required: boolea
       break;
     case 'number':
     case 'currency': {
+      if (rules.format === 'number' && !/^-?\d*\.?\d+$/.test(v)) return 'Enter a valid number.';
       const n = Number(rules.format === 'currency' ? parseCurrency(v) : v);
       if (Number.isNaN(n)) return rules.format === 'currency' ? 'Enter a valid amount.' : 'Enter a valid number.';
       if (typeof rules.min === 'number' && n < rules.min)
