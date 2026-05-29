@@ -7732,6 +7732,61 @@ app.put('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
     }
 });
 
+// JAFAR-only: Publish a global template (draft → active or inactive → active).
+// Refuses to no-op an already-active global (returns 409 instead). Audits via
+// the standard GLOBAL_TEMPLATE_MODIFIED event with detail.action='publish'.
+app.put('/api/forms/:id/publish', getAuthenticatedUserCompany, async (req, res) => {
+    try {
+        const formId = parseInt(req.params.id);
+        if (!formId || isNaN(formId)) {
+            return res.status(400).json({ error: 'Valid form ID is required' });
+        }
+
+        const targetRow = await prisma.$queryRaw`
+            SELECT FORM_ID, FORM_NAME, ORGANIZATION_ID, COMPANY_ID, IS_PUBLIC, IS_DELETED, STATUS
+            FROM GUARDIAN.FORMS
+            WHERE FORM_ID = ${formId}
+        `;
+
+        if (!targetRow.length || targetRow[0].IS_DELETED) {
+            return res.status(404).json({ error: 'Form not found' });
+        }
+
+        const target = targetRow[0];
+        if (!isGlobalForm(target)) {
+            return res.status(403).json({ error: 'Publish action is only valid on global templates' });
+        }
+        if (!isJafarActor(req)) {
+            return res.status(403).json({ error: 'JAFAR access required to publish global templates' });
+        }
+        if (target.STATUS === 'active') {
+            return res.status(409).json({ error: 'Already published', currentStatus: target.STATUS });
+        }
+
+        await prisma.$executeRawUnsafe(
+            `UPDATE GUARDIAN.FORMS
+             SET STATUS = 'active', IS_ACTIVE = 1, UPDATE_DATE = GETDATE(), UPDATE_USER_ID = @P1
+             WHERE FORM_ID = @P2`,
+            req.userId,
+            formId
+        );
+
+        await __writeGlobalTemplateAudit({
+            eventType: GLOBAL_AUDIT_EVENTS.MODIFIED,
+            actorUserId: actorUserId(req),
+            actorRoleId: 6,
+            formId,
+            companyId: null,
+            detail: { action: 'publish', prevStatus: target.STATUS, newStatus: 'active', formName: target.FORM_NAME },
+        });
+
+        res.json({ FORM_ID: formId, STATUS: 'active', IS_ACTIVE: true });
+    } catch (error) {
+        console.error('❌ Error publishing global form:', error);
+        res.status(500).json({ error: 'Failed to publish global template', message: error.message });
+    }
+});
+
 // Get specific form by ID (alternative endpoint for compatibility)
 app.get('/api/forms/:formId', getAuthenticatedUserCompany, async (req, res) => {
     try {

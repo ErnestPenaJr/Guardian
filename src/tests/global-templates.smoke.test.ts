@@ -497,6 +497,61 @@ const main = async () => {
       console.log('\n⚠️  Skipping Case 11 (cross-company isolation) — TEST_ADMIN_EMAIL/PASSWORD and/or TEST_ADMIN_B_EMAIL/PASSWORD not set');
     }
 
+  // ===== Publish/Unpublish lifecycle (this plan) =====
+
+  // Case 13: JAFAR can publish a draft global; audit row written with action=publish.
+  console.log('\n🚀 Case 13: JAFAR PUT /api/forms/:id/publish');
+  const draftRes = await fetch(`${API_BASE}/api/forms`, {
+    method: 'POST',
+    headers: authed(jafarToken),
+    body: JSON.stringify({
+      form: { FORM_NAME: `Publish Smoke ${Date.now()}`, TEMPLATE_TYPE: 'request', IS_GLOBAL: true },
+      fields: [],
+    }),
+  });
+  const draftBody = await draftRes.json() as { form?: { FORM_ID?: number } };
+  const draftFormId = draftBody?.form?.FORM_ID;
+  assert('Created draft global for publish', typeof draftFormId === 'number' && draftFormId > 0, { draftFormId });
+
+  if (typeof draftFormId === 'number' && draftFormId > 0) {
+    createdGlobalIds.push(draftFormId);
+
+    // Sanity: confirm the just-created row is STATUS='draft'
+    const draftRow = await prisma.$queryRawUnsafe<{ STATUS: string | null; IS_ACTIVE: boolean | number }[]>(
+      `SELECT STATUS, IS_ACTIVE FROM GUARDIAN.FORMS WHERE FORM_ID = @P1`, draftFormId);
+    assert('New global has STATUS=draft', draftRow[0]?.STATUS === 'draft', { row: draftRow[0] });
+    assert('New global has IS_ACTIVE=true', draftRow[0]?.IS_ACTIVE === true || draftRow[0]?.IS_ACTIVE === 1, { row: draftRow[0] });
+
+    const pubRes = await fetch(`${API_BASE}/api/forms/${draftFormId}/publish`, {
+      method: 'PUT',
+      headers: authed(jafarToken),
+    });
+    assert('JAFAR publish returns 200', pubRes.status === 200, { status: pubRes.status });
+
+    // Round-trip: confirm DB row was actually updated
+    const afterPub = await prisma.$queryRawUnsafe<{ STATUS: string | null; IS_ACTIVE: boolean | number }[]>(
+      `SELECT STATUS, IS_ACTIVE FROM GUARDIAN.FORMS WHERE FORM_ID = @P1`, draftFormId);
+    assert('Published global now STATUS=active', afterPub[0]?.STATUS === 'active', { row: afterPub[0] });
+
+    const pubAudit = await prisma.$queryRawUnsafe<{ EVENT_DETAIL: string | null }[]>(
+      `SELECT TOP 1 EVENT_DETAIL FROM GUARDIAN.AUDIT_LOG
+       WHERE EVENT_TYPE = 'GLOBAL_TEMPLATE_MODIFIED' AND TARGET_ID = @P1
+       ORDER BY ENTRY_ID DESC`,
+      String(draftFormId)
+    );
+    assert('Publish audit row exists', pubAudit.length === 1, { pubAudit });
+    const pubDetail = pubAudit[0]?.EVENT_DETAIL ? JSON.parse(pubAudit[0].EVENT_DETAIL) : {};
+    assert('Publish audit detail.action = publish', pubDetail.action === 'publish', { pubDetail });
+
+    // Case 17: republishing an already-published global → 409
+    console.log('\n🚫 Case 17: re-publish already-active global → 409');
+    const dupePubRes = await fetch(`${API_BASE}/api/forms/${draftFormId}/publish`, {
+      method: 'PUT',
+      headers: authed(jafarToken),
+    });
+    assert('Republishing returns 409', dupePubRes.status === 409, { status: dupePubRes.status });
+  }
+
   } finally {
     // -------------------------------------------------------------------------
     // Cleanup: soft-delete the created form so the test is idempotent.
