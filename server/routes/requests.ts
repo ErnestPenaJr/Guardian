@@ -1305,8 +1305,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
 import { Resend } from 'resend';
 
 // Get Resend configuration from environment variables
-const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY;
+// SMTP_PASSWORD holds the Resend API key (see .env.example); RESEND_API_KEY is the canonical name
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://shieldlytics.com/logo.png';
 
 // Initialize Resend client if API key is available
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
@@ -1377,8 +1379,8 @@ router.post('/:id/assign', async (req: Request, res: Response) => {
           }
         }
         
-        // Get the application URL from environment or use a default
-        const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || `${req.protocol}://${req.get('host')}`;
+        // Get the application URL from environment — FRONTEND_URL is the canonical var (see .env.example)
+        const appUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
         const requestUrl = `${appUrl}/requests/${requestId}`;
         
         const { data, error } = await resend.emails.send({
@@ -1388,7 +1390,7 @@ router.post('/:id/assign', async (req: Request, res: Response) => {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="text-align: center; margin-bottom: 20px;">
-                <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height:40px;">
+                <img src="${EMAIL_LOGO_URL}" alt="Shieldlytics" style="height:40px;">
               </div>
               <h2 style="color: #333;">Request Assignment Notification</h2>
               <p>Hello,</p>

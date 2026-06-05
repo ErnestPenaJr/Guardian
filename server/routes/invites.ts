@@ -9,8 +9,9 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Initialize Resend client
-const RESEND_API_KEY = process.env.SMTP_PASSWORD;
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://shieldlytics.com/logo.png';
 const resend = new Resend(RESEND_API_KEY);
 
 // GET /api/invites - Get all invites for admin's company
@@ -103,7 +104,7 @@ router.post('/send', requireAuth, isAdmin, async (req, res) => {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
               <div style="text-align: center; margin-bottom: 20px;">
-                <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height:40px;">
+                <img src="${EMAIL_LOGO_URL}" alt="Shieldlytics" style="height:40px;">
               </div>
               <h2 style="color: #333;">You have been invited to Guardian!</h2>
               <p>Hello,</p>

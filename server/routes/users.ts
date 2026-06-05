@@ -25,8 +25,9 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Initialize Resend client
-const RESEND_API_KEY = process.env.SMTP_PASSWORD;
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://shieldlytics.com/logo.png';
 const resend = new Resend(RESEND_API_KEY);
 
 // Create a new user (admin only)
@@ -144,10 +145,10 @@ router.post('/', requireAuth, isAdmin, async (req, res) => {
         console.error('[ADD USER] Error fetching role:', roleErr);
       }
       
-      // Create login URL
-      const loginUrl = process.env.NODE_ENV === 'production' 
-        ? `${req.protocol}://${req.get('host')}` 
-        : 'http://localhost:5175';
+      // Create login URL — use FRONTEND_URL when set, fall back to request host in production or dev default
+      const loginUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production'
+        ? `${req.protocol}://${req.get('host')}`
+        : 'http://localhost:5175');
       
       // Only try to send email if Resend is configured
       if (resend) {
@@ -159,7 +160,7 @@ router.post('/', requireAuth, isAdmin, async (req, res) => {
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height: 38px; margin-bottom: 18px;">
+                  <img src="${EMAIL_LOGO_URL}" alt="Shieldlytics" style="height: 38px; margin-bottom: 18px;">
                 </div>
                 <h2 style="color: #333; text-align: center;">Welcome to ${companyName} on Guardian!</h2>
                 

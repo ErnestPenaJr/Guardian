@@ -55,8 +55,11 @@ const join = path.join;
 
 // Load environment variables
 // Configure Resend email service
-const RESEND_API_KEY = process.env.SMTP_PASSWORD; // Using SMTP_PASSWORD from .env which contains Resend API key
+// RESEND_API_KEY is the canonical name; SMTP_PASSWORD is the legacy alias kept for backward-compat (see .env.example)
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+// Admin email for server-error notifications (optional — omit to suppress error emails)
+const ERROR_NOTIFY_EMAIL = process.env.ERROR_NOTIFY_EMAIL || '';
 console.log('[RESEND] Email service initialized');
 console.log('[RESEND] From email:', EMAIL_FROM);
 
@@ -85,7 +88,7 @@ async function captureServerError(error: Error, context: {
     // Send error email
     await resend.emails.send({
       from: `Guardian Server Error <${EMAIL_FROM}>`,
-      to: 'ernest@shieldlytics.com',
+      to: ERROR_NOTIFY_EMAIL || EMAIL_FROM,
       subject: `🚨 Server Error - ${context.endpoint || 'Unknown Endpoint'}`,
       html: `
 <!DOCTYPE html>
@@ -1476,5 +1479,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Access the application at: http://localhost:${PORT}`);
-  console.log(`🚨 Global error capture system is active - errors will be emailed to ernest@shieldlytics.com`);
+  console.log(`Global error capture system is active - errors will be emailed to ${ERROR_NOTIFY_EMAIL || EMAIL_FROM}`);
 });

@@ -18,6 +18,8 @@
 # environment variables
 .env
 .env.*
+# .env.example contains no secrets and must be committed
+!.env.example
 
 # misc
 .DS_Store
