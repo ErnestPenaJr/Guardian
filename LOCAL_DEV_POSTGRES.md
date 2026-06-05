@@ -122,6 +122,14 @@ against the existing schema. **Never run `prisma migrate` or `prisma db push`
 against the local Postgres instance.** Schema changes are managed via the SQL
 migration files in `postgres/` and `migrations/`.
 
+A normal `npm install` generates the client automatically (via `postinstall`).
+If you installed with `--ignore-scripts` (or `tsc` reports
+`@prisma/client has no exported member 'PrismaClient'`), generate it manually:
+
+```bash
+npx prisma generate
+```
+
 ### Legacy SQL Server flow is unchanged
 
 `npm run server:dev` still starts `server.cjs` against the Azure SQL Server
