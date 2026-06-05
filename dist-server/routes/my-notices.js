@@ -37,7 +37,8 @@ function sanitizeHtmlForEmail(html) {
         .replace(/on\w+\s*=\s*"[^"]*"/gi, "")
         .replace(/on\w+\s*=\s*'[^']*'/gi, "");
 }
-const RESEND_API_KEY = process.env.SMTP_PASSWORD; // Using SMTP_PASSWORD from .env which contains Resend API key
+// RESEND_API_KEY is the canonical name; SMTP_PASSWORD is the legacy alias (see .env.example)
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || "support@shieldlytics.com";
 const resend = new Resend(RESEND_API_KEY);
 const NoticeSchema = z.object({

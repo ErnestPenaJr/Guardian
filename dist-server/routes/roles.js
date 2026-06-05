@@ -10,7 +10,8 @@ const roleInputSchema = z.object({
     name: z.string().min(1, 'Role name is required'),
     displayName: z.string().min(1, 'Display name is required'),
     description: z.string().optional(),
-    permissions: z.array(z.number()).default([]),
+    // PG ROLE_PERMISSIONS uses PERMISSION_KEY (string); accept both for backward compat
+    permissions: z.array(z.union([z.string(), z.number()])).default([]),
 });
 // Get all roles (non-admin)
 router.get('/all', async (req, res) => {
@@ -119,18 +120,18 @@ router.get('/:id', async (req, res) => {
         if (!role) {
             return res.status(404).json({ message: 'Role not found' });
         }
-        // Get role permissions
+        // Get role permissions (PG: PERMISSION_KEY + GRANTED boolean, no PERMISSION_ID/STATUS)
         const rolePermissions = await prisma.$queryRaw `
-      SELECT PERMISSION_ID FROM ROLE_PERMISSIONS 
-      WHERE ROLE_ID = ${roleId} AND STATUS = 'A'
+      SELECT "PERMISSION_KEY" FROM "GUARDIAN"."ROLE_PERMISSIONS"
+      WHERE "ROLE_ID" = ${roleId} AND "GRANTED" = true
     `;
         res.json({
             id: role.ROLE_ID,
             name: role.NAME,
             displayName: role.DISPLAY_NAME,
             description: role.DESCRIPTION,
-            // Using type assertion since rolePermissions is of type unknown
-            permissions: rolePermissions.map((p) => p.PERMISSION_ID),
+            // PG ROLE_PERMISSIONS uses PERMISSION_KEY (string) not PERMISSION_ID (int)
+            permissions: rolePermissions.map((p) => p.PERMISSION_KEY),
         });
     }
     catch (error) {
@@ -162,19 +163,19 @@ router.post('/', isAdmin, async (req, res) => {
                 UPDATE_DATE: new Date(),
             }
         });
-        // Add role permissions
+        // Add role permissions (PG: PERMISSION_KEY string + GRANTED boolean, no PERMISSION_ID/STATUS)
+        // NOTE: API-shape change — permissions array is now strings (PERMISSION_KEY) not ints (PERMISSION_ID)
         if (roleData.permissions.length > 0) {
-            const permissionInserts = roleData.permissions.map(permissionId => ({
+            const permissionInserts = roleData.permissions.map(permissionKey => ({
                 ROLE_ID: role.ROLE_ID,
-                PERMISSION_ID: permissionId,
-                STATUS: 'A',
-                CREATE_USER_ID: req.user?.id || null,
+                PERMISSION_KEY: String(permissionKey),
                 CREATE_DATE: new Date(),
                 UPDATE_DATE: new Date(),
             }));
             await prisma.$transaction(permissionInserts.map(data => prisma.$executeRaw `
-            INSERT INTO ROLE_PERMISSIONS (ROLE_ID, PERMISSION_ID, STATUS, CREATE_USER_ID, CREATE_DATE, UPDATE_DATE)
-            VALUES (${data.ROLE_ID}, ${data.PERMISSION_ID}, ${data.STATUS}, ${data.CREATE_USER_ID}, ${data.CREATE_DATE}, ${data.UPDATE_DATE})
+            INSERT INTO "GUARDIAN"."ROLE_PERMISSIONS" ("ROLE_ID", "PERMISSION_KEY", "GRANTED", "CREATE_DATE", "UPDATE_DATE")
+            VALUES (${data.ROLE_ID}, ${data.PERMISSION_KEY}, true, ${data.CREATE_DATE}, ${data.UPDATE_DATE})
+            ON CONFLICT ON CONSTRAINT "UX_RP_ROLE_KEY_COMPANY" DO UPDATE SET "GRANTED" = true, "UPDATE_DATE" = ${data.UPDATE_DATE}
           `));
         }
         res.status(201).json({
@@ -221,25 +222,25 @@ router.put('/:id', isAdmin, async (req, res) => {
                 UPDATE_DATE: new Date(),
             }
         });
-        // Update role permissions - first delete existing ones
+        // Update role permissions — hard-revoke all current grants, then re-insert
+        // PG schema: GRANTED boolean (no STATUS column); delete rows to "revoke"
         await prisma.$executeRaw `
-      UPDATE ROLE_PERMISSIONS
-      SET STATUS = 'D', UPDATE_USER_ID = ${req.user?.id || null}, UPDATE_DATE = ${new Date()}
-      WHERE ROLE_ID = ${roleId}
+      DELETE FROM "GUARDIAN"."ROLE_PERMISSIONS"
+      WHERE "ROLE_ID" = ${roleId}
     `;
-        // Then add new permissions
+        // Then add new permissions (PG: PERMISSION_KEY string + GRANTED boolean)
+        // NOTE: API-shape change — permissions array is now strings (PERMISSION_KEY) not ints (PERMISSION_ID)
         if (roleData.permissions.length > 0) {
-            const permissionInserts = roleData.permissions.map(permissionId => ({
+            const permissionInserts = roleData.permissions.map(permissionKey => ({
                 ROLE_ID: roleId,
-                PERMISSION_ID: permissionId,
-                STATUS: 'A',
-                CREATE_USER_ID: req.user?.id || null,
+                PERMISSION_KEY: String(permissionKey),
                 CREATE_DATE: new Date(),
                 UPDATE_DATE: new Date(),
             }));
             await prisma.$transaction(permissionInserts.map(data => prisma.$executeRaw `
-            INSERT INTO ROLE_PERMISSIONS (ROLE_ID, PERMISSION_ID, STATUS, CREATE_USER_ID, CREATE_DATE, UPDATE_DATE)
-            VALUES (${data.ROLE_ID}, ${data.PERMISSION_ID}, ${data.STATUS}, ${data.CREATE_USER_ID}, ${data.CREATE_DATE}, ${data.UPDATE_DATE})
+            INSERT INTO "GUARDIAN"."ROLE_PERMISSIONS" ("ROLE_ID", "PERMISSION_KEY", "GRANTED", "CREATE_DATE", "UPDATE_DATE")
+            VALUES (${data.ROLE_ID}, ${data.PERMISSION_KEY}, true, ${data.CREATE_DATE}, ${data.UPDATE_DATE})
+            ON CONFLICT ON CONSTRAINT "UX_RP_ROLE_KEY_COMPANY" DO UPDATE SET "GRANTED" = true, "UPDATE_DATE" = ${data.UPDATE_DATE}
           `));
         }
         res.json({
@@ -281,11 +282,10 @@ router.delete('/:id', isAdmin, async (req, res) => {
                 UPDATE_DATE: new Date(),
             }
         });
-        // Soft delete role permissions
+        // Remove role permissions (PG has no STATUS column — delete rows outright)
         await prisma.$executeRaw `
-      UPDATE ROLE_PERMISSIONS
-      SET STATUS = 'D', UPDATE_USER_ID = ${req.user?.id || null}, UPDATE_DATE = ${new Date()}
-      WHERE ROLE_ID = ${roleId}
+      DELETE FROM "GUARDIAN"."ROLE_PERMISSIONS"
+      WHERE "ROLE_ID" = ${roleId}
     `;
         res.json({ message: 'Role deleted successfully' });
     }

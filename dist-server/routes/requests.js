@@ -13,7 +13,9 @@ const attachmentUpload = multer({
 // Database schema name - this is the only fixed constant
 const DB_SCHEMA = 'GUARDIAN';
 const escapeSqlValue = (value) => value.replace(/'/g, "''");
-const getRequestCompanyClause = (companyId) => companyId > 0 ? ` AND COMPANY_ID = ${companyId}` : '';
+// Allow-list of valid STATUS values derived from CK_REQUEST_STATUS CHECK constraint.
+const VALID_REQUEST_STATUS = ['R', 'H', 'X', 'I', 'D', 'A', 'P'];
+const getRequestCompanyClause = (companyId) => companyId > 0 ? ` AND "COMPANY_ID" = ${companyId}` : '';
 const SUBJECT_PHOTO_FIELD_NAME = 'subject photo image';
 const PHOTO_REF_PREFIX = 'photo_ref:';
 const SUBJECT_PHOTO_FILE_PREFIX = '__subject_photo__::';
@@ -85,18 +87,19 @@ async function resolveFormInstanceIdForRequest(requestData) {
         : '';
     const createDateValue = requestData.CREATE_DATE
         ? `'${new Date(requestData.CREATE_DATE).toISOString().slice(0, 19).replace('T', ' ')}'`
-        : 'GETDATE()';
+        : 'now()';
     const rows = await prisma.$queryRawUnsafe(`
-    SELECT TOP 1 fi.FORM_INSTANCE_ID
-    FROM GUARDIAN.FORMS_INSTANCE fi
-    WHERE fi.FORM_ID = ${requestData.FORM_ID}
+    SELECT fi."FORM_INSTANCE_ID"
+    FROM "GUARDIAN"."FORMS_INSTANCE" fi
+    WHERE fi."FORM_ID" = ${requestData.FORM_ID}
       ${companyIdClause}
       ${userIdClause}
     ORDER BY
-      CASE WHEN fi.CREATE_USER_ID = ${requestData.CREATE_USER_ID || 0} THEN 0 ELSE 1 END,
-      CASE WHEN fi.ASSIGNED_ID = ${requestData.REQUESTOR_ID || 0} THEN 0 ELSE 1 END,
-      ABS(DATEDIFF(SECOND, fi.CREATE_DATE, ${createDateValue})) ASC,
-      fi.FORM_INSTANCE_ID ASC
+      CASE WHEN fi."CREATE_USER_ID" = ${requestData.CREATE_USER_ID || 0} THEN 0 ELSE 1 END,
+      CASE WHEN fi."ASSIGNED_ID" = ${requestData.REQUESTOR_ID || 0} THEN 0 ELSE 1 END,
+      ABS(EXTRACT(EPOCH FROM (fi."CREATE_DATE" - ${createDateValue}::timestamp))) ASC,
+      fi."FORM_INSTANCE_ID" ASC
+    LIMIT 1
   `);
     return rows.length > 0 ? rows[0].FORM_INSTANCE_ID : null;
 }
@@ -105,14 +108,15 @@ async function getSubjectPhotoAttachmentIdForRequest(requestData) {
     if (!formInstanceId)
         return null;
     const rows = await prisma.$queryRawUnsafe(`
-    SELECT TOP 1 fiv.VALUE
-    FROM GUARDIAN.FORMS_INSTANCE_VALUES fiv
-    JOIN GUARDIAN.FIELDS f
-      ON f.FIELD_ID = fiv.FIELD_ID
-    WHERE fiv.FORM_INSTANCE_ID = ${formInstanceId}
-      AND LOWER(LTRIM(RTRIM(f.FIELD_NAME))) = '${SUBJECT_PHOTO_FIELD_NAME}'
-      AND fiv.VALUE LIKE '${PHOTO_REF_PREFIX}%'
-    ORDER BY fiv.UPDATE_DATE DESC
+    SELECT fiv."VALUE"
+    FROM "GUARDIAN"."FORMS_INSTANCE_VALUES" fiv
+    JOIN "GUARDIAN"."FIELDS" f
+      ON f."FIELD_ID" = fiv."FIELD_ID"
+    WHERE fiv."FORM_INSTANCE_ID" = ${formInstanceId}
+      AND LOWER(TRIM(f."FIELD_NAME")) = '${SUBJECT_PHOTO_FIELD_NAME}'
+      AND fiv."VALUE" LIKE '${PHOTO_REF_PREFIX}%'
+    ORDER BY fiv."UPDATE_DATE" DESC
+    LIMIT 1
   `);
     if (!rows.length || !rows[0].VALUE?.startsWith(PHOTO_REF_PREFIX)) {
         return null;
@@ -291,70 +295,60 @@ router.post('/sql-request', async (req, res) => {
         // Use a transaction to ensure both operations succeed or fail together
         const result = await prisma.$transaction(async (tx) => {
             try {
-                // Step 1: Create a request using raw SQL
-                await tx.$executeRawUnsafe(`
-            INSERT INTO GUARDIAN.REQUESTS (
-              REQUEST_NAME, 
-              REQUEST_DESCRIPTION, 
-              ABBREVIATION, 
-              STATUS, 
-              SUBMITTED_DATE, 
-              CREATE_USER_ID,
-              UPDATE_USER_ID, 
-              CREATE_DATE, 
-              UPDATE_DATE,
-              COMPANY_ID,
-              FORM_ID,
-              REQUESTOR_ID
+                // Step 1: Create a request using INSERT...RETURNING to atomically retrieve the new ID
+                const idResult = await tx.$queryRawUnsafe(`
+            INSERT INTO "GUARDIAN"."REQUESTS" (
+              "REQUEST_NAME",
+              "REQUEST_DESCRIPTION",
+              "ABBREVIATION",
+              "STATUS",
+              "SUBMITTED_DATE",
+              "CREATE_USER_ID",
+              "UPDATE_USER_ID",
+              "CREATE_DATE",
+              "UPDATE_DATE",
+              "COMPANY_ID",
+              "FORM_ID",
+              "REQUESTOR_ID"
             ) VALUES (
               '${name.replace(/'/g, "''")}',
               '${description.replace(/'/g, "''")}',
               '${abbreviation.replace(/'/g, "''")}',
               '${userInfo.status}',
-              GETDATE(),
+              now(),
               ${numericUserId},
               ${numericUserId},
-              GETDATE(),
-              GETDATE(),
+              now(),
+              now(),
               ${numericCompanyId},
               ${numericTemplateId},
               ${numericUserId}
-            )
-          `);
-                // Get the newly created request ID using SCOPE_IDENTITY() for reliability
-                const idResult = await tx.$queryRawUnsafe(`
-            SELECT TOP 1 REQUEST_ID FROM GUARDIAN.REQUESTS 
-            WHERE REQUEST_ID = SCOPE_IDENTITY()
+            ) RETURNING "REQUEST_ID"
           `);
                 const requestId = Array.isArray(idResult) && idResult.length > 0
-                    ? idResult[0].REQUEST_ID
+                    ? Number(idResult[0].REQUEST_ID)
                     : 0;
                 console.log('Created request with ID:', requestId);
-                // Step 2: Create a form instance using raw SQL
-                await tx.$executeRawUnsafe(`
-            INSERT INTO GUARDIAN.FORMS_INSTANCE (
-              FORM_ID,
-              ASSIGNED_ID,
-              SUBMITTED_DATE,
-              UPDATE_USER_ID,
-              CREATE_DATE,
-              UPDATE_DATE
+                // Step 2: Create a form instance using INSERT...RETURNING to atomically retrieve the new ID
+                const formIdResult = await tx.$queryRawUnsafe(`
+            INSERT INTO "GUARDIAN"."FORMS_INSTANCE" (
+              "FORM_ID",
+              "ASSIGNED_ID",
+              "SUBMITTED_DATE",
+              "UPDATE_USER_ID",
+              "CREATE_DATE",
+              "UPDATE_DATE"
             ) VALUES (
               ${numericTemplateId},
               ${numericUserId},
-              GETDATE(),
+              now(),
               ${numericUserId},
-              GETDATE(),
-              GETDATE()
-            )
-          `);
-                // Get the newly created form instance using SCOPE_IDENTITY() for reliability
-                const formIdResult = await tx.$queryRawUnsafe(`
-            SELECT TOP 1 FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-            WHERE FORM_INSTANCE_ID = SCOPE_IDENTITY()
+              now(),
+              now()
+            ) RETURNING "FORM_INSTANCE_ID"
           `);
                 const formInstanceId = Array.isArray(formIdResult) && formIdResult.length > 0
-                    ? formIdResult[0].FORM_INSTANCE_ID
+                    ? Number(formIdResult[0].FORM_INSTANCE_ID)
                     : 0;
                 console.log('Created form instance with ID:', formInstanceId);
                 return {
@@ -425,64 +419,54 @@ router.post('/simple-request', async (req, res) => {
         }
         // Use a transaction to ensure both operations succeed or fail together
         const result = await prisma.$transaction(async (tx) => {
-            // Step 1: Create a request using raw SQL
-            await tx.$executeRaw `
-          INSERT INTO GUARDIAN.REQUESTS (
-            REQUEST_NAME, 
-            COMPANY_ID, 
-            STATUS, 
-            SUBMITTED_DATE, 
-            UPDATE_USER_ID, 
-            CREATE_DATE, 
-            UPDATE_DATE,
-            ABBREVIATION,
-            FORM_ID
+            // Step 1: Create a request using INSERT...RETURNING to atomically retrieve the new ID
+            const requestResults = await tx.$queryRaw `
+          INSERT INTO "GUARDIAN"."REQUESTS" (
+            "REQUEST_NAME",
+            "COMPANY_ID",
+            "STATUS",
+            "SUBMITTED_DATE",
+            "UPDATE_USER_ID",
+            "CREATE_DATE",
+            "UPDATE_DATE",
+            "ABBREVIATION",
+            "FORM_ID"
           ) VALUES (
             ${name},
             ${numericCompanyId},
             ${userInfo.status},
-            GETDATE(),
+            now(),
             ${numericUserId},
-            GETDATE(),
-            GETDATE(),
+            now(),
+            now(),
             ${abbreviation},
             ${numericTemplateId}
-          )
-        `;
-            // Get the newly created request ID using SCOPE_IDENTITY() for reliability
-            const requestResults = await tx.$queryRaw `
-          SELECT TOP 1 REQUEST_ID FROM GUARDIAN.REQUESTS 
-          WHERE REQUEST_ID = SCOPE_IDENTITY()
+          ) RETURNING "REQUEST_ID"
         `;
             const requestId = Array.isArray(requestResults) && requestResults.length > 0
-                ? requestResults[0].REQUEST_ID
+                ? Number(requestResults[0].REQUEST_ID)
                 : 0;
             console.log('Created request with ID:', requestId);
-            // Step 2: Create a form instance using raw SQL
-            await tx.$executeRaw `
-          INSERT INTO GUARDIAN.FORMS_INSTANCE (
-            FORM_ID,
-            ASSIGNED_ID,
-            SUBMITTED_DATE,
-            UPDATE_USER_ID,
-            CREATE_DATE,
-            UPDATE_DATE
+            // Step 2: Create a form instance using INSERT...RETURNING to atomically retrieve the new ID
+            const formInstanceResults = await tx.$queryRaw `
+          INSERT INTO "GUARDIAN"."FORMS_INSTANCE" (
+            "FORM_ID",
+            "ASSIGNED_ID",
+            "SUBMITTED_DATE",
+            "UPDATE_USER_ID",
+            "CREATE_DATE",
+            "UPDATE_DATE"
           ) VALUES (
             ${numericTemplateId},
             ${numericUserId},
-            GETDATE(),
+            now(),
             ${numericUserId},
-            GETDATE(),
-            GETDATE()
-          )
-        `;
-            // Get the newly created form instance using SCOPE_IDENTITY() for reliability
-            const formInstanceResults = await tx.$queryRaw `
-          SELECT TOP 1 FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-          WHERE FORM_INSTANCE_ID = SCOPE_IDENTITY()
+            now(),
+            now()
+          ) RETURNING "FORM_INSTANCE_ID"
         `;
             const formInstanceId = Array.isArray(formInstanceResults) && formInstanceResults.length > 0
-                ? formInstanceResults[0].FORM_INSTANCE_ID
+                ? Number(formInstanceResults[0].FORM_INSTANCE_ID)
                 : 0;
             console.log('Created form instance with ID:', formInstanceId);
             return {
@@ -619,121 +603,42 @@ router.post('/debug/requests', async (req, res) => {
                 // First execute the insert
                 console.log('Executing INSERT operation...');
                 const insertQuery = `
-            INSERT INTO GUARDIAN.REQUESTS (
-              REQUEST_NAME,
-              REQUEST_DESCRIPTION,
-              ABBREVIATION,
-              STATUS,
-              SUBMITTED_DATE,
-              CREATE_USER_ID,
-              UPDATE_USER_ID,
-              CREATE_DATE,
-              UPDATE_DATE,
-              COMPANY_ID,
-              FORM_ID,
-              REQUESTOR_ID
+            INSERT INTO "GUARDIAN"."REQUESTS" (
+              "REQUEST_NAME",
+              "REQUEST_DESCRIPTION",
+              "ABBREVIATION",
+              "STATUS",
+              "SUBMITTED_DATE",
+              "CREATE_USER_ID",
+              "UPDATE_USER_ID",
+              "CREATE_DATE",
+              "UPDATE_DATE",
+              "COMPANY_ID",
+              "FORM_ID",
+              "REQUESTOR_ID"
             ) VALUES (
               '${name.replace(/'/g, "''")}',
               '${description.replace(/'/g, "''")}',
               '${abbreviation.replace(/'/g, "''")}',
               'P',
-              GETDATE(),
+              now(),
               ${numericUserId},
               ${numericUserId},
-              GETDATE(),
-              GETDATE(),
+              now(),
+              now(),
               ${numericCompanyId},
               ${numericTemplateId || 'NULL'},
               ${numericUserId}
             )`;
-                console.log('Insert query:', insertQuery);
-                await tx.$executeRawUnsafe(insertQuery);
+                // Use INSERT...RETURNING to atomically retrieve the inserted REQUEST_ID
+                const insertQueryWithReturning = insertQuery + ' RETURNING "REQUEST_ID"';
+                console.log('Insert query (with RETURNING):', insertQueryWithReturning);
+                const insertResult = await tx.$queryRawUnsafe(insertQueryWithReturning);
                 console.log('INSERT operation completed successfully');
-                // Try multiple approaches to get the request ID
-                try {
-                    console.log('Attempting to get request ID using SCOPE_IDENTITY()...');
-                    const scopeIdQuery = "SELECT SCOPE_IDENTITY() AS REQUEST_ID;";
-                    console.log('SCOPE_IDENTITY query:', scopeIdQuery);
-                    const scopeIdResult = await tx.$queryRawUnsafe(scopeIdQuery);
-                    console.log('SCOPE_IDENTITY result type:', typeof scopeIdResult);
-                    console.log('SCOPE_IDENTITY result:', JSON.stringify(scopeIdResult));
-                    if (scopeIdResult && Array.isArray(scopeIdResult) && scopeIdResult.length > 0) {
-                        console.log('First item in result:', JSON.stringify(scopeIdResult[0]));
-                        if (scopeIdResult[0].REQUEST_ID !== null && scopeIdResult[0].REQUEST_ID !== undefined) {
-                            requestId = Number(scopeIdResult[0].REQUEST_ID);
-                            console.log('Successfully retrieved request ID using SCOPE_IDENTITY():', requestId);
-                        }
-                        else {
-                            console.log('REQUEST_ID property missing or null in SCOPE_IDENTITY result');
-                        }
-                    }
-                    else {
-                        console.log('SCOPE_IDENTITY result is not a valid array or is empty');
-                    }
-                }
-                catch (scopeIdError) {
-                    console.error('Error retrieving ID with SCOPE_IDENTITY():', scopeIdError);
-                }
-                // If SCOPE_IDENTITY failed, try alternative approach
-                if (requestId === 0) {
-                    try {
-                        console.log('Trying alternative query to get request ID...');
-                        const alternativeQuery = `
-                SELECT TOP 1 REQUEST_ID 
-                FROM GUARDIAN.REQUESTS 
-                WHERE CREATE_USER_ID = ${numericUserId}
-                AND REQUEST_NAME = '${name.replace(/'/g, "''")}' 
-                ORDER BY CREATE_DATE DESC`;
-                        console.log('Alternative query:', alternativeQuery);
-                        const requestResult = await tx.$queryRawUnsafe(alternativeQuery);
-                        console.log('Alternative query result type:', typeof requestResult);
-                        console.log('Alternative query result:', JSON.stringify(requestResult));
-                        if (requestResult && Array.isArray(requestResult) && requestResult.length > 0) {
-                            if (requestResult[0].REQUEST_ID !== null && requestResult[0].REQUEST_ID !== undefined) {
-                                requestId = Number(requestResult[0].REQUEST_ID);
-                                console.log('Successfully retrieved request ID using alternative query:', requestId);
-                            }
-                            else {
-                                console.log('REQUEST_ID property missing or null in alternative query result');
-                            }
-                        }
-                        else {
-                            console.log('Alternative query result is not a valid array or is empty');
-                        }
-                    }
-                    catch (alternativeError) {
-                        console.error('Error retrieving ID with alternative query:', alternativeError);
-                    }
-                }
-                // Last resort if all else failed
-                if (requestId === 0) {
-                    try {
-                        console.log('Trying last resort query to get request ID...');
-                        const lastResortQuery = `
-                SELECT TOP 1 REQUEST_ID 
-                FROM GUARDIAN.REQUESTS 
-                WHERE CREATE_USER_ID = ${numericUserId}
-                ORDER BY CREATE_DATE DESC`;
-                        console.log('Last resort query:', lastResortQuery);
-                        const lastResortResult = await tx.$queryRawUnsafe(lastResortQuery);
-                        console.log('Last resort query result type:', typeof lastResortResult);
-                        console.log('Last resort query result:', JSON.stringify(lastResortResult));
-                        if (lastResortResult && Array.isArray(lastResortResult) && lastResortResult.length > 0) {
-                            if (lastResortResult[0].REQUEST_ID !== null && lastResortResult[0].REQUEST_ID !== undefined) {
-                                requestId = Number(lastResortResult[0].REQUEST_ID);
-                                console.log('Successfully retrieved request ID using last resort query:', requestId);
-                            }
-                            else {
-                                console.log('REQUEST_ID property missing or null in last resort query result');
-                            }
-                        }
-                        else {
-                            console.log('Last resort query result is not a valid array or is empty');
-                        }
-                    }
-                    catch (lastResortError) {
-                        console.error('Error retrieving ID with last resort query:', lastResortError);
-                    }
+                if (insertResult && Array.isArray(insertResult) && insertResult.length > 0 &&
+                    insertResult[0].REQUEST_ID !== null && insertResult[0].REQUEST_ID !== undefined) {
+                    requestId = Number(insertResult[0].REQUEST_ID);
+                    console.log('Successfully retrieved request ID via RETURNING:', requestId);
                 }
             }
             catch (insertError) {
@@ -741,55 +646,33 @@ router.post('/debug/requests', async (req, res) => {
                 const errorMessage = insertError instanceof Error ? insertError.message : 'Unknown error';
                 throw new Error(`Failed to create request: ${errorMessage}`);
             }
-            // If we couldn't get the request ID, attempt a fallback query
             if (requestId === 0) {
-                console.warn('Failed to retrieve request ID after creation, attempting fallback query');
-                const fallbackQuery = `
-            SELECT TOP 1 REQUEST_ID FROM GUARDIAN.REQUESTS
-            WHERE CREATE_USER_ID = ${numericUserId}
-              AND REQUEST_NAME = '${name.replace(/'/g, "''")}'
-            ORDER BY CREATE_DATE DESC
-          `;
-                const fallbackResult = await tx.$queryRawUnsafe(fallbackQuery);
-                if (fallbackResult && Array.isArray(fallbackResult) && fallbackResult.length > 0 && fallbackResult[0].REQUEST_ID) {
-                    requestId = fallbackResult[0].REQUEST_ID;
-                }
-                else {
-                    throw new Error('Failed to retrieve request ID after fallback query');
-                }
+                throw new Error('Failed to retrieve request ID after creation');
             }
-            // Step 2: Create a form instance for this request
+            // Step 2: Create a form instance for this request using INSERT...RETURNING
             console.log('Creating form instance for request...');
             let formInstanceId = 0;
             try {
-                // Insert the form instance
                 const insertFormQuery = `
-            INSERT INTO GUARDIAN.FORMS_INSTANCE (
-              FORM_ID,
-              ASSIGNED_ID,
-              SUBMITTED_DATE,
-              CREATE_USER_ID,
-              UPDATE_USER_ID,
-              CREATE_DATE,
-              UPDATE_DATE
+            INSERT INTO "GUARDIAN"."FORMS_INSTANCE" (
+              "FORM_ID",
+              "ASSIGNED_ID",
+              "SUBMITTED_DATE",
+              "CREATE_USER_ID",
+              "UPDATE_USER_ID",
+              "CREATE_DATE",
+              "UPDATE_DATE"
             ) VALUES (
               ${numericTemplateId},
               ${numericUserId},
-              GETDATE(),
+              now(),
               ${numericUserId},
               ${numericUserId},
-              GETDATE(),
-              GETDATE()
-            )`;
+              now(),
+              now()
+            ) RETURNING "FORM_INSTANCE_ID"`;
                 console.log('Form instance insert query:', insertFormQuery);
-                await tx.$executeRawUnsafe(insertFormQuery);
-                // Get the newly created form instance
-                const selectFormQuery = `
-            SELECT TOP 1 FORM_INSTANCE_ID FROM GUARDIAN.FORMS_INSTANCE 
-            WHERE FORM_ID = ${numericTemplateId} AND CREATE_USER_ID = ${numericUserId}
-            ORDER BY CREATE_DATE DESC`;
-                console.log('Form instance select query:', selectFormQuery);
-                const formInstanceResults = await tx.$queryRawUnsafe(selectFormQuery);
+                const formInstanceResults = await tx.$queryRawUnsafe(insertFormQuery);
                 if (formInstanceResults && Array.isArray(formInstanceResults) && formInstanceResults.length > 0) {
                     formInstanceId = Number(formInstanceResults[0].FORM_INSTANCE_ID);
                     console.log('Created form instance with ID:', formInstanceId);
@@ -924,21 +807,21 @@ router.post('/', async (req, res) => {
         const result = await prisma.$transaction(async (tx) => {
             // Create the request directly without template validation
             const currentDate = new Date();
-            // Step 1: Create the request using raw SQL for consistency with schema
-            await tx.$executeRaw `
-          INSERT INTO GUARDIAN.REQUESTS (
-            REQUEST_NAME, 
-            COMPANY_ID, 
-            STATUS, 
-            SUBMITTED_DATE, 
-            CREATE_USER_ID,
-            UPDATE_USER_ID, 
-            CREATE_DATE, 
-            UPDATE_DATE,
-            ABBREVIATION,
-            FORM_ID,
-            REQUESTOR_ID,
-            REQUEST_DESCRIPTION
+            // Step 1: Create the request using INSERT...RETURNING to atomically retrieve the new ID
+            const requestResults = await tx.$queryRaw `
+          INSERT INTO "GUARDIAN"."REQUESTS" (
+            "REQUEST_NAME",
+            "COMPANY_ID",
+            "STATUS",
+            "SUBMITTED_DATE",
+            "CREATE_USER_ID",
+            "UPDATE_USER_ID",
+            "CREATE_DATE",
+            "UPDATE_DATE",
+            "ABBREVIATION",
+            "FORM_ID",
+            "REQUESTOR_ID",
+            "REQUEST_DESCRIPTION"
           ) VALUES (
             ${name},
             ${numericCompanyId},
@@ -952,12 +835,7 @@ router.post('/', async (req, res) => {
             ${numericTemplateId},
             ${numericUserId},
             ${description}
-          )
-        `;
-            // Step 2: Get the newly created request with SCOPE_IDENTITY() to get the exact inserted ID
-            const requestResults = await tx.$queryRaw `
-          SELECT TOP 1 * FROM GUARDIAN.REQUESTS 
-          WHERE REQUEST_ID = SCOPE_IDENTITY()
+          ) RETURNING *
         `;
             // Extract the request from the results
             const request = Array.isArray(requestResults) && requestResults.length > 0
@@ -966,23 +844,7 @@ router.post('/', async (req, res) => {
             console.log('Created request:', request);
             console.log('[REQUEST CREATION] Stored FORM_ID in database:', request.FORM_ID);
             // Get the request ID for linking to form instance
-            let requestId = request.REQUEST_ID;
-            if (!requestId) {
-                console.warn('Failed to retrieve request ID after creation, attempting fallback query');
-                const fallbackQuery = `
-            SELECT TOP 1 REQUEST_ID FROM GUARDIAN.REQUESTS
-            WHERE CREATE_USER_ID = ${numericUserId}
-              AND REQUEST_NAME = '${name.replace(/'/g, "''")}'
-            ORDER BY CREATE_DATE DESC
-          `;
-                const fallbackResult = await tx.$queryRawUnsafe(fallbackQuery);
-                if (fallbackResult && Array.isArray(fallbackResult) && fallbackResult.length > 0 && fallbackResult[0].REQUEST_ID) {
-                    requestId = fallbackResult[0].REQUEST_ID;
-                }
-                else {
-                    throw new Error('Failed to retrieve request ID after fallback query');
-                }
-            }
+            const requestId = request.REQUEST_ID;
             if (!requestId) {
                 throw new Error('Failed to retrieve request ID after creation');
             }
@@ -1045,38 +907,39 @@ router.get('/', async (req, res) => {
         // Get query parameters for filtering
         const { status, type, assignedTo, requestorId, limit } = req.query;
         // Build the WHERE clause dynamically
-        let whereClause = "WHERE r.STATUS <> 'D'";
-        // Add status filter if provided
-        if (status) {
-            whereClause += ` AND r.STATUS = '${status}'`;
+        let whereClause = `WHERE r."STATUS" <> 'D'`;
+        // Add status filter if provided — validated against allow-list to prevent injection.
+        if (status && VALID_REQUEST_STATUS.includes(String(status))) {
+            whereClause += ` AND r."STATUS" = '${escapeSqlValue(String(status))}'`;
         }
-        // Add type filter if provided
-        if (type) {
-            whereClause += ` AND r.REQUEST_TYPE = '${type}'`;
-        }
+        // NOTE: REQUEST_TYPE column does not exist in GUARDIAN.REQUESTS — type filter removed.
         // Add assigned user filter if provided
         if (assignedTo) {
-            whereClause += ` AND r.ASSIGNED_ID = ${assignedTo}`;
+            whereClause += ` AND r."ASSIGNED_ID" = ${assignedTo}`;
         }
         // Add requestor filter if provided
         if (requestorId) {
-            whereClause += ` AND r.REQUESTOR_ID = ${requestorId}`;
+            whereClause += ` AND r."REQUESTOR_ID" = ${requestorId}`;
         }
-        // Determine limit clause
-        const limitClause = limit ? `TOP ${limit}` : '';
+        // Determine limit clause — coerce to safe integer to prevent injection.
+        const safeLimit = limit !== undefined
+            ? (Number.isFinite(Number(limit)) ? Math.min(Math.max(parseInt(String(limit), 10), 1), 1000) : 100)
+            : null;
+        const limitClause = safeLimit !== null ? `LIMIT ${safeLimit}` : '';
         // Use raw SQL query with the dynamic WHERE clause and LEFT JOINs to get user details
         const query = `
-        SELECT ${limitClause} 
+        SELECT
           r.*,
-          requestor.FIRST_NAME as requestor_first_name,
-          requestor.LAST_NAME as requestor_last_name,
-          assigned.FIRST_NAME as assigned_first_name,
-          assigned.LAST_NAME as assigned_last_name
-        FROM GUARDIAN.REQUESTS r
-        LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
-        LEFT JOIN GUARDIAN.USERS assigned ON r.ASSIGNED_ID = assigned.USER_ID
-        ${whereClause} 
-        ORDER BY r.CREATE_DATE DESC
+          requestor."FIRST_NAME" as requestor_first_name,
+          requestor."LAST_NAME" as requestor_last_name,
+          assigned."FIRST_NAME" as assigned_first_name,
+          assigned."LAST_NAME" as assigned_last_name
+        FROM "GUARDIAN"."REQUESTS" r
+        LEFT JOIN "GUARDIAN"."USERS" requestor ON r."REQUESTOR_ID" = requestor."USER_ID"
+        LEFT JOIN "GUARDIAN"."USERS" assigned ON r."ASSIGNED_ID" = assigned."USER_ID"
+        ${whereClause}
+        ORDER BY r."CREATE_DATE" DESC
+        ${limitClause}
       `;
         console.log('Executing query:', query);
         const rawRequests = await prisma.$queryRawUnsafe(query);
@@ -1129,9 +992,9 @@ router.get('/:id', async (req, res) => {
     try {
         // Use raw SQL query to get a specific request
         const requests = await prisma.$queryRaw `
-        SELECT * FROM GUARDIAN.REQUESTS 
-        WHERE REQUEST_ID = ${requestId} 
-        AND STATUS <> 'D'
+        SELECT * FROM "GUARDIAN"."REQUESTS"
+        WHERE "REQUEST_ID" = ${requestId}
+        AND "STATUS" <> 'D'
       `;
         const request = Array.isArray(requests) && requests.length > 0 ? requests[0] : null;
         if (!request) {
@@ -1153,43 +1016,43 @@ router.put('/:id', async (req, res) => {
         // Use individual update statements for each field that needs to be updated
         // Update the timestamp first
         await prisma.$executeRaw `
-        UPDATE REQUESTS SET UPDATE_DATE = ${currentDate} 
-        WHERE REQUEST_ID = ${requestId}
+        UPDATE "GUARDIAN"."REQUESTS" SET "UPDATE_DATE" = ${currentDate}
+        WHERE "REQUEST_ID" = ${requestId}
       `;
         // Update each field individually if provided
         if (name) {
             await prisma.$executeRaw `
-          UPDATE REQUESTS SET REQUEST_NAME = ${name} 
-          WHERE REQUEST_ID = ${requestId}
+          UPDATE "GUARDIAN"."REQUESTS" SET "REQUEST_NAME" = ${name}
+          WHERE "REQUEST_ID" = ${requestId}
         `;
         }
         if (abbreviation) {
             await prisma.$executeRaw `
-          UPDATE REQUESTS SET ABBREVIATION = ${abbreviation} 
-          WHERE REQUEST_ID = ${requestId}
+          UPDATE "GUARDIAN"."REQUESTS" SET "ABBREVIATION" = ${abbreviation}
+          WHERE "REQUEST_ID" = ${requestId}
         `;
         }
         if (description) {
             await prisma.$executeRaw `
-          UPDATE REQUESTS SET TRACKINGID = ${description} 
-          WHERE REQUEST_ID = ${requestId}
+          UPDATE "GUARDIAN"."REQUESTS" SET "TRACKINGID" = ${description}
+          WHERE "REQUEST_ID" = ${requestId}
         `;
         }
         if (status) {
             await prisma.$executeRaw `
-          UPDATE REQUESTS SET STATUS = ${status} 
-          WHERE REQUEST_ID = ${requestId}
+          UPDATE "GUARDIAN"."REQUESTS" SET "STATUS" = ${status}
+          WHERE "REQUEST_ID" = ${requestId}
         `;
         }
         if (assignedId) {
             await prisma.$executeRaw `
-          UPDATE REQUESTS SET ASSIGNED_ID = ${assignedId} 
-          WHERE REQUEST_ID = ${requestId}
+          UPDATE "GUARDIAN"."REQUESTS" SET "ASSIGNED_ID" = ${assignedId}
+          WHERE "REQUEST_ID" = ${requestId}
         `;
         }
         // Get the updated request
         const requests = await prisma.$queryRaw `
-        SELECT * FROM REQUESTS WHERE REQUEST_ID = ${requestId}
+        SELECT * FROM "GUARDIAN"."REQUESTS" WHERE "REQUEST_ID" = ${requestId}
       `;
         const request = Array.isArray(requests) && requests.length > 0 ? requests[0] : null;
         if (!request) {
@@ -1210,9 +1073,9 @@ router.delete('/:id', async (req, res) => {
     }
     try {
         const updatedRows = await prisma.$executeRawUnsafe(`
-      UPDATE ${DB_SCHEMA}.REQUESTS
-      SET STATUS = 'D', UPDATE_DATE = GETDATE()
-      WHERE REQUEST_ID = ${requestId}
+      UPDATE "GUARDIAN"."REQUESTS"
+      SET "STATUS" = 'D', "UPDATE_DATE" = now()
+      WHERE "REQUEST_ID" = ${requestId}
     `);
         if (!updatedRows) {
             return res.status(404).json({ error: 'Request not found' });
@@ -1226,8 +1089,10 @@ router.delete('/:id', async (req, res) => {
 });
 import { Resend } from 'resend';
 // Get Resend configuration from environment variables
-const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY;
+// SMTP_PASSWORD holds the Resend API key (see .env.example); RESEND_API_KEY is the canonical name
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://shieldlytics.com/logo.png';
 // Initialize Resend client if API key is available
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 // Assign a request to a user
@@ -1252,22 +1117,22 @@ router.post('/:id/assign', async (req, res) => {
         const currentDate = new Date();
         // Update the request in the database
         await prisma.$executeRawUnsafe(`
-      UPDATE GUARDIAN.REQUESTS 
-      SET ASSIGNED_ID = ${assignedUserId},
-          UPDATE_USER_ID = ${updatedById},
-          UPDATE_DATE = GETDATE()
-      WHERE REQUEST_ID = ${requestId}
+      UPDATE "GUARDIAN"."REQUESTS"
+      SET "ASSIGNED_ID" = ${assignedUserId},
+          "UPDATE_USER_ID" = ${updatedById},
+          "UPDATE_DATE" = now()
+      WHERE "REQUEST_ID" = ${requestId}
     `);
         // Get the updated request to return
         const updatedRequest = await prisma.$queryRawUnsafe(`
-      SELECT r.*, 
-        u1.FIRST_NAME + ' ' + u1.LAST_NAME as REQUESTOR_NAME,
-        u2.FIRST_NAME + ' ' + u2.LAST_NAME as ASSIGNED_TO_NAME,
-        u2.EMAIL as ASSIGNED_USER_EMAIL
-      FROM GUARDIAN.REQUESTS r
-      LEFT JOIN GUARDIAN.USERS u1 ON r.REQUESTOR_ID = u1.USER_ID
-      LEFT JOIN GUARDIAN.USERS u2 ON r.ASSIGNED_ID = u2.USER_ID
-      WHERE r.REQUEST_ID = ${requestId}
+      SELECT r.*,
+        u1."FIRST_NAME" || ' ' || u1."LAST_NAME" as "REQUESTOR_NAME",
+        u2."FIRST_NAME" || ' ' || u2."LAST_NAME" as "ASSIGNED_TO_NAME",
+        u2."EMAIL" as "ASSIGNED_USER_EMAIL"
+      FROM "GUARDIAN"."REQUESTS" r
+      LEFT JOIN "GUARDIAN"."USERS" u1 ON r."REQUESTOR_ID" = u1."USER_ID"
+      LEFT JOIN "GUARDIAN"."USERS" u2 ON r."ASSIGNED_ID" = u2."USER_ID"
+      WHERE r."REQUEST_ID" = ${requestId}
     `);
         // Send notification email to assigned user if Resend is configured
         const request = updatedRequest[0];
@@ -1287,8 +1152,8 @@ router.post('/:id/assign', async (req, res) => {
                         assignerName = `${user.FIRST_NAME} ${user.LAST_NAME}`;
                     }
                 }
-                // Get the application URL from environment or use a default
-                const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || `${req.protocol}://${req.get('host')}`;
+                // Get the application URL from environment — FRONTEND_URL is the canonical var (see .env.example)
+                const appUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
                 const requestUrl = `${appUrl}/requests/${requestId}`;
                 const { data, error } = await resend.emails.send({
                     from: `Shieldlytics <${EMAIL_FROM}>`,
@@ -1297,7 +1162,7 @@ router.post('/:id/assign', async (req, res) => {
                     html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="text-align: center; margin-bottom: 20px;">
-                <img src="https://shieldlytics.com/logo.png" alt="Shieldlytics" style="height:40px;">
+                <img src="${EMAIL_LOGO_URL}" alt="Shieldlytics" style="height:40px;">
               </div>
               <h2 style="color: #333;">Request Assignment Notification</h2>
               <p>Hello,</p>
@@ -1362,21 +1227,21 @@ router.post('/:id/start', async (req, res) => {
         }
         // Check if request exists and is assigned to current user
         const request = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GUARDIAN.REQUESTS 
-      WHERE REQUEST_ID = ${requestId} 
-      AND ASSIGNED_ID = ${userInfo.userId}
-      AND STATUS = 'P'
+      SELECT * FROM "GUARDIAN"."REQUESTS"
+      WHERE "REQUEST_ID" = ${requestId}
+      AND "ASSIGNED_ID" = ${userInfo.userId}
+      AND "STATUS" = 'P'
     `);
         if (!request || request.length === 0) {
             return res.status(404).json({ error: 'Request not found or not assigned to you' });
         }
         // Update status to In Progress (A)
         await prisma.$executeRawUnsafe(`
-      UPDATE GUARDIAN.REQUESTS 
-      SET STATUS = 'A',
-          UPDATE_USER_ID = ${userInfo.userId},
-          UPDATE_DATE = GETDATE()
-      WHERE REQUEST_ID = ${requestId}
+      UPDATE "GUARDIAN"."REQUESTS"
+      SET "STATUS" = 'A',
+          "UPDATE_USER_ID" = ${userInfo.userId},
+          "UPDATE_DATE" = now()
+      WHERE "REQUEST_ID" = ${requestId}
     `);
         res.json({ message: 'Request fulfillment started', requestId });
     }
@@ -1398,30 +1263,30 @@ router.post('/:id/complete', async (req, res) => {
         }
         // Check if request exists and is assigned to current user
         const request = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GUARDIAN.REQUESTS 
-      WHERE REQUEST_ID = ${requestId} 
-      AND ASSIGNED_ID = ${userInfo.userId}
-      AND STATUS = 'A'
+      SELECT * FROM "GUARDIAN"."REQUESTS"
+      WHERE "REQUEST_ID" = ${requestId}
+      AND "ASSIGNED_ID" = ${userInfo.userId}
+      AND "STATUS" = 'A'
     `);
         if (!request || request.length === 0) {
             return res.status(404).json({ error: 'Request not found or not in progress' });
         }
         // Update status to Completed (C)
         await prisma.$executeRawUnsafe(`
-      UPDATE GUARDIAN.REQUESTS 
-      SET STATUS = 'C',
-          UPDATE_USER_ID = ${userInfo.userId},
-          UPDATE_DATE = GETDATE(),
-          TRACKINGID = COALESCE(TRACKINGID, '') + CHAR(13) + CHAR(10) + 'Completed: ' + '${completionNotes || 'No notes provided'}'
-      WHERE REQUEST_ID = ${requestId}
+      UPDATE "GUARDIAN"."REQUESTS"
+      SET "STATUS" = 'C',
+          "UPDATE_USER_ID" = ${userInfo.userId},
+          "UPDATE_DATE" = now(),
+          "TRACKINGID" = COALESCE("TRACKINGID", '') || chr(13) || chr(10) || 'Completed: ' || '${escapeSqlValue(completionNotes || 'No notes provided')}'
+      WHERE "REQUEST_ID" = ${requestId}
     `);
         // Send notification email to requestor if available
         if (resend && request[0].REQUESTOR_ID) {
             try {
                 const requestorQuery = await prisma.$queryRawUnsafe(`
-          SELECT EMAIL, FIRST_NAME, LAST_NAME 
-          FROM GUARDIAN.USERS 
-          WHERE USER_ID = ${request[0].REQUESTOR_ID}
+          SELECT "EMAIL", "FIRST_NAME", "LAST_NAME"
+          FROM "GUARDIAN"."USERS"
+          WHERE "USER_ID" = ${request[0].REQUESTOR_ID}
         `);
                 if (requestorQuery.length > 0) {
                     const requestor = requestorQuery[0];
@@ -1464,19 +1329,20 @@ router.get('/assigned/me', async (req, res) => {
     try {
         const userInfo = getUserInfoFromRequest(req);
         const { status } = req.query;
-        let whereClause = `WHERE r.ASSIGNED_ID = ${userInfo.userId} AND r.STATUS <> 'D'`;
-        if (status) {
-            whereClause += ` AND r.STATUS = '${status}'`;
+        let whereClause = `WHERE r."ASSIGNED_ID" = ${userInfo.userId} AND r."STATUS" <> 'D'`;
+        // Validate status against allow-list to prevent injection.
+        if (status && VALID_REQUEST_STATUS.includes(String(status))) {
+            whereClause += ` AND r."STATUS" = '${escapeSqlValue(String(status))}'`;
         }
         const requests = await prisma.$queryRawUnsafe(`
-      SELECT r.*, 
-        requestor.FIRST_NAME as requestor_first_name,
-        requestor.LAST_NAME as requestor_last_name,
-        requestor.EMAIL as requestor_email
-      FROM GUARDIAN.REQUESTS r
-      LEFT JOIN GUARDIAN.USERS requestor ON r.REQUESTOR_ID = requestor.USER_ID
+      SELECT r.*,
+        requestor."FIRST_NAME" as requestor_first_name,
+        requestor."LAST_NAME" as requestor_last_name,
+        requestor."EMAIL" as requestor_email
+      FROM "GUARDIAN"."REQUESTS" r
+      LEFT JOIN "GUARDIAN"."USERS" requestor ON r."REQUESTOR_ID" = requestor."USER_ID"
       ${whereClause}
-      ORDER BY r.CREATE_DATE DESC
+      ORDER BY r."CREATE_DATE" DESC
     `);
         // Transform the results
         const transformedRequests = requests.map((req) => ({
@@ -1507,10 +1373,10 @@ router.put('/:id/progress', async (req, res) => {
         }
         // Check if request exists and is assigned to current user
         const request = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GUARDIAN.REQUESTS 
-      WHERE REQUEST_ID = ${requestId} 
-      AND ASSIGNED_ID = ${userInfo.userId}
-      AND STATUS IN ('P', 'A')
+      SELECT * FROM "GUARDIAN"."REQUESTS"
+      WHERE "REQUEST_ID" = ${requestId}
+      AND "ASSIGNED_ID" = ${userInfo.userId}
+      AND "STATUS" IN ('P', 'A')
     `);
         if (!request || request.length === 0) {
             return res.status(404).json({ error: 'Request not found or not assigned to you' });
@@ -1521,11 +1387,11 @@ router.put('/:id/progress', async (req, res) => {
             (currentTracking ? '\n' : '') +
             `Progress Update (${new Date().toLocaleString()}): ${progressNotes}`;
         await prisma.$executeRawUnsafe(`
-      UPDATE GUARDIAN.REQUESTS 
-      SET TRACKINGID = '${newTracking.replace(/'/g, "''")}',
-          UPDATE_USER_ID = ${userInfo.userId},
-          UPDATE_DATE = GETDATE()
-      WHERE REQUEST_ID = ${requestId}
+      UPDATE "GUARDIAN"."REQUESTS"
+      SET "TRACKINGID" = '${newTracking.replace(/'/g, "''")}',
+          "UPDATE_USER_ID" = ${userInfo.userId},
+          "UPDATE_DATE" = now()
+      WHERE "REQUEST_ID" = ${requestId}
     `);
         res.json({ message: 'Progress updated successfully', requestId });
     }
@@ -1548,8 +1414,8 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         // Get the request first
         const request = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}
     `);
         if (!request || request.length === 0) {
             console.log('[GET FORM] No request found');
@@ -1610,7 +1476,7 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         }
         // Get form details
         const form = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GUARDIAN.FORMS WHERE FORM_ID = ${finalFormId}
+      SELECT * FROM "GUARDIAN"."FORMS" WHERE "FORM_ID" = ${finalFormId}
     `);
         console.log(`[GET FORM] Form query for ID ${finalFormId}:`, form);
         if (form && form.length > 0) {
@@ -1649,17 +1515,17 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         let fields = [];
         try {
             const formFields = await prisma.$queryRawUnsafe(`
-        SELECT 
-          ff.FORM_ID,
-          ff.FIELD_ID,
-          ff.IS_REQUIRED,
-          ff.SORT_ORDER as SEQUENCE,
-          f.FIELD_NAME,
-          f.FIELD_TYPE_ID
-        FROM GUARDIAN.FORMS_FIELDS ff
-        JOIN GUARDIAN.FIELDS f ON ff.FIELD_ID = f.FIELD_ID
-        WHERE ff.FORM_ID = ${finalFormId}
-        ORDER BY ff.SORT_ORDER ASC
+        SELECT
+          ff."FORM_ID",
+          ff."FIELD_ID",
+          ff."IS_REQUIRED",
+          ff."SORT_ORDER" as "SEQUENCE",
+          f."FIELD_NAME",
+          f."FIELD_TYPE_ID"
+        FROM "GUARDIAN"."FORMS_FIELDS" ff
+        JOIN "GUARDIAN"."FIELDS" f ON ff."FIELD_ID" = f."FIELD_ID"
+        WHERE ff."FORM_ID" = ${finalFormId}
+        ORDER BY ff."SORT_ORDER" ASC
       `);
             console.log(`[GET FORM] Found ${formFields.length} fields for form ${finalFormId}:`, formFields);
             if (formFields.length > 0) {
@@ -1712,12 +1578,12 @@ router.get('/:id/form', requireAuth, async (req, res) => {
         if (finalRequestData.FORM_INSTANCE_ID) {
             const rawValues = await prisma.$queryRawUnsafe(`
         SELECT
-          fiv.FIELD_ID,
-          fiv.VALUE,
-          f.FIELD_NAME
-        FROM GUARDIAN.FORMS_INSTANCE_VALUES fiv
-        JOIN GUARDIAN.FIELDS f ON f.FIELD_ID = fiv.FIELD_ID
-        WHERE fiv.FORM_INSTANCE_ID = ${finalRequestData.FORM_INSTANCE_ID}
+          fiv."FIELD_ID",
+          fiv."VALUE",
+          f."FIELD_NAME"
+        FROM "GUARDIAN"."FORMS_INSTANCE_VALUES" fiv
+        JOIN "GUARDIAN"."FIELDS" f ON f."FIELD_ID" = fiv."FIELD_ID"
+        WHERE fiv."FORM_INSTANCE_ID" = ${finalRequestData.FORM_INSTANCE_ID}
       `);
             for (const row of rawValues) {
                 const normalizedValue = row.VALUE ?? '';
@@ -1771,9 +1637,9 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
         // Find the most recently created form instance that matches both the request's form ID and assigned user
         const request = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId} 
-      AND r.ASSIGNED_ID = ${userInfo.userId}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}
+      AND r."ASSIGNED_ID" = ${userInfo.userId}
     `);
         if (!request || request.length === 0) {
             return res.status(404).json({ error: 'Request not found or not assigned to you' });
@@ -1786,42 +1652,30 @@ router.post('/:id/form/submit', requireAuth, async (req, res) => {
         for (const [fieldId, value] of Object.entries(fieldValues)) {
             if (value !== null && value !== undefined && value !== '') {
                 await prisma.$executeRawUnsafe(`
-          IF EXISTS (
-            SELECT 1 FROM GUARDIAN.FORMS_INSTANCE_VALUES 
-            WHERE FORM_INSTANCE_ID = ${formInstanceId} 
-            AND FIELD_ID = ${fieldId}
-          )
-          BEGIN
-            UPDATE GUARDIAN.FORMS_INSTANCE_VALUES 
-            SET VALUE = '${escapeSqlValue(String(value))}', 
-                UPDATE_DATE = GETDATE(),
-                UPDATE_USER_ID = ${userInfo.userId}
-            WHERE FORM_INSTANCE_ID = ${formInstanceId} 
-            AND FIELD_ID = ${fieldId}
-          END
-          ELSE
-          BEGIN
-            INSERT INTO GUARDIAN.FORMS_INSTANCE_VALUES 
-            (FORM_INSTANCE_ID, FIELD_ID, VALUE, CREATE_DATE, UPDATE_DATE, CREATE_USER_ID, UPDATE_USER_ID)
-            VALUES (${formInstanceId}, ${fieldId}, '${escapeSqlValue(String(value))}', GETDATE(), GETDATE(), ${userInfo.userId}, ${userInfo.userId})
-          END
+          INSERT INTO "GUARDIAN"."FORMS_INSTANCE_VALUES"
+            ("FORM_INSTANCE_ID", "FIELD_ID", "VALUE", "CREATE_DATE", "UPDATE_DATE", "CREATE_USER_ID", "UPDATE_USER_ID")
+          VALUES (${formInstanceId}, ${fieldId}, '${escapeSqlValue(String(value))}', now(), now(), ${userInfo.userId}, ${userInfo.userId})
+          ON CONFLICT ("FORM_INSTANCE_ID", "FIELD_ID") DO UPDATE
+            SET "VALUE" = EXCLUDED."VALUE",
+                "UPDATE_DATE" = now(),
+                "UPDATE_USER_ID" = ${userInfo.userId}
         `);
             }
             else {
                 await prisma.$executeRawUnsafe(`
-          DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
-          WHERE FORM_INSTANCE_ID = ${formInstanceId}
-            AND FIELD_ID = ${fieldId}
+          DELETE FROM "GUARDIAN"."FORMS_INSTANCE_VALUES"
+          WHERE "FORM_INSTANCE_ID" = ${formInstanceId}
+            AND "FIELD_ID" = ${fieldId}
         `);
             }
         }
         // Update form instance submitted date
         await prisma.$executeRawUnsafe(`
-      UPDATE GUARDIAN.FORMS_INSTANCE 
-      SET SUBMITTED_DATE = GETDATE(),
-          UPDATE_DATE = GETDATE(),
-          UPDATE_USER_ID = ${userInfo.userId}
-      WHERE FORM_INSTANCE_ID = ${formInstanceId}
+      UPDATE "GUARDIAN"."FORMS_INSTANCE"
+      SET "SUBMITTED_DATE" = now(),
+          "UPDATE_DATE" = now(),
+          "UPDATE_USER_ID" = ${userInfo.userId}
+      WHERE "FORM_INSTANCE_ID" = ${formInstanceId}
     `);
         res.json({
             success: true,
@@ -1844,18 +1698,18 @@ router.delete('/:id/field-value/:fieldId', requireAuth, async (req, res) => {
         }
         const request = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}
-        AND r.ASSIGNED_ID = ${userInfo.userId}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}
+        AND r."ASSIGNED_ID" = ${userInfo.userId}
     `);
         const formInstanceId = request.length ? await resolveFormInstanceIdForRequest(request[0]) : null;
         if (!request.length || !formInstanceId) {
             return res.status(404).json({ error: 'Request or form instance not found' });
         }
         await prisma.$executeRawUnsafe(`
-      DELETE FROM GUARDIAN.FORMS_INSTANCE_VALUES
-      WHERE FORM_INSTANCE_ID = ${formInstanceId}
-        AND FIELD_ID = ${fieldId}
+      DELETE FROM "GUARDIAN"."FORMS_INSTANCE_VALUES"
+      WHERE "FORM_INSTANCE_ID" = ${formInstanceId}
+        AND "FIELD_ID" = ${fieldId}
     `);
         res.json({ success: true });
     }
@@ -1873,8 +1727,8 @@ router.get('/:id/subject-photo', requireAuth, async (req, res) => {
         }
         const requestRows = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
     `);
         if (requestRows.length === 0) {
             return res.status(404).json({ error: 'Request not found' });
@@ -1904,8 +1758,8 @@ router.get('/:id/subject-photo/download', requireAuth, async (req, res) => {
         }
         const requestRows = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
     `);
         if (requestRows.length === 0) {
             return res.status(404).json({ error: 'Request not found' });
@@ -1943,8 +1797,8 @@ router.post('/:id/subject-photo', requireAuth, attachmentUpload.single('file'), 
         }
         const requestRows = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
     `);
         if (requestRows.length === 0) {
             return res.status(404).json({ error: 'Request not found' });
@@ -1993,8 +1847,8 @@ router.delete('/:id/subject-photo', requireAuth, async (req, res) => {
         }
         const requestRows = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
     `);
         if (requestRows.length === 0) {
             return res.status(404).json({ error: 'Request not found' });
@@ -2023,8 +1877,8 @@ router.get('/:id/attachments', requireAuth, async (req, res) => {
         }
         const requestRows = await prisma.$queryRawUnsafe(`
       SELECT r.*
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
     `);
         if (requestRows.length === 0) {
             return res.status(404).json({ error: 'Request not found' });
@@ -2068,9 +1922,9 @@ router.post('/:id/attachments', requireAuth, attachmentUpload.single('file'), as
             return res.status(400).json({ error: 'No file uploaded' });
         }
         const requestRows = await prisma.$queryRawUnsafe(`
-      SELECT REQUEST_ID, COMPANY_ID
-      FROM GUARDIAN.REQUESTS
-      WHERE REQUEST_ID = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
+      SELECT "REQUEST_ID", "COMPANY_ID"
+      FROM "GUARDIAN"."REQUESTS"
+      WHERE "REQUEST_ID" = ${requestId}${getRequestCompanyClause(userInfo.companyId)}
     `);
         if (requestRows.length === 0) {
             return res.status(404).json({ error: 'Request not found' });

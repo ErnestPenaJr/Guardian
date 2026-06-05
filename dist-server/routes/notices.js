@@ -44,45 +44,45 @@ router.get('/stats', passport.authenticate('jwt', { session: false }), async (re
             return res.status(401).json({ error: 'User not authenticated' });
         }
         const totalNoticesResult = await prisma.$queryRaw `
-      SELECT COUNT(*) as total_count
-      FROM GUARDIAN.NOTICES n
-      INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
-      WHERE nr.RECIPIENT_USER_ID = ${userId}
-      AND n.COMPANY_ID = ${companyId}
-      AND n.IS_DELETED = 0
+      SELECT COUNT(*)::int as total_count
+      FROM "GUARDIAN"."NOTICES" n
+      INNER JOIN "GUARDIAN"."NOTICE_RECIPIENTS" nr ON n."NOTICE_ID" = nr."NOTICE_ID"
+      WHERE nr."RECIPIENT_USER_ID" = ${userId}
+      AND n."COMPANY_ID" = ${companyId}
+      AND n."IS_DELETED" = false
     `;
         const unreadNoticesResult = await prisma.$queryRaw `
-      SELECT COUNT(*) as unread_count
-      FROM GUARDIAN.NOTICES n
-      INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
-      LEFT JOIN GUARDIAN.NOTICE_READ_STATUS nrs ON n.NOTICE_ID = nrs.NOTICE_ID AND nrs.USER_ID = ${userId}
-      WHERE nr.RECIPIENT_USER_ID = ${userId}
-      AND n.COMPANY_ID = ${companyId}
-      AND n.IS_DELETED = 0
-      AND nrs.NOTICE_READ_STATUS_ID IS NULL
+      SELECT COUNT(*)::int as unread_count
+      FROM "GUARDIAN"."NOTICES" n
+      INNER JOIN "GUARDIAN"."NOTICE_RECIPIENTS" nr ON n."NOTICE_ID" = nr."NOTICE_ID"
+      LEFT JOIN "GUARDIAN"."NOTICE_READ_STATUS" nrs ON n."NOTICE_ID" = nrs."NOTICE_ID" AND nrs."USER_ID" = ${userId}
+      WHERE nr."RECIPIENT_USER_ID" = ${userId}
+      AND n."COMPANY_ID" = ${companyId}
+      AND n."IS_DELETED" = false
+      AND nrs."NOTICE_READ_STATUS_ID" IS NULL
     `;
         const issuedByMeResult = await prisma.$queryRaw `
-      SELECT COUNT(*) as issued_count
-      FROM GUARDIAN.NOTICES n
-      WHERE n.ISSUED_BY_USER_ID = ${userId}
-      AND n.COMPANY_ID = ${companyId}
-      AND n.IS_DELETED = 0
+      SELECT COUNT(*)::int as issued_count
+      FROM "GUARDIAN"."NOTICES" n
+      WHERE n."ISSUED_BY_USER_ID" = ${userId}
+      AND n."COMPANY_ID" = ${companyId}
+      AND n."IS_DELETED" = false
     `;
         const activeNoticesResult = await prisma.$queryRaw `
-      SELECT COUNT(*) as active_count
-      FROM GUARDIAN.NOTICES n
-      INNER JOIN GUARDIAN.NOTICE_RECIPIENTS nr ON n.NOTICE_ID = nr.NOTICE_ID
-      WHERE nr.RECIPIENT_USER_ID = ${userId}
-      AND n.COMPANY_ID = ${companyId}
-      AND n.IS_DELETED = 0
-      AND n.STATUS = 'PUBLISHED'
-      AND n.IS_ACTIVE = 1
+      SELECT COUNT(*)::int as active_count
+      FROM "GUARDIAN"."NOTICES" n
+      INNER JOIN "GUARDIAN"."NOTICE_RECIPIENTS" nr ON n."NOTICE_ID" = nr."NOTICE_ID"
+      WHERE nr."RECIPIENT_USER_ID" = ${userId}
+      AND n."COMPANY_ID" = ${companyId}
+      AND n."IS_DELETED" = false
+      AND n."STATUS" = 'PUBLISHED'
+      AND n."IS_ACTIVE" = true
     `;
         const stats = {
-            totalNotices: parseInt(totalNoticesResult[0]?.total_count) || 0,
-            unreadNotices: parseInt(unreadNoticesResult[0]?.unread_count) || 0,
-            issuedByMe: parseInt(issuedByMeResult[0]?.issued_count) || 0,
-            activeNotices: parseInt(activeNoticesResult[0]?.active_count) || 0,
+            totalNotices: totalNoticesResult[0]?.total_count || 0,
+            unreadNotices: unreadNoticesResult[0]?.unread_count || 0,
+            issuedByMe: issuedByMeResult[0]?.issued_count || 0,
+            activeNotices: activeNoticesResult[0]?.active_count || 0,
         };
         res.json(stats);
     }

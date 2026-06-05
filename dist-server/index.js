@@ -42,8 +42,11 @@ const __dirname = path.dirname(__filename);
 const join = path.join;
 // Load environment variables
 // Configure Resend email service
-const RESEND_API_KEY = process.env.SMTP_PASSWORD; // Using SMTP_PASSWORD from .env which contains Resend API key
+// RESEND_API_KEY is the canonical name; SMTP_PASSWORD is the legacy alias kept for backward-compat (see .env.example)
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
+// Admin email for server-error notifications (optional — omit to suppress error emails)
+const ERROR_NOTIFY_EMAIL = process.env.ERROR_NOTIFY_EMAIL || '';
 console.log('[RESEND] Email service initialized');
 console.log('[RESEND] From email:', EMAIL_FROM);
 // Initialize Resend client
@@ -60,7 +63,7 @@ async function captureServerError(error, context) {
         // Send error email
         await resend.emails.send({
             from: `Guardian Server Error <${EMAIL_FROM}>`,
-            to: 'ernest@shieldlytics.com',
+            to: ERROR_NOTIFY_EMAIL || EMAIL_FROM,
             subject: `🚨 Server Error - ${context.endpoint || 'Unknown Endpoint'}`,
             html: `
 <!DOCTYPE html>
@@ -209,17 +212,18 @@ app.post('/api/login', loginRateLimiter, async (req, res) => {
             // First, let's try a raw query to see what's in the database
             console.log('[LOGIN] Executing raw query to check USERS table...');
             const rawUsers = await prisma.$queryRaw `
-        SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME, STATUS 
-        FROM GUARDIAN.USERS 
-        WHERE EMAIL LIKE ${'%' + email.split('@')[1]}
+        SELECT "USER_ID", "EMAIL", "FIRST_NAME", "LAST_NAME", "STATUS"
+        FROM "GUARDIAN"."USERS"
+        WHERE "EMAIL" LIKE ${'%' + email.split('@')[1]}
+        LIMIT 5
       `;
             console.log('[LOGIN] Raw query result (similar domain users):', rawUsers);
             // Check exact email match with raw query
             console.log('[LOGIN] Executing exact email match raw query...');
             const exactMatch = await prisma.$queryRaw `
-        SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, EMAIL_VALIDATED, COMPANY_ID
-        FROM GUARDIAN.USERS
-        WHERE EMAIL = ${email}
+        SELECT "USER_ID", "EMAIL", "FIRST_NAME", "LAST_NAME", "PASSWORD_HASH", "STATUS", "EMAIL_VALIDATED", "COMPANY_ID"
+        FROM "GUARDIAN"."USERS"
+        WHERE "EMAIL" = ${email}
       `;
             console.log('[LOGIN] Exact email match raw query result:', exactMatch);
             // Use the exact match raw query result since it's working
@@ -525,19 +529,19 @@ app.post('/api/register', async (req, res) => {
             console.log('%c Creating Company', 'background: #FF5722; color: #fff', companyNameToUse);
             // First try to find if company exists with exact name match
             const existingCompanies = await prisma.$queryRaw `
-        SELECT COMPANY_ID, NAME FROM COMPANY WHERE NAME = ${companyNameToUse}
+        SELECT "COMPANY_ID", "NAME" FROM "GUARDIAN"."COMPANY" WHERE "NAME" = ${companyNameToUse}
       `;
             console.log('%c Existing Companies', 'background: #9C27B0; color: #fff', existingCompanies);
             let companyId;
             if (!Array.isArray(existingCompanies) || existingCompanies.length === 0) {
                 // Create new company with explicit parameter
                 const insertResult = await prisma.$executeRaw `
-          INSERT INTO COMPANY (NAME, CREATED_AT) VALUES (${companyNameToUse}, GETDATE())
+          INSERT INTO "GUARDIAN"."COMPANY" ("NAME", "CREATED_AT") VALUES (${companyNameToUse}, now())
         `;
                 console.log('%c Insert Result', 'background: #E91E63; color: #fff', insertResult);
                 // Get the newly created company
                 const newCompanies = await prisma.$queryRaw `
-          SELECT TOP 1 COMPANY_ID FROM COMPANY WHERE NAME = ${companyNameToUse} ORDER BY CREATED_AT DESC
+          SELECT "COMPANY_ID" FROM "GUARDIAN"."COMPANY" WHERE "NAME" = ${companyNameToUse} ORDER BY "CREATED_AT" DESC LIMIT 1
         `;
                 console.log('%c New Company Query', 'background: #3F51B5; color: #fff', newCompanies);
                 if (Array.isArray(newCompanies) && newCompanies.length > 0) {
@@ -1350,5 +1354,5 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Access the application at: http://localhost:${PORT}`);
-    console.log(`🚨 Global error capture system is active - errors will be emailed to ernest@shieldlytics.com`);
+    console.log(`Global error capture system is active - errors will be emailed to ${ERROR_NOTIFY_EMAIL || EMAIL_FROM}`);
 });

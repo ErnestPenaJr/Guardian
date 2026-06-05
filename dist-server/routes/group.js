@@ -59,14 +59,24 @@ router.get('/notices/group', isManager, filterToManagerGroup, async (req, res) =
             whereClause.COMPANY_ID = companyFilter;
         }
         // Get notices with created by user details
-        const notices = await prisma.$queryRaw `
-      SELECT n.NOTICE_ID, n.NOTICE_TITLE, n.CREATED_DATE, n.STATUS,
-             u.FIRST_NAME, u.LAST_NAME, u.EMAIL
-      FROM NOTICES n
-      LEFT JOIN USERS u ON n.CREATE_USER_ID = u.USER_ID
-      WHERE ${companyFilter ? `n.COMPANY_ID = ${companyFilter}` : '1=1'}
-      ORDER BY n.CREATED_DATE DESC
-    `;
+        // SCHEMA DRIFT REPAIRS: NOTICES.NOTICE_TITLE→TITLE, NOTICES.CREATED_DATE→ISSUE_DATE;
+        // table refs now schema-qualified; companyFilter injection replaced with Prisma param.
+        const notices = companyFilter
+            ? await prisma.$queryRaw `
+          SELECT n."NOTICE_ID", n."TITLE" AS "NOTICE_TITLE", n."ISSUE_DATE" AS "CREATED_DATE", n."STATUS",
+                 u."FIRST_NAME", u."LAST_NAME", u."EMAIL"
+          FROM "GUARDIAN"."NOTICES" n
+          LEFT JOIN "GUARDIAN"."USERS" u ON n."CREATE_USER_ID" = u."USER_ID"
+          WHERE n."COMPANY_ID" = ${companyFilter}
+          ORDER BY n."ISSUE_DATE" DESC
+        `
+            : await prisma.$queryRaw `
+          SELECT n."NOTICE_ID", n."TITLE" AS "NOTICE_TITLE", n."ISSUE_DATE" AS "CREATED_DATE", n."STATUS",
+                 u."FIRST_NAME", u."LAST_NAME", u."EMAIL"
+          FROM "GUARDIAN"."NOTICES" n
+          LEFT JOIN "GUARDIAN"."USERS" u ON n."CREATE_USER_ID" = u."USER_ID"
+          ORDER BY n."ISSUE_DATE" DESC
+        `;
         // Format the response
         const formattedNotices = notices.map((notice) => ({
             NOTICE_ID: notice.NOTICE_ID,

@@ -87,19 +87,20 @@ router.post('/workflow/process', isProcessor, async (req, res) => {
             });
         }
         // Update the workflow step status
+        // NOTE: WORKFLOW_STEPS table does not exist in the PG schema yet — will throw at runtime.
         await prisma.$executeRaw `
-      UPDATE WORKFLOW_STEPS
-      SET STATUS = ${status},
-          COMMENTS = ${comments || null},
-          PROCESSED_BY = ${req.user?.id || null},
-          PROCESSED_DATE = ${new Date()}
-      WHERE STEP_ID = ${stepId} AND REQUEST_ID = ${requestId}
+      UPDATE "GUARDIAN"."WORKFLOW_STEPS"
+      SET "STATUS"         = ${status},
+          "COMMENTS"       = ${comments || null},
+          "PROCESSED_BY"   = ${req.user?.id || null},
+          "PROCESSED_DATE" = ${new Date()}
+      WHERE "STEP_ID" = ${stepId} AND "REQUEST_ID" = ${requestId}
     `;
         // Check if this is the last step in the workflow
         const remainingSteps = await prisma.$queryRaw `
-      SELECT COUNT(*) as remaining
-      FROM WORKFLOW_STEPS
-      WHERE REQUEST_ID = ${requestId} AND STATUS = 'P'
+      SELECT COUNT(*)::int AS remaining
+      FROM "GUARDIAN"."WORKFLOW_STEPS"
+      WHERE "REQUEST_ID" = ${requestId} AND "STATUS" = 'P'
     `;
         // If no remaining steps, update the request status to completed
         if (remainingSteps[0].remaining === 0) {
@@ -114,10 +115,11 @@ router.post('/workflow/process', isProcessor, async (req, res) => {
         }
         // Create a task for the next step if needed
         const nextStep = await prisma.$queryRaw `
-      SELECT TOP 1 *
-      FROM WORKFLOW_STEPS
-      WHERE REQUEST_ID = ${requestId} AND STATUS = 'P'
-      ORDER BY STEP_ORDER
+      SELECT *
+      FROM "GUARDIAN"."WORKFLOW_STEPS"
+      WHERE "REQUEST_ID" = ${requestId} AND "STATUS" = 'P'
+      ORDER BY "STEP_ORDER"
+      LIMIT 1
     `;
         if (nextStep[0]) {
             const nextStepData = nextStep[0];
@@ -166,12 +168,13 @@ router.get('/workflow/steps/:requestId', isProcessor, async (req, res) => {
             });
         }
         // Get workflow steps
+        // NOTE: WORKFLOW_STEPS table does not exist in the PG schema yet.
         const steps = await prisma.$queryRaw `
-      SELECT ws.*, u.FIRST_NAME, u.LAST_NAME
-      FROM WORKFLOW_STEPS ws
-      LEFT JOIN USERS u ON ws.PROCESSED_BY = u.USER_ID
-      WHERE ws.REQUEST_ID = ${requestId}
-      ORDER BY ws.STEP_ORDER
+      SELECT ws.*, u."FIRST_NAME", u."LAST_NAME"
+      FROM "GUARDIAN"."WORKFLOW_STEPS" ws
+      LEFT JOIN "GUARDIAN"."USERS" u ON ws."PROCESSED_BY" = u."USER_ID"
+      WHERE ws."REQUEST_ID" = ${requestId}
+      ORDER BY ws."STEP_ORDER"
     `;
         // Format the response
         const formattedSteps = steps.map(step => ({
@@ -223,11 +226,13 @@ router.put('/requests/:id/approve', isProcessor, async (req, res) => {
             }
         });
         // Create a task for the first workflow step if needed
+        // NOTE: WORKFLOW_STEPS table does not exist in the PG schema yet.
         const firstStep = await prisma.$queryRaw `
-      SELECT TOP 1 *
-      FROM WORKFLOW_STEPS
-      WHERE REQUEST_ID = ${requestId}
-      ORDER BY STEP_ORDER
+      SELECT *
+      FROM "GUARDIAN"."WORKFLOW_STEPS"
+      WHERE "REQUEST_ID" = ${requestId}
+      ORDER BY "STEP_ORDER"
+      LIMIT 1
     `;
         if (firstStep[0]) {
             const stepData = firstStep[0];

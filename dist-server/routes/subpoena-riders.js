@@ -52,9 +52,9 @@ function looksLikePiiLabel(label) {
  */
 async function buildIdentifierBlock(noticeId, companyId) {
     const noticeRows = await prisma.$queryRawUnsafe(`
-    SELECT TEMPLATE_FORM_ID, TEMPLATE_VALUES_JSON
-    FROM GUARDIAN.MY_NOTICES
-    WHERE NOTICE_ID = ${Number(noticeId)} AND COMPANY_ID = ${Number(companyId)}
+    SELECT "TEMPLATE_FORM_ID", "TEMPLATE_VALUES_JSON"
+    FROM "GUARDIAN"."MY_NOTICES"
+    WHERE "NOTICE_ID" = ${Number(noticeId)} AND "COMPANY_ID" = ${Number(companyId)}
   `);
     const notice = noticeRows[0];
     if (!notice?.TEMPLATE_FORM_ID || !notice.TEMPLATE_VALUES_JSON)
@@ -70,11 +70,11 @@ async function buildIdentifierBlock(noticeId, companyId) {
     if (fieldIds.length === 0)
         return '';
     const fields = await prisma.$queryRawUnsafe(`
-    SELECT f.FIELD_ID, f.FIELD_NAME, f.IS_PII, ff.SORT_ORDER
-    FROM GUARDIAN.FIELDS f
-    INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-    WHERE ff.FORM_ID = ${notice.TEMPLATE_FORM_ID} AND f.FIELD_ID IN (${fieldIds.join(',')})
-    ORDER BY ff.SORT_ORDER, f.FIELD_ID
+    SELECT f."FIELD_ID", f."FIELD_NAME", ff."IS_PII", ff."SORT_ORDER"
+    FROM "GUARDIAN"."FIELDS" f
+    INNER JOIN "GUARDIAN"."FORMS_FIELDS" ff ON f."FIELD_ID" = ff."FIELD_ID"
+    WHERE ff."FORM_ID" = ${Number(notice.TEMPLATE_FORM_ID)} AND f."FIELD_ID" IN (${fieldIds.join(',')})
+    ORDER BY ff."SORT_ORDER", f."FIELD_ID"
   `);
     const rows = [];
     for (const f of fields) {
