@@ -47,3 +47,7 @@ CLAUDE.md
 
 # gstack security scan artifacts — contain live exploit payloads, MUST NOT ship to production
 .gstack/
+
+# Postgres migration data dump — contains real PII + password hashes, MUST NOT be committed.
+# The schema file (postgres/01_schema.sql) is safe to commit; the seed clone is not.
+postgres/02_seed.sql
