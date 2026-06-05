@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+      - run: npm run build
+      - run: npm run build:server
+      - name: Typecheck server
+        run: npx tsc -p tsconfig.server.json --noEmit
+      - name: Build container image (no push)
+        run: docker build -t guardian:ci .
+
+  # ---------------------------------------------------------------------------
+  # DEPLOY — intentionally disabled until a provider is chosen.
+  # TODO(provider): registry login + push, then deploy the image to the chosen
+  # host (AWS App Runner/ECS, GCP Cloud Run, Render, Fly.io, etc.). Wire
+  # DATABASE_URL / JWT_SECRET / RESEND_API_KEY / SMTP_* from the provider secret store.
+  # ---------------------------------------------------------------------------
+  deploy:
+    if: false
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploy step is a stub. Fill in once a provider is selected."
