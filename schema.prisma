@@ -16,17 +16,17 @@ model ATTACHMENTS {
   ATTACHMENT          Bytes?
   CREATE_USER_ID      Int?
   UPDATE_USER_ID      Int?
-  CREATE_DATE         DateTime @default(now(), map: "DF__ATTACHMEN__CREAT__2BFE89A6") @db.DateTime
-  UPDATE_DATE         DateTime @default(now(), map: "DF__ATTACHMEN__UPDAT__2CF2ADDF") @db.DateTime
+  CREATE_DATE         DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE         DateTime @default(now()) @db.Timestamp(6)
   RESPONSE_MY_NOTICES RESPONSE_MY_NOTICE[]
 }
 
 model COMPANY {
   COMPANY_ID   Int            @id(map: "PK__COMPANY__73B8DCFF3D624EE3") @default(autoincrement())
-  NAME         String         @db.NVarChar(255)
-  ADDRESS      String?        @db.NVarChar(255)
-  PHONE        String?        @db.NVarChar(50)
-  CREATED_AT   DateTime       @default(now(), map: "DF__COMPANY__CREATED__1387E197") @db.DateTime
+  NAME         String         @db.VarChar(255)
+  ADDRESS      String?        @db.VarChar(255)
+  PHONE        String?        @db.VarChar(50)
+  CREATED_AT   DateTime @default(now()) @db.Timestamp(6)
   COMPANY_INFO COMPANY_INFO[]
   FORMS        FORMS[]
 }
@@ -35,12 +35,12 @@ model COMPANY_INFO {
   COMPANY_INFO_ID Int      @id(map: "PK__COMPANY___2099A60865741D46") @default(autoincrement())
   COMPANY_ID      Int
   USER_ID         Int
-  WORKSPACE_NAME  String?  @db.NVarChar(255)
-  ROLE            String?  @db.NVarChar(100)
-  TEAM_SIZE       String?  @db.NVarChar(50)
-  COMPANY_SIZE    String?  @db.NVarChar(50)
-  CREATED_AT      DateTime @default(now(), map: "DF__COMPANY_I__CREAT__16644E42") @db.DateTime
-  UPDATED_AT      DateTime @default(now(), map: "DF__COMPANY_I__UPDAT__1758727B") @db.DateTime
+  WORKSPACE_NAME  String?  @db.VarChar(255)
+  ROLE            String?  @db.VarChar(100)
+  TEAM_SIZE       String?  @db.VarChar(50)
+  COMPANY_SIZE    String?  @db.VarChar(50)
+  CREATED_AT      DateTime @default(now()) @db.Timestamp(6)
+  UPDATED_AT      DateTime @default(now()) @db.Timestamp(6)
   COMPANY         COMPANY  @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_COMPANY")
   USERS           USERS    @relation(fields: [USER_ID], references: [USER_ID], onUpdate: NoAction, map: "FK_COMPANY_INFO_USERS")
 }
@@ -62,20 +62,20 @@ model FIELDS {
   FIELD_NAME                   String   @db.VarChar(50)
   FIELD_TYPE_ID                Int
   DISPLAY_FORMAT               String?  @db.VarChar(30)
-  VALIDATION                   String?  @db.NVarChar(255)
-  HAS_LOOKUP                   Boolean  @default(false, map: "DF__FIELDS__HAS_LOOK__52AE4273")
-  IS_PUBLIC                    Boolean  @default(false, map: "DF__FIELDS__IS_PUBLI__53A266AC")
-  IS_ACTIVE                    Boolean  @default(false, map: "DF__FIELDS__IS_ACTIV__54968AE5")
-  IS_DELETED                   Boolean  @default(false, map: "DF__FIELDS__IS_DELET__558AAF1E")
-  IS_REQUIRED                  Boolean  @default(false, map: "DF__FIELDS__IS_REQUI__567ED357")
-  IS_SENSITIVE                 Boolean  @default(false, map: "DF__FIELDS__IS_SENSI__5772F790")
-  CAN_SELECT_MULIPLE           Boolean  @default(false, map: "DF__FIELDS__CAN_SELE__58671BC9")
+  VALIDATION                   String?  @db.VarChar(255)
+  HAS_LOOKUP                   Boolean  @default(false)
+  IS_PUBLIC                    Boolean  @default(false)
+  IS_ACTIVE                    Boolean  @default(false)
+  IS_DELETED                   Boolean  @default(false)
+  IS_REQUIRED                  Boolean  @default(false)
+  IS_SENSITIVE                 Boolean  @default(false)
+  CAN_SELECT_MULIPLE           Boolean  @default(false)
   CREATE_USER_ID               Int?
   UPDATE_USER_ID               Int?
-  CREATE_DATE                  DateTime @default(now(), map: "DF__FIELDS__CREATE_D__595B4002") @db.DateTime
-  UPDATE_DATE                  DateTime @default(now(), map: "DF__FIELDS__UPDATE_D__5A4F643B") @db.DateTime
-  SysStartTime                 DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_FIELDS_SysStart")
-  SysEndTime                   DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FIELDS_SysEnd")
+  CREATE_DATE                  DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE                  DateTime @default(now()) @db.Timestamp(6)
+  SysStartTime                 DateTime @default(dbgenerated("now()"))
+  SysEndTime                   DateTime @default(dbgenerated("'9999-12-31 23:59:59.999999'::timestamp"))
   FIELD_LOOKUP_DISPLAY_TYPE_ID Int?
   ORGANIZATION_ID              Int?
 }
@@ -95,14 +95,14 @@ model FIELDS_HISTORY {
   CAN_SELECT_MULIPLE           Boolean
   CREATE_USER_ID               Int?
   UPDATE_USER_ID               Int?
-  CREATE_DATE                  DateTime @db.DateTime
-  UPDATE_DATE                  DateTime @db.DateTime
+  CREATE_DATE                  DateTime @db.Timestamp(6)
+  UPDATE_DATE                  DateTime @db.Timestamp(6)
   SysStartTime                 DateTime
   SysEndTime                   DateTime
   FIELD_LOOKUP_DISPLAY_TYPE_ID Int?
   ORGANIZATION_ID              Int?
 
-  @@index([SysEndTime, SysStartTime], map: "ix_FIELDS_HISTORY", clustered: true)
+  @@index([SysEndTime, SysStartTime], map: "ix_FIELDS_HISTORY")
   @@ignore
 }
 
@@ -114,8 +114,8 @@ model FIELDS_LOOKUP {
   SORT_ORDER         Int?
   CREATE_USER_ID     Int?
   UPDATE_USER_ID     Int?
-  CREATE_DATE        DateTime @default(now(), map: "DF__FIELDS_LO__CREAT__703EA55A") @db.DateTime
-  UPDATE_DATE        DateTime @default(now(), map: "DF__FIELDS_LO__UPDAT__7132C993") @db.DateTime
+  CREATE_DATE        DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE        DateTime @default(now()) @db.Timestamp(6)
 }
 
 model FORMS {
@@ -123,24 +123,24 @@ model FORMS {
   FORM_NAME        String   @db.VarChar(50)
   FORM_DESCRIPTION String   @db.VarChar(255)
   ORGANIZATION_ID  Int?
-  IS_PUBLIC        Boolean  @default(false, map: "DF__FORMS__IS_PUBLIC__66EA454A")
-  IS_ACTIVE        Boolean  @default(false, map: "DF__FORMS__IS_ACTIVE__67DE6983")
-  IS_DELETED       Boolean  @default(false, map: "DF__FORMS__IS_DELETE__68D28DBC")
+  IS_PUBLIC        Boolean  @default(false)
+  IS_ACTIVE        Boolean  @default(false)
+  IS_DELETED       Boolean  @default(false)
   CREATE_USER_ID   Int?
   UPDATE_USER_ID   Int?
-  CREATE_DATE      DateTime @default(now(), map: "DF__FORMS__CREATE_DA__69C6B1F5") @db.DateTime
-  UPDATE_DATE      DateTime @default(now(), map: "DF__FORMS__UPDATE_DA__6ABAD62E") @db.DateTime
-  SysStartTime     DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_SysStart")
-  SysEndTime       DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_SysEnd")
+  CREATE_DATE      DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE      DateTime @default(now()) @db.Timestamp(6)
+  SysStartTime     DateTime @default(dbgenerated("now()"))
+  SysEndTime       DateTime @default(dbgenerated("'9999-12-31 23:59:59.999999'::timestamp"))
   COMPANY_ID       Int?
   // Securities Notice MVP additions (Phase 0)
-  NOTICE_SUBTYPE                String?  @db.NVarChar(40)
-  FRAUD_TYPE                    String?  @db.NVarChar(40)
+  NOTICE_SUBTYPE                String?  @db.VarChar(40)
+  FRAUD_TYPE                    String?  @db.VarChar(40)
   REQUIRES_MANAGER_APPROVAL     Boolean  @default(false)
   COMPLIANCE_DISCLAIMER_ENABLED Boolean  @default(false)
-  TITLE_FORMAT                  String?  @db.NVarChar(255)
+  TITLE_FORMAT                  String?  @db.VarChar(255)
   // Notice Type picker (ANCM | SEC | GEN | TRGT). NULL for non-notice templates.
-  NOTICE_CATEGORY               String?  @db.NVarChar(10)
+  NOTICE_CATEGORY               String?  @db.VarChar(10)
   COMPANY          COMPANY? @relation(fields: [COMPANY_ID], references: [COMPANY_ID], onDelete: NoAction, onUpdate: NoAction, map: "FK__FORMS__COMPANY")
 }
 
@@ -148,12 +148,12 @@ model FORMS {
 model FORMS_FIELDS {
   FORM_ID        Int
   FIELD_ID       Int
-  IS_REQUIRED    Boolean  @default(false, map: "DF__FORMS_FIE__IS_RE__64CCF2AE")
+  IS_REQUIRED    Boolean  @default(false)
   SORT_ORDER     Int?
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__CREAT__65C116E7") @db.DateTime
-  UPDATE_DATE    DateTime @default(now(), map: "DF__FORMS_FIE__UPDAT__66B53B20") @db.DateTime
+  CREATE_DATE    DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE    DateTime @default(now()) @db.Timestamp(6)
   // Securities Notice MVP additions (Phase 0)
   IS_PII             Boolean @default(false)
   IS_ENABLED         Boolean @default(true)
@@ -169,11 +169,11 @@ model FORMS_GROUPS {
   GROUP_NAME        String   @db.VarChar(50)
   GROUP_DESCRIPTION String   @db.VarChar(200)
   SORT_ORDER        Int?
-  IS_PUBLIC         Boolean  @default(false, map: "DF__GROUPS__IS_PUBLI__63A3C44B")
+  IS_PUBLIC         Boolean  @default(false)
   CREATE_USER_ID    Int?
   UPDATE_USER_ID    Int?
-  CREATE_DATE       DateTime @default(now(), map: "DF__GROUPS__CREATE_D__6497E884") @db.DateTime
-  UPDATE_DATE       DateTime @default(now(), map: "DF__GROUPS__UPDATE_D__658C0CBD") @db.DateTime
+  CREATE_DATE       DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE       DateTime @default(now()) @db.Timestamp(6)
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -183,8 +183,8 @@ model FORMS_GROUPS_FIELDS {
   SORT_ORDER     Int?
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime @default(now(), map: "DF__GROUP_FIE__CREAT__68687968") @db.DateTime
-  UPDATE_DATE    DateTime @default(now(), map: "DF__GROUP_FIE__UPDAT__695C9DA1") @db.DateTime
+  CREATE_DATE    DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE    DateTime @default(now()) @db.Timestamp(6)
 
   @@ignore
 }
@@ -200,13 +200,13 @@ model FORMS_HISTORY {
   IS_DELETED       Boolean
   CREATE_USER_ID   Int?
   UPDATE_USER_ID   Int?
-  CREATE_DATE      DateTime @db.DateTime
-  UPDATE_DATE      DateTime @db.DateTime
+  CREATE_DATE      DateTime @db.Timestamp(6)
+  UPDATE_DATE      DateTime @db.Timestamp(6)
   SysStartTime     DateTime
   SysEndTime       DateTime
   COMPANY_ID       Int?
 
-  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_HISTORY", clustered: true)
+  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_HISTORY")
   @@ignore
 }
 
@@ -214,13 +214,13 @@ model FORMS_INSTANCE {
   FORM_INSTANCE_ID Int       @id(map: "PK_FORMS_INSTANCE") @default(autoincrement())
   FORM_ID          Int
   ASSIGNED_ID      Int
-  SUBMITTED_DATE   DateTime? @db.DateTime
+  SUBMITTED_DATE   DateTime? @db.Timestamp(6)
   CREATE_USER_ID   Int?
   UPDATE_USER_ID   Int?
-  CREATE_DATE      DateTime  @default(now(), map: "DF__FORMS_INS__CREAT__7720AD13") @db.DateTime
-  UPDATE_DATE      DateTime  @default(now(), map: "DF__FORMS_INS__UPDAT__7814D14C") @db.DateTime
-  SysStartTime     DateTime  @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_INSTANCE_SysStart")
-  SysEndTime       DateTime  @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_SysEnd")
+  CREATE_DATE      DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE      DateTime @default(now()) @db.Timestamp(6)
+  SysStartTime     DateTime @default(dbgenerated("now()"))
+  SysEndTime       DateTime @default(dbgenerated("'9999-12-31 23:59:59.999999'::timestamp"))
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -228,15 +228,15 @@ model FORMS_INSTANCE_HISTORY {
   FORM_INSTANCE_ID Int
   FORM_ID          Int
   ASSIGNED_ID      Int
-  SUBMITTED_DATE   DateTime? @db.DateTime
+  SUBMITTED_DATE   DateTime? @db.Timestamp(6)
   CREATE_USER_ID   Int?
   UPDATE_USER_ID   Int?
-  CREATE_DATE      DateTime  @db.DateTime
-  UPDATE_DATE      DateTime  @db.DateTime
+  CREATE_DATE      DateTime  @db.Timestamp(6)
+  UPDATE_DATE      DateTime  @db.Timestamp(6)
   SysStartTime     DateTime
   SysEndTime       DateTime
 
-  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_HISTORY", clustered: true)
+  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_HISTORY")
   @@ignore
 }
 
@@ -247,10 +247,10 @@ model FORMS_INSTANCE_VALUES {
   VALUE                  String?  @db.VarChar(255)
   CREATE_USER_ID         Int?
   UPDATE_USER_ID         Int?
-  CREATE_DATE            DateTime @default(now(), map: "DF__FORMS_INS__CREAT__52793849") @db.DateTime
-  UPDATE_DATE            DateTime @default(now(), map: "DF__FORMS_INS__UPDAT__536D5C82") @db.DateTime
-  SysStartTime           DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_FORMS_INSTANCE_VALUES_SysStart")
-  SysEndTime             DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_FORMS_INSTANCE_VALUES_SysEnd")
+  CREATE_DATE            DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE            DateTime @default(now()) @db.Timestamp(6)
+  SysStartTime           DateTime @default(dbgenerated("now()"))
+  SysEndTime             DateTime @default(dbgenerated("'9999-12-31 23:59:59.999999'::timestamp"))
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -261,12 +261,12 @@ model FORMS_INSTANCE_VALUES_HISTORY {
   VALUE                  String?  @db.VarChar(255)
   CREATE_USER_ID         Int?
   UPDATE_USER_ID         Int?
-  CREATE_DATE            DateTime @db.DateTime
-  UPDATE_DATE            DateTime @db.DateTime
+  CREATE_DATE            DateTime @db.Timestamp(6)
+  UPDATE_DATE            DateTime @db.Timestamp(6)
   SysStartTime           DateTime
   SysEndTime             DateTime
 
-  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_VALUES_HISTORY", clustered: true)
+  @@index([SysEndTime, SysStartTime], map: "ix_FORMS_INSTANCE_VALUES_HISTORY")
   @@ignore
 }
 
@@ -279,18 +279,18 @@ model INVITES {
   STATUS     String    @db.Char(1)
   EXPIRES_AT DateTime
   USED_AT    DateTime?
-  CREATED_AT DateTime  @default(dbgenerated("sysdatetime()"), map: "DF__INVITES__CREATED__2C538F61")
+  CREATED_AT DateTime @default(dbgenerated("sysdatetime()"))
 }
 
 model MILESTONES {
   MILESTONE_ID   Int      @id(map: "PK_MILESTONES") @default(autoincrement())
   EVENT          String   @db.VarChar(30)
-  EVENT_DATE     DateTime @default(now(), map: "DF__MILESTONE__EVENT__2180FB33") @db.DateTime
+  EVENT_DATE     DateTime @default(now()) @db.Timestamp(6)
   EVENT_USER_ID  Int?
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime @default(now(), map: "DF__MILESTONE__CREAT__22751F6C") @db.DateTime
-  UPDATE_DATE    DateTime @default(now(), map: "DF__MILESTONE__UPDAT__236943A5") @db.DateTime
+  CREATE_DATE    DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE    DateTime @default(now()) @db.Timestamp(6)
 }
 
 model ORGANIZATIONS {
@@ -299,11 +299,11 @@ model ORGANIZATIONS {
   WORK_SPACE      String?  @db.VarChar(30)
   CREATE_USER_ID  Int?
   UPDATE_USER_ID  Int?
-  CREATE_DATE     DateTime @default(now(), map: "DF__ORGANIZAT__CREAT__42E1EEFE") @db.DateTime
-  UPDATE_DATE     DateTime @default(now(), map: "DF__ORGANIZAT__UPDAT__43D61337") @db.DateTime
-  STATUS          String   @default("P", map: "DF__ORGANIZAT__STATU__44CA3770") @db.Char(1)
-  SysStartTime    DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF_ORGANIZATIONS_SysStart")
-  SysEndTime      DateTime @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_ORGANIZATIONS_SysEnd")
+  CREATE_DATE     DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE     DateTime @default(now()) @db.Timestamp(6)
+  STATUS          String   @default("P") @db.Char(1)
+  SysStartTime    DateTime @default(dbgenerated("now()"))
+  SysEndTime      DateTime @default(dbgenerated("'9999-12-31 23:59:59.999999'::timestamp"))
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -313,29 +313,29 @@ model ORGANIZATIONS_HISTORY {
   WORK_SPACE      String?  @db.VarChar(30)
   CREATE_USER_ID  Int?
   UPDATE_USER_ID  Int?
-  CREATE_DATE     DateTime @db.DateTime
-  UPDATE_DATE     DateTime @db.DateTime
+  CREATE_DATE     DateTime @db.Timestamp(6)
+  UPDATE_DATE     DateTime @db.Timestamp(6)
   STATUS          String   @db.Char(1)
   SysStartTime    DateTime
   SysEndTime      DateTime
 
-  @@index([SysEndTime, SysStartTime], map: "ix_ORGANIZATIONS_HISTORY", clustered: true)
+  @@index([SysEndTime, SysStartTime], map: "ix_ORGANIZATIONS_HISTORY")
   @@ignore
 }
 
 model REQUESTS {
   REQUEST_ID          Int       @id(map: "PK_REQUESTS") @default(autoincrement())
   REQUEST_NAME        String    @db.VarChar(255)
-  EXTERNAL_USER       String?   @default("N", map: "DF__REQUESTS__EXTERN__00200768") @db.Char(1)
-  SUBMITTED_DATE      DateTime  @default(now(), map: "DF__REQUESTS__SUBMIT__01142BA1") @db.DateTime
+  EXTERNAL_USER       String?   @default("N") @db.Char(1)
+  SUBMITTED_DATE      DateTime @default(now()) @db.Timestamp(6)
   REQUESTOR_ID        Int?
   ASSIGNED_ID         Int?
-  STATUS              String?   @default("A", map: "DF__REQUESTS__STATUS__02084FDA") @db.Char(1)
-  CREATE_DATE         DateTime  @default(now(), map: "DF__REQUESTS__CREATE__02FC7413") @db.DateTime
-  UPDATE_DATE         DateTime? @default(now(), map: "DF__REQUESTS__UPDATE__03F0984C") @db.DateTime
+  STATUS              String?   @default("A") @db.Char(1)
+  CREATE_DATE         DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE         DateTime? @default(now()) @db.Timestamp(6)
   CREATE_USER_ID      Int?
   UPDATE_USER_ID      Int?
-  TRACKINGID          String?   @db.NVarChar(4000)
+  TRACKINGID          String?   @db.VarChar(4000)
   ABBREVIATION        String?   @db.VarChar(5)
   COMPANY_ID          Decimal?  @db.Decimal(38, 0)
   REQUEST_DESCRIPTION String?   @db.VarChar(2000)
@@ -349,9 +349,9 @@ model ROLES {
   DESCRIPTION    String    @db.VarChar(255)
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime? @default(now(), map: "DF__ROLES__CREATE_DA__72C60C4A") @db.DateTime
-  UPDATE_DATE    DateTime? @default(now(), map: "DF__ROLES__UPDATE_DA__73BA3083") @db.DateTime
-  STATUS         String    @default("P", map: "DF__ROLES__STATUS__74AE54BC") @db.Char(1)
+  CREATE_DATE    DateTime? @default(now()) @db.Timestamp(6)
+  UPDATE_DATE    DateTime? @default(now()) @db.Timestamp(6)
+  STATUS         String    @default("P") @db.Char(1)
 }
 
 model TASKS {
@@ -362,9 +362,9 @@ model TASKS {
   DESCRIPTION      String?  @db.VarChar(250)
   CREATE_USER_ID   Int?
   UPDATE_USER_ID   Int?
-  CREATE_DATE      DateTime @default(now(), map: "DF__TASKS__CREATE_DA__3D2915A8") @db.DateTime
-  UPDATE_DATE      DateTime @default(now(), map: "DF__TASKS__UPDATE_DA__3E1D39E1") @db.DateTime
-  TRACKINGID       String?  @db.NVarChar(4000)
+  CREATE_DATE      DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE      DateTime @default(now()) @db.Timestamp(6)
+  TRACKINGID       String?  @db.VarChar(4000)
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -381,9 +381,9 @@ model USER_ROLES {
   ROLE_ID        Int
   CREATE_USER_ID Int?
   UPDATE_USER_ID Int?
-  CREATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__CREAT__797309D9") @db.DateTime
-  UPDATE_DATE    DateTime? @default(now(), map: "DF__USER_ROLE__UPDAT__7A672E12") @db.DateTime
-  STATUS         String    @default("P", map: "DF__USER_ROLE__STATU__7B5B524B") @db.Char(1)
+  CREATE_DATE    DateTime? @default(now()) @db.Timestamp(6)
+  UPDATE_DATE    DateTime? @default(now()) @db.Timestamp(6)
+  STATUS         String    @default("P") @db.Char(1)
 }
 
 model USERS {
@@ -394,22 +394,22 @@ model USERS {
   PIN                           Int?
   CREATE_USER_ID                Int?
   UPDATE_USER_ID                Int?
-  CREATE_DATE                   DateTime       @default(now(), map: "DF__USERS__CREATE_DA__6C190EBB") @db.DateTime
-  UPDATE_DATE                   DateTime       @default(now(), map: "DF__USERS__UPDATE_DA__6D0D32F4") @db.DateTime
-  STATUS                        String         @default("P", map: "DF__USERS__STATUS__6E01572D") @db.Char(1)
-  SysStartTime                  DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF_USERS_SysStart")
-  SysEndTime                    DateTime       @default(dbgenerated("CONVERT([datetime2],'9999-12-31 23:59:59.9999999')"), map: "DF_USERS_SysEnd")
+  CREATE_DATE                   DateTime @default(now()) @db.Timestamp(6)
+  UPDATE_DATE                   DateTime @default(now()) @db.Timestamp(6)
+  STATUS                        String         @default("P") @db.Char(1)
+  SysStartTime                  DateTime @default(dbgenerated("now()"))
+  SysEndTime                    DateTime @default(dbgenerated("'9999-12-31 23:59:59.999999'::timestamp"))
   PASSWORD_HASH                 String?        @db.VarChar(255)
-  EMAIL_VALIDATED               Boolean        @default(false, map: "DF__USERS__EMAIL_VAL__1A34DF26")
+  EMAIL_VALIDATED               Boolean        @default(false)
   EMAIL_VALIDATION_TOKEN        String?        @db.VarChar(255)
   PASSWORD_RESET_TOKEN          String?        @db.VarChar(255)
   COMPANY_ID                         Int?
   EMAIL_VALIDATION_CODE_PLAIN        String?        @db.VarChar(10)
-  EMAIL_VALIDATION_TOKEN_EXPIRY      DateTime?      @db.DateTime2
-  PASSWORD_RESET_TOKEN_EXPIRY        DateTime?      @db.DateTime2
+  EMAIL_VALIDATION_TOKEN_EXPIRY      DateTime?      @db.Timestamp(6)
+  PASSWORD_RESET_TOKEN_EXPIRY        DateTime?      @db.Timestamp(6)
   ACTIVE_WORKSPACE_ID                Int?
   ACCOUNT_CREATOR_INVITE_COMPLETED   Boolean        @default(false)
-  NOTIFICATION_PREFERENCES           String?        @db.NVarChar(Max)
+  NOTIFICATION_PREFERENCES           String?        @db.Text
   COMPANY_INFO                       COMPANY_INFO[]
   MY_NOTICES                         MY_NOTICES[]
   MY_NOTICE_RECIPIENTS               MY_NOTICE_RECIPIENTS[] @relation("MY_NOTICE_RECIPIENTS")
@@ -418,27 +418,27 @@ model USERS {
 
 model MY_NOTICES {
   NOTICE_ID                  Int                        @id(map: "PK_MY_NOTICES") @default(autoincrement())
-  NOTICE_TITLE               String                     @db.NVarChar(255)
-  SENSITIVITY_CLASSIFICATION String                     @db.NVarChar(50)
-  BUTTON_STATUS              String                     @db.NVarChar(50)
-  DISTRIBUTION_TYPE          String?                    @db.NVarChar(50)
-  NOTICE_BODY                String?                    @db.NVarChar(Max)
+  NOTICE_TITLE               String                     @db.VarChar(255)
+  SENSITIVITY_CLASSIFICATION String                     @db.VarChar(50)
+  BUTTON_STATUS              String                     @db.VarChar(50)
+  DISTRIBUTION_TYPE          String?                    @db.VarChar(50)
+  NOTICE_BODY                String?                    @db.Text
   CREATE_USER_ID             Int?
   UPDATE_USER_ID             Int?
-  CREATE_DATE                DateTime                   @default(now()) @db.DateTime2
-  UPDATE_DATE                DateTime?                  @db.DateTime2
+  CREATE_DATE                DateTime                   @default(now()) @db.Timestamp(6)
+  UPDATE_DATE                DateTime?                  @db.Timestamp(6)
   COMPANY_ID                 Int?
   // Securities Notice MVP additions (Phase 0)
   TEMPLATE_FORM_ID                Int?
-  NOTICE_STATUS                   String    @default("DRAFT") @db.NVarChar(40)
+  NOTICE_STATUS                   String    @default("DRAFT") @db.VarChar(40)
   SUBMITTED_BY                    Int?
-  SUBMITTED_AT                    DateTime? @db.DateTime2
+  SUBMITTED_AT                    DateTime? @db.Timestamp(6)
   APPROVED_BY                     Int?
-  APPROVED_AT                     DateTime? @db.DateTime2
+  APPROVED_AT                     DateTime? @db.Timestamp(6)
   REJECTED_BY                     Int?
-  REJECTED_AT                     DateTime? @db.DateTime2
-  REJECTION_REASON                String?   @db.NVarChar(2000)
-  SENT_AT                         DateTime? @db.DateTime2
+  REJECTED_AT                     DateTime? @db.Timestamp(6)
+  REJECTION_REASON                String?   @db.VarChar(2000)
+  SENT_AT                         DateTime? @db.Timestamp(6)
   DISCLAIMER_STATE                Boolean?
   FIRST_TIME_RECIPIENT_FLAG       Boolean?
   SUBPOENA_RIDER_ID               Int?
@@ -468,9 +468,9 @@ model RESPONSE_MY_NOTICE {
   RESPONSE_MY_NOTICE_ID Int       @id(map: "PK_RESPONSE_MY_NOTICE") @default(autoincrement())
   MY_NOTICE_ID          Int
   USER_ID               Int?
-  RESPONSE_TEXT          String?   @db.NVarChar(Max)
+  RESPONSE_TEXT          String?   @db.Text
   ATTACHMENT_ID          Int?
-  CREATE_DATE            DateTime  @default(now()) @db.DateTime2
+  CREATE_DATE            DateTime  @default(now()) @db.Timestamp(6)
   COMPANY_ID             Int?
 
   MY_NOTICE              MY_NOTICES  @relation(fields: [MY_NOTICE_ID], references: [NOTICE_ID], onDelete: NoAction, onUpdate: NoAction)
@@ -484,12 +484,12 @@ model RESPONSE_MY_NOTICE {
 // for the writeAudit helper in server/lib/audit.ts.
 model AUDIT_LOG {
   ENTRY_ID         BigInt    @id @default(autoincrement())
-  EVENT_TYPE       String    @db.NVarChar(64)
+  EVENT_TYPE       String    @db.VarChar(64)
   ACTOR_USER_ID    Int?
   ACTOR_ROLE_ID    Int?
-  TARGET_TYPE      String    @db.NVarChar(32)
-  TARGET_ID        String?   @db.NVarChar(64)
-  EVENT_DETAIL     String?   @db.NVarChar(Max)
+  TARGET_TYPE      String    @db.VarChar(32)
+  TARGET_ID        String?   @db.VarChar(64)
+  EVENT_DETAIL     String?   @db.Text
   COMPANY_ID       Int?
   FIRST_TIME_FLAG  Boolean?
   DISCLAIMER_STATE Boolean?
@@ -505,8 +505,8 @@ model AUDIT_LOG {
 // comes via the `schema=GUARDIAN` parameter in DATABASE_URL.
 
 model JAFAR_PLATFORM_CONFIG {
-  CONFIG_KEY   String   @id @db.NVarChar(64)
-  CONFIG_VALUE String   @db.NVarChar(Max)
+  CONFIG_KEY   String   @id @db.VarChar(64)
+  CONFIG_VALUE String   @db.Text
   UPDATED_BY   Int?
   UPDATED_AT   DateTime @default(now())
 }
@@ -515,7 +515,7 @@ model RECIPIENT_VERIFICATIONS {
   VERIFICATION_ID   Int       @id @default(autoincrement())
   RECIPIENT_USER_ID Int
   COMPANY_ID        Int
-  VERIFIED_STATUS   String    @default("FIRST_TIME") @db.NVarChar(32)
+  VERIFIED_STATUS   String    @default("FIRST_TIME") @db.VarChar(32)
   VERIFIED_AT       DateTime?
   FIRST_NOTICE_ID   Int?
 
@@ -525,9 +525,9 @@ model RECIPIENT_VERIFICATIONS {
 
 model SUBPOENA_LANGUAGE_TEMPLATES {
   LANGUAGE_TEMPLATE_ID Int               @id @default(autoincrement())
-  FRAUD_TYPE           String            @db.NVarChar(40)
-  BASE_LANGUAGE        String            @db.NVarChar(Max)
-  TOKENS_JSON          String            @db.NVarChar(Max)
+  FRAUD_TYPE           String            @db.VarChar(40)
+  BASE_LANGUAGE        String            @db.Text
+  TOKENS_JSON          String            @db.Text
   CREATED_BY           Int
   COMPANY_ID           Int
   CREATED_AT           DateTime          @default(now())
@@ -541,9 +541,9 @@ model SUBPOENA_RIDERS {
   RIDER_ID             Int                         @id @default(autoincrement())
   LANGUAGE_TEMPLATE_ID Int
   LANGUAGE_TEMPLATE    SUBPOENA_LANGUAGE_TEMPLATES @relation(fields: [LANGUAGE_TEMPLATE_ID], references: [LANGUAGE_TEMPLATE_ID])
-  FRAUD_TYPE           String                      @db.NVarChar(40)
-  POPULATED_LANGUAGE   String                      @db.NVarChar(Max)
-  TOKEN_VALUES_JSON    String                      @db.NVarChar(Max)
+  FRAUD_TYPE           String                      @db.VarChar(40)
+  POPULATED_LANGUAGE   String                      @db.Text
+  TOKEN_VALUES_JSON    String                      @db.Text
   INCIDENT_NOTICE_ID   Int?
   CREATED_BY           Int
   COMPANY_ID           Int
@@ -555,7 +555,7 @@ model EXTERNAL_NOTICE_ASSIGNMENTS {
   NOTICE_ID        Int
   EXTERNAL_USER_ID Int
   COMPANY_ID       Int
-  AGENCY_NAME      String?  @db.NVarChar(255)
+  AGENCY_NAME      String?  @db.VarChar(255)
   CREATED_AT       DateTime @default(now())
 
   @@unique([NOTICE_ID, EXTERNAL_USER_ID])
@@ -566,7 +566,7 @@ model EXTERNAL_CALL_REQUESTS {
   CALL_REQUEST_ID  Int      @id @default(autoincrement())
   NOTICE_ID        Int
   EXTERNAL_USER_ID Int
-  PROPOSED_TIMES   String   @db.NVarChar(Max)
-  MEETING_LINK     String?  @db.NVarChar(1024)
+  PROPOSED_TIMES   String   @db.Text
+  MEETING_LINK     String?  @db.VarChar(1024)
   CREATED_AT       DateTime @default(now())
 }
