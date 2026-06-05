@@ -117,9 +117,9 @@ passport.use(
         // Use raw SQL to query GUARDIAN schema directly (Prisma ORM queries dbo schema incorrectly)
         try {
           const users: any[] = await prisma.$queryRawUnsafe(`
-            SELECT u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID,
-                   u.PASSWORD_HASH, u.EMAIL_VALIDATED
-            FROM GUARDIAN.USERS u WHERE u.EMAIL = '${email.replace(/'/g, "''")}'
+            SELECT u."USER_ID", u."EMAIL", u."FIRST_NAME", u."LAST_NAME", u."STATUS", u."COMPANY_ID",
+                   u."PASSWORD_HASH", u."EMAIL_VALIDATED"
+            FROM "GUARDIAN"."USERS" u WHERE u."EMAIL" = '${email.replace(/'/g, "''")}'
           `);
           const user = users.length > 0 ? users[0] : null;
 
@@ -146,7 +146,7 @@ passport.use(
 
           // Get user roles via raw SQL
           const userRoles: any[] = await prisma.$queryRawUnsafe(`
-            SELECT ROLE_ID FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID} AND STATUS = 'P'
+            SELECT "ROLE_ID" FROM "GUARDIAN"."USER_ROLES" WHERE "USER_ID" = ${user.USER_ID} AND "STATUS" = 'P'
           `);
           const roleIds = userRoles.map((ur: { ROLE_ID: number }) => ur.ROLE_ID);
 
@@ -218,8 +218,8 @@ passport.use(
         try {
           // Use raw SQL to query GUARDIAN schema directly (Prisma ORM queries dbo schema incorrectly)
           const users: any[] = await prisma.$queryRawUnsafe(`
-            SELECT u.USER_ID, u.EMAIL, u.FIRST_NAME, u.LAST_NAME, u.STATUS, u.COMPANY_ID
-            FROM GUARDIAN.USERS u WHERE u.USER_ID = ${jwtPayload.id}
+            SELECT u."USER_ID", u."EMAIL", u."FIRST_NAME", u."LAST_NAME", u."STATUS", u."COMPANY_ID"
+            FROM "GUARDIAN"."USERS" u WHERE u."USER_ID" = ${jwtPayload.id}
           `);
           const user = users.length > 0 ? users[0] : null;
 
@@ -233,7 +233,7 @@ passport.use(
 
           // Get user roles via raw SQL
           const userRoles: any[] = await prisma.$queryRawUnsafe(`
-            SELECT ROLE_ID FROM GUARDIAN.USER_ROLES WHERE USER_ID = ${user.USER_ID} AND STATUS = 'P'
+            SELECT "ROLE_ID" FROM "GUARDIAN"."USER_ROLES" WHERE "USER_ID" = ${user.USER_ID} AND "STATUS" = 'P'
           `);
           const roleIds = userRoles.map((ur: { ROLE_ID: number }) => ur.ROLE_ID);
 
