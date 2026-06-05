@@ -51,3 +51,22 @@ schema. Each repair below is a behavior/API change worth confirming.
 ## external.ts repairs are COMPILE-verified only
 - `requireExternalUser` does a DB check Ernest doesn't satisfy, so /api/external/* couldn't be
   runtime-tested as a normal user. Needs a real external-user fixture + notice assignment to verify.
+
+## PRE-EXISTING security issues found in final review (NOT migration-introduced — flagged, NOT fixed)
+These predate the migration (present at base commit) and span many request routes; fixing them
+is a separate security-hardening effort, not a DB port. Recommend addressing soon:
+- **No `requireAuth` on `/api/requests` routes** (GET `/`, `/:id`, POST `/`, PUT `/:id`, DELETE `/:id`,
+  `/:id/assign|start|complete`, `/assigned/me`, `/:id/progress` in server/routes/requests.ts).
+  Unauthenticated callers can reach them.
+- **No company-data isolation on the `/api/requests` list query** — returns requests across ALL
+  companies (no `WHERE COMPANY_ID = ...`). Contradicts the project's company-isolation requirement.
+- **auth.ts login** interpolates email into `$queryRawUnsafe` with quote-escaping only (not
+  parameterized); zod `.email()` has no length cap on this path.
+- **jafarPurge LIKE search** (getJafarUsers/Companies) doesn't escape `%`/`_` wildcards (over-broad
+  matches, not injection; gated by requireJafar).
+
+## Migration-introduced injection vectors — FIXED (commit 53d4aa0)
+- requests.ts completionNotes (req.body) → escapeSqlValue.
+- requests.ts status query param → allow-listed (VALID_REQUEST_STATUS) + escaped.
+- requests.ts type filter → removed (REQUEST_TYPE column does not exist in GUARDIAN.REQUESTS).
+- requests.ts limit param → numeric-coerced and capped (1..1000, default 100).
