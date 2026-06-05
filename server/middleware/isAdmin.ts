@@ -50,7 +50,8 @@ export async function isAdmin(req: Request, res: Response, next: NextFunction) {
     if (!companyId) {
       try {
         const userRow: any[] = await prisma.$queryRawUnsafe(
-          `SELECT COMPANY_ID FROM GUARDIAN.USERS WHERE USER_ID = ${decoded.id}`
+          `SELECT "COMPANY_ID" FROM "GUARDIAN"."USERS" WHERE "USER_ID" = $1`,
+          Number(decoded.id)
         );
         if (userRow && userRow.length > 0) {
           companyId = userRow[0].COMPANY_ID;

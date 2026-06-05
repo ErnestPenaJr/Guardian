@@ -239,12 +239,12 @@ router.get(
         return res.status(400).json({ error: 'Company ID is required' });
       }
       const rows = (await prisma.$queryRaw`
-        SELECT COUNT(DISTINCT ur.ROLE_ID) AS distinctRoleCount
-        FROM GUARDIAN.USER_ROLES ur
-        JOIN GUARDIAN.USERS u ON u.USER_ID = ur.USER_ID
-        WHERE u.COMPANY_ID = ${companyId}
-          AND u.STATUS = 'A'
-          AND ur.STATUS = 'P'
+        SELECT COUNT(DISTINCT ur."ROLE_ID")::int AS "distinctRoleCount"
+        FROM "GUARDIAN"."USER_ROLES" ur
+        JOIN "GUARDIAN"."USERS" u ON u."USER_ID" = ur."USER_ID"
+        WHERE u."COMPANY_ID" = ${companyId}
+          AND u."STATUS" = 'A'
+          AND ur."STATUS" = 'P'
       `) as Array<{ distinctRoleCount: number | bigint }>;
       const raw = rows?.[0]?.distinctRoleCount ?? 0;
       const distinctRoleCount = typeof raw === 'bigint' ? Number(raw) : Number(raw);

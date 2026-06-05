@@ -60,9 +60,9 @@ function looksLikePiiLabel(label: string): boolean {
 async function buildIdentifierBlock(noticeId: number, companyId: number): Promise<string> {
   type NoticeRow = { TEMPLATE_FORM_ID: number | null; TEMPLATE_VALUES_JSON: string | null };
   const noticeRows = await prisma.$queryRawUnsafe<NoticeRow[]>(`
-    SELECT TEMPLATE_FORM_ID, TEMPLATE_VALUES_JSON
-    FROM GUARDIAN.MY_NOTICES
-    WHERE NOTICE_ID = ${Number(noticeId)} AND COMPANY_ID = ${Number(companyId)}
+    SELECT "TEMPLATE_FORM_ID", "TEMPLATE_VALUES_JSON"
+    FROM "GUARDIAN"."MY_NOTICES"
+    WHERE "NOTICE_ID" = ${Number(noticeId)} AND "COMPANY_ID" = ${Number(companyId)}
   `);
   const notice = noticeRows[0];
   if (!notice?.TEMPLATE_FORM_ID || !notice.TEMPLATE_VALUES_JSON) return '';
@@ -76,13 +76,14 @@ async function buildIdentifierBlock(noticeId: number, companyId: number): Promis
   const fieldIds = Object.keys(values).map((k) => Number(k)).filter(Number.isFinite);
   if (fieldIds.length === 0) return '';
 
+  // SCHEMA NOTE: IS_PII lives on FORMS_FIELDS (not FIELDS) in the PG schema.
   type FieldRow = { FIELD_ID: number; FIELD_NAME: string; IS_PII: boolean; SORT_ORDER: number | null };
   const fields = await prisma.$queryRawUnsafe<FieldRow[]>(`
-    SELECT f.FIELD_ID, f.FIELD_NAME, f.IS_PII, ff.SORT_ORDER
-    FROM GUARDIAN.FIELDS f
-    INNER JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-    WHERE ff.FORM_ID = ${notice.TEMPLATE_FORM_ID} AND f.FIELD_ID IN (${fieldIds.join(',')})
-    ORDER BY ff.SORT_ORDER, f.FIELD_ID
+    SELECT f."FIELD_ID", f."FIELD_NAME", ff."IS_PII", ff."SORT_ORDER"
+    FROM "GUARDIAN"."FIELDS" f
+    INNER JOIN "GUARDIAN"."FORMS_FIELDS" ff ON f."FIELD_ID" = ff."FIELD_ID"
+    WHERE ff."FORM_ID" = ${Number(notice.TEMPLATE_FORM_ID)} AND f."FIELD_ID" IN (${fieldIds.join(',')})
+    ORDER BY ff."SORT_ORDER", f."FIELD_ID"
   `);
 
   const rows: Array<{ label: string; value: string }> = [];

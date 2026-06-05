@@ -244,18 +244,19 @@ app.post('/api/login', loginRateLimiter, async (req, res) => {
       // First, let's try a raw query to see what's in the database
       console.log('[LOGIN] Executing raw query to check USERS table...');
       const rawUsers = await prisma.$queryRaw`
-        SELECT TOP 5 USER_ID, EMAIL, FIRST_NAME, LAST_NAME, STATUS 
-        FROM GUARDIAN.USERS 
-        WHERE EMAIL LIKE ${'%' + email.split('@')[1]}
+        SELECT "USER_ID", "EMAIL", "FIRST_NAME", "LAST_NAME", "STATUS"
+        FROM "GUARDIAN"."USERS"
+        WHERE "EMAIL" LIKE ${'%' + email.split('@')[1]}
+        LIMIT 5
       `;
       console.log('[LOGIN] Raw query result (similar domain users):', rawUsers);
-      
+
       // Check exact email match with raw query
       console.log('[LOGIN] Executing exact email match raw query...');
       const exactMatch = await prisma.$queryRaw`
-        SELECT USER_ID, EMAIL, FIRST_NAME, LAST_NAME, PASSWORD_HASH, STATUS, EMAIL_VALIDATED, COMPANY_ID
-        FROM GUARDIAN.USERS
-        WHERE EMAIL = ${email}
+        SELECT "USER_ID", "EMAIL", "FIRST_NAME", "LAST_NAME", "PASSWORD_HASH", "STATUS", "EMAIL_VALIDATED", "COMPANY_ID"
+        FROM "GUARDIAN"."USERS"
+        WHERE "EMAIL" = ${email}
       `;
       console.log('[LOGIN] Exact email match raw query result:', exactMatch);
       
@@ -600,24 +601,24 @@ app.post('/api/register', async (req, res) => {
       
       // First try to find if company exists with exact name match
       const existingCompanies = await prisma.$queryRaw`
-        SELECT COMPANY_ID, NAME FROM COMPANY WHERE NAME = ${companyNameToUse}
+        SELECT "COMPANY_ID", "NAME" FROM "GUARDIAN"."COMPANY" WHERE "NAME" = ${companyNameToUse}
       `;
-      
+
       console.log('%c Existing Companies', 'background: #9C27B0; color: #fff', existingCompanies);
-      
+
       let companyId;
-      
+
       if (!Array.isArray(existingCompanies) || existingCompanies.length === 0) {
         // Create new company with explicit parameter
         const insertResult = await prisma.$executeRaw`
-          INSERT INTO COMPANY (NAME, CREATED_AT) VALUES (${companyNameToUse}, GETDATE())
+          INSERT INTO "GUARDIAN"."COMPANY" ("NAME", "CREATED_AT") VALUES (${companyNameToUse}, now())
         `;
-        
+
         console.log('%c Insert Result', 'background: #E91E63; color: #fff', insertResult);
-        
+
         // Get the newly created company
         const newCompanies = await prisma.$queryRaw`
-          SELECT TOP 1 COMPANY_ID FROM COMPANY WHERE NAME = ${companyNameToUse} ORDER BY CREATED_AT DESC
+          SELECT "COMPANY_ID" FROM "GUARDIAN"."COMPANY" WHERE "NAME" = ${companyNameToUse} ORDER BY "CREATED_AT" DESC LIMIT 1
         `;
         
         console.log('%c New Company Query', 'background: #3F51B5; color: #fff', newCompanies);
