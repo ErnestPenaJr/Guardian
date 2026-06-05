@@ -10,6 +10,7 @@ Scripts and generated SQL for moving the Guardian database off SQL Server
 | `../scripts/mssql-to-postgres.cjs` | ✅ yes | Generator. Connects to a SQL Server source, introspects the `GUARDIAN` schema, and regenerates `01_schema.sql` + `02_seed.sql`. |
 | `01_schema.sql` | ✅ yes | PostgreSQL DDL: schema, 55 tables, PKs, uniques, 85 indexes, check constraints, and 66 **DEFERRABLE** foreign keys. |
 | `02_seed.sql` | ❌ **git-ignored** | Full data clone (every table) as batched `INSERT`s. **Contains real PII + password hashes — treat as a secret.** |
+| `03_app_schema_patches.sql` | ✅ yes | Idempotent post-load patches for columns the TS app expects but the source `GUARDIAN` schema lacks (e.g. `TASKS.TRACKINGID`). Apply after `02_seed.sql`. |
 
 ## Regenerating
 
@@ -80,3 +81,38 @@ imported max.
   app to PostgreSQL is a separate task (Prisma `provider`, query syntax, etc.).
 - **`pgcrypto`** extension is required for `gen_random_uuid()` defaults; the
   schema file creates it (`CREATE EXTENSION IF NOT EXISTS pgcrypto`).
+
+## Running the TS server on PostgreSQL (migrated)
+
+The canonical TypeScript server (`server/index.ts` → `dist-server/`) has been
+ported to run on PostgreSQL. The legacy monolith (`server.cjs` / `server.js` /
+`server-production.js`) is **untouched** and still targets SQL Server.
+
+```bash
+# build + run the TS server against the local Postgres clone
+npm run server:dev:pg     # DATABASE_URL=postgresql://…@localhost:5433/postgres?schema=GUARDIAN
+```
+
+What the migration changed:
+- **Prisma** (`schema.prisma`): `provider` → `postgresql`; SQL-Server native type
+  attributes mapped to Postgres equivalents (`@db.DateTime`→`@db.Timestamp(6)`,
+  `@db.NVarChar`→`@db.VarChar`/`@db.Text`, etc.). The pre-port SQL Server schema is
+  preserved at `prisma/schema.sqlserver.prisma.bak`. Prisma is used as a **client
+  only** — we do NOT run `prisma migrate`/`db push` against this DB (the schema is
+  owned by `01_schema.sql`).
+- **Raw SQL** in all `server/**/*.ts` route/service files: identifiers quoted
+  (`"GUARDIAN"."USERS"`), T-SQL ported to Postgres (`TOP`→`LIMIT`, `GETDATE()`→`now()`,
+  `SCOPE_IDENTITY()`/`lastval()`→`INSERT … RETURNING`, `ISNULL`→`COALESCE`, `bit`
+  comparisons → boolean, `COUNT(*)`→`COUNT(*)::int`, etc.).
+- **Pre-existing schema drift repaired**: several queries referenced columns/tables
+  not in the `GUARDIAN` schema (already broken on SQL Server). These were repaired
+  onto the real schema. Each repair + any API-shape change is logged in
+  `docs/superpowers/notes/2026-06-05-pg-repair-flags-for-review.md` — **review these**.
+- Two SQL-injection vectors (in `milestones.ts`) were closed during the port.
+
+Verified: all mounted routes return 200 against the local Postgres clone; the
+`securities-notice-permissions` smoke test passes. Not yet runtime-verified:
+the external-user portal routes (`/api/external/*`) need an external-user fixture.
+
+Design + plan: `docs/superpowers/specs/2026-06-05-postgres-migration-ts-server-design.md`,
+`docs/superpowers/plans/2026-06-05-postgres-migration-ts-server.md`.
