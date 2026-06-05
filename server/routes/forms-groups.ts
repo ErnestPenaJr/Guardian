@@ -13,7 +13,7 @@ interface FormGroup {
   IS_PUBLIC: number;
   SORT_ORDER: number;
   ORGANIZATION_ID?: number;
-  ORGANIZATION_NAME?: string;
+  COMPANY_NAME?: string;
   CREATE_USER_ID?: number;
   UPDATE_USER_ID?: number;
   CREATE_DATE?: Date;
@@ -48,13 +48,12 @@ router.get('/', async (req, res) => {
   try {
     // Use raw SQL query instead of Prisma model
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
-      FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
-      WHERE g.IS_PUBLIC = 1 OR g.IS_PUBLIC = 0
-      ORDER BY g.GROUP_NAME ASC
+      SELECT g.*, o."COMPANY_NAME"
+      FROM "GUARDIAN"."FORMS_GROUPS" g
+      LEFT JOIN "GUARDIAN"."ORGANIZATIONS" o ON g."ORGANIZATION_ID" = o."ORGANIZATION_ID"
+      ORDER BY g."GROUP_NAME" ASC
     `;
-    
+
     res.json(groups as FormGroup[]);
   } catch (error) {
     console.error('Error fetching groups:', error);
@@ -69,10 +68,10 @@ router.get('/:id', async (req, res) => {
     
     // Use raw SQL query instead of Prisma model
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
-      FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
-      WHERE g.GROUP_ID = ${parseInt(id)}
+      SELECT g.*, o."COMPANY_NAME"
+      FROM "GUARDIAN"."FORMS_GROUPS" g
+      LEFT JOIN "GUARDIAN"."ORGANIZATIONS" o ON g."ORGANIZATION_ID" = o."ORGANIZATION_ID"
+      WHERE g."GROUP_ID" = ${parseInt(id)}
     `;
     
     const typedGroups = groups as FormGroup[];
@@ -95,22 +94,23 @@ router.get('/:id/fields', async (req, res) => {
     
     // Check if group exists
     const groups = await prisma.$queryRaw`
-      SELECT * FROM GUARDIAN.FORMS_GROUPS 
-      WHERE GROUP_ID = ${groupId}
+      SELECT * FROM "GUARDIAN"."FORMS_GROUPS"
+      WHERE "GROUP_ID" = ${groupId}
     `;
-    
+
     const typedGroups = groups as FormGroup[];
     if (!typedGroups || typedGroups.length === 0) {
       return res.status(404).json({ error: 'Group not found' });
     }
-    
+
     // Get fields for the group
     const fields = await prisma.$queryRaw`
-      SELECT gf.*, f.FIELD_NAME, f.FIELD_TYPE, f.FIELD_DESCRIPTION, f.FIELD_OPTIONS, f.IS_REQUIRED as FIELD_IS_REQUIRED
-      FROM GUARDIAN.FORMS_GROUPS_FIELDS gf
-      JOIN GUARDIAN.FORMS_FIELDS f ON gf.FIELD_ID = f.FIELD_ID
-      WHERE gf.GROUP_ID = ${groupId}
-      ORDER BY gf.SORT_ORDER, f.FIELD_NAME
+      SELECT gf."GROUP_ID", gf."FIELD_ID", gf."SORT_ORDER",
+             f."FIELD_NAME", f."IS_REQUIRED" as "FIELD_IS_REQUIRED", f."OPTIONS" as "FIELD_OPTIONS"
+      FROM "GUARDIAN"."FORMS_GROUPS_FIELDS" gf
+      JOIN "GUARDIAN"."FIELDS" f ON gf."FIELD_ID" = f."FIELD_ID"
+      WHERE gf."GROUP_ID" = ${groupId}
+      ORDER BY gf."SORT_ORDER", f."FIELD_NAME"
     `;
     
     res.json(fields as GroupFieldWithDetails[]);
@@ -136,42 +136,41 @@ router.post('/', requireAuth, async (req, res) => {
     
     // Create the group using raw SQL
     const currentDate = new Date().toISOString();
-    const isPublicValue = IS_PUBLIC ? 1 : 0;
+    const isPublicValue = IS_PUBLIC ? true : false;
     const sortOrderValue = SORT_ORDER || 0;
-    
+
     const result = await prisma.$queryRaw`
-      INSERT INTO GUARDIAN.FORMS_GROUPS (
-        GROUP_NAME, 
-        GROUP_DESCRIPTION, 
-        IS_PUBLIC, 
-        SORT_ORDER, 
-        ORGANIZATION_ID, 
-        CREATE_USER_ID, 
-        UPDATE_USER_ID, 
-        CREATE_DATE, 
-        UPDATE_DATE
+      INSERT INTO "GUARDIAN"."FORMS_GROUPS" (
+        "GROUP_NAME",
+        "GROUP_DESCRIPTION",
+        "IS_PUBLIC",
+        "SORT_ORDER",
+        "ORGANIZATION_ID",
+        "CREATE_USER_ID",
+        "UPDATE_USER_ID",
+        "CREATE_DATE",
+        "UPDATE_DATE"
       ) VALUES (
-        ${GROUP_NAME}, 
-        ${GROUP_DESCRIPTION}, 
-        ${isPublicValue}, 
-        ${sortOrderValue}, 
-        ${ORGANIZATION_ID}, 
-        ${userId}, 
-        ${userId}, 
-        ${currentDate}, 
+        ${GROUP_NAME},
+        ${GROUP_DESCRIPTION},
+        ${isPublicValue},
+        ${sortOrderValue},
+        ${ORGANIZATION_ID},
+        ${userId},
+        ${userId},
+        ${currentDate},
         ${currentDate}
-      );
-      SELECT SCOPE_IDENTITY() AS GROUP_ID;
+      ) RETURNING "GROUP_ID"
     `;
-    
+
     // Get the newly created group
     const typedResult = result as { GROUP_ID: number }[];
     const newGroupId = typedResult[0].GROUP_ID;
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
-      FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
-      WHERE g.GROUP_ID = ${newGroupId}
+      SELECT g.*, o."COMPANY_NAME"
+      FROM "GUARDIAN"."FORMS_GROUPS" g
+      LEFT JOIN "GUARDIAN"."ORGANIZATIONS" o ON g."ORGANIZATION_ID" = o."ORGANIZATION_ID"
+      WHERE g."GROUP_ID" = ${newGroupId}
     `;
     
     const typedGroups = groups as FormGroup[];
@@ -198,28 +197,28 @@ router.put('/:id', requireAuth, async (req, res) => {
     // Get the authenticated user
     const userId = req.user?.id;
     const currentDate = new Date().toISOString();
-    const isPublicValue = IS_PUBLIC ? 1 : 0;
+    const isPublicValue = IS_PUBLIC ? true : false;
     
     // Update the group using raw SQL
     await prisma.$queryRaw`
-      UPDATE GUARDIAN.FORMS_GROUPS
-      SET 
-        GROUP_NAME = ${GROUP_NAME},
-        GROUP_DESCRIPTION = ${GROUP_DESCRIPTION},
-        IS_PUBLIC = ${isPublicValue},
-        SORT_ORDER = ${SORT_ORDER},
-        ORGANIZATION_ID = ${ORGANIZATION_ID},
-        UPDATE_USER_ID = ${userId},
-        UPDATE_DATE = ${currentDate}
-      WHERE GROUP_ID = ${groupId}
+      UPDATE "GUARDIAN"."FORMS_GROUPS"
+      SET
+        "GROUP_NAME" = ${GROUP_NAME},
+        "GROUP_DESCRIPTION" = ${GROUP_DESCRIPTION},
+        "IS_PUBLIC" = ${isPublicValue},
+        "SORT_ORDER" = ${SORT_ORDER},
+        "ORGANIZATION_ID" = ${ORGANIZATION_ID},
+        "UPDATE_USER_ID" = ${userId},
+        "UPDATE_DATE" = ${currentDate}
+      WHERE "GROUP_ID" = ${groupId}
     `;
-    
+
     // Get the updated group
     const groups = await prisma.$queryRaw`
-      SELECT g.*, o.ORGANIZATION_NAME 
-      FROM GUARDIAN.FORMS_GROUPS g
-      LEFT JOIN GUARDIAN.ORGANIZATIONS o ON g.ORGANIZATION_ID = o.ORGANIZATION_ID
-      WHERE g.GROUP_ID = ${groupId}
+      SELECT g.*, o."COMPANY_NAME"
+      FROM "GUARDIAN"."FORMS_GROUPS" g
+      LEFT JOIN "GUARDIAN"."ORGANIZATIONS" o ON g."ORGANIZATION_ID" = o."ORGANIZATION_ID"
+      WHERE g."GROUP_ID" = ${groupId}
     `;
     
     const group = (groups as any[])[0];
@@ -258,33 +257,31 @@ router.post('/:id/fields', requireAuth, async (req, res) => {
     
     // Delete existing group fields
     await prisma.$queryRaw`
-      DELETE FROM GUARDIAN.FORMS_GROUPS_FIELDS 
-      WHERE GROUP_ID = ${groupId}
+      DELETE FROM "GUARDIAN"."FORMS_GROUPS_FIELDS"
+      WHERE "GROUP_ID" = ${groupId}
     `;
-    
+
     // Create new group fields
     const createdGroupFields: any[] = [];
     for (let i = 0; i < fields.length; i++) {
       const field = fields[i];
       const sortOrder = field.SORT_ORDER || i;
       const isRequired = field.IS_REQUIRED ? 1 : 0;
-      
+
       // Insert the new group field
       await prisma.$queryRaw`
-        INSERT INTO GUARDIAN.FORMS_GROUPS_FIELDS (
-          GROUP_ID,
-          FIELD_ID,
-          SORT_ORDER,
-          IS_REQUIRED,
-          CREATE_USER_ID,
-          UPDATE_USER_ID,
-          CREATE_DATE,
-          UPDATE_DATE
+        INSERT INTO "GUARDIAN"."FORMS_GROUPS_FIELDS" (
+          "GROUP_ID",
+          "FIELD_ID",
+          "SORT_ORDER",
+          "CREATE_USER_ID",
+          "UPDATE_USER_ID",
+          "CREATE_DATE",
+          "UPDATE_DATE"
         ) VALUES (
           ${groupId},
           ${field.FIELD_ID},
           ${sortOrder},
-          ${isRequired},
           ${userId},
           ${userId},
           ${currentDate},
@@ -322,35 +319,35 @@ router.delete('/:id', requireAuth, async (req, res) => {
     
     // Check if group exists
     const groups = await prisma.$queryRaw`
-      SELECT * FROM GUARDIAN.FORMS_GROUPS 
-      WHERE GROUP_ID = ${groupId}
+      SELECT * FROM "GUARDIAN"."FORMS_GROUPS"
+      WHERE "GROUP_ID" = ${groupId}
     `;
-    
+
     const group = (groups as any[])[0];
     if (!group) {
       console.log(`Group with ID ${groupId} not found`);
       return res.status(404).json({ error: 'Group not found' });
     }
-    
+
     console.log(`Found group:`, group);
 
     // First delete any group fields associated with this group
     console.log(`Deleting group fields for group ID: ${groupId}`);
     try {
       await prisma.$queryRaw`
-        DELETE FROM GUARDIAN.FORMS_GROUPS_FIELDS 
-        WHERE GROUP_ID = ${groupId}
+        DELETE FROM "GUARDIAN"."FORMS_GROUPS_FIELDS"
+        WHERE "GROUP_ID" = ${groupId}
       `;
       console.log(`Deleted group fields for group ID: ${groupId}`);
     } catch (fieldError) {
       console.log(`No group fields to delete or error:`, fieldError);
       // Continue with group deletion even if field deletion fails
     }
-    
+
     // Then delete the group
     await prisma.$queryRaw`
-      DELETE FROM GUARDIAN.FORMS_GROUPS 
-      WHERE GROUP_ID = ${groupId}
+      DELETE FROM "GUARDIAN"."FORMS_GROUPS"
+      WHERE "GROUP_ID" = ${groupId}
     `;
     
     res.json({ message: 'Group deleted successfully' });

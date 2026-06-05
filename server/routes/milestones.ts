@@ -20,36 +20,38 @@ export const createSystemMilestone = async (
 ) => {
   try {
     const result = await prisma.$queryRaw`
-      INSERT INTO GUARDIAN.WORK_PROGRESS (
-        REQUEST_ID,
-        USER_ID,
-        PROGRESS_TYPE,
-        TITLE,
-        DESCRIPTION,
-        IS_MILESTONE,
-        IS_VISIBLE_TO_REQUESTOR,
-        IS_SYSTEM_GENERATED,
-        RELATED_TASK_ID,
-        STATUS_FROM,
-        STATUS_TO,
-        EVENT_DATA,
-        CREATE_DATE,
-        UPDATE_DATE
+      INSERT INTO "GUARDIAN"."WORK_PROGRESS" (
+        "REQUEST_ID",
+        "USER_ID",
+        "COMPANY_ID",
+        "PROGRESS_TYPE",
+        "TITLE",
+        "DESCRIPTION",
+        "IS_MILESTONE",
+        "IS_VISIBLE_TO_REQUESTOR",
+        "IS_SYSTEM_GENERATED",
+        "RELATED_TASK_ID",
+        "STATUS_FROM",
+        "STATUS_TO",
+        "EVENT_DATA",
+        "CREATE_DATE",
+        "UPDATE_DATE"
       ) VALUES (
         ${requestId},
         ${userId},
+        ${companyId},
         ${progressType},
         ${title},
         ${description},
-        1,
-        1,
-        1,
+        true,
+        true,
+        true,
         ${relatedTaskId},
         ${statusFrom},
         ${statusTo},
         ${eventData},
-        GETDATE(),
-        GETDATE()
+        now(),
+        now()
       )
     `;
     console.log(`✅ Created system milestone: ${title} for request ${requestId}`);
@@ -172,9 +174,9 @@ router.get('/requests/:requestId/milestones', requireAuth, async (req, res) => {
 
     // Verify request exists and belongs to user's company
     const request = await prisma.$queryRaw<{ REQUEST_ID: number; REQUEST_NAME: string }[]>`
-      SELECT REQUEST_ID, REQUEST_NAME
-      FROM GUARDIAN.REQUESTS 
-      WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${companyId}
+      SELECT "REQUEST_ID", "REQUEST_NAME"
+      FROM "GUARDIAN"."REQUESTS"
+      WHERE "REQUEST_ID" = ${requestId} AND "COMPANY_ID" = ${companyId}
     `;
 
     if (request.length === 0) {
@@ -183,78 +185,79 @@ router.get('/requests/:requestId/milestones', requireAuth, async (req, res) => {
 
     // Build WHERE clause for filtering
     let whereConditions = [
-      `wp.REQUEST_ID = ${requestId}`,
-      `r.COMPANY_ID = ${companyId}`
+      `wp."REQUEST_ID" = ${requestId}`,
+      `r."COMPANY_ID" = ${companyId}`
     ];
 
     // Filter by progress types
     if (progressTypes) {
       const types = Array.isArray(progressTypes) ? progressTypes : [progressTypes];
       const typeFilter = types.map(type => `'${type}'`).join(',');
-      whereConditions.push(`wp.PROGRESS_TYPE IN (${typeFilter})`);
+      whereConditions.push(`wp."PROGRESS_TYPE" IN (${typeFilter})`);
     }
 
     // Filter by milestones only
     if (milestonesOnly === 'true') {
-      whereConditions.push('wp.IS_MILESTONE = 1');
+      whereConditions.push('wp."IS_MILESTONE" = true');
     }
 
     // Filter by visibility to requestor
     if (visibleToRequestorOnly === 'true') {
-      whereConditions.push('wp.IS_VISIBLE_TO_REQUESTOR = 1');
+      whereConditions.push('wp."IS_VISIBLE_TO_REQUESTOR" = true');
     }
 
     // Filter by system vs manual
     if (systemOnly === 'true') {
-      whereConditions.push('wp.IS_SYSTEM_GENERATED = 1');
+      whereConditions.push('wp."IS_SYSTEM_GENERATED" = true');
     } else if (manualOnly === 'true') {
-      whereConditions.push('wp.IS_SYSTEM_GENERATED = 0');
+      whereConditions.push('wp."IS_SYSTEM_GENERATED" = false');
     }
 
     const whereClause = whereConditions.join(' AND ');
     const limitNum = parseInt(limit as string) || 50;
     const offsetNum = parseInt(offset as string) || 0;
 
-    // Get milestones with user information
-    const milestones = await prisma.$queryRaw<any[]>`
-      SELECT 
-        wp.WORK_PROGRESS_ID,
-        wp.REQUEST_ID,
-        wp.USER_ID,
-        wp.PROGRESS_TYPE,
-        wp.TITLE,
-        wp.DESCRIPTION,
-        wp.IS_MILESTONE,
-        wp.IS_VISIBLE_TO_REQUESTOR,
-        wp.IS_SYSTEM_GENERATED,
-        wp.HOURS_WORKED,
-        wp.RELATED_TASK_ID,
-        wp.STATUS_FROM,
-        wp.STATUS_TO,
-        wp.EVENT_DATA,
-        wp.CREATE_DATE,
-        wp.UPDATE_DATE,
-        u.FIRST_NAME,
-        u.LAST_NAME,
-        CONCAT(u.FIRST_NAME, ' ', u.LAST_NAME) as CREATED_BY_NAME
-      FROM GUARDIAN.WORK_PROGRESS wp
-      INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
-      INNER JOIN GUARDIAN.USERS u ON wp.USER_ID = u.USER_ID
+    // Get milestones with user information (dynamic WHERE via $queryRawUnsafe)
+    const milestonesQuery = `
+      SELECT
+        wp."WORK_PROGRESS_ID",
+        wp."REQUEST_ID",
+        wp."USER_ID",
+        wp."PROGRESS_TYPE",
+        wp."TITLE",
+        wp."DESCRIPTION",
+        wp."IS_MILESTONE",
+        wp."IS_VISIBLE_TO_REQUESTOR",
+        wp."IS_SYSTEM_GENERATED",
+        wp."HOURS_WORKED",
+        wp."RELATED_TASK_ID",
+        wp."STATUS_FROM",
+        wp."STATUS_TO",
+        wp."EVENT_DATA",
+        wp."CREATE_DATE",
+        wp."UPDATE_DATE",
+        u."FIRST_NAME",
+        u."LAST_NAME",
+        CONCAT(u."FIRST_NAME", ' ', u."LAST_NAME") as "CREATED_BY_NAME"
+      FROM "GUARDIAN"."WORK_PROGRESS" wp
+      INNER JOIN "GUARDIAN"."REQUESTS" r ON wp."REQUEST_ID" = r."REQUEST_ID"
+      INNER JOIN "GUARDIAN"."USERS" u ON wp."USER_ID" = u."USER_ID"
       WHERE ${whereClause}
-      ORDER BY wp.CREATE_DATE DESC
-      OFFSET ${offsetNum} ROWS
-      FETCH NEXT ${limitNum} ROWS ONLY
+      ORDER BY wp."CREATE_DATE" DESC
+      LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
+    const milestones = await prisma.$queryRawUnsafe<any[]>(milestonesQuery);
 
     // Get total count for pagination
-    const countResult = await prisma.$queryRaw<any[]>`
+    const countQuery = `
       SELECT COUNT(*) as total
-      FROM GUARDIAN.WORK_PROGRESS wp
-      INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
+      FROM "GUARDIAN"."WORK_PROGRESS" wp
+      INNER JOIN "GUARDIAN"."REQUESTS" r ON wp."REQUEST_ID" = r."REQUEST_ID"
       WHERE ${whereClause}
     `;
+    const countResult = await prisma.$queryRawUnsafe<any[]>(countQuery);
 
-    const totalCount = countResult[0]?.total || 0;
+    const totalCount = Number(countResult[0]?.total ?? 0);
 
     res.json({
       success: true,
@@ -287,9 +290,9 @@ router.get('/requests/:requestId/milestones/stats', requireAuth, async (req, res
 
     // Verify request exists and belongs to user's company
     const request = await prisma.$queryRaw<{ REQUEST_ID: number; REQUEST_NAME: string }[]>`
-      SELECT REQUEST_ID, REQUEST_NAME
-      FROM GUARDIAN.REQUESTS 
-      WHERE REQUEST_ID = ${requestId} AND COMPANY_ID = ${companyId}
+      SELECT "REQUEST_ID", "REQUEST_NAME"
+      FROM "GUARDIAN"."REQUESTS"
+      WHERE "REQUEST_ID" = ${requestId} AND "COMPANY_ID" = ${companyId}
     `;
 
     if (request.length === 0) {
@@ -298,34 +301,34 @@ router.get('/requests/:requestId/milestones/stats', requireAuth, async (req, res
 
     // Get milestone statistics
     const stats = await prisma.$queryRaw<any[]>`
-      SELECT 
-        COUNT(*) as TOTAL_MILESTONES,
-        SUM(CASE WHEN IS_SYSTEM_GENERATED = 1 THEN 1 ELSE 0 END) as SYSTEM_MILESTONES,
-        SUM(CASE WHEN IS_SYSTEM_GENERATED = 0 THEN 1 ELSE 0 END) as MANUAL_MILESTONES,
-        SUM(CASE WHEN PROGRESS_TYPE = 'milestone' THEN 1 ELSE 0 END) as MILESTONE_TYPE,
-        SUM(CASE WHEN PROGRESS_TYPE = 'status' THEN 1 ELSE 0 END) as STATUS_CHANGES,
-        SUM(CASE WHEN PROGRESS_TYPE = 'task' THEN 1 ELSE 0 END) as TASK_ACTIVITIES,
-        SUM(CASE WHEN PROGRESS_TYPE = 'document' THEN 1 ELSE 0 END) as DOCUMENT_ACTIVITIES,
-        SUM(CASE WHEN PROGRESS_TYPE = 'note' THEN 1 ELSE 0 END) as NOTES,
-        MIN(CREATE_DATE) as FIRST_MILESTONE_DATE,
-        MAX(CREATE_DATE) as LAST_MILESTONE_DATE
-      FROM GUARDIAN.WORK_PROGRESS wp
-      INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
-      WHERE wp.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${companyId}
+      SELECT
+        COUNT(*)::int as "TOTAL_MILESTONES",
+        SUM(CASE WHEN wp."IS_SYSTEM_GENERATED" = true THEN 1 ELSE 0 END)::int as "SYSTEM_MILESTONES",
+        SUM(CASE WHEN wp."IS_SYSTEM_GENERATED" = false THEN 1 ELSE 0 END)::int as "MANUAL_MILESTONES",
+        SUM(CASE WHEN wp."PROGRESS_TYPE" = 'milestone' THEN 1 ELSE 0 END)::int as "MILESTONE_TYPE",
+        SUM(CASE WHEN wp."PROGRESS_TYPE" = 'status' THEN 1 ELSE 0 END)::int as "STATUS_CHANGES",
+        SUM(CASE WHEN wp."PROGRESS_TYPE" = 'task' THEN 1 ELSE 0 END)::int as "TASK_ACTIVITIES",
+        SUM(CASE WHEN wp."PROGRESS_TYPE" = 'document' THEN 1 ELSE 0 END)::int as "DOCUMENT_ACTIVITIES",
+        SUM(CASE WHEN wp."PROGRESS_TYPE" = 'note' THEN 1 ELSE 0 END)::int as "NOTES",
+        MIN(wp."CREATE_DATE") as "FIRST_MILESTONE_DATE",
+        MAX(wp."CREATE_DATE") as "LAST_MILESTONE_DATE"
+      FROM "GUARDIAN"."WORK_PROGRESS" wp
+      INNER JOIN "GUARDIAN"."REQUESTS" r ON wp."REQUEST_ID" = r."REQUEST_ID"
+      WHERE wp."REQUEST_ID" = ${requestId} AND r."COMPANY_ID" = ${companyId}
     `;
 
     // Get progress type breakdown
     const typeBreakdown = await prisma.$queryRaw<any[]>`
-      SELECT 
-        PROGRESS_TYPE,
-        COUNT(*) as COUNT,
-        SUM(CASE WHEN IS_SYSTEM_GENERATED = 1 THEN 1 ELSE 0 END) as SYSTEM_COUNT,
-        SUM(CASE WHEN IS_SYSTEM_GENERATED = 0 THEN 1 ELSE 0 END) as MANUAL_COUNT
-      FROM GUARDIAN.WORK_PROGRESS wp
-      INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
-      WHERE wp.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${companyId}
-      GROUP BY PROGRESS_TYPE
-      ORDER BY COUNT DESC
+      SELECT
+        wp."PROGRESS_TYPE",
+        COUNT(*)::int as "COUNT",
+        SUM(CASE WHEN wp."IS_SYSTEM_GENERATED" = true THEN 1 ELSE 0 END)::int as "SYSTEM_COUNT",
+        SUM(CASE WHEN wp."IS_SYSTEM_GENERATED" = false THEN 1 ELSE 0 END)::int as "MANUAL_COUNT"
+      FROM "GUARDIAN"."WORK_PROGRESS" wp
+      INNER JOIN "GUARDIAN"."REQUESTS" r ON wp."REQUEST_ID" = r."REQUEST_ID"
+      WHERE wp."REQUEST_ID" = ${requestId} AND r."COMPANY_ID" = ${companyId}
+      GROUP BY wp."PROGRESS_TYPE"
+      ORDER BY "COUNT" DESC
     `;
 
     res.json({
@@ -373,9 +376,9 @@ router.post('/milestones', requireAuth, async (req, res) => {
 
     // Verify request exists and user has permission
     const request = await prisma.$queryRaw<any[]>`
-      SELECT r.REQUEST_ID, r.REQUEST_NAME, r.REQUESTOR_ID, r.ASSIGNED_ID
-      FROM GUARDIAN.REQUESTS r
-      WHERE r.REQUEST_ID = ${requestId} AND r.COMPANY_ID = ${companyId}
+      SELECT r."REQUEST_ID", r."REQUEST_NAME", r."REQUESTOR_ID", r."ASSIGNED_ID"
+      FROM "GUARDIAN"."REQUESTS" r
+      WHERE r."REQUEST_ID" = ${requestId} AND r."COMPANY_ID" = ${companyId}
     `;
 
     if (request.length === 0) {
@@ -384,9 +387,9 @@ router.post('/milestones', requireAuth, async (req, res) => {
 
     // Check authorization (assigned user, requestor, or admin)
     const userRoles = await prisma.$queryRaw<{ ROLE_ID: number }[]>`
-      SELECT ur.ROLE_ID 
-      FROM GUARDIAN.USER_ROLES ur 
-      WHERE ur.USER_ID = ${userId} AND ur.STATUS = 'P'
+      SELECT ur."ROLE_ID"
+      FROM "GUARDIAN"."USER_ROLES" ur
+      WHERE ur."USER_ID" = ${userId} AND ur."STATUS" = 'P'
     `;
     const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
     const isAssigned = request[0].ASSIGNED_ID === userId;
@@ -400,34 +403,35 @@ router.post('/milestones', requireAuth, async (req, res) => {
 
     // Create the milestone
     const result = await prisma.$queryRaw`
-      INSERT INTO GUARDIAN.WORK_PROGRESS (
-        REQUEST_ID,
-        USER_ID,
-        PROGRESS_TYPE,
-        TITLE,
-        DESCRIPTION,
-        IS_MILESTONE,
-        IS_VISIBLE_TO_REQUESTOR,
-        IS_SYSTEM_GENERATED,
-        HOURS_WORKED,
-        RELATED_TASK_ID,
-        CREATE_DATE,
-        UPDATE_DATE
-      ) OUTPUT INSERTED.WORK_PROGRESS_ID
-      VALUES (
+      INSERT INTO "GUARDIAN"."WORK_PROGRESS" (
+        "REQUEST_ID",
+        "USER_ID",
+        "COMPANY_ID",
+        "PROGRESS_TYPE",
+        "TITLE",
+        "DESCRIPTION",
+        "IS_MILESTONE",
+        "IS_VISIBLE_TO_REQUESTOR",
+        "IS_SYSTEM_GENERATED",
+        "HOURS_WORKED",
+        "RELATED_TASK_ID",
+        "CREATE_DATE",
+        "UPDATE_DATE"
+      ) VALUES (
         ${requestId},
         ${userId},
+        ${companyId},
         ${progressType},
         ${title},
         ${description || ''},
-        ${isMilestone ? 1 : 0},
-        ${isVisibleToRequestor ? 1 : 0},
-        0,
+        ${!!isMilestone},
+        ${!!isVisibleToRequestor},
+        false,
         ${hoursWorked},
         ${relatedTaskId},
-        GETDATE(),
-        GETDATE()
-      )
+        now(),
+        now()
+      ) RETURNING "WORK_PROGRESS_ID"
     `;
 
     console.log('✅ Manual milestone created successfully');
@@ -465,11 +469,11 @@ router.put('/milestones/:milestoneId', requireAuth, async (req, res) => {
 
     // Verify milestone exists and get request info
     const milestone = await prisma.$queryRaw<any[]>`
-      SELECT wp.WORK_PROGRESS_ID, wp.USER_ID, wp.IS_SYSTEM_GENERATED, wp.TITLE,
-             r.REQUEST_ID, r.REQUESTOR_ID, r.ASSIGNED_ID, r.COMPANY_ID
-      FROM GUARDIAN.WORK_PROGRESS wp
-      INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
-      WHERE wp.WORK_PROGRESS_ID = ${milestoneId} AND r.COMPANY_ID = ${companyId}
+      SELECT wp."WORK_PROGRESS_ID", wp."USER_ID", wp."IS_SYSTEM_GENERATED", wp."TITLE",
+             r."REQUEST_ID", r."REQUESTOR_ID", r."ASSIGNED_ID", r."COMPANY_ID"
+      FROM "GUARDIAN"."WORK_PROGRESS" wp
+      INNER JOIN "GUARDIAN"."REQUESTS" r ON wp."REQUEST_ID" = r."REQUEST_ID"
+      WHERE wp."WORK_PROGRESS_ID" = ${milestoneId} AND r."COMPANY_ID" = ${companyId}
     `;
 
     if (milestone.length === 0) {
@@ -485,9 +489,9 @@ router.put('/milestones/:milestoneId', requireAuth, async (req, res) => {
 
     // Check authorization
     const userRoles = await prisma.$queryRaw<{ ROLE_ID: number }[]>`
-      SELECT ur.ROLE_ID 
-      FROM GUARDIAN.USER_ROLES ur 
-      WHERE ur.USER_ID = ${userId} AND ur.STATUS = 'P'
+      SELECT ur."ROLE_ID"
+      FROM "GUARDIAN"."USER_ROLES" ur
+      WHERE ur."USER_ID" = ${userId} AND ur."STATUS" = 'P'
     `;
     const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
     const isCreator = milestone[0].USER_ID === userId;
@@ -502,17 +506,17 @@ router.put('/milestones/:milestoneId', requireAuth, async (req, res) => {
 
     // Build update query
     const updateFields = [];
-    if (title !== undefined) updateFields.push(`TITLE = '${title}'`);
-    if (description !== undefined) updateFields.push(`DESCRIPTION = '${description}'`);
-    if (isVisibleToRequestor !== undefined) updateFields.push(`IS_VISIBLE_TO_REQUESTOR = ${isVisibleToRequestor ? 1 : 0}`);
-    if (hoursWorked !== undefined) updateFields.push(`HOURS_WORKED = ${hoursWorked}`);
+    if (title !== undefined) updateFields.push(`"TITLE" = '${title.replace(/'/g, "''")}'`);
+    if (description !== undefined) updateFields.push(`"DESCRIPTION" = '${(description as string).replace(/'/g, "''")}'`);
+    if (isVisibleToRequestor !== undefined) updateFields.push(`"IS_VISIBLE_TO_REQUESTOR" = ${isVisibleToRequestor ? 'true' : 'false'}`);
+    if (hoursWorked !== undefined) updateFields.push(`"HOURS_WORKED" = ${hoursWorked}`);
 
     if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    updateFields.push('UPDATE_DATE = GETDATE()');
-    const updateQuery = `UPDATE GUARDIAN.WORK_PROGRESS SET ${updateFields.join(', ')} WHERE WORK_PROGRESS_ID = ${milestoneId}`;
+    updateFields.push('"UPDATE_DATE" = now()');
+    const updateQuery = `UPDATE "GUARDIAN"."WORK_PROGRESS" SET ${updateFields.join(', ')} WHERE "WORK_PROGRESS_ID" = ${milestoneId}`;
 
     await prisma.$queryRawUnsafe(updateQuery);
 
@@ -543,11 +547,11 @@ router.delete('/milestones/:milestoneId', requireAuth, async (req, res) => {
 
     // Verify milestone exists and get request info
     const milestone = await prisma.$queryRaw<any[]>`
-      SELECT wp.WORK_PROGRESS_ID, wp.USER_ID, wp.IS_SYSTEM_GENERATED, wp.TITLE,
-             r.REQUEST_ID, r.REQUESTOR_ID, r.ASSIGNED_ID, r.COMPANY_ID
-      FROM GUARDIAN.WORK_PROGRESS wp
-      INNER JOIN GUARDIAN.REQUESTS r ON wp.REQUEST_ID = r.REQUEST_ID
-      WHERE wp.WORK_PROGRESS_ID = ${milestoneId} AND r.COMPANY_ID = ${companyId}
+      SELECT wp."WORK_PROGRESS_ID", wp."USER_ID", wp."IS_SYSTEM_GENERATED", wp."TITLE",
+             r."REQUEST_ID", r."REQUESTOR_ID", r."ASSIGNED_ID", r."COMPANY_ID"
+      FROM "GUARDIAN"."WORK_PROGRESS" wp
+      INNER JOIN "GUARDIAN"."REQUESTS" r ON wp."REQUEST_ID" = r."REQUEST_ID"
+      WHERE wp."WORK_PROGRESS_ID" = ${milestoneId} AND r."COMPANY_ID" = ${companyId}
     `;
 
     if (milestone.length === 0) {
@@ -563,9 +567,9 @@ router.delete('/milestones/:milestoneId', requireAuth, async (req, res) => {
 
     // Check authorization (creator, admin, assigned, or requestor)
     const userRoles = await prisma.$queryRaw<{ ROLE_ID: number }[]>`
-      SELECT ur.ROLE_ID 
-      FROM GUARDIAN.USER_ROLES ur 
-      WHERE ur.USER_ID = ${userId} AND ur.STATUS = 'P'
+      SELECT ur."ROLE_ID"
+      FROM "GUARDIAN"."USER_ROLES" ur
+      WHERE ur."USER_ID" = ${userId} AND ur."STATUS" = 'P'
     `;
     const isAdmin = userRoles.some(role => [1, 3, 4, 6].includes(role.ROLE_ID));
     const isCreator = milestone[0].USER_ID === userId;
@@ -580,8 +584,8 @@ router.delete('/milestones/:milestoneId', requireAuth, async (req, res) => {
 
     // Delete the milestone
     await prisma.$queryRaw`
-      DELETE FROM GUARDIAN.WORK_PROGRESS 
-      WHERE WORK_PROGRESS_ID = ${milestoneId}
+      DELETE FROM "GUARDIAN"."WORK_PROGRESS"
+      WHERE "WORK_PROGRESS_ID" = ${milestoneId}
     `;
 
     console.log('✅ Milestone deleted successfully');
