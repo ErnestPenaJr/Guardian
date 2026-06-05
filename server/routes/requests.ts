@@ -17,6 +17,9 @@ const DB_SCHEMA = 'GUARDIAN';
 
 const escapeSqlValue = (value: string) => value.replace(/'/g, "''");
 
+// Allow-list of valid STATUS values derived from CK_REQUEST_STATUS CHECK constraint.
+const VALID_REQUEST_STATUS = ['R', 'H', 'X', 'I', 'D', 'A', 'P'] as const;
+
 const getRequestCompanyClause = (companyId: number) =>
   companyId > 0 ? ` AND "COMPANY_ID" = ${companyId}` : '';
 
@@ -1086,15 +1089,12 @@ router.get('/', async (req: Request, res: Response) => {
       // Build the WHERE clause dynamically
       let whereClause = `WHERE r."STATUS" <> 'D'`;
 
-      // Add status filter if provided
-      if (status) {
-        whereClause += ` AND r."STATUS" = '${status}'`;
+      // Add status filter if provided — validated against allow-list to prevent injection.
+      if (status && VALID_REQUEST_STATUS.includes(String(status) as typeof VALID_REQUEST_STATUS[number])) {
+        whereClause += ` AND r."STATUS" = '${escapeSqlValue(String(status))}'`;
       }
 
-      // Add type filter if provided
-      if (type) {
-        whereClause += ` AND r."REQUEST_TYPE" = '${type}'`;
-      }
+      // NOTE: REQUEST_TYPE column does not exist in GUARDIAN.REQUESTS — type filter removed.
 
       // Add assigned user filter if provided
       if (assignedTo) {
@@ -1106,8 +1106,11 @@ router.get('/', async (req: Request, res: Response) => {
         whereClause += ` AND r."REQUESTOR_ID" = ${requestorId}`;
       }
       
-      // Determine limit clause
-      const limitClause = limit ? `LIMIT ${limit}` : '';
+      // Determine limit clause — coerce to safe integer to prevent injection.
+      const safeLimit = limit !== undefined
+        ? (Number.isFinite(Number(limit)) ? Math.min(Math.max(parseInt(String(limit), 10), 1), 1000) : 100)
+        : null;
+      const limitClause = safeLimit !== null ? `LIMIT ${safeLimit}` : '';
 
       // Use raw SQL query with the dynamic WHERE clause and LEFT JOINs to get user details
       const query = `
@@ -1511,7 +1514,7 @@ router.post('/:id/complete', async (req: Request, res: Response) => {
       SET "STATUS" = 'C',
           "UPDATE_USER_ID" = ${userInfo.userId},
           "UPDATE_DATE" = now(),
-          "TRACKINGID" = COALESCE("TRACKINGID", '') || chr(13) || chr(10) || 'Completed: ' || '${completionNotes || 'No notes provided'}'
+          "TRACKINGID" = COALESCE("TRACKINGID", '') || chr(13) || chr(10) || 'Completed: ' || '${escapeSqlValue(completionNotes || 'No notes provided')}'
       WHERE "REQUEST_ID" = ${requestId}
     `);
 
@@ -1569,8 +1572,9 @@ router.get('/assigned/me', async (req: Request, res: Response) => {
     
     let whereClause = `WHERE r."ASSIGNED_ID" = ${userInfo.userId} AND r."STATUS" <> 'D'`;
 
-    if (status) {
-      whereClause += ` AND r."STATUS" = '${status}'`;
+    // Validate status against allow-list to prevent injection.
+    if (status && VALID_REQUEST_STATUS.includes(String(status) as typeof VALID_REQUEST_STATUS[number])) {
+      whereClause += ` AND r."STATUS" = '${escapeSqlValue(String(status))}'`;
     }
 
     const requests = await prisma.$queryRawUnsafe(`
