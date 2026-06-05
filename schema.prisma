@@ -279,7 +279,7 @@ model INVITES {
   STATUS     String    @db.Char(1)
   EXPIRES_AT DateTime
   USED_AT    DateTime?
-  CREATED_AT DateTime @default(dbgenerated("sysdatetime()"))
+  CREATED_AT DateTime @default(now())
 }
 
 model MILESTONES {
