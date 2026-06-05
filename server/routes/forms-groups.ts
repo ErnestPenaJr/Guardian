@@ -27,20 +27,16 @@ interface GroupField {
 }
 
 // Define interface for group fields with related field data
+// Mirrors exactly what the /:id/fields query SELECTs:
+//   gf."GROUP_ID", gf."FIELD_ID", gf."SORT_ORDER",
+//   f."FIELD_NAME", f."IS_REQUIRED" as "FIELD_IS_REQUIRED", f."OPTIONS" as "FIELD_OPTIONS"
 interface GroupFieldWithDetails {
   GROUP_ID: number;
   FIELD_ID: number;
   SORT_ORDER: number;
-  IS_REQUIRED: number;
   FIELD_NAME: string;
-  FIELD_TYPE: string;
-  FIELD_DESCRIPTION?: string;
-  FIELD_OPTIONS?: string;
-  FIELD_IS_REQUIRED: number;
-  CREATE_USER_ID?: number;
-  UPDATE_USER_ID?: number;
-  CREATE_DATE?: Date;
-  UPDATE_DATE?: Date;
+  FIELD_IS_REQUIRED: boolean;
+  FIELD_OPTIONS?: string | null;
 }
 
 // Get all groups

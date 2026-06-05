@@ -5,6 +5,18 @@ import { requireAuth } from '../auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Allowlist of valid PROGRESS_TYPE values (DB-discovered + code-defined literals).
+const VALID_PROGRESS_TYPES = [
+  'milestone',
+  'status',
+  'task',
+  'document',
+  'note',
+  'form',
+  'system',
+  'communication',
+] as const;
+
 // Helper function to create system-generated milestones
 export const createSystemMilestone = async (
   requestId: number,
@@ -189,11 +201,17 @@ router.get('/requests/:requestId/milestones', requireAuth, async (req, res) => {
       `r."COMPANY_ID" = ${companyId}`
     ];
 
-    // Filter by progress types
+    // Filter by progress types — values are validated against an allowlist before
+    // interpolation into the $queryRawUnsafe body.
     if (progressTypes) {
-      const types = Array.isArray(progressTypes) ? progressTypes : [progressTypes];
-      const typeFilter = types.map(type => `'${type}'`).join(',');
-      whereConditions.push(`wp."PROGRESS_TYPE" IN (${typeFilter})`);
+      const rawTypes = Array.isArray(progressTypes) ? progressTypes : [progressTypes];
+      const safeTypes = rawTypes.filter(
+        (t): t is string => typeof t === 'string' && (VALID_PROGRESS_TYPES as readonly string[]).includes(t)
+      );
+      if (safeTypes.length > 0) {
+        const typeFilter = safeTypes.map(type => `'${type}'`).join(',');
+        whereConditions.push(`wp."PROGRESS_TYPE" IN (${typeFilter})`);
+      }
     }
 
     // Filter by milestones only
@@ -509,7 +527,10 @@ router.put('/milestones/:milestoneId', requireAuth, async (req, res) => {
     if (title !== undefined) updateFields.push(`"TITLE" = '${title.replace(/'/g, "''")}'`);
     if (description !== undefined) updateFields.push(`"DESCRIPTION" = '${(description as string).replace(/'/g, "''")}'`);
     if (isVisibleToRequestor !== undefined) updateFields.push(`"IS_VISIBLE_TO_REQUESTOR" = ${isVisibleToRequestor ? 'true' : 'false'}`);
-    if (hoursWorked !== undefined) updateFields.push(`"HOURS_WORKED" = ${hoursWorked}`);
+    if (hoursWorked !== undefined) {
+      const safeHours = parseFloat(hoursWorked);
+      if (!isNaN(safeHours)) updateFields.push(`"HOURS_WORKED" = ${safeHours}`);
+    }
 
     if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
