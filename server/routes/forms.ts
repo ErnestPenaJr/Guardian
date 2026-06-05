@@ -110,12 +110,12 @@ function applyJafarLock(
  */
 async function fetchExistingFormFields(formId: number): Promise<Array<FormsFieldRow & { FIELD_NAME: string }>> {
   const rows = (await prisma.$queryRaw`
-    SELECT ff.FORM_ID, ff.FIELD_ID, ff.IS_REQUIRED, ff.SORT_ORDER,
-           ff.IS_PII, ff.IS_ENABLED, ff.IS_LOCKED_BY_JAFAR, ff.IS_READ_ONLY,
-           f.FIELD_NAME
-    FROM GUARDIAN.FORMS_FIELDS ff
-    JOIN GUARDIAN.FIELDS f ON f.FIELD_ID = ff.FIELD_ID
-    WHERE ff.FORM_ID = ${formId}
+    SELECT ff."FORM_ID", ff."FIELD_ID", ff."IS_REQUIRED", ff."SORT_ORDER",
+           ff."IS_PII", ff."IS_ENABLED", ff."IS_LOCKED_BY_JAFAR", ff."IS_READ_ONLY",
+           f."FIELD_NAME"
+    FROM "GUARDIAN"."FORMS_FIELDS" ff
+    JOIN "GUARDIAN"."FIELDS" f ON f."FIELD_ID" = ff."FIELD_ID"
+    WHERE ff."FORM_ID" = ${formId}
   `) as Array<FormsFieldRow & { FIELD_NAME: string }>;
   return rows;
 }
@@ -161,10 +161,10 @@ router.get('/:id', async (req, res) => {
     try {
       const result = await prisma.$queryRaw`
         SELECT f.*
-        FROM GUARDIAN.FIELDS f
-        JOIN GUARDIAN.FORMS_FIELDS ff ON f.FIELD_ID = ff.FIELD_ID
-        WHERE ff.FORM_ID = ${parseInt(id)}
-        ORDER BY ff.SORT_ORDER
+        FROM "GUARDIAN"."FIELDS" f
+        JOIN "GUARDIAN"."FORMS_FIELDS" ff ON f."FIELD_ID" = ff."FIELD_ID"
+        WHERE ff."FORM_ID" = ${parseInt(id)}
+        ORDER BY ff."SORT_ORDER"
       `;
       formFields = result as any[];
     } catch (queryError) {
@@ -359,10 +359,10 @@ router.post('/', async (req, res) => {
 
       // Create the form-field association (now persisting compliance flags)
       await prisma.$executeRaw`
-        INSERT INTO GUARDIAN.FORMS_FIELDS
-          (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
-           IS_PII, IS_ENABLED, IS_LOCKED_BY_JAFAR, IS_READ_ONLY,
-           CREATE_USER_ID, UPDATE_USER_ID)
+        INSERT INTO "GUARDIAN"."FORMS_FIELDS"
+          ("FORM_ID", "FIELD_ID", "IS_REQUIRED", "SORT_ORDER",
+           "IS_PII", "IS_ENABLED", "IS_LOCKED_BY_JAFAR", "IS_READ_ONLY",
+           "CREATE_USER_ID", "UPDATE_USER_ID")
         VALUES
           (${createdForm.FORM_ID}, ${createdField.FIELD_ID},
            ${field.IS_REQUIRED}, ${field.SEQUENCE || 0},
@@ -580,23 +580,23 @@ router.put('/:id', async (req, res) => {
       // Upsert FORMS_FIELDS row (FORMS_FIELDS is @@ignore in Prisma)
       if (prior) {
         await prisma.$executeRaw`
-          UPDATE GUARDIAN.FORMS_FIELDS
-          SET IS_REQUIRED = ${validatedField.IS_REQUIRED},
-              SORT_ORDER  = ${validatedField.SEQUENCE ?? prior.SORT_ORDER ?? 0},
-              IS_PII             = ${newState.IS_PII},
-              IS_ENABLED         = ${newState.IS_ENABLED},
-              IS_LOCKED_BY_JAFAR = ${newState.IS_LOCKED_BY_JAFAR},
-              IS_READ_ONLY       = ${newState.IS_READ_ONLY},
-              UPDATE_USER_ID     = ${req.user?.id || null},
-              UPDATE_DATE        = ${new Date()}
-          WHERE FORM_ID = ${formId} AND FIELD_ID = ${fieldId}
+          UPDATE "GUARDIAN"."FORMS_FIELDS"
+          SET "IS_REQUIRED"       = ${validatedField.IS_REQUIRED},
+              "SORT_ORDER"        = ${validatedField.SEQUENCE ?? prior.SORT_ORDER ?? 0},
+              "IS_PII"             = ${newState.IS_PII},
+              "IS_ENABLED"         = ${newState.IS_ENABLED},
+              "IS_LOCKED_BY_JAFAR" = ${newState.IS_LOCKED_BY_JAFAR},
+              "IS_READ_ONLY"       = ${newState.IS_READ_ONLY},
+              "UPDATE_USER_ID"     = ${req.user?.id || null},
+              "UPDATE_DATE"        = ${new Date()}
+          WHERE "FORM_ID" = ${formId} AND "FIELD_ID" = ${fieldId}
         `;
       } else {
         await prisma.$executeRaw`
-          INSERT INTO GUARDIAN.FORMS_FIELDS
-            (FORM_ID, FIELD_ID, IS_REQUIRED, SORT_ORDER,
-             IS_PII, IS_ENABLED, IS_LOCKED_BY_JAFAR, IS_READ_ONLY,
-             CREATE_USER_ID, UPDATE_USER_ID)
+          INSERT INTO "GUARDIAN"."FORMS_FIELDS"
+            ("FORM_ID", "FIELD_ID", "IS_REQUIRED", "SORT_ORDER",
+             "IS_PII", "IS_ENABLED", "IS_LOCKED_BY_JAFAR", "IS_READ_ONLY",
+             "CREATE_USER_ID", "UPDATE_USER_ID")
           VALUES
             (${formId}, ${fieldId},
              ${validatedField.IS_REQUIRED}, ${validatedField.SEQUENCE ?? 0},
@@ -641,7 +641,7 @@ router.put('/:id', async (req, res) => {
       if (field.OPTIONS) {
         // Delete existing lookup values
         if (field.FIELD_ID) {
-          await prisma.$executeRaw`DELETE FROM FIELDS_LOOKUP WHERE FIELD_ID = ${fieldId}`;
+          await prisma.$executeRaw`DELETE FROM "GUARDIAN"."FIELDS_LOOKUP" WHERE "FIELD_ID" = ${fieldId}`;
         }
 
         const options = field.OPTIONS.split(',').map((option: string) => option.trim()).filter(Boolean);

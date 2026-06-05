@@ -104,14 +104,14 @@ router.get('/forms/:id/fields', allowExternalUser, async (req: Request, res: Res
     
     // Get form fields
     const formFields = await prisma.$queryRaw`
-      SELECT f.FIELD_ID, f.FIELD_NAME, f.FIELD_TYPE_ID, 
-             f.HAS_LOOKUP, f.DISPLAY_FORMAT, ff.IS_REQUIRED
-      FROM FORMS_FIELDS ff
-      JOIN FIELDS f ON ff.FIELD_ID = f.FIELD_ID
-      WHERE ff.FORM_ID = ${formId}
-      AND f.IS_ACTIVE = 1
-      AND f.IS_DELETED = 0
-      ORDER BY ff.SORT_ORDER
+      SELECT f."FIELD_ID", f."FIELD_NAME", f."FIELD_TYPE_ID",
+             f."HAS_LOOKUP", f."DISPLAY_FORMAT", ff."IS_REQUIRED"
+      FROM "GUARDIAN"."FORMS_FIELDS" ff
+      JOIN "GUARDIAN"."FIELDS" f ON ff."FIELD_ID" = f."FIELD_ID"
+      WHERE ff."FORM_ID" = ${formId}
+      AND f."IS_ACTIVE" = true
+      AND f."IS_DELETED" = false
+      ORDER BY ff."SORT_ORDER"
     `;
     
     res.json(formFields);
@@ -189,11 +189,13 @@ router.get('/requests/:id', isExternalUser, async (req: Request, res: Response) 
     }
     
     // Get form values for the request
+    // NOTE: PG has no FORM_VALUES table; values live in FORMS_INSTANCE_VALUES via FORMS_INSTANCE
     const formValues = await prisma.$queryRaw`
-      SELECT fv.FIELD_ID, fv.FIELD_VALUE, f.FIELD_NAME, f.FIELD_TYPE_ID
-      FROM FORM_VALUES fv
-      JOIN FIELDS f ON fv.FIELD_ID = f.FIELD_ID
-      WHERE fv.REQUEST_ID = ${requestId}
+      SELECT fv."FIELD_ID", fv."VALUE" AS "FIELD_VALUE", f."FIELD_NAME", f."FIELD_TYPE_ID"
+      FROM "GUARDIAN"."FORMS_INSTANCE_VALUES" fv
+      JOIN "GUARDIAN"."FORMS_INSTANCE" fi ON fi."FORM_INSTANCE_ID" = fv."FORM_INSTANCE_ID"
+      JOIN "GUARDIAN"."FIELDS" f ON fv."FIELD_ID" = f."FIELD_ID"
+      WHERE fi."REQUEST_ID" = ${requestId}
     `;
     
     // Get attachments for the request
@@ -276,29 +278,26 @@ router.post('/requests', isExternalUser, async (req: Request, res: Response) => 
       }
     });
     
-    // Create form values
+    // Create form values via FORMS_INSTANCE + FORMS_INSTANCE_VALUES
+    // PG has no legacy FORM_VALUES table; values are stored per form instance.
     if (fieldValues.length > 0) {
+      // Create a form instance linked to the request
+      const instanceResult = await prisma.$queryRaw`
+        INSERT INTO "GUARDIAN"."FORMS_INSTANCE"
+          ("REQUEST_ID", "CREATE_USER_ID", "UPDATE_USER_ID", "CREATE_DATE", "UPDATE_DATE")
+        VALUES
+          (${request.REQUEST_ID}, ${userId}, ${userId}, ${new Date()}, ${new Date()})
+        RETURNING "FORM_INSTANCE_ID"
+      `;
+      const formInstanceId = (instanceResult as any[])[0]["FORM_INSTANCE_ID"] as number;
+
       await Promise.all(
         fieldValues.map(async ({ fieldId, value }) => {
           await prisma.$executeRaw`
-            INSERT INTO FORM_VALUES (
-              REQUEST_ID, 
-              FIELD_ID, 
-              FIELD_VALUE, 
-              CREATE_USER_ID, 
-              UPDATE_USER_ID, 
-              CREATE_DATE, 
-              UPDATE_DATE
-            ) 
-            VALUES (
-              ${request.REQUEST_ID}, 
-              ${fieldId}, 
-              ${String(value)}, 
-              ${userId}, 
-              ${userId}, 
-              ${new Date()}, 
-              ${new Date()}
-            )
+            INSERT INTO "GUARDIAN"."FORMS_INSTANCE_VALUES"
+              ("FORM_INSTANCE_ID", "FIELD_ID", "VALUE", "CREATE_USER_ID", "UPDATE_USER_ID", "CREATE_DATE", "UPDATE_DATE")
+            VALUES
+              (${formInstanceId}, ${fieldId}, ${String(value)}, ${userId}, ${userId}, ${new Date()}, ${new Date()})
           `;
         })
       );
@@ -383,13 +382,14 @@ router.get('/notices', isExternalUser, filterExternalUserData, async (req: Reque
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    // Get notices for the external user
+    // Get notices for the external user via NOTICE_RECIPIENTS join
+    // PG NOTICES has TITLE/ISSUE_DATE (not NOTICE_TITLE/CREATED_DATE), no USER_ID/EXTERNAL_USER cols
     const notices = await prisma.$queryRaw`
-      SELECT n.NOTICE_ID, n.NOTICE_TITLE, n.CREATED_DATE, n.STATUS
-      FROM NOTICES n
-      WHERE n.USER_ID = ${userId}
-      AND n.EXTERNAL_USER = 'Y'
-      ORDER BY n.CREATED_DATE DESC
+      SELECT n."NOTICE_ID", n."TITLE" AS "NOTICE_TITLE", n."ISSUE_DATE" AS "CREATED_DATE", n."STATUS"
+      FROM "GUARDIAN"."NOTICES" n
+      JOIN "GUARDIAN"."NOTICE_RECIPIENTS" nr ON nr."NOTICE_ID" = n."NOTICE_ID"
+      WHERE nr."RECIPIENT_USER_ID" = ${userId}
+      ORDER BY n."ISSUE_DATE" DESC
     `;
     
     res.json(notices);
@@ -410,29 +410,31 @@ router.get('/notices/:id', isExternalUser, async (req: Request, res: Response) =
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    // Get the notice
+    // Get the notice (PG: TITLE/CONTENT/ISSUE_DATE; join NOTICE_RECIPIENTS for user scoping)
     const notice = await prisma.$queryRaw`
-      SELECT n.NOTICE_ID, n.NOTICE_TITLE, n.NOTICE_TEXT, n.CREATED_DATE, n.STATUS,
-             u.FIRST_NAME, u.LAST_NAME, u.EMAIL
-      FROM NOTICES n
-      LEFT JOIN USERS u ON n.CREATE_USER_ID = u.USER_ID
-      WHERE n.NOTICE_ID = ${noticeId}
-      AND n.USER_ID = ${userId}
-      AND n.EXTERNAL_USER = 'Y'
+      SELECT n."NOTICE_ID", n."TITLE" AS "NOTICE_TITLE", n."CONTENT" AS "NOTICE_TEXT",
+             n."ISSUE_DATE" AS "CREATED_DATE", n."STATUS",
+             u."FIRST_NAME", u."LAST_NAME", u."EMAIL"
+      FROM "GUARDIAN"."NOTICES" n
+      LEFT JOIN "GUARDIAN"."USERS" u ON n."CREATE_USER_ID" = u."USER_ID"
+      JOIN "GUARDIAN"."NOTICE_RECIPIENTS" nr ON nr."NOTICE_ID" = n."NOTICE_ID"
+      WHERE n."NOTICE_ID" = ${noticeId}
+      AND nr."RECIPIENT_USER_ID" = ${userId}
     `;
     
     if (!notice || (notice as any[]).length === 0) {
       return res.status(404).json({ message: 'Notice not found or not accessible' });
     }
     
-    // Get responses for the notice
+    // Get responses for the notice (PG: NOTICE_RESPONSE_ID/RESPONSE_MESSAGE/RESPONSE_DATE)
     const responses = await prisma.$queryRaw`
-      SELECT r.RESPONSE_ID, r.RESPONSE_TEXT, r.CREATED_DATE,
-             u.FIRST_NAME, u.LAST_NAME, u.EMAIL
-      FROM NOTICE_RESPONSES r
-      LEFT JOIN USERS u ON r.USER_ID = u.USER_ID
-      WHERE r.NOTICE_ID = ${noticeId}
-      ORDER BY r.CREATED_DATE
+      SELECT r."NOTICE_RESPONSE_ID" AS "RESPONSE_ID", r."RESPONSE_MESSAGE" AS "RESPONSE_TEXT",
+             r."RESPONSE_DATE" AS "CREATED_DATE",
+             u."FIRST_NAME", u."LAST_NAME", u."EMAIL"
+      FROM "GUARDIAN"."NOTICE_RESPONSES" r
+      LEFT JOIN "GUARDIAN"."USERS" u ON r."USER_ID" = u."USER_ID"
+      WHERE r."NOTICE_ID" = ${noticeId}
+      ORDER BY r."RESPONSE_DATE"
     `;
     
     // Format the response
@@ -468,23 +470,23 @@ router.post('/notices/:id/respond', isExternalUser, async (req: Request, res: Re
       return res.status(400).json({ message: 'Response text is required' });
     }
     
-    // Check if notice exists and belongs to the user
+    // Check if notice exists and is accessible to user (via NOTICE_RECIPIENTS)
     const notice = await prisma.$queryRaw`
-      SELECT NOTICE_ID
-      FROM NOTICES
-      WHERE NOTICE_ID = ${noticeId}
-      AND USER_ID = ${userId}
-      AND EXTERNAL_USER = 'Y'
+      SELECT n."NOTICE_ID"
+      FROM "GUARDIAN"."NOTICES" n
+      JOIN "GUARDIAN"."NOTICE_RECIPIENTS" nr ON nr."NOTICE_ID" = n."NOTICE_ID"
+      WHERE n."NOTICE_ID" = ${noticeId}
+      AND nr."RECIPIENT_USER_ID" = ${userId}
     `;
     
     if (!notice || (notice as any[]).length === 0) {
       return res.status(404).json({ message: 'Notice not found or not accessible' });
     }
     
-    // Create the response
+    // Create the response (PG: RESPONSE_MESSAGE/RESPONSE_DATE, schema-qualified)
     await prisma.$executeRaw`
-      INSERT INTO NOTICE_RESPONSES (NOTICE_ID, USER_ID, RESPONSE_TEXT, CREATED_DATE)
-      VALUES (${noticeId}, ${userId}, ${responseText}, ${new Date()})
+      INSERT INTO "GUARDIAN"."NOTICE_RESPONSES" ("NOTICE_ID", "USER_ID", "RESPONSE_MESSAGE", "RESPONSE_DATE", "CREATE_DATE", "UPDATE_DATE")
+      VALUES (${noticeId}, ${userId}, ${responseText}, ${new Date()}, ${new Date()}, ${new Date()})
     `;
     
     res.status(201).json({ message: 'Response added successfully' });
