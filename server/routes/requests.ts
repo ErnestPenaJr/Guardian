@@ -374,8 +374,8 @@ router.post('/sql-request', async (req: Request, res: Response) => {
       // Use a transaction to ensure both operations succeed or fail together
       const result = await prisma.$transaction(async (tx) => {
         try {
-          // Step 1: Create a request using raw SQL
-          await tx.$executeRawUnsafe(`
+          // Step 1: Create a request using INSERT...RETURNING to atomically retrieve the new ID
+          const idResult = await tx.$queryRawUnsafe(`
             INSERT INTO "GUARDIAN"."REQUESTS" (
               "REQUEST_NAME",
               "REQUEST_DESCRIPTION",
@@ -402,23 +402,17 @@ router.post('/sql-request', async (req: Request, res: Response) => {
               ${numericCompanyId},
               ${numericTemplateId},
               ${numericUserId}
-            )
+            ) RETURNING "REQUEST_ID"
           `);
 
-          // Get the newly created request ID using lastval() for reliability
-          const idResult = await tx.$queryRawUnsafe(`
-            SELECT "REQUEST_ID" FROM "GUARDIAN"."REQUESTS"
-            WHERE "REQUEST_ID" = lastval()
-          `);
-          
-          const requestId = Array.isArray(idResult) && idResult.length > 0 
-            ? idResult[0].REQUEST_ID 
+          const requestId = Array.isArray(idResult) && idResult.length > 0
+            ? Number(idResult[0].REQUEST_ID)
             : 0;
-            
+
           console.log('Created request with ID:', requestId);
-          
-          // Step 2: Create a form instance using raw SQL
-          await tx.$executeRawUnsafe(`
+
+          // Step 2: Create a form instance using INSERT...RETURNING to atomically retrieve the new ID
+          const formIdResult = await tx.$queryRawUnsafe(`
             INSERT INTO "GUARDIAN"."FORMS_INSTANCE" (
               "FORM_ID",
               "ASSIGNED_ID",
@@ -433,19 +427,13 @@ router.post('/sql-request', async (req: Request, res: Response) => {
               ${numericUserId},
               now(),
               now()
-            )
+            ) RETURNING "FORM_INSTANCE_ID"
           `);
 
-          // Get the newly created form instance using lastval() for reliability
-          const formIdResult = await tx.$queryRawUnsafe(`
-            SELECT "FORM_INSTANCE_ID" FROM "GUARDIAN"."FORMS_INSTANCE"
-            WHERE "FORM_INSTANCE_ID" = lastval()
-          `);
-          
-          const formInstanceId = Array.isArray(formIdResult) && formIdResult.length > 0 
-            ? formIdResult[0].FORM_INSTANCE_ID 
+          const formInstanceId = Array.isArray(formIdResult) && formIdResult.length > 0
+            ? Number(formIdResult[0].FORM_INSTANCE_ID)
             : 0;
-            
+
           console.log('Created form instance with ID:', formInstanceId);
           
           return {
@@ -530,8 +518,8 @@ router.post('/simple-request', async (req: Request, res: Response) => {
       
       // Use a transaction to ensure both operations succeed or fail together
       const result = await prisma.$transaction(async (tx) => {
-        // Step 1: Create a request using raw SQL
-        await tx.$executeRaw`
+        // Step 1: Create a request using INSERT...RETURNING to atomically retrieve the new ID
+        const requestResults = await tx.$queryRaw`
           INSERT INTO "GUARDIAN"."REQUESTS" (
             "REQUEST_NAME",
             "COMPANY_ID",
@@ -552,23 +540,17 @@ router.post('/simple-request', async (req: Request, res: Response) => {
             now(),
             ${abbreviation},
             ${numericTemplateId}
-          )
+          ) RETURNING "REQUEST_ID"
         `;
 
-        // Get the newly created request ID using lastval() for reliability
-        const requestResults = await tx.$queryRaw`
-          SELECT "REQUEST_ID" FROM "GUARDIAN"."REQUESTS"
-          WHERE "REQUEST_ID" = lastval()
-        `;
-        
-        const requestId = Array.isArray(requestResults) && requestResults.length > 0 
-          ? requestResults[0].REQUEST_ID 
+        const requestId = Array.isArray(requestResults) && requestResults.length > 0
+          ? Number(requestResults[0].REQUEST_ID)
           : 0;
-          
+
         console.log('Created request with ID:', requestId);
-        
-        // Step 2: Create a form instance using raw SQL
-        await tx.$executeRaw`
+
+        // Step 2: Create a form instance using INSERT...RETURNING to atomically retrieve the new ID
+        const formInstanceResults = await tx.$queryRaw`
           INSERT INTO "GUARDIAN"."FORMS_INSTANCE" (
             "FORM_ID",
             "ASSIGNED_ID",
@@ -583,19 +565,13 @@ router.post('/simple-request', async (req: Request, res: Response) => {
             ${numericUserId},
             now(),
             now()
-          )
+          ) RETURNING "FORM_INSTANCE_ID"
         `;
 
-        // Get the newly created form instance using lastval() for reliability
-        const formInstanceResults = await tx.$queryRaw`
-          SELECT "FORM_INSTANCE_ID" FROM "GUARDIAN"."FORMS_INSTANCE"
-          WHERE "FORM_INSTANCE_ID" = lastval()
-        `;
-        
-        const formInstanceId = Array.isArray(formInstanceResults) && formInstanceResults.length > 0 
-          ? formInstanceResults[0].FORM_INSTANCE_ID 
+        const formInstanceId = Array.isArray(formInstanceResults) && formInstanceResults.length > 0
+          ? Number(formInstanceResults[0].FORM_INSTANCE_ID)
           : 0;
-          
+
         console.log('Created form instance with ID:', formInstanceId);
         
         return {
@@ -786,126 +762,32 @@ router.post('/debug/requests', async (req: Request, res: Response) => {
               ${numericUserId}
             )`;
             
-          console.log('Insert query:', insertQuery);
-          await tx.$executeRawUnsafe(insertQuery);
+          // Use INSERT...RETURNING to atomically retrieve the inserted REQUEST_ID
+          const insertQueryWithReturning = insertQuery + ' RETURNING "REQUEST_ID"';
+          console.log('Insert query (with RETURNING):', insertQueryWithReturning);
+          const insertResult = await tx.$queryRawUnsafe(insertQueryWithReturning);
           console.log('INSERT operation completed successfully');
-          
-          // Try multiple approaches to get the request ID
-          try {
-            console.log('Attempting to get request ID using lastval()...');
-            const scopeIdQuery = 'SELECT lastval() AS "REQUEST_ID"';
-            console.log('SCOPE_IDENTITY query:', scopeIdQuery);
-            const scopeIdResult = await tx.$queryRawUnsafe(scopeIdQuery);
-            console.log('SCOPE_IDENTITY result type:', typeof scopeIdResult);
-            console.log('SCOPE_IDENTITY result:', JSON.stringify(scopeIdResult));
-            
-            if (scopeIdResult && Array.isArray(scopeIdResult) && scopeIdResult.length > 0) {
-              console.log('First item in result:', JSON.stringify(scopeIdResult[0]));
-              if (scopeIdResult[0].REQUEST_ID !== null && scopeIdResult[0].REQUEST_ID !== undefined) {
-                requestId = Number(scopeIdResult[0].REQUEST_ID);
-                console.log('Successfully retrieved request ID using SCOPE_IDENTITY():', requestId);
-              } else {
-                console.log('REQUEST_ID property missing or null in SCOPE_IDENTITY result');
-              }
-            } else {
-              console.log('SCOPE_IDENTITY result is not a valid array or is empty');
-            }
-          } catch (scopeIdError: unknown) {
-            console.error('Error retrieving ID with SCOPE_IDENTITY():', scopeIdError);
-          }
-          
-          // If SCOPE_IDENTITY failed, try alternative approach
-          if (requestId === 0) {
-            try {
-              console.log('Trying alternative query to get request ID...');
-              const alternativeQuery = `
-                SELECT "REQUEST_ID"
-                FROM "GUARDIAN"."REQUESTS"
-                WHERE "CREATE_USER_ID" = ${numericUserId}
-                AND "REQUEST_NAME" = '${name.replace(/'/g, "''")}'
-                ORDER BY "CREATE_DATE" DESC
-                LIMIT 1`;
-              
-              console.log('Alternative query:', alternativeQuery);
-              const requestResult = await tx.$queryRawUnsafe(alternativeQuery);
-              console.log('Alternative query result type:', typeof requestResult);
-              console.log('Alternative query result:', JSON.stringify(requestResult));
-              
-              if (requestResult && Array.isArray(requestResult) && requestResult.length > 0) {
-                if (requestResult[0].REQUEST_ID !== null && requestResult[0].REQUEST_ID !== undefined) {
-                  requestId = Number(requestResult[0].REQUEST_ID);
-                  console.log('Successfully retrieved request ID using alternative query:', requestId);
-                } else {
-                  console.log('REQUEST_ID property missing or null in alternative query result');
-                }
-              } else {
-                console.log('Alternative query result is not a valid array or is empty');
-              }
-            } catch (alternativeError: unknown) {
-              console.error('Error retrieving ID with alternative query:', alternativeError);
-            }
-          }
-          
-          // Last resort if all else failed
-          if (requestId === 0) {
-            try {
-              console.log('Trying last resort query to get request ID...');
-              const lastResortQuery = `
-                SELECT "REQUEST_ID"
-                FROM "GUARDIAN"."REQUESTS"
-                WHERE "CREATE_USER_ID" = ${numericUserId}
-                ORDER BY "CREATE_DATE" DESC
-                LIMIT 1`;
-              
-              console.log('Last resort query:', lastResortQuery);
-              const lastResortResult = await tx.$queryRawUnsafe(lastResortQuery);
-              console.log('Last resort query result type:', typeof lastResortResult);
-              console.log('Last resort query result:', JSON.stringify(lastResortResult));
-              
-              if (lastResortResult && Array.isArray(lastResortResult) && lastResortResult.length > 0) {
-                if (lastResortResult[0].REQUEST_ID !== null && lastResortResult[0].REQUEST_ID !== undefined) {
-                  requestId = Number(lastResortResult[0].REQUEST_ID);
-                  console.log('Successfully retrieved request ID using last resort query:', requestId);
-                } else {
-                  console.log('REQUEST_ID property missing or null in last resort query result');
-                }
-              } else {
-                console.log('Last resort query result is not a valid array or is empty');
-              }
-            } catch (lastResortError: unknown) {
-              console.error('Error retrieving ID with last resort query:', lastResortError);
-            }
+
+          if (insertResult && Array.isArray(insertResult) && insertResult.length > 0 &&
+              insertResult[0].REQUEST_ID !== null && insertResult[0].REQUEST_ID !== undefined) {
+            requestId = Number(insertResult[0].REQUEST_ID);
+            console.log('Successfully retrieved request ID via RETURNING:', requestId);
           }
         } catch (insertError: unknown) {
           console.error('Error during request creation:', insertError);
           const errorMessage = insertError instanceof Error ? insertError.message : 'Unknown error';
           throw new Error(`Failed to create request: ${errorMessage}`);
         }
-        
-        // If we couldn't get the request ID, attempt a fallback query
+
         if (requestId === 0) {
-          console.warn('Failed to retrieve request ID after creation, attempting fallback query');
-          const fallbackQuery = `
-            SELECT "REQUEST_ID" FROM "GUARDIAN"."REQUESTS"
-            WHERE "CREATE_USER_ID" = ${numericUserId}
-              AND "REQUEST_NAME" = '${name.replace(/'/g, "''")}'
-            ORDER BY "CREATE_DATE" DESC
-            LIMIT 1
-          `;
-          const fallbackResult = await tx.$queryRawUnsafe(fallbackQuery);
-          if (fallbackResult && Array.isArray(fallbackResult) && fallbackResult.length > 0 && fallbackResult[0].REQUEST_ID) {
-              requestId = fallbackResult[0].REQUEST_ID;
-          } else {
-              throw new Error('Failed to retrieve request ID after fallback query');
-          }
+          throw new Error('Failed to retrieve request ID after creation');
         }
 
-        // Step 2: Create a form instance for this request
+        // Step 2: Create a form instance for this request using INSERT...RETURNING
         console.log('Creating form instance for request...');
         let formInstanceId = 0;
 
         try {
-          // Insert the form instance
           const insertFormQuery = `
             INSERT INTO "GUARDIAN"."FORMS_INSTANCE" (
               "FORM_ID",
@@ -923,21 +805,11 @@ router.post('/debug/requests', async (req: Request, res: Response) => {
               ${numericUserId},
               now(),
               now()
-            )`;
-            
+            ) RETURNING "FORM_INSTANCE_ID"`;
+
           console.log('Form instance insert query:', insertFormQuery);
-          await tx.$executeRawUnsafe(insertFormQuery);
-        
-          // Get the newly created form instance
-          const selectFormQuery = `
-            SELECT "FORM_INSTANCE_ID" FROM "GUARDIAN"."FORMS_INSTANCE"
-            WHERE "FORM_ID" = ${numericTemplateId} AND "CREATE_USER_ID" = ${numericUserId}
-            ORDER BY "CREATE_DATE" DESC
-            LIMIT 1`;
-            
-          console.log('Form instance select query:', selectFormQuery);
-          const formInstanceResults = await tx.$queryRawUnsafe(selectFormQuery);
-          
+          const formInstanceResults = await tx.$queryRawUnsafe(insertFormQuery);
+
           if (formInstanceResults && Array.isArray(formInstanceResults) && formInstanceResults.length > 0) {
             formInstanceId = Number(formInstanceResults[0].FORM_INSTANCE_ID);
             console.log('Created form instance with ID:', formInstanceId);
@@ -1096,8 +968,8 @@ router.post('/', async (req: Request, res: Response) => {
         // Create the request directly without template validation
         const currentDate = new Date();
         
-        // Step 1: Create the request using raw SQL for consistency with schema
-        await tx.$executeRaw`
+        // Step 1: Create the request using INSERT...RETURNING to atomically retrieve the new ID
+        const requestResults = await tx.$queryRaw`
           INSERT INTO "GUARDIAN"."REQUESTS" (
             "REQUEST_NAME",
             "COMPANY_ID",
@@ -1124,43 +996,20 @@ router.post('/', async (req: Request, res: Response) => {
             ${numericTemplateId},
             ${numericUserId},
             ${description}
-          )
+          ) RETURNING *
         `;
 
-        // Step 2: Get the newly created request with lastval() to get the exact inserted ID
-        const requestResults = await tx.$queryRaw`
-          SELECT * FROM "GUARDIAN"."REQUESTS"
-          WHERE "REQUEST_ID" = lastval()
-        `;
-        
         // Extract the request from the results
-        const request = Array.isArray(requestResults) && requestResults.length > 0 
-          ? requestResults[0] 
+        const request = Array.isArray(requestResults) && requestResults.length > 0
+          ? requestResults[0]
           : { REQUEST_ID: 0 };
-        
+
         console.log('Created request:', request);
         console.log('[REQUEST CREATION] Stored FORM_ID in database:', request.FORM_ID);
-        
+
         // Get the request ID for linking to form instance
-        let requestId = request.REQUEST_ID;
-        
-        if (!requestId) {
-          console.warn('Failed to retrieve request ID after creation, attempting fallback query');
-          const fallbackQuery = `
-            SELECT "REQUEST_ID" FROM "GUARDIAN"."REQUESTS"
-            WHERE "CREATE_USER_ID" = ${numericUserId}
-              AND "REQUEST_NAME" = '${name.replace(/'/g, "''")}'
-            ORDER BY "CREATE_DATE" DESC
-            LIMIT 1
-          `;
-          const fallbackResult = await tx.$queryRawUnsafe(fallbackQuery);
-          if (fallbackResult && Array.isArray(fallbackResult) && fallbackResult.length > 0 && fallbackResult[0].REQUEST_ID) {
-              requestId = fallbackResult[0].REQUEST_ID;
-          } else {
-              throw new Error('Failed to retrieve request ID after fallback query');
-          }
-        }
-        
+        const requestId = request.REQUEST_ID;
+
         if (!requestId) {
           throw new Error('Failed to retrieve request ID after creation');
         }
