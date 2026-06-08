@@ -53,3 +53,6 @@ CLAUDE.md
 # Postgres migration data dump — contains real PII + password hashes, MUST NOT be committed.
 # The schema file (postgres/01_schema.sql) is safe to commit; the seed clone is not.
 postgres/02_seed.sql
+
+# Stray nested tool clone — must not be tracked (broke Netlify submodule checkout)
+Claude-Code-Usage-Monitor/
