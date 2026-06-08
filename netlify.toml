@@ -1,0 +1,27 @@
+# Netlify build config — frontend (React/Vite) only.
+# The Express backend (server.cjs / dist-server) and Postgres do NOT run on
+# Netlify; host those separately and point the frontend at that API URL.
+
+[build]
+  # Build only the Vite frontend. Do NOT use build:all (that compiles the
+  # backend) — Netlify can't run the server anyway.
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 7 requires Node >= 20.19; pin a known-good LTS.
+  NODE_VERSION = "22"
+  # Skip lifecycle scripts during install. This bypasses the root "postinstall"
+  # (prisma generate + build:all), which otherwise fails the build:
+  #   - prisma generate can't find the root-level schema.prisma in CI
+  #   - build:all compiles backend-only TypeScript Netlify doesn't need
+  # esbuild 0.25 ships per-platform binaries via optionalDependencies, so the
+  # frontend build still works without install scripts.
+  NPM_FLAGS = "--ignore-scripts"
+
+# SPA fallback: let React Router handle client-side routes so deep links and
+# refreshes (e.g. /dashboard) don't 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
