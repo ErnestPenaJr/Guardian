@@ -382,7 +382,7 @@ function Home() {
           const token = localStorage.getItem('token');
           
           // Call the logout API
-          await api.post('/logout', {}, {
+          await api.post('/api/logout', {}, {
             headers: {
               Authorization: `Bearer ${token}`
             }
@@ -684,7 +684,7 @@ function Home() {
       const token = localStorage.getItem('token');
       
       // Call the logout API
-      await api.post('/logout', {}, {
+      await api.post('/api/logout', {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }

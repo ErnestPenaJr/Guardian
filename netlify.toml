@@ -43,11 +43,6 @@
   to = "/.netlify/functions/api/:splat"
   status = 200
 
-[[redirects]]
-  from = "/logout"
-  to = "/.netlify/functions/api/logout"
-  status = 200
-
 # SPA fallback: let React Router handle client-side routes so deep links and
 # refreshes (e.g. /dashboard) don't 404.
 [[redirects]]
