@@ -28,6 +28,7 @@ import groupsRoutes from './routes/forms-groups.js';
 import usersRoutes from './routes/users.js';
 import rolesRoutes from './routes/roles.js';
 import invitesRoutes from './routes/invites.js';
+import notificationsRoutes from './routes/notifications.js';
 import milestonesRoutes from './routes/milestones.js';
 import noticesRoutes from './routes/notices.js';
 import myNoticesRoutes from './routes/my-notices.js';
@@ -193,7 +194,7 @@ console.log('[ROUTES] ✓ Users routes registered at /api/users');
 app.use('/api/roles', rolesRoutes); // Roles routes
 app.use('/api/invites', invitesRoutes); // Invites routes
 app.use('/api/field-lookups', fieldLookupsRoutes);
-// Notifications routes are handled directly in server.cjs (source of truth)
+app.use('/api/notifications', notificationsRoutes); // Notifications routes (ported from legacy server.cjs)
 app.use('/api/notices', noticesRoutes); // Notices routes
 app.use('/api/my-notices', myNoticesRoutes); // My Notices routes
 app.use('/api/platform', platformAdminRoutes); // JAFAR platform config (US-CCL-05)
