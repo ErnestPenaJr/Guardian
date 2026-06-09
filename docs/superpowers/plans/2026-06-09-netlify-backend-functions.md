@@ -371,7 +371,7 @@ postgresql://netlifydb_owner:<password>@<pooler-host>/netlifydb?sslmode=require&
 Run (substitute real values; `JWT_SECRET` matches the one in `.env`):
 ```bash
 netlify env:set DATABASE_URL "postgresql://netlifydb_owner:<password>@<pooler-host>/netlifydb?sslmode=require&schema=GUARDIAN&pgbouncer=true&connection_limit=1"
-netlify env:set JWT_SECRET "3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0"
+netlify env:set JWT_SECRET "<JWT_SECRET>"
 netlify env:set JWT_EXPIRES_IN "24h"
 netlify env:set RESEND_API_KEY "<resend-api-key>"
 netlify env:set EMAIL_FROM "support@shieldlytics.com"

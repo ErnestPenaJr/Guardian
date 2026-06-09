@@ -14,7 +14,7 @@
     "build:all": "npm run build && npm run build:server",
     "start:server": "node dist-server/index.js",
     "dev:server": "npm run build:server -- --watch & node --watch dist-server/index.js",
-    "server:dev:pg": "npm run build:server && DATABASE_URL='postgresql://postgres:postgres@localhost:5433/postgres?schema=GUARDIAN' JWT_SECRET='3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0' PORT=3001 node dist-server/index.js",
+    "server:dev:pg": "npm run build:server && DATABASE_URL='postgresql://postgres:postgres@localhost:5433/postgres?schema=GUARDIAN' PORT=3001 node dist-server/index.js",
     "dev:pg": "concurrently -k -n api,web -c blue,green \"npm run server:dev:pg\" \"npm run dev\"",
     "add-templates": "ts-node scripts/add_standard_templates.ts",
     "add-fidelity-subject": "ts-node scripts/add_fidelity_subject_template.ts",

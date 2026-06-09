@@ -13,10 +13,10 @@
 ## Reference (shared values)
 
 - Local Postgres (Prisma form): `postgresql://postgres:postgres@localhost:5433/postgres?schema=GUARDIAN`
-- Dev JWT secret: `3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0`
+- Dev JWT secret: `<JWT_SECRET>`
 - Build commands: `npm run build` (Vite → `dist/`), `npm run build:server` (tsc → `dist-server/`).
 - Server reads `process.env.PORT` (default 3001) and serves `dist/` for the SPA.
-- Token mint (verification): `node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({id:1176,email:'ernest@shieldlytics.com',firstName:'Ernest',lastName:'P',roles:[1,3,4,6],COMPANY_ID:54,username:'ernest@shieldlytics.com',role:1},'3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0'))"`
+- Token mint (verification): `node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({id:1176,email:'ernest@shieldlytics.com',firstName:'Ernest',lastName:'P',roles:[1,3,4,6],COMPANY_ID:54,username:'ernest@shieldlytics.com',role:1},'<JWT_SECRET>'))"`
 
 ---
 
@@ -66,7 +66,7 @@ cat > .env.local <<'EOF'
 # The dev:pg / server:dev:pg scripts set these inline (they must override the
 # SQL Server DATABASE_URL in .env), so this file is for psql/tools and reference.
 DATABASE_URL="postgresql://postgres:postgres@localhost:5433/postgres?schema=GUARDIAN"
-JWT_SECRET="3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0"
+JWT_SECRET="<JWT_SECRET>"
 JWT_EXPIRES_IN="24h"
 PORT=3001
 NODE_ENV="development"
@@ -294,7 +294,7 @@ docker rm -f guardian_prep 2>/dev/null; true
 docker run -d --name guardian_prep -p 8080:8080 \
   -e PORT=8080 \
   -e NODE_ENV=production \
-  -e JWT_SECRET='3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0' \
+  -e JWT_SECRET='<JWT_SECRET>' \
   -e DATABASE_URL='postgresql://postgres:postgres@host.docker.internal:5432/postgres?schema=GUARDIAN' \
   guardian:prep
 sleep 8
@@ -303,7 +303,7 @@ Note: the local Postgres container publishes 5433→5432 on the host; from insid
 ```bash
 docker rm -f guardian_prep 2>/dev/null; true
 docker run -d --name guardian_prep -p 8080:8080 -e PORT=8080 -e NODE_ENV=production \
-  -e JWT_SECRET='3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0' \
+  -e JWT_SECRET='<JWT_SECRET>' \
   -e DATABASE_URL='postgresql://postgres:postgres@host.docker.internal:5433/postgres?schema=GUARDIAN' \
   guardian:prep
 sleep 8
@@ -314,7 +314,7 @@ sleep 8
 ```bash
 curl -s -o /dev/null -w '/api/health -> %{http_code}\n' localhost:8080/api/health
 curl -s -o /dev/null -w 'SPA root -> %{http_code}\n' localhost:8080/
-TOKEN=$(node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({id:1176,email:'ernest@shieldlytics.com',firstName:'Ernest',lastName:'P',roles:[1,3,4,6],COMPANY_ID:54,username:'ernest@shieldlytics.com',role:1},'3d96d990be404b3b88b4efa2bdf85b3b97003a1083fec5f2426edfe5cb56a7b0'))")
+TOKEN=$(node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({id:1176,email:'ernest@shieldlytics.com',firstName:'Ernest',lastName:'P',roles:[1,3,4,6],COMPANY_ID:54,username:'ernest@shieldlytics.com',role:1},'<JWT_SECRET>'))")
 curl -s -o /dev/null -w '/api/requests -> %{http_code}\n' -H "Authorization: Bearer $TOKEN" localhost:8080/api/requests
 docker logs guardian_prep 2>&1 | grep -iE 'error|does not exist|listen|running' | tail -10
 docker rm -f guardian_prep
