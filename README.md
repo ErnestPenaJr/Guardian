@@ -39,8 +39,8 @@ Guardian MVP is a comprehensive request management platform designed for enterpr
 ## Technology Stack
 
 ### Backend
-- **Runtime**: Node.js with Express.js framework
-- **Database**: Microsoft SQL Server with Prisma ORM
+- **Runtime**: Node.js with Express.js framework (TypeScript: `server/index.ts`)
+- **Database**: PostgreSQL (Neon in production, Docker Postgres locally) with Prisma as a client
 - **Authentication**: JWT tokens with bcrypt password hashing
 - **Email Service**: Resend API for transactional emails
 - **File Handling**: Multer for file uploads
@@ -56,39 +56,29 @@ Guardian MVP is a comprehensive request management platform designed for enterpr
 - **State Management**: React Context API with custom hooks
 
 ### Development Tools
-- **Package Manager**: Bun (preferred) or npm
+- **Package Manager**: npm
 - **Type Checking**: TypeScript with strict configuration
 - **Linting**: ESLint with React-specific rules
 - **Testing**: Bun test framework
-- **Database**: Prisma for schema management and queries
+- **Database**: Prisma as a client (schema owned by `postgres/*.sql`)
 
 ## Architecture
 
-### Multi-Environment Setup
+> **Azure was fully retired on 2026-06-08.** The legacy CommonJS monolith
+> (`server.cjs` / `server.js` / `server-production.js`), the DevOps pipeline,
+> IIS, and web.config were deleted. See `DEPLOYMENT.md` for current deploy details.
 
-Guardian MVP uses a sophisticated multi-environment architecture:
+Guardian MVP now runs as:
 
-#### Development Environment (`server.cjs`)
-- Full-featured development server with comprehensive authentication
-- Static file serving via Express
-- Database-backed email verification storage
-- Complete registration/authentication flow
-- SPA fallback routing for React Router
-- Enhanced form template creation with SQL Server compatibility (Fixed 2025-08-12)
-- Runs on port 3001 (backend) with Vite dev server on 5175 (frontend)
+- **Frontend**: a React + Vite static build deployed to **Netlify** (site `guardian-mvp`), auto-deploying from `github.com/ErnestPenaJr/Guardian` on push. Config in `netlify.toml` (build `npm run build`, publish `dist`, SPA redirect).
+- **Backend**: a single **TypeScript Express server** — `server/index.ts`, compiled to `dist-server/index.js` via `npm run build:server` and started with `node dist-server/index.js`. New/changed API endpoints live in `server/routes/*.ts`, mounted in `server/index.ts`. Hosted **off Netlify** (host TBD).
+- **Database**: **PostgreSQL** — **Neon** (Netlify DB, database `netlifydb`, `GUARDIAN` schema) in production; Docker Postgres at `localhost:5433` locally.
 
-#### Production Environment (`server-production.js` → `server.js`) - CRITICAL UPDATE 2025-08-21
-- **PROVEN WORKING CONFIGURATION**: Production server based on exact copy of working `server.cjs`
-- **Node.js Runtime**: v20.18.3 with CommonJS module system for compatibility
-- **Express Static Serving**: Primary static file handling via `express.static('.')` middleware
-- **SPA Routing Support**: React Router integration with `app.get('*', ...)` fallback route  
-- **API Logic Preservation**: Identical authentication, JWT handling, and endpoints to development
-- **IIS as Fallback**: web.config provides secondary static serving and routing support
-- **Critical Success Foundation**: Minimal modifications to working development server architecture
+Local development: `npm run dev:pg` runs the API + Vite frontend together (backend on 3001, frontend on 5175 with proxy routing).
 
 ### Database Schema
 
-The application uses a comprehensive SQL Server schema:
+The application uses a comprehensive PostgreSQL schema (`GUARDIAN` schema):
 
 #### Core Tables
 - `GUARDIAN.USERS` - User accounts with company association
@@ -231,25 +221,27 @@ Guardian MVP provides a guided onboarding experience for first-time administrato
 ## Installation & Setup
 
 ### Prerequisites
-- Node.js 18+ (or Bun runtime)
-- Microsoft SQL Server access
+- Node.js 18+
+- A PostgreSQL database (Docker Postgres locally; Neon in production)
 - Resend API key for email services
 
 ### Environment Configuration
 
-Create environment files for different environments:
+`DATABASE_URL` is a PostgreSQL connection string. Keep the
+`connection_limit=30&pool_timeout=20` params (Prisma's default pool is too small).
+Use placeholders for credentials — never commit real passwords.
 
-#### `.env.development`
+#### `.env.development` (local Docker Postgres)
 ```env
-DATABASE_URL="sqlserver://server:1433;database=GUARDIAN-DEV;user=username;password=password;encrypt=true;trustServerCertificate=false"
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5433/guardian?schema=GUARDIAN&connection_limit=30&pool_timeout=20"
 JWT_SECRET="your-jwt-secret-key"
 SMTP_PASSWORD="your-resend-api-key"
 EMAIL_FROM="support@yourdomain.com"
 ```
 
-#### `.env.production`  
+#### `.env.production` (Neon / Netlify DB)
 ```env
-DATABASE_URL="sqlserver://production-server:1433;database=GUARDIAN-PROD;user=username;password=password;encrypt=true;trustServerCertificate=false"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?sslmode=require&schema=GUARDIAN&connection_limit=30&pool_timeout=20"
 JWT_SECRET="your-production-jwt-secret"
 SMTP_PASSWORD="your-resend-api-key"
 EMAIL_FROM="support@yourdomain.com"
@@ -263,33 +255,23 @@ EMAIL_FROM="support@yourdomain.com"
    cd "Guardian MVP"
    ```
 
-2. **Install Dependencies** (using Bun - preferred)
-   ```bash
-   bun install
-   ```
-   
-   Or with npm:
+2. **Install Dependencies**
    ```bash
    npm install
    ```
+   On a fresh / `--ignore-scripts` checkout, also run `npx prisma generate`.
 
-3. **Setup Database**
+3. **Generate Prisma Client**
    ```bash
-   # Generate Prisma client
-   bun prisma generate
-   
-   # Populate field types (if needed)
-   bun populate-field-types
+   npx prisma generate
    ```
+   The database schema is owned by `postgres/01_schema.sql` + `02_seed.sql` +
+   `03_app_schema_patches.sql` (no Prisma `migrate`/`db push`).
 
 4. **Build Application**
    ```bash
-   # Build everything
-   bun run build:all
-   
-   # Or build separately
-   bun run build        # Frontend only
-   bun run build:server # Backend only
+   npm run build         # Frontend (Vite) -> dist/
+   npm run build:server  # Backend (TypeScript) -> dist-server/
    ```
 
 ## Development
@@ -298,210 +280,101 @@ EMAIL_FROM="support@yourdomain.com"
 
 **Start Development Environment:**
 ```bash
-# Backend server (development) - Requires explicit DATABASE_URL for stability (Fixed 2025-08-12)
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+# API + frontend together (against local Docker Postgres)
+npm run dev:pg
 
-# Frontend development server with proxy to backend
-bun run dev
-
-# Both simultaneously (in separate terminals)
-bun run backend    # Backend on port 3001 with proper DB connection
-bun run dev        # Frontend on port 5175 with proxy routing
+# Or run them separately (in separate terminals):
+npm run server:dev:pg   # TS backend against local Docker Postgres (localhost:5433)
+npm run dev             # Vite frontend (proxies API calls to the backend)
 ```
 
 **Database Management:**
 ```bash
 # Generate Prisma client
-bun prisma generate
+npx prisma generate
+```
+The DB schema is owned by `postgres/01_schema.sql` + `02_seed.sql` +
+`03_app_schema_patches.sql` (no Prisma `migrate`/`db push`).
 
-# Add standard templates
-bun add-templates
-
-# Populate field types
-bun populate-field-types
+**Build / run the server:**
+```bash
+npm run build:server          # compile server/index.ts -> dist-server/index.js
+node dist-server/index.js     # run the compiled server
 ```
 
 **Testing:**
 ```bash
-# Run tests
-bun test
-
-# Lint code
-bun run lint
+bun test       # Run tests
+npm run lint   # Lint code
 ```
 
 ### Development Workflow
 
-1. **Frontend Development**: Use `bun run dev` for hot-reload development
-2. **Backend Development**: Use `bun server.cjs` for API development
-3. **Database Changes**: Update Prisma schema and run `bun prisma generate`
+1. **Frontend Development**: Use `npm run dev` for hot-reload development
+2. **Backend Development**: Use `npm run server:dev:pg` for API development
+3. **API Endpoints**: Add/edit routes under `server/routes/*.ts`, mounted in `server/index.ts`
 4. **Testing**: Run `bun test` before committing changes
 
-### Important Development Notes - UPDATED 2025-08-21
+### Important Development Notes
 
-- **CRITICAL: Production Server Foundation**: `server.cjs` is SOURCE OF TRUTH for API logic; production must be exact copy with minimal additions (Critical 2025-08-21)
-- **Database Connection**: Must use explicit DATABASE_URL for stable connection in development (Fixed 2025-08-12)
-- **Production Testing Protocol**: MUST test with `node server.js` locally before Azure deployment (Critical 2025-08-21)
-- **CommonJS Compatibility**: Production environment requires CommonJS module system (Critical 2025-08-21)
-- **No Over-Engineering**: Avoid complex production configurations; keep minimal modifications only (Critical 2025-08-21)
-- **Form Template System**: SimpleFormBuilder fully functional with enhanced SQL Server compatibility (Fixed 2025-08-12)  
-- **Database Password Escaping**: Special characters like `$` must be escaped as `\$` in .env files
+- **Single backend**: The TypeScript Express server (`server/index.ts` → `dist-server/index.js`) is the only backend; there are no separate dev/prod server files
+- **Database**: PostgreSQL — Neon (`netlifydb`, `GUARDIAN` schema) in production, Docker Postgres (`localhost:5433`) locally
+- **DATABASE_URL**: PostgreSQL string; keep `connection_limit=30&pool_timeout=20`; never commit real passwords
+- **Prisma is a client only**: schema owned by `postgres/*.sql` (no `migrate`/`db push`)
 - **Frontend/Backend Communication**: Vite proxy routes API calls from port 5175 to 3001
-- **File Synchronization**: Always update `server-production.js` when modifying API endpoints
-- **SQL Server Queries**: Use `${variable}` syntax instead of `?` placeholders for parameterized queries
+- **Neon cold starts**: the `dbWakeUp` overlay covers the first-request wake-up — expected behavior
 
 ## Production Deployment
 
-### Azure App Service Deployment
+> **Azure was fully retired on 2026-06-08.** The DevOps pipeline, IIS, web.config,
+> `package.production.json`, and the legacy CommonJS servers were deleted.
 
-The application uses Azure DevOps pipelines for automated deployment:
+The stack now deploys as:
 
-#### Critical Pipeline Configuration
-```yaml
-# azure-pipelines.yml line 52
-cp server-production.js deployment/server.js
+- **Frontend (Netlify)**: Vite static build (`dist/`) deployed to Netlify (site `guardian-mvp`), auto-deploying from `github.com/ErnestPenaJr/Guardian` on push. Config in `netlify.toml` (`npm run build`, publish `dist`, SPA redirect, `NPM_FLAGS=--ignore-scripts`).
+- **Backend (off-Netlify TS server)**: compile with `npm run build:server` and run `node dist-server/index.js` on the chosen host (host TBD). Set the frontend's API base URL to point at it.
+- **Database (Neon)**: PostgreSQL via Netlify DB (`netlifydb`, `GUARDIAN` schema).
+
+**Required environment variables:**
+```
+DATABASE_URL=<postgresql://...?schema=GUARDIAN&connection_limit=30&pool_timeout=20>
+JWT_SECRET=<secure-jwt-secret>
+SMTP_PASSWORD=<resend-api-key>
+EMAIL_FROM=<production-email>
 ```
 
-**File Mapping:**
-- **Development**: `server.cjs` (local development)
-- **Production Source**: `server-production.js` (source file with all endpoints)
-- **Production Deployed**: `server.js` (deployed to Azure)
+See `DEPLOYMENT.md` for full step-by-step deploy details.
 
-#### Deployment Checklist - CRITICAL UPDATE 2025-08-21
-
-1. **CRITICAL: Foundation First**: When creating production server:
-   - ✅ Start with exact copy of working `server.cjs` (SOURCE OF TRUTH)
-   - ✅ Add ONLY minimal production requirements: static serving + SPA routing
-   - ✅ Preserve all API logic, authentication, and JWT handling unchanged
-   - ✅ Test with `node server.js` locally BEFORE deployment (MANDATORY)
-
-2. **Update All Server Files**: When adding/modifying API endpoints, update:
-   - ✅ `server.cjs` (development - contains working API logic)
-   - ✅ `server-production.js` (production source for pipeline)
-   - ✅ `server.js` (local production testing)
-
-3. **Production Server Requirements**:
-   - ✅ Node.js v20.18.3 runtime compatibility
-   - ✅ CommonJS module system (package.production.json)
-   - ✅ Express static middleware: `app.use(express.static('.'))`
-   - ✅ SPA fallback route: `app.get('*', (req, res) => res.sendFile(...))`
-
-4. **Environment Variables**: Configure in Azure App Service:
-   ```
-   DATABASE_URL=<production-connection-string>
-   JWT_SECRET=<secure-jwt-secret>
-   SMTP_PASSWORD=<resend-api-key>
-   EMAIL_FROM=<production-email>
-   ```
-
-5. **Web.config**: Configure as fallback support (Express handles primary serving):
-   - Static file serving (secondary)
-   - SPA routing (secondary)
-   - API proxying (if needed)
-
-6. **Critical Verification**: Test these endpoints post-deployment:
-   - ✅ `/api/health` - Server status with Node.js version
-   - ✅ `/api/login` - JWT authentication functionality
-   - ✅ `/api/test` - Basic API operations
-   - ✅ Frontend assets load without 404 errors
-   - ✅ React Router navigation functional
-
-### Manual Deployment
-
-For manual deployment to other environments:
-
-```bash
-# Build for production
-bun run build:all
-
-# Copy files to deployment directory
-cp -r dist/ deployment/
-cp server-production.js deployment/server.js
-cp web.config deployment/
-cp package.json deployment/
-
-# Install production dependencies
-cd deployment
-npm install --production
-```
-
-## Troubleshooting - UPDATED 2025-08-21
-
-### Critical Production Server Issues - RESOLVED 2025-08-21
-
-#### Production Server Startup Failures
-**Symptom**: Production server fails to start or returns 500 errors on basic endpoints like `/api/health`
-
-**CRITICAL ROOT CAUSES IDENTIFIED:**
-- **ES Module vs CommonJS Incompatibility**: Node.js production environment requires CommonJS module system
-- **Over-Engineering**: Complex production configurations introducing runtime compatibility issues  
-- **Bun vs Node.js Features**: Development-specific features not compatible with Node.js production runtime
-
-**PROVEN SUCCESSFUL RESOLUTION:**
-1. **Foundation Approach**: Copy exact working `server.cjs` as production server foundation
-2. **Minimal Modifications**: Add ONLY essential production requirements:
-   - Static file serving: `app.use(express.static('.'))`
-   - SPA fallback route: `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')))`
-3. **Preserve API Logic**: DO NOT modify working authentication, JWT, or endpoint logic
-4. **CommonJS Compatibility**: Use `package.production.json` to enforce CommonJS module system
-5. **Node.js Testing**: Test locally with `node server.js` before deployment
-
-**Critical Success Indicators:**
-- ✅ Server starts without module system errors
-- ✅ `/api/health` returns status with Node.js v20.18.3
-- ✅ `/api/login` JWT authentication functional
-- ✅ `/api/test` basic API operations work
-- ✅ Static file serving and SPA routing operational
-
-**Emergency Recovery Protocol:**
-1. Copy working `server.cjs` to `server.js` and `server-production.js`
-2. Add only static serving and SPA routing (minimal changes)
-3. Test locally with `node server.js` (must work before deployment)
-4. Deploy with confidence that working dev server forms foundation
-5. Verify all critical endpoints post-deployment
+## Troubleshooting
 
 ### Common Issues
 
 #### Database Connection Errors
-**Symptom**: "Authentication failed against database server"
+**Symptom**: Prisma can't connect to the database, login fails
 
 **Solutions**:
-1. Verify connection string format
-2. Escape special characters in passwords (`$` → `\$`)
-3. Check firewall and network connectivity
-4. Use explicit DATABASE_URL when starting server (Required for stable development - Fixed 2025-08-12):
-   ```bash
-   DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+1. Verify `DATABASE_URL` points at a running Postgres and includes `?schema=GUARDIAN&connection_limit=30&pool_timeout=20`
+2. For local dev, ensure the Docker Postgres at `localhost:5433` is up, then start with `npm run server:dev:pg` (or `npm run dev:pg`)
+3. For production, confirm the Neon (`netlifydb`) connection string and `sslmode=require`
+4. Use placeholders for credentials — never commit real passwords:
+   ```
+   DATABASE_URL="postgresql://USER:PASSWORD@localhost:5433/guardian?schema=GUARDIAN&connection_limit=30&pool_timeout=20"
    ```
 
-#### Form Template Creation Issues (Fixed 2025-08-12)
+> **Neon cold starts**: Neon may sleep an idle database; the `dbWakeUp` overlay covers the first-request wake-up. This is expected — do not remove it.
+
+#### Form Template Creation Issues
 **Symptom**: Form creation fails with server errors in SimpleFormBuilder
 
 **Root Causes & Solutions**:
-- ✅ **SQL Server Compatibility**: Fixed parameterized query syntax from `?` to `${variable}` format
-- ✅ **Database Table References**: Corrected FORM_FIELDS vs FIELDS table naming in queries
-- ✅ **JWT Authentication**: Fixed middleware property access (req.user.userId vs req.userId)
+- ✅ **JWT Authentication**: Correct `req.user` company/user resolution
 - ✅ **Company Isolation**: Proper COMPANY_ID filtering for multi-tenant security
 - ✅ **Port Configuration**: Stabilized frontend-backend communication (5175 ↔ 3001)
 
 **Verification Steps**:
-1. Check server logs for successful database connection
-2. Test form creation through SimpleFormBuilder interface
-3. Verify templates are saved to GUARDIAN.FORMS table
-4. Confirm all three server files are synchronized
-
-#### Production Endpoint 404 Errors
-**Symptom**: "Endpoints work locally but return 404 in production"
-
-**Cause**: Updated `server.js` but not `server-production.js`
-
-**Fix**:
-```bash
-cp server.js server-production.js
-git add server-production.js
-git commit -m "sync: update server-production.js with latest endpoints"
-git push origin main
-```
+1. Check server logs for a successful database connection
+2. Test form creation through the SimpleFormBuilder interface
+3. Verify templates are saved to the `GUARDIAN.FORMS` table
 
 #### Email Service Issues
 **Symptom**: Verification emails not being sent
@@ -527,7 +400,7 @@ git push origin main
 - Use company-filtered queries with proper indexing
 - Implement pagination for large datasets  
 - Use raw SQL for complex queries when needed
-- Monitor query performance with SQL Server tools
+- Monitor query performance with PostgreSQL tooling (e.g. `EXPLAIN ANALYZE`, Neon metrics)
 
 #### Frontend Performance
 - Implement lazy loading for routes
@@ -556,14 +429,13 @@ git push origin main
 3. Update documentation if needed
 4. Test locally before pushing
 5. Create pull request with description
-6. Ensure CI/CD pipeline passes
+6. Push to `github.com/ErnestPenaJr/Guardian` (Netlify deploys the frontend on push)
 
 ### Database Changes
-1. Update Prisma schema files
-2. Generate new Prisma client
-3. Test migrations locally
-4. Document schema changes
-5. Update API endpoints if needed
+1. Update the `postgres/*.sql` schema files (the DB is owned by these, not Prisma migrations)
+2. Apply them to the target database, then run `npx prisma generate` to refresh the client
+3. Document schema changes
+4. Update API endpoints (`server/routes/*.ts`) if needed
 
 ## Security Considerations
 
@@ -672,6 +544,10 @@ For technical support or questions:
 
 ## Recent Critical Updates (2025-08-21)
 
+> **Superseded (2026-06-08):** the Azure/CommonJS work below is historical.
+> Azure was fully retired on 2026-06-08 — the app now runs on Netlify (frontend)
+> + a TypeScript Express server on PostgreSQL/Neon. See `DEPLOYMENT.md`.
+
 ### CRITICAL PRODUCTION SERVER RESTORATION - SUCCESSFUL
 - ✅ **Production Server Fully Operational**: Resolved critical server startup failures and 500 errors on basic API endpoints
 - ✅ **ES Module/CommonJS Issue Resolved**: Fixed Node.js production runtime compatibility by enforcing CommonJS module system  
@@ -687,8 +563,8 @@ For technical support or questions:
 
 ---
 
-**Last Updated**: 2025-08-21  
+**Last Updated**: 2026-06-08  
 **Version**: 2.5.0  
-**Node.js Compatibility**: 18+ (Production: v20.18.3 with CommonJS)  
-**Database**: Microsoft SQL Server  
-**Deployment**: Azure App Service with Express Static Serving
+**Node.js Compatibility**: 18+  
+**Database**: PostgreSQL (Neon in production, Docker Postgres locally)  
+**Deployment**: Netlify (frontend) + off-Netlify TypeScript Express server + Neon (Azure retired 2026-06-08; see `DEPLOYMENT.md`)

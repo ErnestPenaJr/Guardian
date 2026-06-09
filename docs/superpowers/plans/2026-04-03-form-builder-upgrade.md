@@ -1574,7 +1574,7 @@ git commit -m "refactor: simplify CustomWorkflowTemplateModal to navigate to for
 Terminal 1:
 ```bash
 cd "/Users/epena/Desktop/www/projects/Guardian MVP"
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false" bun server.cjs
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs
 ```
 
 Terminal 2:

@@ -8,14 +8,11 @@
 - **Security**: Cross-company data access is STRICTLY FORBIDDEN
 - **Middleware**: Use `getAuthenticatedUserCompany` for all protected endpoints
 
-### 2. Multi-Server Synchronization Protocol
-- **Source of Truth**: `server.cjs` contains the working API logic
-- **Three-Server Architecture**: 
-  - `server.cjs` (development - SOURCE OF TRUTH)
-  - `server.js` (local production testing)
-  - `server-production.js` (Azure deployment source)
-- **CRITICAL**: When modifying API endpoints, update ALL THREE files simultaneously
-- **Pipeline Rule**: Azure pipeline copies `server-production.js` → `server.js` during deployment
+### 2. Single TypeScript Server (Postgres)
+- **One backend**: the TypeScript Express server `server/index.ts`, compiled to `dist-server/index.js` and started with `node dist-server/index.js` (build via `npm run build:server`).
+- **Routes**: new API endpoints live in `server/routes/*.ts` and are mounted in `server/index.ts`. There is no "three-server" / multi-server-sync concept — the legacy CommonJS monolith (`server.cjs`/`server.js`/`server-production.js`) has been removed.
+- **Database**: PostgreSQL. Production is Neon (Netlify DB, database `netlifydb`, `GUARDIAN` schema); local dev is Docker Postgres at `localhost:5433`.
+- **Deployment**: the React/Vite frontend deploys to Netlify from GitHub on push (Azure DevOps is retired). See `DEPLOYMENT.md` for full deployment details.
 
 ### 3. Specialized Agent Patterns
 Use specialized approaches for different development areas:
@@ -39,8 +36,8 @@ Use specialized approaches for different development areas:
 - **Password Security**: Use bcrypt with high salt rounds (12+)
 
 #### Database Operations
-- **Prisma ORM**: Primary database interaction method
-- **SQL Server**: Microsoft SQL Server with GUARDIAN schema
+- **Prisma ORM**: Primary database interaction method (client only — the DB schema is owned by `postgres/*.sql`)
+- **PostgreSQL**: GUARDIAN schema (Neon in production, Docker Postgres at `localhost:5433` for local dev)
 - **Company Filtering**: Every query must include `COMPANY_ID = ${req.companyId}`
 - **Transactions**: Use Prisma transactions for complex operations
 
@@ -105,19 +102,23 @@ const getAuthenticatedUserCompany = (req, res, next) => {
 
 ### Backend Server Setup
 ```bash
-# Development server (port 3001) - Required explicit DATABASE_URL
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+# API + Vite together (recommended) — builds the TS server and runs it against local Docker Postgres,
+# alongside the Vite dev server
+npm run dev:pg
 
-# Frontend development server (port 5175) with proxy
-bun run dev
+# Or run them separately:
+npm run server:dev:pg   # builds + starts dist-server/index.js on port 3001 (local Postgres)
+npm run dev             # Vite frontend (port 5175) with proxy to the API
+
+# DATABASE_URL is a postgresql:// connection string (NOT sqlserver://). Example placeholder:
+# DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?schema=GUARDIAN&connection_limit=30&pool_timeout=20"
 ```
 
 ### Production Deployment Rules
-- **Foundation Rule**: Production server must be exact copy of `server.cjs` + minimal additions
-- **Static File Serving**: Use Express static middleware (`express.static('.')`)
-- **SPA Fallback**: Include `app.get('*', (req, res) => res.sendFile(...))` for React Router
-- **CommonJS Compatibility**: Ensure Node.js v20.18.3 compatibility
-- **Testing Protocol**: MUST test with `node server.js` locally before deployment
+- **Single server**: build the TS server with `npm run build:server`, run with `node dist-server/index.js`.
+- **Frontend**: React/Vite static bundle deployed to Netlify from GitHub on push.
+- **Database**: production PostgreSQL on Neon (Netlify DB); configure `DATABASE_URL` and `JWT_SECRET` in the host environment.
+- **Details**: see `DEPLOYMENT.md`.
 
 ## Task Management Workflow
 
@@ -194,7 +195,7 @@ await prisma.$executeRaw`
   ) VALUES (
     ${assignedUserId}, 'assignment', 'New Request Assigned',
     ${notificationMessage}, ${requestId}, ${req.companyId},
-    GETDATE(), 0
+    NOW(), 0
   )
 `;
 ```
@@ -202,15 +203,14 @@ await prisma.$executeRaw`
 ## Testing and Quality Assurance
 
 ### Pre-Deployment Checklist
-1. ✅ All three server files synchronized
-2. ✅ Company-based data isolation implemented
-3. ✅ TypeScript compilation successful (`tsc --noEmit`)
-4. ✅ Linting passes (`npm run lint`)
-5. ✅ Database connectivity verified
-6. ✅ JWT authentication working
-7. ✅ API endpoints returning correct data
-8. ✅ Frontend components render properly
-9. ✅ Local Node.js testing completed (`node server.js`)
+1. ✅ Company-based data isolation implemented
+2. ✅ TypeScript compilation successful (`tsc --noEmit`)
+3. ✅ Linting passes (`npm run lint`)
+4. ✅ Database connectivity verified (Postgres)
+5. ✅ JWT authentication working
+6. ✅ API endpoints returning correct data
+7. ✅ Frontend components render properly
+8. ✅ TS server builds and runs locally (`npm run build:server` + `node dist-server/index.js`)
 
 ### Testing Commands
 ```bash
@@ -220,17 +220,20 @@ tsc --noEmit
 # Linting
 npm run lint
 
-# Test backend development
-bun server.cjs
+# Run API + frontend together (local Postgres)
+npm run dev:pg
 
-# Test backend production locally
-node server.js
+# Build the TS server
+npm run build:server
 
-# Test frontend
-bun run dev
+# Run the built server locally
+node dist-server/index.js
 
-# Build for production
-bun run build:all
+# Test frontend only
+npm run dev
+
+# Build everything for production
+npm run build:all
 ```
 
 ## Error Handling Standards
@@ -272,28 +275,20 @@ try {
 
 ## Deployment Architecture
 
-### Azure App Service Configuration
-- **Node.js Runtime**: v20.18.3 with CommonJS module system
-- **Environment Variables**: JWT_SECRET, DATABASE_URL properly configured
-- **Static File Serving**: Express middleware handles asset serving
-- **IIS Configuration**: web.config as fallback for static files
-- **Pipeline Validation**: Asset verification during deployment
+### Netlify + Neon (Postgres)
+- **Frontend**: React/Vite static bundle deployed to Netlify from GitHub on push.
+- **Backend**: single TypeScript Express server (`server/index.ts` → `dist-server/index.js`), run with `node dist-server/index.js` after `npm run build:server`.
+- **Database**: PostgreSQL on Neon (Netlify DB, database `netlifydb`, `GUARDIAN` schema). Schema is owned by `postgres/*.sql`; Prisma is a client only.
+- **Environment Variables**: `JWT_SECRET` and a `postgresql://` `DATABASE_URL` configured in the host environment.
+- **Details**: see `DEPLOYMENT.md`.
 
 ### Critical Deployment Rules
-- ❌ **NEVER over-engineer** production configurations
-- ❌ **NEVER modify** working API logic during production deployment
-- ❌ **NEVER skip** local Node.js testing before deployment
-- ✅ **ALWAYS use** working `server.cjs` as production foundation
-- ✅ **ALWAYS test** with `node server.js` locally first
-- ✅ **ALWAYS verify** all endpoints after deployment
+- ✅ **ALWAYS build** the TS server (`npm run build:server`) before deploying the backend.
+- ✅ **ALWAYS test** locally with `node dist-server/index.js` against local Postgres first.
+- ✅ **ALWAYS verify** endpoints after deployment.
+- ✅ **ALWAYS keep** `DATABASE_URL` as a `postgresql://` string with `connection_limit=30&pool_timeout=20`.
 
 ## Emergency Response Protocols
-
-### Production Server Failures
-1. **Immediate Action**: Copy working `server.cjs` to production files
-2. **Minimal Modifications**: Add only static serving and SPA routing
-3. **Local Testing**: Test with `node server.js` before deployment
-4. **Verification**: Check critical endpoints post-deployment
 
 ### Security Incidents
 1. **Rotate JWT Secret**: Invalidate all tokens immediately
@@ -331,7 +326,7 @@ const forms = await prisma.$queryRaw`
 - **Components**: PascalCase (e.g., RequestModal.tsx)
 - **Files**: camelCase for utilities, PascalCase for components
 - **Variables**: camelCase for JavaScript/TypeScript
-- **Database**: UPPER_CASE for SQL Server columns (COMPANY_ID, USER_ID)
+- **Database**: UPPER_CASE for Postgres columns in the GUARDIAN schema (COMPANY_ID, USER_ID)
 
 ### Documentation Requirements
 - **Code Comments**: JSDoc for complex functions
@@ -349,8 +344,8 @@ const forms = await prisma.$queryRaw`
 
 ### Third-Party Integrations
 - **Resend API**: Email service integration with proper error handling
-- **Azure SQL Server**: Database connection with retry logic
+- **PostgreSQL (Neon / Docker)**: Database connection with retry logic
 - **JWT**: Secure token generation and validation
-- **Prisma ORM**: Database abstraction with type safety
+- **Prisma ORM**: Database abstraction with type safety (client only)
 
 This comprehensive set of rules ensures consistent development practices across the Guardian MVP project, maintaining security, performance, and code quality standards while following the established architectural patterns.

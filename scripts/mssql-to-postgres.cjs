@@ -77,15 +77,9 @@ function parseSqlServerUrl(url) {
   return cfg;
 }
 
-// Fallback = Guardian staging (per .env.staging)
-const STAGING_FALLBACK = {
-  server: 'guardian-dev-db.database.windows.net',
-  port: 1433,
-  database: 'GUARDIAN-DEV',
-  user: 'GUARDIAN',
-  password: 'Sh13ldlyt1c$',
-  options: { encrypt: true, trustServerCertificate: false },
-};
+// The legacy SQL Server source (Azure) was retired on 2026-06-08. This
+// one-time converter now requires an explicit DATABASE_URL pointing at a
+// SQL Server source; there is no hardcoded credential fallback.
 
 // ---------------------------------------------------------------------------
 // Type mapping: SQL Server -> PostgreSQL
@@ -543,7 +537,10 @@ async function main() {
   const args = parseArgs(process.argv);
   if (args.help) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 40).join('\n')); return; }
 
-  const cfgBase = parseSqlServerUrl(process.env.DATABASE_URL) || STAGING_FALLBACK;
+  const cfgBase = parseSqlServerUrl(process.env.DATABASE_URL);
+  if (!cfgBase) {
+    throw new Error('Set DATABASE_URL to a sqlserver:// connection string for the source DB (the Azure staging fallback was removed 2026-06-08).');
+  }
   const cfg = { ...cfgBase, connectionTimeout: 30000, requestTimeout: 0, options: { ...cfgBase.options }, pool: { max: 4 } };
 
   fs.mkdirSync(args.out, { recursive: true });

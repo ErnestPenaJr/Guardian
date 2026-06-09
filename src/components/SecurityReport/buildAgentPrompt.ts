@@ -42,8 +42,7 @@ ${finding.verification}
 ## Instructions
 1. Read the files referenced above before making any changes.
 2. Apply the fix in "Required fix". Keep the change surgical — do not refactor unrelated code or add features that aren't required by the fix.
-3. Guardian MVP multi-server sync rule: if the fix touches \`server.cjs\`, apply the identical change to \`server-production.js\` and \`server.js\` as well (per CLAUDE.md). Do NOT skip this — all three server files must stay in sync.
-4. Run \`bunx tsc --noEmit\` after any TypeScript change and \`node --check <file>\` after any .cjs/.js change. Fix any errors you introduce.
-5. Do NOT commit. Show me a summary of the diff and the verification steps you took, then wait for my review.
+3. Run \`bunx tsc --noEmit\` after any TypeScript change. Fix any errors you introduce.
+4. Do NOT commit. Show me a summary of the diff and the verification steps you took, then wait for my review.
 `;
 }

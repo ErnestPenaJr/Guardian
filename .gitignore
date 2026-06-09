@@ -56,3 +56,12 @@ postgres/02_seed.sql
 
 # Stray nested tool clone — must not be tracked (broke Netlify submodule checkout)
 Claude-Code-Usage-Monitor/
+
+# Local Netlify folder
+.netlify
+
+# Local DB dumps (contain real data — never commit)
+*.dump
+
+# Stale Azure build artifact — do not track
+deployment/

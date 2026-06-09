@@ -19,12 +19,12 @@ The project includes 12 specialized agents located in `.claude/agents/` that pro
 
 **Backend & API Development:**
 - `api-specialist` - Expert in Guardian MVP API endpoints, Express.js server management, and critical multi-server synchronization across development, testing, and production environments
-- `database-specialist` - SQL Server and Prisma ORM specialist focused on Guardian MVP's company-based data isolation and security architecture
+- `database-specialist` - PostgreSQL and Prisma ORM specialist focused on Guardian MVP's company-based data isolation and security architecture
 - `security-specialist` - JWT authentication, role-based access control, and company-based data isolation security expert
 - `resend-email-specialist` - Resend API integration expert for transactional emails, templates, verification workflows, and email deliverability optimization
 
 **Infrastructure & Deployment:**
-- `deployment-specialist` - Azure App Service, DevOps pipelines, and IIS configuration expert with deep knowledge of Guardian MVP's unique three-server deployment architecture
+- `deployment-specialist` - Netlify (frontend) and TypeScript Express server deployment expert with knowledge of Guardian MVP's single-server-on-PostgreSQL/Neon architecture
 - `error-monitor-specialist` - Application debugging, error analysis, and system monitoring specialist for production issue resolution
 
 **Quality Assurance & Documentation:**
@@ -47,7 +47,7 @@ The project includes 12 specialized agents located in `.claude/agents/` that pro
 - Use `resend-email-specialist` for any email functionality including verification, notifications, and deliverability issues
 
 **Infrastructure & Deployment:**
-- Use `deployment-specialist` proactively for Azure deployment issues, pipeline failures, and IIS configuration
+- Use `deployment-specialist` proactively for Netlify build/deploy issues and TypeScript server hosting
 - Use `error-monitor-specialist` for production errors, debugging, and system monitoring
 - Use `doc-updater` automatically after ANY code changes to update documentation
 
@@ -67,7 +67,7 @@ The project includes 12 specialized agents located in `.claude/agents/` that pro
 | Email Integration | `resend-email-specialist` | `api-specialist` | Verification emails, notifications, deliverability |
 | Testing & Quality Assurance | `testing-qa-specialist` | `security-specialist` | Test coverage, QA validation, pre-deployment testing |
 | Production Errors | `error-monitor-specialist` | `deployment-specialist` | Debugging, monitoring, error analysis |
-| Deployment Issues | `deployment-specialist` | `api-specialist` | Pipeline failures, Azure/IIS problems |
+| Deployment Issues | `deployment-specialist` | `api-specialist` | Netlify build failures, TS server hosting problems |
 | Documentation Updates | `doc-updater` | N/A | After any code changes (MANDATORY) |
 
 ### Streamlined Workflow
@@ -80,25 +80,27 @@ The project includes 12 specialized agents located in `.claude/agents/` that pro
 6. **Documentation**: Use `doc-updater` proactively after ANY code modifications
 7. **Testing**: Run appropriate tests (`bun test`, `bun run lint`, `tsc --noEmit`) before completion
 
-### Multi-Server Synchronization Protocol - UPDATED 2025-08-21
+### Single TypeScript Server — UPDATED 2026-06-08
 
-**CRITICAL**: When modifying API endpoints, automatically ensure synchronization:
-1. Use `api-specialist` to update ALL THREE server files simultaneously:
-   - `server.cjs` (development - SOURCE OF TRUTH for API logic)
-   - `server-production.js` (production source for pipeline)
-   - `server.js` (local production testing)
-2. **PRODUCTION DEPLOYMENT RULE**: Always copy working `server.cjs` as foundation for production server
-3. **MINIMAL MODIFICATIONS ONLY**: Add only essential production requirements (static serving, SPA routing)
-4. Use `deployment-specialist` if deployment issues arise
-5. Use `doc-updater` to update endpoint documentation
+**Azure was fully retired on 2026-06-08.** The legacy CommonJS monolith
+(`server.cjs` / `server.js` / `server-production.js`) and the 8 experimental
+servers were deleted. There is no longer any "three-server" or "multi-server
+sync" concept — that whole protocol is obsolete.
 
-**DEPLOYMENT BEST PRACTICES (CRITICAL - 2025-08-21):**
-- ✅ **Source of Truth**: `server.cjs` contains the working API logic - use as foundation
-- ✅ **Minimal Changes**: Production server should be `server.cjs` + minimal static file serving
-- ✅ **Node.js Testing**: Always test with `node server.js` before deployment (not just Bun)
-- ✅ **CommonJS Compatibility**: Ensure production uses CommonJS module system
-- ❌ **DO NOT over-engineer** production configurations or add complex environment detection
-- ❌ **DO NOT modify** working API logic when creating production server
+**CRITICAL**: There is now a SINGLE backend — the TypeScript Express server at
+`server/index.ts`, compiled to `dist-server/index.js` via `npm run build:server`
+and started with `node dist-server/index.js`. It runs on **PostgreSQL**.
+
+When adding or changing API endpoints:
+1. Use `api-specialist` to add the route under `server/routes/*.ts` and mount it
+   in `server/index.ts`. No file synchronization is required.
+2. Implement company-based data isolation in the route handler.
+3. Use `security-specialist` to validate authorization (`requireAuth` / `requireRole`).
+4. Run `npm run build:server` and test with `node dist-server/index.js`.
+5. Use `doc-updater` to update endpoint documentation.
+
+See `DEPLOYMENT.md` for the current Netlify (frontend) + off-Netlify TS server +
+Neon (PostgreSQL) deploy details.
 
 ### Efficiency Guidelines
 
@@ -123,7 +125,7 @@ The project includes 12 specialized agents located in `.claude/agents/` that pro
 ```
 User Request: "Add a new endpoint to get user preferences"
 Automatic Response: Use api-specialist to:
-1. Add endpoint to all 3 server files simultaneously
+1. Add the route under server/routes/*.ts and mount it in server/index.ts
 2. Implement company-based data filtering
 3. Use security-specialist to validate authorization
 4. Use doc-updater to update API documentation
@@ -366,56 +368,40 @@ For administrators logging in for the first time:
 
 ## Environment Configuration
 
-This project uses a **two-environment configuration** with distinct server setups for development and production.
+The app is a **single TypeScript Express server on PostgreSQL** plus a **Vite/React static frontend**. The same server runs in both development and production — there are no longer separate dev/prod server files.
 
-> **PostgreSQL migration (2026-06-05):** The canonical TS server (`server/index.ts` → `dist-server/`) has been ported to run on **PostgreSQL** in addition to SQL Server. Run it against a local Postgres clone with `npm run server:dev:pg`. The legacy monolith (`server.cjs`/`server.js`/`server-production.js`) is **unchanged** and still targets SQL Server. `schema.prisma` now uses `provider = "postgresql"` (SQL Server backup at `prisma/schema.sqlserver.prisma.bak`); Prisma is a **client only** (no `migrate`/`db push` — the DB is owned by `postgres/01_schema.sql` + `02_seed.sql` + `03_app_schema_patches.sql`, generated by `scripts/mssql-to-postgres.cjs`). The port also **repaired pre-existing query drift** against the `GUARDIAN` schema — review `docs/superpowers/notes/2026-06-05-pg-repair-flags-for-review.md`. See `postgres/README.md` for details.
+> **Azure retired (2026-06-08):** Azure (App Service, SQL Server, the DevOps pipeline, IIS, web.config, `package.production.json`) was fully retired. The legacy CommonJS monolith (`server.cjs` / `server.js` / `server-production.js`), the 8 experimental servers, and the `deployment/` artifact were deleted. The app now runs as a Vite/React frontend on **Netlify** plus the TypeScript Express server on **PostgreSQL (Neon)**. See `DEPLOYMENT.md`.
 
-### Development Environment
+> **PostgreSQL migration (2026-06-05):** The canonical TS server (`server/index.ts` → `dist-server/`) runs on **PostgreSQL**. Run it against a local Postgres clone with `npm run server:dev:pg`. `schema.prisma` uses `provider = "postgresql"` (SQL Server backup at `prisma/schema.sqlserver.prisma.bak`); Prisma is a **client only** (no `migrate`/`db push` — the DB is owned by `postgres/01_schema.sql` + `02_seed.sql` + `03_app_schema_patches.sql`, generated by `scripts/mssql-to-postgres.cjs`). The port also **repaired pre-existing query drift** against the `GUARDIAN` schema — review `docs/superpowers/notes/2026-06-05-pg-repair-flags-for-review.md`. See `postgres/README.md` for details.
 
-**File:** `server.cjs`  
-**Purpose:** Full-featured development server with comprehensive authentication and email services  
-**Runtime:** Local development (port 3001 - Fixed 2025-08-12)
+### The Server
+
+**Source:** `server/index.ts` → compiled to `dist-server/index.js` via `npm run build:server`
+**Start:** `node dist-server/index.js`
+**Routes:** new/changed API endpoints live in `server/routes/*.ts`, mounted in `server/index.ts`
+**Runtime:** Node.js (PostgreSQL via Prisma client)
 
 **Features:**
-- Static file serving via Express (`express.static('.')`)
-- SPA fallback route (`app.get('*', ...)`) for React Router
-- Database-backed email verification storage
 - Resend email service integration for verification emails
 - Complete registration/authentication flow
-- Company isolation through `getAuthenticatedUserCompany` middleware
-- Enhanced form template creation with proper SQL Server compatibility (Fixed 2025-08-12)
+- Company isolation through authentication middleware (JWT carries company ID)
+- Form template creation, field validation, tasks, notices, notifications
+- Parameterized PostgreSQL queries against the `GUARDIAN` schema
+
+**Local development:**
+- `npm run dev:pg` — runs the API plus the Vite frontend concurrently
+- `npm run server:dev:pg` — backend only, against the local Docker Postgres at `localhost:5433`
+- `npm run dev` — Vite frontend only (proxies API calls to the backend)
+
+**Hosting:**
+- Frontend: **Netlify** (static `dist/` build, SPA redirect) — see `netlify.toml`
+- Backend: hosted **off-Netlify** (host TBD)
+- Database: **Neon** (Netlify DB), database `netlifydb`, `GUARDIAN` schema
 
 **Key Dependencies:**
 - Email service with Resend API
-- Database storage for verification codes
-- Comprehensive error handling and fallback forms
-- SQL Server parameterized queries with proper syntax
-
-### Production Environment (IIS) - CRITICAL UPDATE 2025-08-21
-
-**File:** `server.js`  
-**Purpose:** Production-ready server optimized for IIS deployment  
-**Runtime:** Production IIS server (Node.js v20.18.3)
-
-**CRITICAL SUCCESS CONFIGURATION (WORKING):**
-- **Core Principle**: Exact copy of working `server.cjs` with minimal production modifications
-- **CommonJS Module System**: Uses `package.production.json` to ensure CommonJS compatibility
-- **Static File Serving**: `app.use(express.static('.'))` for current directory serving
-- **SPA Fallback Route**: `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')))` for React Router
-- **Identical API Logic**: Same authentication, JWT handling, and endpoints as development server
-
-**Production-Specific Additions ONLY:**
-- Static file serving via Express (`express.static('.')`)
-- SPA fallback route (`app.get('*', ...)`) for React Router
-- Company-based data isolation and security
-- Same API endpoints as development
-- Node.js runtime compatibility (not Bun-specific features)
-
-**Key Success Metrics (VERIFIED WORKING):**
-- ✅ `/api/health` - Server status OK (Node.js v20.18.3)
-- ✅ `/api/login` - JWT authentication working
-- ✅ `/api/test` - Basic API functionality
-- ✅ `/api/users` - Protected endpoints with JWT validation
+- PostgreSQL (Neon in production, Docker Postgres locally)
+- Prisma as a client only (schema owned by `postgres/*.sql`)
 
 ## API Endpoints
 
@@ -490,7 +476,7 @@ Both environments support the same complete set of API endpoints:
 - **Storage**: persisted as compact JSON in the new `GUARDIAN.FIELDS.VALIDATION` column (NVARCHAR(255)), e.g. `{"format":"currency","min":0,"max":1000000}`. Migration: `migrations/add_validation_to_fields.sql` (idempotent, **apply manually staging-first, then prod before pushing origin**).
 - **Single source of truth**: `src/utils/fieldValidation.ts` (`parseValidation`/`serializeValidation`, `validateField`/`validateAll`, `maskCurrencyInput`/`parseCurrency`/`formatCurrency`). Currency stores the **raw** numeric string and only displays `$1,234.56` formatting.
 - **Enforcement**: inline errors + blocked submit across all four fill paths — `SmartFormLayout` (requests), `FidelitySubjectFormLayout` (Fidelity-Subject), `CreateNoticeModalV2` (notices), `SendNoticeForm` (securities). Draft saves / silent auto-saves intentionally skip validation.
-- **Threaded through**: `VALIDATION` is read/written by `POST`/`PUT /api/forms`, `POST`/`PUT /api/fields`, `GET /api/forms/:id`, `GET /api/requests/:id/form`, `GET /api/fields`, `GET`/`PUT /api/custom-templates/:id` across `server.cjs`/`server.js`/`server-production.js`, and by the TS route `server/routes/forms.ts`.
+- **Threaded through**: `VALIDATION` is read/written by `POST`/`PUT /api/forms`, `POST`/`PUT /api/fields`, `GET /api/forms/:id`, `GET /api/requests/:id/form`, `GET /api/fields`, `GET`/`PUT /api/custom-templates/:id` in the TS server (`server/routes/forms.ts` and related routes).
 
 ### Notifications (New - 2025-07-26)
 - `GET /api/notifications` - Get user notifications (company-filtered)
@@ -564,15 +550,17 @@ The application uses these key tables:
 
 **Start Development Servers:**
 ```bash
-# Backend development server (port 3001) - Fixed configuration 2025-08-12
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+# API + frontend together (against local Docker Postgres)
+npm run dev:pg
 
-# Frontend development server (port 5175) with proxy to backend
-bun run dev
+# Or run them separately (in separate terminals):
+npm run server:dev:pg   # TS backend against local Docker Postgres (localhost:5433)
+npm run dev             # Vite frontend (proxies API calls to the backend)
+```
 
-# Both simultaneously (in separate terminals)
-bun run backend    # Backend with proper DATABASE_URL
-bun run dev        # Frontend with proxy routing to port 3001
+`DATABASE_URL` is a PostgreSQL connection string, e.g.:
+```
+postgresql://USER:PASSWORD@localhost:5433/guardian?schema=GUARDIAN&connection_limit=30&pool_timeout=20
 ```
 
 **Database Management:**
@@ -589,14 +577,14 @@ bun add-templates
 
 **Build Commands:**
 ```bash
-# Build everything for production
-bun run build:all
+# Build frontend only (this is what Netlify runs)
+npm run build
 
-# Build frontend only
-bun run build
+# Build backend only (server/index.ts -> dist-server/index.js)
+npm run build:server
 
-# Build backend only  
-bun run build:server
+# Build both locally
+npm run build:all
 ```
 
 **Testing & Quality:**
@@ -613,44 +601,40 @@ tsc --noEmit
 
 ### Environment Configuration Notes
 
-**IMPORTANT: Password character escaping required (Fixed 2025-07-26)**
+**`DATABASE_URL` is a PostgreSQL string.** Keep the `connection_limit=30&pool_timeout=20` params (Prisma's default pool is too small). Example for local Docker Postgres:
+```
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5433/guardian?schema=GUARDIAN&connection_limit=30&pool_timeout=20"
+```
+Production points at Neon (`netlifydb`, `GUARDIAN` schema). Use placeholders for credentials — never commit real passwords.
+
+**Build / run the server:**
 ```bash
-# The $ character in passwords must be escaped as \$ in .env files
-# Correct format in .env.development:
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;schema=GUARDIAN"
+npm run build:server          # compile server/index.ts -> dist-server/index.js
+node dist-server/index.js     # run the compiled server
 ```
 
-**Production Testing:**
-```bash
-# Test production build locally
-bun server.js  # or node server.js
-```
+## Important Notes - UPDATED 2026-06-08
 
-## Important Notes - UPDATED 2025-08-21
-
-1. **CRITICAL: Production Server Foundation** - `server.cjs` is SOURCE OF TRUTH for API logic; production server must be exact copy with minimal additions (Updated 2025-08-21)
-2. **Never over-engineer production** - Production server should only add static serving and SPA routing to working dev server (Critical 2025-08-21)
-3. **Always test with Node.js** - MUST test with `node server.js` locally before Azure deployment (Critical 2025-08-21)
-4. **CommonJS compatibility required** - Production uses Node.js v20.18.3 with CommonJS module system (Critical 2025-08-21)
+1. **Single TypeScript server** - `server/index.ts` → `dist-server/index.js` is the only backend; new/changed endpoints go in `server/routes/*.ts` mounted in `server/index.ts` (2026-06-08)
+2. **Azure retired** - Azure App Service, the DevOps pipeline, IIS, web.config, and the legacy CommonJS servers were deleted on 2026-06-08; see `DEPLOYMENT.md`
+3. **PostgreSQL** - Runs on PostgreSQL: Neon (`netlifydb`, `GUARDIAN` schema) in production, Docker Postgres (`localhost:5433`) locally
+4. **Prisma is a client only** - No `migrate`/`db push`; the DB schema is owned by `postgres/01_schema.sql` + `02_seed.sql` + `03_app_schema_patches.sql`
 5. **Company isolation is critical** - All user data must be filtered by company ID for security
-6. **Both servers have identical API endpoints** - Production preserves exact API logic from development server
-7. **Express handles static files** - Primary static serving via Express middleware, web.config as fallback
-8. **Development uses full Express** - Includes static serving and SPA fallback for React Router
-9. **Database connection requirement** - Development server MUST use explicit DATABASE_URL for stable connection (Fixed 2025-08-12)
-10. **Form template creation** - SimpleFormBuilder fully functional with enhanced SQL Server compatibility and proper company isolation (Fixed 2025-08-12)
-11. **Port configuration** - Frontend runs on port 5175, backend on port 3001 with Vite proxy routing (Standardized 2025-08-12)
-12. **Field Management** - New CRUD operations for fields require proper validation and duplicate checking
+6. **Frontend on Netlify** - Vite static build (`dist/`) deployed to Netlify with SPA redirect; see `netlify.toml`
+7. **Backend hosted off-Netlify** - host TBD; Netlify serves only the static frontend
+8. **dbWakeUp overlay kept** - Neon cold-starts, so the wake-up overlay is retained
+9. **DATABASE_URL** - PostgreSQL string; keep `connection_limit=30&pool_timeout=20`; never commit real passwords
+10. **Form template creation** - SimpleFormBuilder fully functional with proper company isolation
+11. **Port configuration** - Frontend runs on port 5175, backend on port 3001 with Vite proxy routing
+12. **Field Management** - CRUD operations for fields require proper validation and duplicate checking
 13. **Email Integration** - Resend API handles all transactional emails including assignments and verifications
 14. **Notification System** - Real-time notifications with database persistence and read tracking
 15. **Workflow Management** - Advanced form template management with role-based access control and first-time admin onboarding
 16. **Task Management System** - Comprehensive task system with flexible status management, batch operations, and automatic notification integration (Added 2025-08-07)
 17. **First-Time Admin Experience** - Guided workflow template creation with automatic detection and company-based isolation (Added 2025-08-08)
 18. **Enhanced Security** - Hardened email validation, rate limiting, and anti-enumeration protection (Added 2025-08-08)
-19. **SQL Server Compatibility** - All database operations use proper parameterized queries with `${variable}` syntax for security and compatibility (Fixed 2025-08-12)
-20. **Production Asset Deployment** - Clean build process and asset verification prevent 404 errors in production (Fixed 2025-08-20)
-21. **Task Assignment Modal** - Bootstrap UI modal replaces prompt-based assignment with proper validation and user selection (Enhanced 2025-08-20)
-22. **Emergency Recovery Protocol** - Documented step-by-step recovery process for production server failures (Added 2025-08-21)
-23. **Custom Templates Authentication** - Enhanced token validation prevents "invalid_token" transmission and ensures proper JWT authentication flow (Fixed 2025-09-27)
+19. **Task Assignment Modal** - Bootstrap UI modal replaces prompt-based assignment with proper validation and user selection (Enhanced 2025-08-20)
+20. **Custom Templates Authentication** - Enhanced token validation prevents "invalid_token" transmission and ensures proper JWT authentication flow (Fixed 2025-09-27)
 
 ## Securities Notice MVP
 
@@ -688,11 +672,11 @@ endpoints will work end-to-end.
 | `07_subpoena_language_templates.sql` | `GUARDIAN.SUBPOENA_LANGUAGE_TEMPLATES` (new) | Reusable per-fraud-type boilerplate language. PII-scanned on save. |
 | `08_external_users.sql` | `GUARDIAN.EXTERNAL_NOTICE_ASSIGNMENTS` + `GUARDIAN.EXTERNAL_CALL_REQUESTS` (new) | Joins external (role 5) users to specific notices and stores call-request proposals. |
 
-### New API endpoints (canonical TS server only)
+### New API endpoints (TS server)
 
 All routes live under `server/routes/*.ts` and are mounted in `server/index.ts`.
-They are **not** mirrored into the legacy `server.cjs`/`server.js`/
-`server-production.js` files — see the deferred-sync subsection below.
+(The legacy CommonJS servers that these were once compared against were deleted
+on 2026-06-08; the TS server is now the only backend.)
 
 **Securities Fraud Notice workflow** (`server/routes/securities-notices.ts`)
 - `POST   /api/securities-notices`                          — create + send a notice. `requireRole('securitiesNotice.send', …)`.
@@ -790,92 +774,38 @@ Defined as `AUDIT_EVENT_TYPES` in `server/lib/audit.ts`:
 - **Audit immutability.** `GUARDIAN.AUDIT_LOG` has no UPDATE / DELETE
   endpoints. Rows are append-only.
 
-### Securities Notice MVP — legacy-server sync deferred
+### Securities Notice MVP — server location
 
-The Securities Notice MVP endpoints exist **only** in the TS server
-(`server/index.ts` → `dist-server/index.js`). Mirroring them into the
-CommonJS legacy servers (`server.cjs`, `server.js`, `server-production.js`)
-is deferred — the canonical Azure deploy path now uses the TS build. Mirror
-these into the legacy files only if a future deploy path resurrects them.
-
-Endpoints present in TS server but **NOT** in legacy servers:
-
-- `POST   /api/securities-notices`
-- `GET    /api/securities-notices`
-- `GET    /api/securities-notices/:id`
-- `PUT    /api/securities-notices/:id/submit`
-- `PUT    /api/securities-notices/:id/approve`
-- `PUT    /api/securities-notices/:id/reject`
-- `PUT    /api/securities-notices/:id/records-released`
-- `POST   /api/templates/subpoena`
-- `GET    /api/templates/subpoena/:fraudType`
-- `POST   /api/subpoena-riders`
-- `GET    /api/subpoena-riders/:id`
-- `GET    /api/external/notices/:id`
-- `POST   /api/external/notices/:id/subpoena`
-- `POST   /api/external/notices/:id/call-request`
-- `GET    /api/audit`
-- `GET    /api/audit/export`
-- `GET    /api/recipients/*` (first-time-recipient lookup)
-
-Endpoints that **were** mirrored into legacy servers (commit `10689aa`):
-
-- `PUT    /api/platform/disclaimer`
-- `PUT    /api/platform/fields/:name/lock`
-- `PUT    /api/platform/file-types`
-- `GET    /api/platform/audit`
-
-If a future change requires legacy-server parity, reuse the patterns in
-`lib/permissions.cjs` and the platform-admin mirrors as the template.
+All Securities Notice MVP endpoints live in the TS server (`server/index.ts` →
+`dist-server/index.js`) under `server/routes/*.ts`. The legacy CommonJS servers
+(`server.cjs`, `server.js`, `server-production.js`) that some of these were once
+compared against were deleted on 2026-06-08; the TS server is now the only backend.
 
 ## Deployment
 
+> **Azure was fully retired on 2026-06-08.** The DevOps pipeline, IIS,
+> web.config, `package.production.json`, and the legacy CommonJS servers were
+> deleted. See `DEPLOYMENT.md` for the full current deploy details.
+
 ### Development
-- Run `server.cjs` locally with explicit DATABASE_URL (required for stable connection - Fixed 2025-08-12)
-- Static files served by Express
-- Email service requires Resend API key
-- Frontend runs on port 5175 via Vite with proxy configuration
-- Backend runs on port 3001 with proper SQL Server compatibility
-- Vite proxy routes API calls from frontend (port 5175) to backend (port 3001)
-- Form template creation fully functional with enhanced database integration
+- Run `npm run dev:pg` (API + frontend) or `npm run server:dev:pg` + `npm run dev`
+- Backend runs against Docker Postgres at `localhost:5433`; email service requires a Resend API key
+- Frontend runs on port 5175 via Vite, proxying API calls to the backend on port 3001
 
-### Production (Azure App Service) - UPDATED 2025-08-21
+### Production (Netlify + off-Netlify TS server + Neon)
+- **Frontend**: Vite static build (`dist/`) deployed to **Netlify** (site `guardian-mvp`), auto-deploying from `github.com/ErnestPenaJr/Guardian` on push. Config in `netlify.toml` (`npm run build`, publish `dist`, SPA redirect, `NPM_FLAGS=--ignore-scripts`).
+- **Backend**: the TypeScript Express server (`server/index.ts` → `dist-server/index.js`, started with `node dist-server/index.js`) hosted **off Netlify** (host TBD). Set the frontend's API base URL to point at it.
+- **Database**: **Neon** (Netlify DB), database `netlifydb`, `GUARDIAN` schema. `DATABASE_URL` is a `postgresql://...?schema=GUARDIAN&connection_limit=30&pool_timeout=20` string.
+- **Required env**: `DATABASE_URL`, `JWT_SECRET`, Resend API key, `EMAIL_FROM`.
 
-**CRITICAL DEPLOYMENT SUCCESS CONFIGURATION:**
-- Deploy via Azure DevOps pipeline using proven methodology
-- Pipeline deploys `server-production.js` (renamed to `server.js` during deployment)
-- **Foundation Rule**: `server-production.js` must be exact copy of working `server.cjs` + minimal production additions
-- Configure web.config for static files and SPA routing (as fallback)
-- **Primary Static Serving**: Express static middleware handles asset serving (`express.static('.')`)
-- **SPA Support**: Express fallback route handles React Router (`app.get('*', ...)`)
-- Ensure database connection string is configured in Azure environment
-- JWT_SECRET environment variable required
-
-**Production Server Requirements (CRITICAL):**
-- **Node.js Runtime**: v20.18.3 with CommonJS module system
-- **Module Compatibility**: `package.production.json` enforces `"type": "commonjs"`
-- **Static File Strategy**: Express middleware for asset serving, not solely web.config
-- **API Logic Preservation**: Identical authentication, JWT, and endpoints as development
-- **Testing Protocol**: MUST test with `node server.js` locally before deployment
-
-**Deployment Verification Checklist:**
-1. ✅ Local testing with `node server.js` successful
-2. ✅ `/api/health` endpoint returns Node.js version
-3. ✅ `/api/login` authentication functional
-4. ✅ Static assets load without 404 errors
-5. ✅ React Router navigation works via SPA fallback
-6. ✅ Database connectivity and JWT validation operational
+See `DEPLOYMENT.md` for step-by-step details.
 
 ## Project Structure & Statistics
 
-### Current Codebase Overview (2025-07-30)
+### Current Codebase Overview
 - **Version**: 2.5.0 (from package.json)
-- **Frontend Components**: 96 TypeScript/React files in src/
-- **Backend Servers**: 13 server files for different environments
-- **Active Development Files**: 
-  - `server.cjs` (Development - 120KB)
-  - `server-production.js` (Production Source - 135KB)
-  - `server.js` (Production Deployed - 134KB)
+- **Frontend**: React + TypeScript in `src/`, built with Vite to `dist/`
+- **Backend**: a single TypeScript Express server — `server/index.ts` (routes in `server/routes/*.ts`), compiled to `dist-server/index.js`
 
 ### Key Components Added Recently
 - **TaskTable.tsx**: Comprehensive task management with AG Grid, multi-select, and export functionality (Added 2025-08-07)
@@ -894,64 +824,27 @@ If a future change requires legacy-server parity, reuse the patterns in
 - **Notification System**: Real-time alerts with read tracking
 - **Request Tracking**: Full lifecycle management with auto-generated IDs
 
-## Critical Deployment Information
+## Deployment Information
 
-⚠️ **IMPORTANT: Pipeline Configuration** ⚠️
+Azure (the DevOps pipeline, the `cp server-production.js deployment/server.js`
+file mapping, IIS, web.config) was retired on 2026-06-08. There is now a single
+backend — the TypeScript Express server (`server/index.ts` → `dist-server/index.js`)
+— so the old "update all three server files" / pipeline-mapping rules no longer
+apply.
 
-The Azure DevOps pipeline (`azure-pipelines.yml`) has a **specific file mapping** that must be maintained:
+When adding/modifying API endpoints:
+1. Add/edit the route under `server/routes/*.ts` and mount it in `server/index.ts`.
+2. Run `npm run build:server` and test locally with `node dist-server/index.js`.
+3. The frontend deploys to Netlify automatically on push to `github.com/ErnestPenaJr/Guardian`; the backend is hosted off-Netlify (host TBD).
 
-```yaml
-# Line 52 in azure-pipelines.yml
-cp server-production.js deployment/server.js
-```
-
-**This means:**
-- **Development server**: `server.cjs` (for local development)
-- **Production source**: `server-production.js` (source file with all endpoints)
-- **Production deployed**: `server.js` (what actually runs on Azure)
-
-### Why This Matters
-
-1. **When updating API endpoints**, you MUST update `server-production.js`, not just `server.js`
-2. **The pipeline copies `server-production.js` → `server.js` during deployment**
-3. **If you only update `server.js`, your changes will NOT be deployed to production**
-
-### Endpoint Synchronization Checklist
-
-When adding/modifying API endpoints, ensure they exist in ALL THREE files:
-- ✅ `server.cjs` (development)
-- ✅ `server-production.js` (production source) 
-- ✅ `server.js` (for local production testing)
-
-### Common Pitfall Prevention
-
-**Symptom:** "Pipeline runs successfully but endpoints return 404 in production"
-**Cause:** Updated `server.js` but not `server-production.js`
-**Fix:** Copy changes from `server.js` to `server-production.js` and redeploy
-
-**Command to sync:**
-```bash
-cp server.js server-production.js
-git add server-production.js
-git commit -m "sync: update server-production.js with latest endpoints"
-git push origin main
-```
-
-### Verification Steps
-
-After any server changes:
-1. **Local testing**: Run `bun server.js` to test production code locally
-2. **Update production source**: Ensure `server-production.js` has your changes
-3. **Deploy**: Push to trigger pipeline 
-4. **Verify**: Test endpoints on `https://Guardian-ep-dev.azurewebsites.net`
-5. **Debug endpoint**: Check `/api/debug/endpoints` for confirmation
-6. **Asset verification**: Check `/api/debug/assets` for production asset deployment status (Added 2025-08-20)
+See `DEPLOYMENT.md` for the full Netlify (frontend) + off-Netlify TS server +
+Neon (PostgreSQL) deploy details.
 
 ## Technology Stack
 
 ### Backend Technologies
-- **Runtime:** Node.js/Bun with Express.js framework
-- **Database:** Microsoft SQL Server with Prisma ORM
+- **Runtime:** Node.js with Express.js framework (TypeScript, `server/index.ts`)
+- **Database:** PostgreSQL (Neon in production, Docker Postgres locally) with Prisma as a client
 - **Authentication:** JWT tokens with bcrypt password hashing
 - **Email Service:** Resend API for transactional emails
 - **File Handling:** Multer for file uploads and attachments
@@ -969,38 +862,33 @@ After any server changes:
 - **Modals:** React Modal for dialogs and forms
 
 ### Development & Deployment
-- **Package Manager:** Bun (preferred) or npm
-- **Version Control:** Git with Azure DevOps pipelines
-- **Deployment:** Azure App Service with IIS
-- **Environment Management:** Multiple environment configuration
+- **Package Manager:** npm
+- **Version Control:** Git (GitHub: `github.com/ErnestPenaJr/Guardian`)
+- **Deployment:** Netlify (frontend) + off-Netlify TypeScript server + Neon PostgreSQL
+- **Environment Management:** local (Docker Postgres) and production (Neon)
 - **Testing:** Bun test framework with comprehensive test suites
 - **Linting:** ESLint with TypeScript and React rules
 
 ## Troubleshooting
 
 ### Database Connection Issues in Development
-If you see "Authentication failed against database server" errors when starting `server.cjs`:
+If you see database connection / authentication errors when starting the server:
 
-**Symptom:** Prisma can't connect to database, login fails
-**Solution:** Start development server with explicit DATABASE_URL:
-```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+**Symptom:** Prisma can't connect to the database, login fails
+**Solution:** Ensure `DATABASE_URL` points at a running Postgres and includes the schema + pool params. For local development use the Docker Postgres at `localhost:5433`:
 ```
-
-**CORRECT Database Connection Details:**
-- Server: `guardian-dev-db.database.windows.net`
-- Port: `1433`
-- Database: `GUARDIAN-DEV`
-- User: `GUARDIAN`
-- Password: `Sh13ldlyt1c$`
-- Additional parameters: `encrypt=true;trustServerCertificate=false`
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5433/guardian?schema=GUARDIAN&connection_limit=30&pool_timeout=20"
+```
+Then start with `npm run server:dev:pg` (or `npm run dev:pg` for API + frontend). Production uses the Neon connection string (`netlifydb`, `GUARDIAN` schema). Use placeholders — never commit real passwords.
 
 **Success indicators:**
-- Log shows "✅ Database connected successfully"
-- Login attempts work (queries database for user validation)
+- Log shows the database connected successfully
+- Login attempts work (queries the database for user validation)
 - API endpoints return data instead of authentication errors
 
-### Form Template Creation Issues (Fixed 2025-08-12)
+**Neon cold starts:** Neon may sleep an idle database; the `dbWakeUp` overlay covers the first-request wake-up. This is expected behavior — do not remove it.
+
+### Form Template Creation Issues
 If form template creation fails or returns server errors:
 
 **Common Symptoms:**
@@ -1009,88 +897,14 @@ If form template creation fails or returns server errors:
 - SimpleFormBuilder component not saving templates
 
 **Root Causes & Solutions:**
-- ✅ **SQL Server Query Syntax**: Fixed parameterized query format from `?` to `${variable}` syntax
-- ✅ **Table Name References**: Corrected FORM_FIELDS vs FIELDS table naming issues
-- ✅ **JWT Middleware**: Fixed req.user.userId vs req.userId property access
 - ✅ **Company ID Filtering**: Proper multi-tenant security with company-based isolation
+- ✅ **JWT Middleware**: Correct `req.user` company/user resolution
 - ✅ **Port Configuration**: Ensure frontend (5175) properly proxies to backend (3001)
 
 **Verification Steps:**
-1. Check server logs for "✅ Database connected successfully" 
-2. Verify all three server files are synchronized
-3. Test form creation through SimpleFormBuilder component
-4. Confirm form templates appear in GUARDIAN.FORMS table
-
-### Production Asset Deployment Issues (Added 2025-08-20)
-If production site returns 404 errors for JavaScript/CSS assets:
-
-**Common Symptoms:**
-- 404 errors for `/assets/index-{hash}.js` or `/assets/index-{hash}.css` files
-- Production site loads but JavaScript functionality broken
-- Browser console shows "Failed to load resource" errors for asset files
-
-**Root Cause Analysis:**
-- **Asset Filename Mismatch**: Vite generates new hash-based filenames on each build, but deployed HTML references outdated filenames
-- **Pipeline Synchronization**: Azure deployment pipeline deploys outdated `index.html` that doesn't match freshly built assets
-- **IIS Static File Serving**: Misconfigurations in web.config preventing proper asset delivery
-
-**Solutions Implemented:**
-- ✅ **Enhanced Pipeline**: Added `rm -rf dist dist-server` for clean builds preventing stale artifacts
-- ✅ **Asset Verification**: Pipeline validates deployed assets match HTML references before deployment completion
-- ✅ **Debug Endpoint**: Added `/api/debug/assets` for real-time production asset verification
-- ✅ **IIS Configuration**: Improved static file serving with proper MIME types and routing separation
-
-**Production Debugging Steps:**
-1. **Check Asset Endpoint**: Visit `https://Guardian-ep-dev.azurewebsites.net/api/debug/assets`
-2. **Verify HTML References**: Ensure `index.html` references match actual deployed asset filenames
-3. **Inspect Pipeline Logs**: Check Azure DevOps pipeline for build artifact validation messages
-4. **Test Asset URLs**: Directly access asset URLs in browser to confirm they exist and load properly
-
-**Prevention Measures:**
-- Always run `rm -rf dist dist-server` before production builds
-- Verify asset references in deployed `index.html` match generated filenames
-- Use `/api/debug/assets` endpoint to confirm successful asset deployment
-- Monitor pipeline logs for asset verification warnings or failures
-
-### Critical Production Server Issues (RESOLVED 2025-08-21)
-
-If production server fails to start or returns 500 errors on basic endpoints:
-
-**CRITICAL ROOT CAUSE IDENTIFIED:**
-- **ES Module vs CommonJS Incompatibility**: Production Node.js environment requires CommonJS module system
-- **Over-Engineering**: Complex production configurations introducing compatibility issues
-- **Runtime Environment Mismatch**: Bun-specific features not compatible with Node.js production runtime
-
-**SUCCESSFUL RESOLUTION METHODOLOGY:**
-1. **Foundation Approach**: Copy exact working `server.cjs` as production server foundation
-2. **Minimal Modifications**: Add ONLY essential production requirements:
-   - Static file serving: `app.use(express.static('.'))`
-   - SPA fallback route: `app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')))`
-3. **Preserve API Logic**: DO NOT modify working authentication, JWT, or endpoint logic
-4. **CommonJS Compatibility**: Ensure `package.production.json` enforces CommonJS module system
-5. **Node.js Testing**: Test with `node server.js` locally before deployment
-
-**Critical Success Indicators:**
-- ✅ Server starts without CommonJS/ES Module errors
-- ✅ `/api/health` returns status with Node.js version
-- ✅ `/api/login` JWT authentication works
-- ✅ `/api/test` basic API functionality confirmed
-- ✅ Static file serving and SPA routing functional
-
-**Emergency Recovery Protocol:**
-1. **Immediate Action**: Copy working `server.cjs` to `server.js` and `server-production.js`
-2. **Add Production Essentials**: Only static serving and SPA routing
-3. **Test Locally**: `node server.js` must work before deployment
-4. **Deploy**: Push with confidence that working dev server forms foundation
-5. **Verify**: Check all critical endpoints post-deployment
-
-**Prevention Guidelines:**
-- ❌ **NEVER over-engineer** production server configurations
-- ❌ **NEVER modify** working API logic during production deployment
-- ❌ **NEVER assume** Bun features will work in Node.js production
-- ❌ **NEVER skip** local Node.js testing before deployment
-- ✅ **ALWAYS use** working `server.cjs` as production foundation
-- ✅ **ALWAYS keep** production modifications minimal and targeted
+1. Check server logs for a successful database connection
+2. Test form creation through the SimpleFormBuilder component
+3. Confirm form templates appear in the `GUARDIAN.FORMS` table
 
 ### Custom Templates Authentication Issues (RESOLVED 2025-09-27)
 
@@ -1099,19 +913,16 @@ If custom templates fail to load or return authentication errors:
 **CRITICAL ROOT CAUSE IDENTIFIED:**
 - **Invalid Token Storage**: Frontend components sending "invalid_token" instead of proper JWT tokens
 - **Null Token Conversion**: `localStorage.getItem('token')` returning `null` was being converted to string "null"
-- **Module System Conflicts**: Server configuration conflicts between ES Module and CommonJS systems
 
 **SUCCESSFUL RESOLUTION METHODOLOGY:**
 1. **Enhanced Token Validation**: Added `getValidToken()` helper function in SimpleFormBuilder.tsx
 2. **Proper Authentication Checks**: Validates token existence before API requests
 3. **User Experience Enhancement**: Clear feedback when authentication is required
-4. **Server Configuration Fixed**: Added proper development scripts (`server:dev`, `server:prod-test`) in package.json
-5. **Multi-Server Verification**: Confirmed `/api/custom-templates` endpoints exist across all three server files
+4. **Endpoint Verification**: Confirmed the `/api/custom-templates` route is mounted in the server
 
 **Critical Success Indicators:**
 - ✅ Valid JWT tokens properly transmitted from localStorage
 - ✅ Custom templates load without authentication errors
-- ✅ Server starts without syntax or module system errors
 - ✅ Database connections established successfully
 - ✅ JWT middleware working correctly with proper tokens
 
@@ -1125,7 +936,6 @@ If custom templates fail to load or return authentication errors:
 - Always validate localStorage token values before API requests
 - Use proper helper functions for token retrieval and validation
 - Test authentication flows with both valid and invalid token states
-- Verify server configuration supports both development and production environments
 
 ## Recent Changes & Fixes
 

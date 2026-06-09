@@ -17,10 +17,10 @@ The new error handling system includes:
 ## 🛠️ Test Setup
 
 ### Prerequisites
-1. Start backend server: `DATABASE_URL="sqlserver://..." bun server.cjs`
-2. Start frontend server: `bun run dev` 
-3. Application should be running at: http://localhost:5175
-4. Backend API should be running at: http://localhost:3001
+1. Start the API + frontend together: `npm run dev:pg` (builds and runs the TS server `dist-server/index.js` against local Postgres, plus the Vite dev server)
+   - Or run them separately: `npm run server:dev:pg` (backend) and `npm run dev` (frontend)
+2. Application should be running at: http://localhost:5175
+3. Backend API should be running at: http://localhost:3001
 
 ### Access Error Testing Suite
 1. Navigate to http://localhost:5175 in your browser

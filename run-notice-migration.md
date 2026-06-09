@@ -8,21 +8,21 @@ The Notice Module requires 3 new database tables to be created. Follow these ste
 2. **Sample Data**: `migrations/add_sample_notices.sql` - Adds test data (optional)
 
 ## Database Connection Details
-- **Server**: `guardian-dev-db.database.windows.net`
-- **Database**: `GUARDIAN-DEV`
-- **User**: `GUARDIAN`
-- **Password**: `Sh13ldlyt1c$`
+The app now runs on PostgreSQL. Use the `DATABASE_URL` for the target environment:
+- **Local dev**: Docker Postgres at `localhost:5433` (database `postgres`, `GUARDIAN` schema)
+- **Production**: Neon (Netlify DB, database `netlifydb`, `GUARDIAN` schema)
+
+`DATABASE_URL` format (placeholders — never commit real credentials):
+```
+postgresql://USER:PASSWORD@HOST/DB?schema=GUARDIAN&connection_limit=30&pool_timeout=20
+```
 
 ## Steps to Run Migration
 
 ### 1. Connect to Database
-Using SQL Server Management Studio, Azure Data Studio, or similar tool:
+Using `psql`, a Postgres GUI (e.g. DBeaver / TablePlus), or the Neon console:
 ```
-Server: guardian-dev-db.database.windows.net,1433
-Database: GUARDIAN-DEV
-Authentication: SQL Server Authentication
-Login: GUARDIAN
-Password: Sh13ldlyt1c$
+psql "postgresql://USER:PASSWORD@HOST/DB?schema=GUARDIAN"
 ```
 
 ### 2. Execute Main Migration
@@ -77,14 +77,15 @@ After migration, test the Notice Module:
 ### Validation Queries:
 ```sql
 -- Check if tables exist
-SELECT name FROM sys.tables WHERE name LIKE 'NOTICE%'
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'GUARDIAN' AND table_name LIKE 'NOTICE%';
 
 -- Count sample records
 SELECT COUNT(*) as NoticeCount FROM GUARDIAN.NOTICES;
 SELECT COUNT(*) as RecipientCount FROM GUARDIAN.NOTICE_RECIPIENTS;
 
 -- View sample data
-SELECT TOP 5 * FROM GUARDIAN.NOTICES ORDER BY CREATE_DATE DESC;
+SELECT * FROM GUARDIAN.NOTICES ORDER BY CREATE_DATE DESC LIMIT 5;
 ```
 
 ## Next Steps

@@ -178,7 +178,7 @@ If no `lib/` require exists near the top, place this line after the last `requir
 - [ ] **Step 3: Verify the server still starts**
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;connection_limit=30&pool_timeout=20" bun server.cjs &
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs &
 SERVER_PID=$!
 sleep 5
 curl -s http://localhost:3001/api/health
@@ -1127,7 +1127,7 @@ For each mirror point, copy the corresponding code block from the matching secti
 - [ ] **Step 3: Test `server.js` runs with Node.js**
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;connection_limit=30&pool_timeout=20" node server.js &
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" node server.js &
 SERVER_PID=$!
 sleep 5
 curl -s http://localhost:3001/api/health

@@ -333,7 +333,7 @@ const path = require('path');
 Start the server per `CLAUDE.md` (with the proper `DATABASE_URL`):
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs
 ```
 
 Expected: server prints its usual startup banner and "✅ Database connected successfully" with no syntax errors.
@@ -1261,7 +1261,7 @@ Start both servers:
 
 ```bash
 # terminal 1
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false" bun server.cjs
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs
 # terminal 2
 bun run dev
 ```

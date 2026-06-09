@@ -72,7 +72,7 @@ Expected: 12 hits total (4 helpers × 3 files). If any file is missing a helper,
 - [ ] **Step 3: Snapshot current state of globals in dev DB (for after-test sanity)**
 
 ```bash
-DATABASE_URL='sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false' bun -e "
+DATABASE_URL='postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20' bun -e "
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 (async () => {
@@ -200,7 +200,7 @@ Add `status: 'draft'` to the detail object:
 - [ ] **Step 5: Verify the server still boots**
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;connection_limit=30&pool_timeout=20" bun server.cjs &
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs &
 SERVER_PID=$!
 sleep 5
 curl -s http://localhost:3001/api/health
@@ -259,7 +259,7 @@ Make the SAME tightening to the ORDER BY context if needed — the existing `ORD
 - [ ] **Step 3: Smoke-check with a direct DB query that the new predicate matches the right rows**
 
 ```bash
-DATABASE_URL='sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c$;encrypt=true;trustServerCertificate=false' bun -e "
+DATABASE_URL='postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20' bun -e "
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 (async () => {
@@ -281,7 +281,7 @@ Expected (in dev DB): just FIU-Subject (FORM_ID 1091). The 3 inactive globals (A
 - [ ] **Step 4: Boot test**
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;connection_limit=30&pool_timeout=20" bun server.cjs &
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs &
 SERVER_PID=$!
 sleep 5
 curl -s http://localhost:3001/api/health
@@ -337,7 +337,7 @@ The downstream `.filter(isGlobalForm)` and `res.json(globals)` stay unchanged �
 - [ ] **Step 3: Boot test**
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;connection_limit=30&pool_timeout=20" bun server.cjs &
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs &
 SERVER_PID=$!
 sleep 5
 curl -s http://localhost:3001/api/health
@@ -429,7 +429,7 @@ Note: the test creates a NEW draft global rather than depending on existing stat
 Start the dev backend:
 
 ```bash
-DATABASE_URL="sqlserver://guardian-dev-db.database.windows.net:1433;database=GUARDIAN-DEV;user=GUARDIAN;password=Sh13ldlyt1c\$;encrypt=true;trustServerCertificate=false;connection_limit=30&pool_timeout=20" bun server.cjs &
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20" bun server.cjs &
 ```
 
 In another shell (with TEST_JAFAR_EMAIL/PASSWORD in env):
@@ -1181,7 +1181,7 @@ As JAFAR (Ernest):
 - [ ] **Step 5: Audit log spot-check**
 
 ```bash
-DATABASE_URL='sqlserver://...' bun -e "
+DATABASE_URL='postgresql://USER:PASSWORD@HOST/netlifydb?schema=GUARDIAN&connection_limit=30&pool_timeout=20' bun -e "
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 (async () => {
