@@ -2,7 +2,6 @@ import 'dotenv/config';
 // Import built-in Node.js modules
 import * as crypto from 'crypto';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 // Import third-party modules with types
 import express from 'express';
 import cors from 'cors';
@@ -37,9 +36,6 @@ import noticeTemplatesRoutes from './routes/notice-templates.js';
 import subpoenaRidersRoutes from './routes/subpoena-riders.js';
 import externalNoticesRoutes from './routes/external-notices.js';
 import auditRoutes from './routes/audit.js';
-// Get directory name in ES module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const join = path.join;
 // Load environment variables
 // Configure Resend email service

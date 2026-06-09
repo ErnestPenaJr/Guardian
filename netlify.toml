@@ -31,7 +31,10 @@
     "node_modules/.prisma/client/**",
     "schema.prisma"
   ]
-  external_node_modules = ["@prisma/client"]
+  # @react-email/render is a lazy import() in resend, only used when sending
+  # React-component emails (we send HTML strings), so it's never loaded — mark
+  # it external so esbuild doesn't fail trying to bundle the uninstalled dep.
+  external_node_modules = ["@prisma/client", "@react-email/render"]
 
 # Route API + logout traffic to the serverless Function. These MUST be matched
 # before the SPA catch-all below.
