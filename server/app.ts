@@ -1450,8 +1450,12 @@ process.on('uncaughtException', async (error) => {
     endpoint: 'Uncaught Exception',
     method: 'EXCEPTION'
   });
-  // Exit process after handling uncaught exception
-  process.exit(1);
+  // Exit only when running as a standalone process (local dev). On AWS Lambda
+  // (Netlify Functions) process.exit kills the warm container and forces a cold
+  // start; let the platform manage the runtime instead.
+  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    process.exit(1);
+  }
 });
 
 export default app;
