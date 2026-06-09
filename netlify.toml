@@ -5,7 +5,7 @@
 [build]
   # Build only the Vite frontend. Do NOT use build:all (that compiles the
   # backend) — Netlify can't run the server anyway.
-  command = "npm run build"
+  command = "npx prisma generate && npm run build"
   publish = "dist"
 
 [build.environment]
@@ -18,6 +18,29 @@
   # esbuild 0.25 ships per-platform binaries via optionalDependencies, so the
   # frontend build still works without install scripts.
   NPM_FLAGS = "--ignore-scripts"
+
+[functions]
+  node_bundler = "esbuild"
+  # Ship the generated Prisma client + Lambda query engine + schema inside the
+  # Function bundle, and keep @prisma/client external so esbuild doesn't mangle
+  # its engine resolution.
+  included_files = [
+    "node_modules/.prisma/client/**",
+    "schema.prisma"
+  ]
+  external_node_modules = ["@prisma/client"]
+
+# Route API + logout traffic to the serverless Function. These MUST be matched
+# before the SPA catch-all below.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/logout"
+  to = "/.netlify/functions/api/logout"
+  status = 200
 
 # SPA fallback: let React Router handle client-side routes so deep links and
 # refreshes (e.g. /dashboard) don't 404.
