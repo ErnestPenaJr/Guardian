@@ -4,30 +4,15 @@ import { z } from 'zod';
 import { isExternalUser, filterExternalUserData, allowExternalUser } from '../middleware/isExternalUser.js';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 const router = express.Router();
 const prisma = new PrismaClient();
 // Set up multer for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, '../../uploads');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
+        fileSize: 6 * 1024 * 1024, // ~6MB — Netlify Functions request-body cap
     },
     fileFilter: (req, file, cb) => {
-        // Allow common file types
         const allowedFileTypes = [
             '.pdf', '.doc', '.docx', '.xls', '.xlsx',
             '.jpg', '.jpeg', '.png', '.gif', '.txt'
@@ -305,7 +290,7 @@ router.post('/requests/:id/attachments', isExternalUser, upload.array('files', 5
         }
         // Save attachments to database
         const attachments = await Promise.all(files.map(async (file) => {
-            const fileData = fs.readFileSync(file.path);
+            const fileData = file.buffer;
             const attachment = await prisma.aTTACHMENTS.create({
                 data: {
                     REQUEST_ID: requestId,
@@ -317,8 +302,6 @@ router.post('/requests/:id/attachments', isExternalUser, upload.array('files', 5
                     UPDATE_DATE: new Date()
                 }
             });
-            // Delete the temporary file
-            fs.unlinkSync(file.path);
             return attachment;
         }));
         res.status(201).json({
