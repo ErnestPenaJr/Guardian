@@ -1,10 +1,13 @@
-# Netlify build config — frontend (React/Vite) only.
-# The Express backend (server.cjs / dist-server) and Postgres do NOT run on
-# Netlify; host those separately and point the frontend at that API URL.
+# Netlify build config.
+# Frontend: React/Vite static build (publish = dist), served by the CDN.
+# Backend: the Express API runs as a serverless Function (netlify/functions/api.ts,
+# a serverless-http wrapper of server/app.ts) on Postgres (Neon). /api/* and
+# /logout are routed to it via the redirects below.
 
 [build]
-  # Build only the Vite frontend. Do NOT use build:all (that compiles the
-  # backend) — Netlify can't run the server anyway.
+  # Build the Vite frontend (publish dir). The Function is bundled separately by
+  # Netlify's esbuild bundler; `prisma generate` runs first so the Function has a
+  # generated client + Lambda query engine to bundle.
   command = "npx prisma generate && npm run build"
   publish = "dist"
 
