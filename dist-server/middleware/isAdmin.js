@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Middleware to allow users with admin role_id (1) or JAFAR role_id (6)
 export async function isAdmin(req, res, next) {
     try {

@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
-import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+import prisma from "../prisma-client.js";
 
 export async function requireJafar(req: Request, res: Response, next: NextFunction) {
   try {

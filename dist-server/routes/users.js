@@ -1,12 +1,11 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { isAdmin } from '../middleware/isAdmin.js';
 import { requireAuth } from '../auth.js';
 import { Resend } from 'resend';
 import bcrypt from 'bcryptjs';
 import passport from 'passport';
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Initialize Resend client
 const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';

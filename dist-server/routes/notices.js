@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import passport from 'passport';
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Get notices for the current user
 router.get('/my', passport.authenticate('jwt', { session: false }), async (req, res) => {
     try {

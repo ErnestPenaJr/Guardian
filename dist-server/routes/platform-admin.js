@@ -6,13 +6,12 @@
 // row (COMPANY_ID = null, EVENT_TYPE starts with `JAFAR_`).
 import { Router } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 import { requireJafar } from '../middleware/requireJafar.js';
 import { getDisclaimerText, getLockedFields, getPermittedSubpoenaFileTypes, setJafarConfig, } from '../lib/jafarConfig.js';
 import { writeAudit } from '../lib/audit.js';
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 router.use(requireAuth, requireJafar);
 const getUserId = (req) => {
     return Number(req.user?.id ?? req.user?.userId ?? req.user?.USER_ID);

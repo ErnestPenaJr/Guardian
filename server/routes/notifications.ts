@@ -1,8 +1,7 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 const router = express.Router();
 
 // Ported from the retired legacy server.cjs (2026-06-08 Azure exit). The

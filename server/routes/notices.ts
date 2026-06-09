@@ -1,9 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import passport from 'passport';
 
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 // Extend Request type for user
 interface AuthRequest extends Request {

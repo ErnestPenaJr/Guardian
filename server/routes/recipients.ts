@@ -11,11 +11,10 @@
  * when a response row is inserted (acknowledgement). See Phase 6 plan.
  */
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 router.get('/:id/verification', requireAuth, async (req, res) => {
   const id = Number(req.params.id);

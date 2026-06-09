@@ -16,7 +16,6 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 import { requireExternalUser } from '../middleware/requireExternalUser.js';
 import { getPermittedSubpoenaFileTypes } from '../lib/jafarConfig.js';
@@ -24,7 +23,7 @@ import { writeAudit } from '../lib/audit.js';
 import { forbid } from '../lib/forbid.js';
 
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),

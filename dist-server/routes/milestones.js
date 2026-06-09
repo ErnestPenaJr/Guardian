@@ -1,8 +1,7 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Allowlist of valid PROGRESS_TYPE values (DB-discovered + code-defined literals).
 const VALID_PROGRESS_TYPES = [
     'milestone',

@@ -1,9 +1,8 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { getLockedFields } from '../lib/jafarConfig.js';
 import { writeAudit } from '../lib/audit.js';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 const router = express.Router();
 // Define field type schema
 const FieldTypeSchema = z.object({

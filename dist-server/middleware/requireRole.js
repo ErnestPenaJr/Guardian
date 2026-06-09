@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { forbid } from '../lib/forbid.js';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Mirror of MATRIX from src/utils/permissions.ts. Keep in sync.
 const ROLE_PERMS = {
     'securitiesNotice.template.create': [1, 6],

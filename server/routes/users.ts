@@ -1,5 +1,4 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { isAdmin } from '../middleware/isAdmin.js';
 import { requireAuth } from '../auth.js';
 import { Resend } from 'resend';
@@ -22,7 +21,7 @@ interface UserWithRoles {
 }
 
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 // Initialize Resend client
 const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;

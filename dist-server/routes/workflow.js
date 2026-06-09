@@ -1,9 +1,8 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { isProcessor, filterToProcessorGroup } from '../middleware/isProcessor.js';
 import { z } from 'zod';
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Validation schema for workflow step completion
 const workflowStepSchema = z.object({
     requestId: z.number(),

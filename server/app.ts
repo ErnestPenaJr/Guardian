@@ -7,7 +7,6 @@ import * as path from 'path';
 // Import third-party modules with types
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { Resend } from 'resend';
 import bcrypt from 'bcryptjs';
@@ -63,7 +62,7 @@ console.log('[RESEND] From email:', EMAIL_FROM);
 // Initialize Resend client
 const resend = new Resend(RESEND_API_KEY);
 
-const prisma = new PrismaClient();
+import prisma from "./prisma-client.js";
 const app = express();
 
 // Trust proxy - required for rate limiting behind reverse proxy

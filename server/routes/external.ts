@@ -1,12 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { isExternalUser, filterExternalUserData, allowExternalUser } from '../middleware/isExternalUser.js';
 import multer, { FileFilterCallback, Multer } from 'multer';
 import path from 'path';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 // Set up multer for file uploads
 const upload = multer({

@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { isAdmin } from '../middleware/isAdmin.js';
 import { PREDEFINED_ROLES, RoleSchema } from '../models/permissions.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 // Validation schema for role creation/update
 const roleInputSchema = z.object({

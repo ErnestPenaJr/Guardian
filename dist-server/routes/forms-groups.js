@@ -1,7 +1,6 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 const router = express.Router();
 // Get all groups
 router.get('/', async (req, res) => {

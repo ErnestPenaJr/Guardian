@@ -3,10 +3,9 @@
 // Phase 7 / US-SRB-03 — Role-5 (External User) gate for the external portal.
 // Mirrors the pattern of requireJafar.ts.
 import type { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { forbid } from '../lib/forbid.js';
 
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 export async function requireExternalUser(req: Request, res: Response, next: NextFunction) {
   try {

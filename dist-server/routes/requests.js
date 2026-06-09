@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import { requireAuth } from '../auth.js';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 const router = express.Router();
 const attachmentUpload = multer({
     storage: multer.memoryStorage(),

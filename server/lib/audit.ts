@@ -1,6 +1,5 @@
 // server/lib/audit.ts
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 /**
  * Canonical list of audit event types. Kept as a runtime array (not a

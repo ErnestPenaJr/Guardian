@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { Resend } from 'resend';
 import * as crypto from 'crypto';
 import { requireAuth } from '../auth.js';
 import { isAdmin } from '../middleware/isAdmin.js';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 const router = express.Router();
 // Initialize Resend client
 const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.SMTP_PASSWORD;

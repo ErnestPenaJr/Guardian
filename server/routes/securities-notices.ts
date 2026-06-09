@@ -17,7 +17,6 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { writeAudit } from '../lib/audit.js';
@@ -28,7 +27,7 @@ import {
 } from '../lib/securitiesNoticeMail.js';
 
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 // ---------- Schemas ----------
 

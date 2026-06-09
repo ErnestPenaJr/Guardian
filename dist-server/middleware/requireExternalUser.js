@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { forbid } from '../lib/forbid.js';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 export async function requireExternalUser(req, res, next) {
     try {
         const u = req.user;

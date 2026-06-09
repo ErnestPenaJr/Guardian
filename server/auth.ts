@@ -1,4 +1,3 @@
-import { PrismaClient } from '@prisma/client';
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import { Strategy as LocalStrategy } from 'passport-local';
@@ -6,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
-const prisma = new PrismaClient();
+import prisma from "./prisma-client.js";
 
 // JWT secret key - should be in environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'guardian-jwt-secret-key';

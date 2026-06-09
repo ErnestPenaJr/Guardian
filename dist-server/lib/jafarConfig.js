@@ -1,6 +1,5 @@
 // server/lib/jafarConfig.ts
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 let cache = null;
 const TTL_MS = 30000;
 export async function getJafarConfig(key) {

@@ -1,5 +1,4 @@
 import express from "express";
-import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requireAuth } from "../auth.js";
 import { Resend } from "resend";
@@ -25,7 +24,7 @@ const upload = multer({
 import { Parser } from "json2csv";
 
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 /** Strip dangerous HTML tags (script, iframe, object, embed, form) from notice body before emailing */
 function sanitizeHtmlForEmail(html: string): string {

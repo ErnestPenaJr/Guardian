@@ -10,9 +10,8 @@
 // All helpers are best-effort: failures are caught and logged, never thrown.
 // Callers should treat email send failures as non-blocking — the audit row and
 // the workflow state transition are the system of record.
-import { PrismaClient } from '@prisma/client';
 import { Resend } from 'resend';
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 const RESEND_API_KEY = process.env.SMTP_PASSWORD; // matches other route files
 const EMAIL_FROM = process.env.EMAIL_FROM || 'support@shieldlytics.com';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';

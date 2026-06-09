@@ -1,8 +1,7 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { isManager, filterToManagerGroup } from '../middleware/isManager.js';
 const router = express.Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 // Get all requests for manager's group
 router.get('/requests/group', isManager, filterToManagerGroup, async (req, res) => {
     try {

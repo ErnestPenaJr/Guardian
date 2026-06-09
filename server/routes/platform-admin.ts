@@ -6,7 +6,6 @@
 // row (COMPANY_ID = null, EVENT_TYPE starts with `JAFAR_`).
 import { Router } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 import { requireJafar } from '../middleware/requireJafar.js';
 import {
@@ -18,7 +17,7 @@ import {
 import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 router.use(requireAuth, requireJafar);
 

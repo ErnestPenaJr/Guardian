@@ -13,14 +13,13 @@
 //   caller's company. 404 when none configured.
 import { Router } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { requireAuth } from '../auth.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { scanForPII } from '../lib/piiGuard.js';
 import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
-const prisma = new PrismaClient();
+import prisma from "../prisma-client.js";
 
 const FraudType = z.enum(['SECURITIES_MANIPULATION', 'ATO', 'CHECK_FRAUD', 'WIRE_FRAUD']);
 
