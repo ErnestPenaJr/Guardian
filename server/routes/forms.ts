@@ -2,6 +2,8 @@ import express from 'express';
 import { z } from 'zod';
 import { getLockedFields } from '../lib/jafarConfig.js';
 import { writeAudit } from '../lib/audit.js';
+import { requireAuth } from '../auth.js';
+import { requireJafar } from '../middleware/requireJafar.js';
 
 import prisma from "../prisma-client.js";
 const router = express.Router();
@@ -131,6 +133,25 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Error fetching forms:', error);
     res.status(500).json({ error: 'Failed to fetch forms' });
+  }
+});
+
+// Get the global form templates (COMPANY_ID and ORGANIZATION_ID both null).
+// JAFAR-only. MUST be declared before '/:id' so '/global' is not captured as a
+// form id (otherwise parseInt('global') -> NaN -> 500).
+router.get('/global', requireAuth, requireJafar, async (_req, res) => {
+  try {
+    const forms = await prisma.fORMS.findMany({
+      where: {
+        IS_DELETED: false,
+        COMPANY_ID: null,
+        ORGANIZATION_ID: null,
+      },
+    });
+    res.json(forms);
+  } catch (error) {
+    console.error('Error fetching global forms:', error);
+    res.status(500).json({ error: 'Failed to fetch global forms' });
   }
 });
 
